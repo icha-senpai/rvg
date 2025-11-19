@@ -101,8 +101,6 @@ This is the early skeleton phase, building the foundations before scaling.
 cd backend
 composer install
 php artisan migrate
-
-cd ../frontend
 npm install
 
 
