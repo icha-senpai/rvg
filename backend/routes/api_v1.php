@@ -24,7 +24,7 @@ use App\Helpers\ApiResponse;
 Route::get('/ping', function () {
     return response()->json([
         'status' => 'ok',
-        'msg' => 'N0VA is online Commander'
+        'msg' => 'Organization Platform is online Commander'
     ]);
 });
 
@@ -56,30 +56,6 @@ Route::post('/auth/token', function (Request $request) {
         'token' => $token,
         'user'  => $user,
     ]);
-});
-
-
-/*
-|--------------------------------------------------------------------------
-| USER ENDPOINTS (Rank 3+)
-|--------------------------------------------------------------------------
-|
-| Only Sergeants and higher can see user lists or profiles.
-|
-*/
-
-Route::middleware(['auth:sanctum', 'rank:3'])->group(function () {
-
-    // View user lists
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/verified', [UserController::class, 'verified']);
-    Route::get('/users/unverified', [UserController::class, 'unverified']);
-
-    // View a single member record
-    Route::get('/users/{discord_id}', [UserController::class, 'show']);
-
-    // Delete a user
-    Route::delete('/users/{discord_id}', [UserController::class, 'destroy']);
 });
 
 
