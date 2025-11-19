@@ -46,7 +46,7 @@ All PRs must:
 3. Use proper formatting and naming  
 4. Pass basic sanity (no debug dumps, no commented-out code blobs)
 
-The Commander (project lead) approves merges into `main`.
+Icha (project lead) approves merges into `main`.
 
 ---
 

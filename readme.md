@@ -91,7 +91,7 @@ This is the early skeleton phase, building the foundations before scaling.
 ---
 
 ## 👥 Contributors
-- **Commander Icha** — Lead architect & system designer  
+- **Icha** — Lead architect & system designer  
 - **Helper Devs** — Supporting devs assisting with CRUD, small features, WordPress integration, and documentation  
 
 ---
