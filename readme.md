@@ -1,6 +1,6 @@
 # RVG Platform — Backend + Frontend Monorepo
 
-This repository contains the unified development environment for the **Raven Guard Organization Platform**, built by Commander Icha.
+This repository contains the unified development environment for the **Raven Guard Organization Platform**, built by Icha.
 
 ## 🚀 Overview
 
