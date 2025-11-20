@@ -8,116 +8,225 @@ use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use App\Http\Requests\DiscordVerifyRequest;
 use App\Http\Requests\RsiVerifyRequest;
-
+use App\Traits\HandlesFailedAttempts;
+use App\Traits\LogsAuthEvents;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    use HandlesFailedAttempts;
+    use LogsAuthEvents;
+
     public function login(LoginRequest $request)
     {
-    $data = $request->validated();
+        $data = $request->validated();
+        $ip = $request->ip();
 
-    $user = \App\Models\User::where('email', $data['email'])->first();
+        // 1. Check lockout
+        if ($locked = $this->isLockedOut('login', null, $ip)) {
+            $this->logAuthEvent('login.locked', null, [
+                'ip' => $ip,
+                'locked_until' => $locked
+            ]);
 
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Too many failed login attempts.',
+                'locked_until' => $locked,
+            ], 429);
+        }
+
+        // 2. Attempt login
+        $user = \App\Models\User::where('email', $data['email'])->first();
+
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            $this->recordFailure('login', null, $ip);
+            $this->logAuthEvent('login.failed', $user?->id, [
+                'email' => $data['email'],
+                'ip' => $ip
+            ]);
+
+            return response()->json([
+                'message' => 'Invalid credentials.',
+            ], 401);
+        }
+
+        // 3. On success → clear failures
+        $this->clearFailures('login', null, $ip);
+
+        // 4. Check account status
+        if ($user->global_status !== 'active') {
+            $this->logAuthEvent('login.rejected_inactive', $user->id, [
+                'global_status' => $user->global_status
+            ]);
+
+            return response()->json([
+                'message' => 'Account not active.',
+            ], 403);
+        }
+
+        // 5. Issue token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        $this->logAuthEvent('login.success', $user->id, [
+            'ip' => $ip
+        ]);
+
         return response()->json([
-            'message' => 'Invalid credentials.',
-        ], 401);
+            'message' => 'Login successful.',
+            'user'    => $user,
+            'token'   => $token,
+            'token_type' => 'Bearer',
+        ]);
     }
 
-    // Optional: ensure user is globally active
-    if ($user->global_status !== 'active') {
-        return response()->json([
-            'message' => 'Account not active.',
-        ], 403);
-    }
-
-    // Create new Sanctum token for this login session (48h expiry auto-applies)
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return response()->json([
-        'message' => 'Login successful.',
-        'user' => $user,
-        'token' => $token,
-        'token_type' => 'Bearer',
-    ]);
-    }
 
     public function verifyDiscord(DiscordVerifyRequest $request)
     {
-    $data = $request->validated();
+        $data = $request->validated();
+        $ip = $request->ip();
+        $user = auth()->user();
 
-    // Make sure this Discord ID is not already linked
-    $existing = \App\Models\User::where('discord_id', $data['discord_id'])->first();
-    if ($existing) {
+        if (!$user) {
+            $this->logAuthEvent('discord.verify.unauthenticated', null, ['ip' => $ip]);
+
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        // 1. Check lockout
+        if ($locked = $this->isLockedOut('discord-verify', $user->id, $ip)) {
+            $this->logAuthEvent('discord.verify.locked', $user->id, [
+                'ip' => $ip,
+                'locked_until' => $locked
+            ]);
+
+            return response()->json([
+                'message' => 'Too many failed attempts.',
+                'locked_until' => $locked,
+            ], 429);
+        }
+
+        // 2. Make sure Discord ID is unique
+        $existing = \App\Models\User::where('discord_id', $data['discord_id'])->first();
+        if ($existing) {
+            $this->recordFailure('discord-verify', $user->id, $ip);
+
+            $this->logAuthEvent('discord.verify.failed_duplicate', $user->id, [
+                'ip' => $ip,
+                'discord_id' => $data['discord_id']
+            ]);
+
+            return response()->json([
+                'message' => 'Discord account already linked.',
+            ], 409);
+        }
+
+        // 3. Save Discord link
+        $user->discord_id = $data['discord_id'];
+        $user->discord_username = $data['username'];
+        $user->save();
+
+        // 4. Success → clear failures
+        $this->clearFailures('discord-verify', $user->id, $ip);
+
+        $this->logAuthEvent('discord.verify.success', $user->id, [
+            'ip' => $ip,
+            'discord_id' => $data['discord_id']
+        ]);
+
         return response()->json([
-            'message' => 'Discord account already linked.',
-        ], 409);
+            'message' => 'Discord verification successful.',
+        ]);
     }
 
-    $user = auth()->user(); // Whoever is authenticated
-
-    if (!$user) {
-        return response()->json([
-            'message' => 'Unauthenticated.',
-        ], 401);
-    }
-
-    // Save Discord info to the user record
-    $user->discord_id = $data['discord_id'];
-    $user->discord_username = $data['username'];
-    $user->save();
-
-    return response()->json([
-        'message' => 'Discord verified successfully.',
-    ]);
-    }
 
     public function verifyRsi(RsiVerifyRequest $request)
     {
-    $data = $request->validated();
+        $data = $request->validated();
+        $ip = $request->ip();
+        $user = auth()->user();
 
-    // Ensure handle not used by another user
-    $existing = \App\Models\User::where('rsi_handle', $data['rsi_handle'])->first();
-    if ($existing) {
+        if (!$user) {
+            $this->logAuthEvent('rsi.verify.unauthenticated', null, ['ip' => $ip]);
+
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        // 1. Check lockout
+        if ($locked = $this->isLockedOut('rsi-verify', $user->id, $ip)) {
+            $this->logAuthEvent('rsi.verify.locked', $user->id, [
+                'ip' => $ip,
+                'locked_until' => $locked
+            ]);
+
+            return response()->json([
+                'message' => 'Too many failed attempts.',
+                'locked_until' => $locked,
+            ], 429);
+        }
+
+        // 2. Make sure RSI handle is unique
+        $existing = \App\Models\User::where('rsi_handle', $data['rsi_handle'])->first();
+        if ($existing) {
+            $this->recordFailure('rsi-verify', $user->id, $ip);
+
+            $this->logAuthEvent('rsi.verify.failed_duplicate', $user->id, [
+                'ip' => $ip,
+                'rsi_handle' => $data['rsi_handle']
+            ]);
+
+            return response()->json([
+                'message' => 'RSI handle already linked.',
+            ], 409);
+        }
+
+        // 3. Save RSI handle
+        $user->rsi_handle = $data['rsi_handle'];
+        $user->save();
+
+        // 4. Success → clear failures
+        $this->clearFailures('rsi-verify', $user->id, $ip);
+
+        $this->logAuthEvent('rsi.verify.success', $user->id, [
+            'ip' => $ip,
+            'rsi_handle' => $data['rsi_handle']
+        ]);
+
         return response()->json([
-            'message' => 'RSI handle already linked.',
-        ], 409);
+            'message' => 'RSI verification successful.',
+        ]);
     }
 
-    $user = auth()->user();
-
-    if (!$user) {
-        return response()->json([
-            'message' => 'Unauthenticated.',
-        ], 401);
-    }
-
-    // Save RSI info
-    $user->rsi_handle = $data['rsi_handle'];
-    $user->save();
-
-    return response()->json([
-        'message' => 'RSI verification successful.',
-    ]);
-    }
 
     public function logout(Request $request)
     {
-        $user = $request->user();
+        $rawToken = $request->bearerToken();
 
-        // If no user is authenticated (invalid/expired token)
-        if (!$user) {
+        if (!$rawToken) {
+            $this->logAuthEvent('logout.no_token', null);
             return response()->json([
                 'message' => 'Unauthenticated.'
             ], 401);
         }
 
-        $currentToken = $user->currentAccessToken();
+        $pat = PersonalAccessToken::findToken($rawToken);
 
-        // Token exists but isn't the one used by this request or is already deleted
-        if ($currentToken) {
-            $currentToken->delete();
+        if (!$pat) {
+            $this->logAuthEvent('logout.invalid_token', null);
+            return response()->json([
+                'message' => 'Unauthenticated.'
+            ], 401);
         }
+
+        $user = $pat->tokenable;
+        $userId = $user?->id;
+
+        $pat->delete();
+
+        $this->logAuthEvent('logout.success', $userId);
 
         return response()->json([
             'message' => 'Logged out successfully.',
@@ -127,39 +236,40 @@ class AuthController extends Controller
 
     public function refresh(Request $request)
     {
-        // Extract the Bearer token string
         $rawToken = $request->bearerToken();
 
         if (!$rawToken) {
+            $this->logAuthEvent('refresh.no_token', null);
             return response()->json([
                 'message' => 'Unauthenticated.'
             ], 401);
         }
 
-        // Look up the token in the Sanctum personal_access_tokens table
         $pat = PersonalAccessToken::findToken($rawToken);
 
-        // If no token row found, or it's expired, reject it
         if (!$pat || ($pat->expires_at && $pat->expires_at->isPast())) {
+            $this->logAuthEvent('refresh.invalid_or_expired', null);
             return response()->json([
                 'message' => 'Unauthenticated.'
             ], 401);
         }
 
-        // Get the user associated with this token
         $user = $pat->tokenable;
 
         if (!$user) {
+            $this->logAuthEvent('refresh.no_user_for_token', null);
             return response()->json([
                 'message' => 'Unauthenticated.'
             ], 401);
         }
 
-        // Delete the old token used in this request
+        $userId = $user->id;
+
         $pat->delete();
 
-        // Issue a fresh 48-hour token
         $newToken = $user->createToken('auth_token')->plainTextToken;
+
+        $this->logAuthEvent('refresh.success', $userId);
 
         return response()->json([
             'message' => 'Token refreshed successfully.',
