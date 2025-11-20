@@ -12,15 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('rank')->default('legionnaire')->after('discord_avatar');
-            $table->integer('rank_level')->default(1)->after('rank');
+            //
+            $table->string('global_status')->default('pending');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['rank', 'rank_level']);
+            //
+            $table->dropColumn('global_status');
         });
     }
 };

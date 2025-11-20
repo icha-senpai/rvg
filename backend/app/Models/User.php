@@ -36,6 +36,7 @@ class User extends Authenticatable
         // Verification fields
         'verification_code',
         'verification_expires_at',
+        'global_status',
     ];
 
     /**
@@ -89,4 +90,19 @@ class User extends Authenticatable
             6 => 'Grand Admiral',
         ][$this->rank_level] ?? 'Unknown';
     }
+    
+    public function companyMembers()
+    {
+        return $this->hasMany(CompanyMember::class);
+    }
+    
+    public function squadronMembers()
+    {
+        return $this->hasMany(SquadronMember::class);
+    }
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_BANNED = 'banned';
+
+
 }
