@@ -22,10 +22,7 @@ Icon?
 ########################################
 # 📦  DEPENDENCIES (REBUILDABLE)
 ########################################
-vendor/
-node_modules/
-/**/vendor/
-/**/node_modules/
+
 
 ########################################
 # 🗑️  CACHE / LOGS / TEMP FILES
