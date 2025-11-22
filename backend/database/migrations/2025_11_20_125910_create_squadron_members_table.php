@@ -13,9 +13,22 @@ return new class extends Migration
     {
         Schema::create('squadron_members', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('squadron_id')->constrained('squadrons')->onDelete('cascade');
+
+            $table->foreignId('user_id')
+                ->constrained()
+                ->onDelete('cascade');
+
+            $table->foreignId('squadron_id')
+                ->constrained('squadrons')
+                ->onDelete('cascade');
+
+            // Same idea as company_members: track state of the membership
+            $table->string('membership_status')->default('pending'); // pending, active, banned
+
             $table->timestamp('joined_at')->nullable();
+            $table->timestamp('left_at')->nullable();
+            $table->timestamp('removed_at')->nullable();
+
             $table->timestamps();
         });
     }

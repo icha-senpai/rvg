@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Squadron extends Model
 {
@@ -12,7 +12,12 @@ class Squadron extends Model
     protected $fillable = [
         'name',
         'slug',
+        'status',
     ];
+
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_DISBANDED = 'disbanded';
 
     public function members()
     {

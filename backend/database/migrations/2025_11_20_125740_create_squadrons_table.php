@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('slug')->unique();
-            $table->timestamps();
+            // active = in use, inactive = temporarily shelved, disbanded = historical
+            $table->string('status')->default('active');
+            $table->timestamps(); // created_at, updated_at
         });
     }
 

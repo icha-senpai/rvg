@@ -91,15 +91,13 @@ class User extends Authenticatable
         ][$this->rank_level] ?? 'Unknown';
     }
     
-    public function companyMembers()
+    public function squadron()
     {
-        return $this->hasMany(CompanyMember::class);
+        // Convenience: the "main" squadron for a user, if you treat them as having 0–1
+        return $this->hasOne(SquadronMember::class)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE);
     }
-    
-    public function squadronMembers()
-    {
-        return $this->hasMany(SquadronMember::class);
-    }
+
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_BANNED = 'banned';
