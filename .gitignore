@@ -23,7 +23,8 @@ Icon?
 # 📦  DEPENDENCIES (REBUILDABLE)
 ########################################
 
-
+/wordpress/wp-content/plugins
+/wordpress/wp-content/themes
 ########################################
 # 🗑️  CACHE / LOGS / TEMP FILES
 ########################################
