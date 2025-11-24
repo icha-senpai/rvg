@@ -7,12 +7,64 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
+use App\Models\Role;
+use App\Models\Permission;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+
+    /**
+     * Roles attached to this user.
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class)
+            ->withTimestamps();
+    }
+
+    /**
+     * All permissions granted to this user through roles.
+     */
+    public function permissions()
+    {
+        return Permission::whereHas('roles', function ($query) {
+            $query->whereIn('roles.id', $this->roles->pluck('id'));
+        })->get();
+    }
+
+    /**
+     * Check if user has a role by slug.
+     */
+    public function hasRole(string $roleSlug): bool
+    {
+        return $this->roles->contains('slug', $roleSlug);
+    }
+
+    /**
+     * Check if user has a permission by slug.
+     */
+    public function hasPermission(string $permissionSlug): bool
+    {
+        // Director is god mode, shortcut
+        if ($this->isDirector()) {
+            return true;
+        }
+
+        return $this->permissions()
+            ->contains('slug', $permissionSlug);
+    }
+
+    /**
+     * Convenience: is this user a Director.
+     */
+    public function isDirector(): bool
+    {
+        return $this->hasRole('director');
+    }
 
     /**
      * The attributes that are mass assignable.

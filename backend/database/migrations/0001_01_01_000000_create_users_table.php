@@ -22,7 +22,7 @@ return new class extends Migration
             $table->rememberToken();
 
             // Discord Data
-            $table->string('discord_id')->unique();
+            $table->string('discord_id')->nullable();
             $table->string('discord_name')->nullable();
             $table->string('discord_avatar')->nullable();
 

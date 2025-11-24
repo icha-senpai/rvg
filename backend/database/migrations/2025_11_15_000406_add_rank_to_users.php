@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('rank')->default('legionnaire')->after('discord_avatar');
+            $table->string('rank')->default('member')->after('discord_avatar');
             $table->integer('rank_level')->default(1)->after('rank');
         });
     }

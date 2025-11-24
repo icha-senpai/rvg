@@ -11,6 +11,12 @@ use App\Http\Controllers\Api\V1\DiscordAuthController;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\SquadronController;
+use App\Http\Controllers\Api\V1\SquadronMemberController;
+use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\EventMemberController;
+use App\Http\Controllers\Api\V1\MissionController;
+use App\Http\Controllers\Api\V1\MissionMemberController;
 
 /*
 |--------------------------------------------------------------------------
@@ -142,4 +148,63 @@ Route::middleware(['auth:sanctum'])->group(function () {
             return ['warning' => 'System obliterated (simulation only)'];
         });
     });
+
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // Squadron CRUD
+        Route::get('/squadrons', [SquadronController::class, 'index']);
+        Route::post('/squadrons', [SquadronController::class, 'store']);
+        Route::get('/squadrons/{squadron}', [SquadronController::class, 'show']);
+        Route::put('/squadrons/{squadron}', [SquadronController::class, 'update']);
+        Route::delete('/squadrons/{squadron}', [SquadronController::class, 'destroy']);
+
+        // Squadron members
+        Route::get('/squadrons/{squadron}/members', [SquadronController::class, 'members']);
+
+        // User join/leave
+        Route::post('/squadrons/{squadron}/join', [SquadronMemberController::class, 'join']);
+        Route::post('/squadrons/{squadron}/leave', [SquadronMemberController::class, 'leave']);
+
+        // Admin manage members
+        Route::post('/squadrons/{squadron}/members', [SquadronMemberController::class, 'store']);
+        Route::put('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'update']);
+        Route::delete('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'destroy']);
+
+       // List events
+        Route::get('/events', [EventController::class, 'index']);
+        Route::get('/events/{event}', [EventController::class, 'show']);
+
+        // Create event under squadron
+        Route::post('/squadrons/{squadron}/events', [EventController::class, 'store']);
+
+        // Update / delete event
+        Route::put('/events/{event}', [EventController::class, 'update']);
+        Route::delete('/events/{event}', [EventController::class, 'destroy']);
+
+        // Members - join/leave
+        Route::post('/events/{event}/join', [EventMemberController::class, 'join']);
+        Route::post('/events/{event}/leave', [EventMemberController::class, 'leave']);
+
+        // Leadership actions
+        Route::put('/events/{event}/members/{member}/role', [EventMemberController::class, 'updateRole']);
+        Route::put('/events/{event}/members/{member}/stats', [EventMemberController::class, 'updateStats']);
+
+        // List / show missions
+        Route::get('/missions', [MissionController::class, 'index']);
+        Route::get('/missions/{mission}', [MissionController::class, 'show']);
+
+        // Create / update / delete missions
+        Route::post('/missions', [MissionController::class, 'store']);
+        Route::put('/missions/{mission}', [MissionController::class, 'update']);
+        Route::delete('/missions/{mission}', [MissionController::class, 'destroy']);
+
+        // Member join/leave
+        Route::post('/missions/{mission}/join', [MissionMemberController::class, 'join']);
+        Route::post('/missions/{mission}/leave', [MissionMemberController::class, 'leave']);
+
+        // Leadership management
+        Route::put('/missions/{mission}/members/{member}/slot', [MissionMemberController::class, 'updateSlot']);
+        Route::put('/missions/{mission}/members/{member}/stats', [MissionMemberController::class, 'updateStats']);
+    });
+
 });
