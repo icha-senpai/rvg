@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\v1;
 use Illuminate\Http\Request;
 use App\Models\Mission;
 use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class MissionController extends Controller
 {
+    use AuthorizesRequests;
     public function index()
     {
         $this->authorize('viewAny', Mission::class);

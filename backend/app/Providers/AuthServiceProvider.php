@@ -6,7 +6,12 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use Illuminate\Support\Facades\Gate;
 
 use App\Models\Squadron;
+use App\Models\Event;
+use App\Models\Mission;
 use App\Policies\SquadronPolicy;
+use App\Policies\EventPolicy;
+use App\Policies\MissionPolicy;
+
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -17,6 +22,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Squadron::class => SquadronPolicy::class,
+        Event::class => EventPolicy::class,
+        Mission::class => MissionPolicy::class,
+
     ];
 
     /**

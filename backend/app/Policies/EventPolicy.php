@@ -4,12 +4,15 @@ namespace App\Policies;
 
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 class EventPolicy
 {
     private function directorOverride(User $user)
     {
-        return $user->isDirector();
+        return $user->isDirector()
+            ? Response::allow()
+            : Response::deny('Not authorized.');
     }
 
     private function squadronLeadership(User $user, Event $event)

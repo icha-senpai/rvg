@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\EventMember;
 use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class EventMemberController extends Controller
 {
+    use AuthorizesRequests;
     public function join(Event $event)
     {
         $this->authorize('view', $event);
