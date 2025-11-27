@@ -153,5 +153,32 @@ class User extends Authenticatable
     public const STATUS_ACTIVE = 'active';
     public const STATUS_BANNED = 'banned';
 
+    /**
+     * Check if the user has ANY of the given role slugs.
+     *
+     * Example: $user->hasAnyRole(['lieutenant', 'commander_squadron'])
+     */
+    public function hasAnyRole(array $slugs): bool
+    {
+        return $this->roles->pluck('slug')->intersect($slugs)->isNotEmpty();
+    }
+
+    /**
+     * Check if the user has ANY of the given permissions.
+     *
+     * Example: $user->hasAnyPermission(['event.host.small', 'event.host.medium'])
+     */
+    public function hasAnyPermission(array $slugs): bool
+    {
+        if ($this->isDirector()) {
+            return true;
+        }
+
+        return $this->permissions()
+        ->pluck('slug')
+        ->intersect($slugs)
+        ->isNotEmpty();
+    }
+
 
 }

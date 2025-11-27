@@ -7,75 +7,30 @@ use App\Models\User;
 
 class EventPolicy
 {
-    /**
-     * Directors: org-level authority.
-     * Uses your existing User::isDirector() helper if present.
-     */
-    private function isDirector(User $user): bool
-    {
-        if (method_exists($user, 'isDirector')) {
-            return $user->isDirector();
-        }
-
-        return false;
-    }
-
-    /**
-     * Squadron leadership for a specific event.
-     * Uses the "main" active squadron membership on the user.
-     */
-    private function squadronLeadership(User $user, Event $event): bool
-    {
-        // This assumes you have a `squadron()` relation on User
-        // that returns the active SquadronMember row.
-        $member = $user->squadron;
-
-        if (!$member) {
-            return false;
-        }
-
-        if ($member->squadron_id !== $event->squadron_id) {
-            return false;
-        }
-
-        // Adjust this list if your rank names differ
-        $leadershipRanks = [
-            'lieutenant',
-            'commander',
-            'wing_commander',
-            'admiral',
-            'grand_admiral',
-        ];
-
-        return in_array($member->rank ?? null, $leadershipRanks, true);
-    }
-
     /* ------------------------------
        VIEW
        ------------------------------*/
 
     public function viewAny(User $user): bool
     {
-        // For now, let any authenticated user see the event list.
+        // Any authenticated member can see the event list
         return true;
     }
 
     public function view(User $user, Event $event): bool
     {
         // Directors see everything
-        if ($this->isDirector($user)) {
+        if ($user->hasRole('director')) {
             return true;
         }
 
-        // Open events are visible to all members
+        // Open events visible to all
         if ($event->visibility === 'open') {
             return true;
         }
 
-        // Otherwise, must belong to the same squadron
-        $member = $user->squadron;
-
-        return $member && $member->squadron_id === $event->squadron_id;
+        // Otherwise must match squadron
+        return $user->squadron?->squadron_id === $event->squadron_id;
     }
 
     /* ------------------------------
@@ -84,27 +39,7 @@ class EventPolicy
 
     public function create(User $user): bool
     {
-        // Directors can always create events
-        if ($this->isDirector($user)) {
-            return true;
-        }
-
-        // Allow Squadron leadership to create events
-        $member = $user->squadron;
-
-        if (!$member) {
-            return false;
-        }
-
-        $creatorRanks = [
-            'lieutenant',
-            'commander',
-            'wing_commander',
-            'admiral',
-            'grand_admiral',
-        ];
-
-        return in_array($member->rank ?? null, $creatorRanks, true);
+        return $user->hasPermission('event.create');
     }
 
     /* ------------------------------
@@ -114,17 +49,17 @@ class EventPolicy
     public function update(User $user, Event $event): bool
     {
         // Directors override
-        if ($this->isDirector($user)) {
+        if ($user->hasRole('director')) {
             return true;
         }
 
-        // Event creator always allowed
+        // Creator override — can always fix their own event
         if ($user->id === $event->created_by) {
             return true;
         }
 
-        // Squadron leadership can edit
-        return $this->squadronLeadership($user, $event);
+        // Otherwise need event.manage permission
+        return $user->hasPermission('event.manage');
     }
 
     public function delete(User $user, Event $event): bool
@@ -139,12 +74,16 @@ class EventPolicy
     public function manageMembers(User $user, Event $event): bool
     {
         // Directors override
-        if ($this->isDirector($user)) {
+        if ($user->hasRole('director')) {
             return true;
         }
 
-        // Squadron leadership
-        return $this->squadronLeadership($user, $event);
+        // Creator override
+        if ($user->id === $event->created_by) {
+            return true;
+        }
+
+        return $user->hasPermission('event.manage');
     }
 
     public function adjustStats(User $user, Event $event): bool
@@ -153,22 +92,45 @@ class EventPolicy
     }
 
     /* ------------------------------
-       MANAGE (status, roles, etc.)
+       HOSTING (tiered)
+       ------------------------------*/
+
+    public function hostSmall(User $user): bool
+    {
+        return $user->hasPermission('event.host.small');
+    }
+
+    public function hostMedium(User $user): bool
+    {
+        return $user->hasPermission('event.host.medium');
+    }
+
+    public function hostLarge(User $user): bool
+    {
+        return $user->hasPermission('event.host.large');
+    }
+
+    public function hostOrg(User $user): bool
+    {
+        return $user->hasPermission('event.host.org');
+    }
+
+    /* ------------------------------
+       MANAGE (status, visibility, etc.)
        ------------------------------*/
 
     public function manage(User $user, Event $event): bool
     {
         // Directors override
-        if ($this->isDirector($user)) {
+        if ($user->hasRole('director')) {
             return true;
         }
 
-        // Creator can manage their own event
+        // Creator override
         if ($user->id === $event->created_by) {
             return true;
         }
 
-        // Squadron leadership can manage
-        return $this->squadronLeadership($user, $event);
+        return $user->hasPermission('event.manage');
     }
 }

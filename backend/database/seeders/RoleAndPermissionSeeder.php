@@ -12,11 +12,11 @@ class RoleAndPermissionSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+
             /**
-             * 1. CORE ROLES
-             *
-             * We keep your existing 'director' and 'member',
-             * and add hybrid RBAC roles as slugs.
+             * -----------------------------------------
+             * 1. ROLES
+             * -----------------------------------------
              */
             $roles = [
                 [
@@ -31,8 +31,6 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Default member permissions.',
                     'is_system'   => true,
                 ],
-
-                // Hybrid RBAC roles (rank + function)
                 [
                     'name'        => 'Lieutenant',
                     'slug'        => 'lieutenant',
@@ -69,8 +67,6 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Org-wide strategic command.',
                     'is_system'   => false,
                 ],
-
-                // Analyst / Viewer roles
                 [
                     'name'        => 'Viewer',
                     'slug'        => 'viewer',
@@ -83,8 +79,6 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Analytics and doctrine: evaluates missions and ops.',
                     'is_system'   => false,
                 ],
-
-                // Tech / infrastructure
                 [
                     'name'        => 'Technical Director',
                     'slug'        => 'tech_director',
@@ -108,13 +102,13 @@ class RoleAndPermissionSeeder extends Seeder
             }
 
             /**
-             * 2. CORE PERMISSIONS
-             *
-             * We keep your original concepts (squadron.view, event.create, etc)
-             * and layer hybrid / tiered permissions on top.
+             * -----------------------------------------
+             * 2. PERMISSIONS
+             * -----------------------------------------
              */
             $permissions = [
-                // Squadron management
+
+                // Squadron
                 [
                     'name'        => 'View squadrons',
                     'slug'        => 'squadron.view',
@@ -131,7 +125,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Add or remove members from squadrons.',
                 ],
 
-                // Events (generic)
+                // Events
                 [
                     'name'        => 'Create events',
                     'slug'        => 'event.create',
@@ -143,7 +137,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Edit and delete events.',
                 ],
 
-                // Event tier hosting (hybrid RBAC)
+                // Event host tiers
                 [
                     'name'        => 'Host small events',
                     'slug'        => 'event.host.small',
@@ -152,12 +146,12 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Host medium events',
                     'slug'        => 'event.host.medium',
-                    'description' => 'Host medium events across multiple roles or small multi-squad.',
+                    'description' => 'Host medium multi-squad or domain events.',
                 ],
                 [
                     'name'        => 'Host large events',
                     'slug'        => 'event.host.large',
-                    'description' => 'Host large cross-squad or division-wide operations.',
+                    'description' => 'Host division-wide or large-scale events.',
                 ],
                 [
                     'name'        => 'Host org-wide events',
@@ -165,7 +159,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Host org-wide strategic operations.',
                 ],
 
-                // Missions (generic)
+                // Missions
                 [
                     'name'        => 'Create missions',
                     'slug'        => 'mission.create',
@@ -177,7 +171,21 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Edit and delete missions.',
                 ],
 
-                // User & system
+                // NEW — Mission view
+                [
+                    'name'        => 'View missions',
+                    'slug'        => 'mission.view',
+                    'description' => 'View mission listings and details.',
+                ],
+
+                // NEW — Mission member management
+                [
+                    'name'        => 'Manage mission members',
+                    'slug'        => 'mission.members.manage',
+                    'description' => 'Add/remove mission members and adjust attendance.',
+                ],
+
+                // Users / System
                 [
                     'name'        => 'View users',
                     'slug'        => 'user.view',
@@ -186,7 +194,7 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Manage users',
                     'slug'        => 'user.manage',
-                    'description' => 'Edit user data, roles, and status.',
+                    'description' => 'Manage user data, roles, and status.',
                 ],
                 [
                     'name'        => 'Manage roles',
@@ -196,7 +204,7 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Manage permissions',
                     'slug'        => 'system.manage_permissions',
-                    'description' => 'Create and assign permissions.',
+                    'description' => 'Assign permissions to roles.',
                 ],
                 [
                     'name'        => 'Manage system settings',
@@ -204,28 +212,28 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Modify core system settings.',
                 ],
 
-                // Domain / division management
+                // Domain / Division
                 [
                     'name'        => 'Manage domain resources',
                     'slug'        => 'domain.manage.resources',
-                    'description' => 'Manage resources for an assigned division or domain.',
+                    'description' => 'Manage resources for a domain.',
                 ],
                 [
                     'name'        => 'Manage domain events',
                     'slug'        => 'domain.manage.events',
-                    'description' => 'Create and manage events for an assigned division or domain.',
+                    'description' => 'Create/manage domain-level events.',
                 ],
 
-                // Analytics / Mission Commander
+                // Analytics
                 [
                     'name'        => 'View analytics',
                     'slug'        => 'analytics.view',
-                    'description' => 'View org-level analytics dashboards.',
+                    'description' => 'View analytics dashboards.',
                 ],
                 [
-                    'name'        => 'Analyze missions and operations',
+                    'name'        => 'Analyze missions',
                     'slug'        => 'analytics.mission',
-                    'description' => 'Review mission data and generate doctrine reports.',
+                    'description' => 'Analyze mission data and produce doctrine.',
                 ],
             ];
 
@@ -238,160 +246,147 @@ class RoleAndPermissionSeeder extends Seeder
             }
 
             /**
-             * 3. ASSIGN PERMISSIONS TO ROLES
-             *
-             * Director: gets everything.
-             * Member: base participation.
-             * Others: carefully scoped packs.
+             * -----------------------------------------
+             * 3. ROLE → PERMISSION MAPPING
+             * -----------------------------------------
              */
 
-            // Director = full god mode
-            $director = $roleModels['director'];
-            $director->permissions()->sync(
+            // Director
+            $roleModels['director']->permissions()->sync(
                 collect($permissionModels)->pluck('id')->all()
             );
 
-            // Member: basic view + can propose events/missions
-            $member = $roleModels['member'];
-            $member->permissions()->sync([
+            // Member
+            $roleModels['member']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['event.create']->id,
                 $permissionModels['mission.create']->id,
             ]);
 
-            // Viewer: read-only global view + analytics view
-            if (isset($roleModels['viewer'])) {
-                $roleModels['viewer']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['user.view']->id,
-                    $permissionModels['event.create']->id,    // can propose
-                    $permissionModels['mission.create']->id,  // can propose
-                    $permissionModels['analytics.view']->id,
-                ]);
-            }
+            // Viewer
+            $roleModels['viewer']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['user.view']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['mission.create']->id,
+                $permissionModels['analytics.view']->id,
+            ]);
 
-            // Mission Commander: viewer + mission analytics
-            if (isset($roleModels['mission_commander'])) {
-                $roleModels['mission_commander']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['user.view']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['mission.create']->id,
-                    $permissionModels['analytics.view']->id,
-                    $permissionModels['analytics.mission']->id,
-                ]);
-            }
+            // Mission Commander
+            $roleModels['mission_commander']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['user.view']->id,
+                $permissionModels['analytics.view']->id,
+                $permissionModels['analytics.mission']->id,
+                $permissionModels['mission.view']->id,
+            ]);
 
-            // Lieutenant: small events + basic mission creation
-            if (isset($roleModels['lieutenant'])) {
-                $roleModels['lieutenant']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.host.small']->id,
-                    $permissionModels['mission.create']->id,
-                ]);
-            }
+            // Lieutenant
+            $roleModels['lieutenant']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.host.small']->id,
+                $permissionModels['mission.create']->id,
+                $permissionModels['mission.view']->id,
+            ]);
 
-            // Commander – Squadron (micro people manager)
-            if (isset($roleModels['commander_squadron'])) {
-                $roleModels['commander_squadron']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['squadron.manage']->id,
-                    $permissionModels['squadron.members.manage']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.host.small']->id,
-                    $permissionModels['event.host.medium']->id,
-                    $permissionModels['mission.create']->id,
-                    $permissionModels['mission.manage']->id,
-                ]);
-            }
+            // Commander – Squadron
+            $roleModels['commander_squadron']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['squadron.manage']->id,
+                $permissionModels['squadron.members.manage']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.host.small']->id,
+                $permissionModels['event.host.medium']->id,
+                $permissionModels['mission.create']->id,
+                $permissionModels['mission.manage']->id,
+                $permissionModels['mission.view']->id,
+                $permissionModels['mission.members.manage']->id,
+            ]);
 
-            // Commander – Staff (macro domain manager)
-            if (isset($roleModels['commander_staff'])) {
-                $roleModels['commander_staff']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.host.medium']->id,
-                    $permissionModels['event.host.large']->id,
-                    $permissionModels['domain.manage.resources']->id,
-                    $permissionModels['domain.manage.events']->id,
-                    $permissionModels['analytics.view']->id,
-                ]);
-            }
+            // Commander – Staff
+            $roleModels['commander_staff']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.host.medium']->id,
+                $permissionModels['event.host.large']->id,
+                $permissionModels['domain.manage.resources']->id,
+                $permissionModels['domain.manage.events']->id,
+                $permissionModels['analytics.view']->id,
+                $permissionModels['mission.view']->id,
+            ]);
 
-            // Wing Commander: multi-squad & larger events
-            if (isset($roleModels['wing_commander'])) {
-                $roleModels['wing_commander']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['squadron.manage']->id,
-                    $permissionModels['squadron.members.manage']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.host.medium']->id,
-                    $permissionModels['event.host.large']->id,
-                    $permissionModels['mission.manage']->id,
-                    $permissionModels['domain.manage.events']->id,
-                ]);
-            }
+            // Wing Commander
+            $roleModels['wing_commander']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['squadron.manage']->id,
+                $permissionModels['squadron.members.manage']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.host.medium']->id,
+                $permissionModels['event.host.large']->id,
+                $permissionModels['mission.manage']->id,
+                $permissionModels['domain.manage.events']->id,
+                $permissionModels['mission.view']->id,
+                $permissionModels['mission.members.manage']->id,
+            ]);
 
-            // Admiral: division-level control + large/org events
-            if (isset($roleModels['admiral'])) {
-                $roleModels['admiral']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.manage']->id,
-                    $permissionModels['event.host.large']->id,
-                    $permissionModels['event.host.org']->id,
-                    $permissionModels['mission.manage']->id,
-                    $permissionModels['user.view']->id,
-                    $permissionModels['domain.manage.resources']->id,
-                    $permissionModels['domain.manage.events']->id,
-                    $permissionModels['analytics.view']->id,
-                ]);
-            }
+            // Admiral
+            $roleModels['admiral']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.manage']->id,
+                $permissionModels['event.host.large']->id,
+                $permissionModels['event.host.org']->id,
+                $permissionModels['mission.manage']->id,
+                $permissionModels['mission.view']->id,
+                $permissionModels['mission.members.manage']->id,
+                $permissionModels['user.view']->id,
+                $permissionModels['domain.manage.resources']->id,
+                $permissionModels['domain.manage.events']->id,
+                $permissionModels['analytics.view']->id,
+            ]);
 
-            // Grand Admiral: near-director strategic level
-            if (isset($roleModels['grand_admiral'])) {
-                $roleModels['grand_admiral']->permissions()->sync([
-                    $permissionModels['squadron.view']->id,
-                    $permissionModels['squadron.manage']->id,
-                    $permissionModels['squadron.members.manage']->id,
-                    $permissionModels['event.create']->id,
-                    $permissionModels['event.manage']->id,
-                    $permissionModels['event.host.large']->id,
-                    $permissionModels['event.host.org']->id,
-                    $permissionModels['mission.manage']->id,
-                    $permissionModels['user.view']->id,
-                    $permissionModels['user.manage']->id,
-                    $permissionModels['domain.manage.resources']->id,
-                    $permissionModels['domain.manage.events']->id,
-                    $permissionModels['analytics.view']->id,
-                    $permissionModels['analytics.mission']->id,
-                    $permissionModels['system.manage_roles']->id,
-                    $permissionModels['system.manage_permissions']->id,
-                    $permissionModels['system.settings']->id,
-                ]);
-            }
+            // Grand Admiral
+            $roleModels['grand_admiral']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['squadron.manage']->id,
+                $permissionModels['squadron.members.manage']->id,
+                $permissionModels['event.create']->id,
+                $permissionModels['event.manage']->id,
+                $permissionModels['event.host.large']->id,
+                $permissionModels['event.host.org']->id,
+                $permissionModels['mission.manage']->id,
+                $permissionModels['mission.view']->id,
+                $permissionModels['mission.members.manage']->id,
+                $permissionModels['user.view']->id,
+                $permissionModels['user.manage']->id,
+                $permissionModels['domain.manage.resources']->id,
+                $permissionModels['domain.manage.events']->id,
+                $permissionModels['analytics.view']->id,
+                $permissionModels['analytics.mission']->id,
+                $permissionModels['system.manage_roles']->id,
+                $permissionModels['system.manage_permissions']->id,
+                $permissionModels['system.settings']->id,
+            ]);
 
-            // Tech Director: RBAC + system controls + analytics
-            if (isset($roleModels['tech_director'])) {
-                $roleModels['tech_director']->permissions()->sync([
-                    $permissionModels['user.view']->id,
-                    $permissionModels['user.manage']->id,
-                    $permissionModels['system.manage_roles']->id,
-                    $permissionModels['system.manage_permissions']->id,
-                    $permissionModels['system.settings']->id,
-                    $permissionModels['analytics.view']->id,
-                    $permissionModels['analytics.mission']->id,
-                ]);
-            }
+            // Tech Director
+            $roleModels['tech_director']->permissions()->sync([
+                $permissionModels['user.view']->id,
+                $permissionModels['user.manage']->id,
+                $permissionModels['system.manage_roles']->id,
+                $permissionModels['system.manage_permissions']->id,
+                $permissionModels['system.settings']->id,
+                $permissionModels['analytics.view']->id,
+                $permissionModels['analytics.mission']->id,
+                $permissionModels['mission.view']->id,
+            ]);
 
-            // Tech Team: partial visibility & support
-            if (isset($roleModels['tech_team'])) {
-                $roleModels['tech_team']->permissions()->sync([
-                    $permissionModels['user.view']->id,
-                    $permissionModels['analytics.view']->id,
-                ]);
-            }
+            // Tech Team
+            $roleModels['tech_team']->permissions()->sync([
+                $permissionModels['user.view']->id,
+                $permissionModels['analytics.view']->id,
+                $permissionModels['mission.view']->id,
+            ]);
         });
     }
 }
