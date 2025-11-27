@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\SquadronController;
 use App\Http\Controllers\Api\V1\SquadronMemberController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\EventMemberController;
+use App\Http\Controllers\Api\V1\EventRoleController;
 use App\Http\Controllers\Api\V1\MissionController;
 use App\Http\Controllers\Api\V1\MissionMemberController;
 
@@ -180,10 +181,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Update / delete event
         Route::put('/events/{event}', [EventController::class, 'update']);
         Route::delete('/events/{event}', [EventController::class, 'destroy']);
-
+        Route::post('/events/{event}/join-role', [EventMemberController::class, 'joinWithRole']);
+        Route::patch('/events/{event}/status', [EventController::class, 'updateStatus']);
         // Members - join/leave
         Route::post('/events/{event}/join', [EventMemberController::class, 'join']);
         Route::post('/events/{event}/leave', [EventMemberController::class, 'leave']);
+        Route::post('/events/{event}/roles', [EventRoleController::class, 'store']);
 
         // Leadership actions
         Route::put('/events/{event}/members/{member}/role', [EventMemberController::class, 'updateRole']);

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class EventController extends Controller
 {
     use AuthorizesRequests;
+
     public function index()
     {
         $this->authorize('viewAny', Event::class);
@@ -22,25 +23,54 @@ class EventController extends Controller
     {
         $this->authorize('view', $event);
 
-        return $event->load('members.user');
+        return $event->load([
+            'squadron',
+            'roles.participants.user',
+            'members.user',
+        ]);
     }
 
     public function store(Request $request, Squadron $squadron)
     {
         $this->authorize('create', Event::class);
 
+        // Correct validation + correct column names
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+
+            // Must match DB: starts_at / ends_at
             'starts_at' => 'required|date',
             'ends_at' => 'nullable|date|after:starts_at',
-            'visibility' => 'required|in:squadron,open',
+
+            'type' => 'required|in:operation,squadron_training,meeting,org_event',
+            'difficulty' => 'required|in:low,medium,high',
+            'operation_strictness' => 'required|in:casual,normal,strict,roleplay',
+
+            'icon' => 'nullable|string|max:20',
+            'image_url' => 'nullable|url',
+            'rsvp_deadline' => 'nullable|date|before:starts_at',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         $event = Event::create([
-            ...$data,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'starts_at' => $data['starts_at'],
+            'ends_at' => $data['ends_at'] ?? null,
+            'type' => $data['type'],
+
+            'difficulty' => $data['difficulty'],
+            'operation_strictness' => $data['operation_strictness'],
+            'icon' => $data['icon'] ?? null,
+            'image_url' => $data['image_url'] ?? null,
+            'rsvp_deadline' => $data['rsvp_deadline'] ?? null,
+            'notes' => $data['notes'] ?? null,
+
             'squadron_id' => $squadron->id,
             'created_by' => auth()->id(),
+
+            'status' => 'draft',
         ]);
 
         return response()->json($event, 201);
@@ -50,14 +80,26 @@ class EventController extends Controller
     {
         $this->authorize('update', $event);
 
-        $event->update($request->validate([
+        $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
+
             'starts_at' => 'sometimes|date',
-            'ends_at' => 'sometimes|date',
-            'visibility' => 'sometimes|in:squadron,open',
-            'status' => 'sometimes|in:scheduled,active,completed,cancelled',
-        ]));
+            'ends_at' => 'sometimes|date|after:starts_at',
+
+            'type' => 'sometimes|in:operation,squadron_training,meeting,org_event',
+            'difficulty' => 'sometimes|in:low,medium,high',
+            'operation_strictness' => 'sometimes|in:casual,normal,strict,roleplay',
+
+            'icon' => 'sometimes|string|max:20',
+            'image_url' => 'sometimes|url',
+            'rsvp_deadline' => 'sometimes|date|before:starts_at',
+            'notes' => 'sometimes|string|max:2000',
+
+            'status' => 'sometimes|in:draft,published,in_progress,completed,canceled',
+        ]);
+
+        $event->update($data);
 
         return response()->json($event);
     }
@@ -66,9 +108,35 @@ class EventController extends Controller
     {
         $this->authorize('delete', $event);
 
-        $event->update(['status' => 'cancelled']);
+        $event->update(['status' => 'canceled']);
         $event->delete();
 
-        return response()->json(['message' => 'Event cancelled']);
+        return response()->json(['message' => 'Event canceled']);
+    }
+
+    public function updateStatus(Request $request, Event $event)
+    {
+        $this->authorize('manage', $event);
+
+        $validated = $request->validate([
+            'status' => 'required|in:published,in_progress,completed,canceled',
+            'reason' => 'required_if:status,canceled|string|max:500',
+        ]);
+
+        try {
+            $event->transitionTo(
+                $validated['status'],
+                $validated['reason'] ?? null
+            );
+
+            return response()->json([
+                'message' => 'Event status updated',
+                'event' => $event->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 422);
+        }
     }
 }
