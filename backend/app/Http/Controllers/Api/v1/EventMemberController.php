@@ -7,7 +7,6 @@ use App\Models\Event;
 use App\Models\EventMember;
 use App\Models\EventRole;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class EventMemberController extends Controller
@@ -19,7 +18,8 @@ class EventMemberController extends Controller
      */
     public function join(Request $request, Event $event)
     {
-        $this->authorize('join', $event);
+        // Anyone who can "view" an event is allowed to join
+        $this->authorize('view', $event);
 
         $validated = $request->validate([
             'event_role_id' => 'nullable|exists:event_roles,id',
@@ -27,12 +27,12 @@ class EventMemberController extends Controller
             'notes'         => 'nullable|string|max:500',
         ]);
 
-        // Check if already joined
+        // Already joined?
         if ($event->members()->where('user_id', auth()->id())->exists()) {
             return response()->json(['error' => 'Already joined this event'], 422);
         }
 
-        // If user selected a role, validate it + capacity
+        // Validate selected role
         if (!empty($validated['event_role_id'])) {
             $role = EventRole::find($validated['event_role_id']);
 
@@ -48,7 +48,7 @@ class EventMemberController extends Controller
             }
         }
 
-        // Create event member (roleless is allowed)
+        // Create event member
         $member = $event->members()->create([
             'user_id'           => auth()->id(),
             'event_role_id'     => $validated['event_role_id'] ?? null,
@@ -84,7 +84,7 @@ class EventMemberController extends Controller
     }
 
     /**
-     * Update a member's role (used by leadership)
+     * Update a member's role (leadership only)
      */
     public function updateRole(Request $request, Event $event, EventMember $member)
     {
@@ -94,7 +94,6 @@ class EventMemberController extends Controller
             'event_role_id' => 'nullable|exists:event_roles,id'
         ]);
 
-        // Leadership can move a member between roles — including NULL
         $member->update([
             'event_role_id' => $validated['event_role_id'] ?? null
         ]);
@@ -103,7 +102,7 @@ class EventMemberController extends Controller
     }
 
     /**
-     * Update a member's stats (leader-only)
+     * Update event member stats (leader only)
      */
     public function updateStats(Request $request, Event $event, EventMember $member)
     {
@@ -117,29 +116,28 @@ class EventMemberController extends Controller
     }
 
     /**
-     * Join + auto-create a new role using typed input
-     * Example:
-     * {
-     *   "role_name": "karaoke_singer"
-     * }
+     * Join an event + auto-create a new typed role
      */
     public function joinWithRole(Request $request, Event $event)
     {
+        // Anyone who can view can join
+        $this->authorize('view', $event);
+
         $validated = $request->validate([
             'role_name' => 'required|string|max:255',
             'notes'     => 'nullable|string|max:500',
             'status'    => 'nullable|in:confirmed,tentative'
         ]);
 
-        // Ensure the user isn't already in the event
+        // Prevent duplicate joining
         if ($event->members()->where('user_id', auth()->id())->exists()) {
             return response()->json(['error' => 'Already joined this event'], 422);
         }
 
-        // Look for an existing role
+        // Lookup existing
         $role = $event->roles()->where('role_name', $validated['role_name'])->first();
 
-        // Auto-create if not found
+        // Auto-create if needed
         if (!$role) {
             $role = $event->roles()->create([
                 'role_name'         => $validated['role_name'],
@@ -150,7 +148,6 @@ class EventMemberController extends Controller
             ]);
         }
 
-        // Create the membership
         $member = $event->members()->create([
             'user_id'           => auth()->id(),
             'event_role_id'     => $role->id,
