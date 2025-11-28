@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\EventRoleController;
 use App\Http\Controllers\Api\V1\MissionController;
 use App\Http\Controllers\Api\V1\MissionMemberController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\MePreferenceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -157,6 +158,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Me
         Route::get('/me', [MeController::class, 'show']);
         Route::put('/me', [MeController::class, 'update']);
+
+        // /me/preferences endpoints
+        Route::get('/me/preferences', [MePreferenceController::class, 'show']);
+        Route::put('/me/preferences', [MePreferenceController::class, 'update']);
+        Route::patch('/me/preferences', [MePreferenceController::class, 'update']);
 
         // Squadron CRUD
         Route::get('/squadrons', [SquadronController::class, 'index']);

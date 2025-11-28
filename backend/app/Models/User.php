@@ -167,6 +167,12 @@ class User extends Authenticatable
             ->where('membership_status', SquadronMember::STATUS_ACTIVE);
     }
 
+
+    public function preferences()
+    {
+        return $this->hasOne(MemberPreference::class);
+    }
+    
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE  = 'active';
     public const STATUS_BANNED  = 'banned';
