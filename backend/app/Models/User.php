@@ -82,10 +82,6 @@ class User extends Authenticatable
         'discord_name',
         'discord_avatar',
 
-        // RSI fields
-        'rsi_handle',
-        'rsi_verified_at',
-
         // Verification fields
         'verification_code',
         'verification_expires_at',
@@ -99,6 +95,10 @@ class User extends Authenticatable
         'personal_tags',
         'availability_status',
         'loa_note',
+    ];
+    protected $guarded = [
+        'rsi_handle',
+        'rsi_verified_at',
     ];
 
     /**

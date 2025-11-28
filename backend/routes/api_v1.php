@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\MissionController;
 use App\Http\Controllers\Api\V1\MissionMemberController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\MePreferenceController;
+use App\Http\Controllers\Api\V1\RsiHandleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -163,6 +164,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/me/preferences', [MePreferenceController::class, 'show']);
         Route::put('/me/preferences', [MePreferenceController::class, 'update']);
         Route::patch('/me/preferences', [MePreferenceController::class, 'update']);
+
+        // member-only create
+        Route::post('/rsi-requests', [RsiHandleController::class, 'store']);
+
+        //officcer
+        Route::get('/rsi-requests', [RsiHandleController::class, 'index']);
+        Route::post('/rsi-requests/{change}/approve', [RsiHandleController::class, 'approve']);
+        Route::post('/rsi-requests/{change}/reject', [RsiHandleController::class, 'reject']);
 
         // Squadron CRUD
         Route::get('/squadrons', [SquadronController::class, 'index']);
