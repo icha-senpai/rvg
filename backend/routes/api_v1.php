@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\EventMemberController;
 use App\Http\Controllers\Api\V1\EventRoleController;
 use App\Http\Controllers\Api\V1\MissionController;
 use App\Http\Controllers\Api\V1\MissionMemberController;
+use App\Http\Controllers\Api\V1\MeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -151,6 +152,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     Route::middleware('auth:sanctum')->group(function () {
+
+
+        // Me
+        Route::get('/me', [MeController::class, 'show']);
+        Route::put('/me', [MeController::class, 'update']);
 
         // Squadron CRUD
         Route::get('/squadrons', [SquadronController::class, 'index']);

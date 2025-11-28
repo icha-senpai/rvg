@@ -16,13 +16,13 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-
     /**
      * Roles attached to this user.
      */
     public function roles()
     {
-        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id')
+            ->withTimestamps();
     }
 
     /**
@@ -76,10 +76,12 @@ class User extends Authenticatable
         'password',
         'rank',
         'rank_level',
+
         // Discord fields
         'discord_id',
         'discord_name',
         'discord_avatar',
+
         // RSI fields
         'rsi_handle',
         'rsi_verified_at',
@@ -88,6 +90,15 @@ class User extends Authenticatable
         'verification_code',
         'verification_expires_at',
         'global_status',
+
+        // Self-service profile fields
+        'bio',
+        'timezone',
+        'preferred_roles',
+        'notification_settings',
+        'personal_tags',
+        'availability_status',
+        'loa_note',
     ];
 
     /**
@@ -98,6 +109,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'verification_code',
     ];
 
     /**
@@ -108,12 +120,18 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'rank_level' => 'integer',
-            'rsi_verified_at' => 'datetime',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'rank_level'           => 'integer',
+            'rsi_verified_at'      => 'datetime',
+
+            // JSON / array fields
+            'preferred_roles'      => 'array',
+            'notification_settings'=> 'array',
+            'personal_tags'        => 'array',
         ];
     }
+
     public function setRank(string $rank): void
     {
         $map = [
@@ -141,7 +159,7 @@ class User extends Authenticatable
             6 => 'Grand Admiral',
         ][$this->rank_level] ?? 'Unknown';
     }
-    
+
     public function squadron()
     {
         // Convenience: the "main" squadron for a user, if you treat them as having 0–1
@@ -150,35 +168,6 @@ class User extends Authenticatable
     }
 
     public const STATUS_PENDING = 'pending';
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_BANNED = 'banned';
-
-    /**
-     * Check if the user has ANY of the given role slugs.
-     *
-     * Example: $user->hasAnyRole(['lieutenant', 'commander_squadron'])
-     */
-    public function hasAnyRole(array $slugs): bool
-    {
-        return $this->roles->pluck('slug')->intersect($slugs)->isNotEmpty();
-    }
-
-    /**
-     * Check if the user has ANY of the given permissions.
-     *
-     * Example: $user->hasAnyPermission(['event.host.small', 'event.host.medium'])
-     */
-    public function hasAnyPermission(array $slugs): bool
-    {
-        if ($this->isDirector()) {
-            return true;
-        }
-
-        return $this->permissions()
-        ->pluck('slug')
-        ->intersect($slugs)
-        ->isNotEmpty();
-    }
-
-
+    public const STATUS_ACTIVE  = 'active';
+    public const STATUS_BANNED  = 'banned';
 }
