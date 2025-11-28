@@ -2,36 +2,42 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use Illuminate\Http\Request;
-use Laravel\Socialite\Facades\Socialite;
-use App\Models\User;
+
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Str;
 use App\Helpers\ApiResponse;
+use App\Services\DiscordOAuthService;
 
 class DiscordAuthController extends Controller
 {
+    protected $discord;
+
+    public function __construct(DiscordOAuthService $discord)
+    {
+        $this->discord = $discord;
+    }
+
     public function redirect()
     {
-        return Socialite::driver('discord')->redirect();
+        return $this->discord->redirect();
+
     }
 
     public function callback()
     {
-        try {
-            $discordUser = Socialite::driver('discord')->user();
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'OAuth failed', 'details' => $e->getMessage()], 400);
-        }
-
-        $user = User::updateOrCreate(
-            ['discord_id' => $discordUser->getId()],
-            [
-                'discord_name' => $discordUser->getName(),
-                'discord_avatar' => $discordUser->avatar,
-            ]
-        );
-
-        return ApiResponse::success('User authenticated successfully', $user);
+    try {
+        // Fetch user from Discord via service
+        $discordUser = $this->discord->getUser();
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'OAuth failed',
+            'details' => $e->getMessage(),
+        ], 400);
     }
+
+    // Sync user using the service
+    $user = $this->discord->syncBasicUser($discordUser);
+
+    return ApiResponse::success('User authenticated successfully', $user);
+    }
+
 }
