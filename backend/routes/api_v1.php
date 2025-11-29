@@ -44,7 +44,10 @@ Route::post('/auth/login', [AuthController::class, 'login'])
 Route::post('/auth/verify-discord', [AuthController::class, 'verifyDiscord'])
     ->middleware('throttle:10,1');
 
-
+Route::get('/v1/discord/redirect', [DiscordAuthController::class, 'redirect']);
+Route::get('/v1/discord/callback', [DiscordAuthController::class, 'callback']);
+Route::get('/v1/discord/link', [DiscordController::class, 'redirect']);
+Route::get('/v1/discord/link/callback', [DiscordController::class, 'callback']);
 
 Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::post('/auth/refresh', [AuthController::class, 'refresh']);
