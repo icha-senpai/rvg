@@ -1,6 +1,6 @@
-# RVG Platform — Backend + Frontend Monorepo
+# Horizon Platform — Backend + Frontend Monorepo
 
-This repository contains the unified development environment for the **Raven Guard Organization Platform**, built by Icha.
+This repository contains the unified development environment for the **Horizon Interstellar Organization Platform**, built by Icha.
 
 ## 🚀 Overview
 
@@ -112,7 +112,7 @@ Coding Standards (Anti-Spaghetti Rules)
 ===================================================
 
 
-# RVG Coding Standards
+# Coding Standards
 
 These rules keep the codebase clean, maintainable, and free of chaos-creature spaghetti.
 
