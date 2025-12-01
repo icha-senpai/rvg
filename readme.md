@@ -14,9 +14,10 @@ The system is a two-part architecture:
   - Rank middleware (1–6)  
   - Mission endpoints  
   - User profiles  
-  - UEX data ingestion (future phase)  
+  - UEX data ingestion (future phase) 
+  - Discord integration
 
-- **Frontend (WordPress)**
+- **Frontend (laravel 12)**
   - UI for officers + members  
   - Custom bridge plugin for API syncing  
   - User dashboard  
