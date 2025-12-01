@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\RSIVerificationController;
 use App\Http\Controllers\Api\V1\VerificationCodeController;
 use App\Http\Controllers\Api\V1\UserController;
-use App\Http\Controllers\Api\V1\DiscordController;
 use App\Http\Controllers\Api\V1\DiscordAuthController;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\ApiResponse;
@@ -21,6 +20,7 @@ use App\Http\Controllers\Api\V1\MissionMemberController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\MePreferenceController;
 use App\Http\Controllers\Api\V1\RsiHandleController;
+use App\Http\Controllers\Api\V1\TokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,13 +44,12 @@ Route::post('/auth/login', [AuthController::class, 'login'])
 Route::post('/auth/verify-discord', [AuthController::class, 'verifyDiscord'])
     ->middleware('throttle:10,1');
 
-Route::get('/v1/discord/redirect', [DiscordAuthController::class, 'redirect']);
-Route::get('/v1/discord/callback', [DiscordAuthController::class, 'callback']);
-Route::get('/v1/discord/link', [DiscordController::class, 'redirect']);
-Route::get('/v1/discord/link/callback', [DiscordController::class, 'callback']);
+//Route::get('/auth/discord/redirect', [DiscordAuthController::class, 'redirect']);
+Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback']);
 
 Route::post('/auth/logout', [AuthController::class, 'logout']);
-Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+Route::post('/auth/refresh', [TokenController::class, 'refresh'])
+     ->middleware('throttle:20,1');
 
 // Generate verification code
 Route::post('/generate-code', [VerificationCodeController::class, 'generate']);
@@ -60,28 +59,28 @@ Route::post('/verify-rsi', [RSIVerificationController::class, 'verify'])
     ->middleware('throttle:10,1');
 
 // Issue token after successful Discord login
-Route::post('/auth/token', function (Request $request) {
-    $request->validate([
-        'discord_id' => 'required|string',
-    ]);
+//Route::post('/auth/token', function (Request $request) {
+   // $request->validate([
+    //    'discord_id' => 'required|string',
+   // ]);
 
-    $user = \App\Models\User::where('discord_id', $request->discord_id)->first();
+   // $user = \App\Models\User::where('discord_id', $request->discord_id)->first();
 
-    if (!$user) {
-        return ApiResponse::error('User not found', [], 404);
-    }
+   // if (!$user) {
+   //     return ApiResponse::error('User not found', [], 404);
+  //  }
 
     // delete old tokens
-    $user->tokens()->delete();
+   // $user->tokens()->delete();
 
     // create token
-    $token = $user->createToken('api')->plainTextToken;
+ //   $token = $user->createToken('api')->plainTextToken;
 
-    return ApiResponse::success('Token created successfully', [
-        'token' => $token,
-        'user'  => $user,
-    ]);
-});
+ //   return ApiResponse::success('Token created successfully', [
+ //       'token' => $token,
+ //       'user'  => $user,
+ //   ]);
+// });
 
 
 

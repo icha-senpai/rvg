@@ -239,42 +239,93 @@ class AuthController extends Controller
         $rawToken = $request->bearerToken();
 
         if (!$rawToken) {
-            $this->logAuthEvent('refresh.no_token', null);
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated (no token).'
             ], 401);
         }
 
+        // Find the refresh token model
         $pat = PersonalAccessToken::findToken($rawToken);
 
-        if (!$pat || ($pat->expires_at && $pat->expires_at->isPast())) {
-            $this->logAuthEvent('refresh.invalid_or_expired', null);
+        if (!$pat) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated (invalid token).'
             ], 401);
         }
 
+    // Must be a refresh token
+        if ($pat->name !== 'refresh_token') {
+            return response()->json([
+                'message' => 'Invalid token type. Must use refresh token.',
+                'state'   => 'WRONG_TOKEN_TYPE'
+            ], 401);
+        }
+
+    // Check expiration
+        if ($pat->expires_at && $pat->expires_at->isPast()) {
+            return response()->json([
+                'message' => 'Refresh token expired.',
+                'state'   => 'EXPIRED_REFRESH'
+            ], 401);
+        }
+
+    // Identify the user
         $user = $pat->tokenable;
 
         if (!$user) {
-            $this->logAuthEvent('refresh.no_user_for_token', null);
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated (no user).'
             ], 401);
         }
 
-        $userId = $user->id;
+    // -----------------------------------------------------
+    // 🔥 DISCORD GUILD CHECK
+    // -----------------------------------------------------
 
-        $pat->delete();
+        $discord = app(\App\Services\DiscordOAuthService::class);
+        $guildId = env('DISCORD_REQUIRED_GUILD');
 
-        $newToken = $user->createToken('auth_token')->plainTextToken;
+        $stillInGuild = $discord->isMemberOfGuild($user->discord_id, $guildId);
 
-        $this->logAuthEvent('refresh.success', $userId);
+        if (!$stillInGuild) {
+
+        // Revoke ALL user tokens immediately
+        $user->tokens()->delete();
+
+            return response()->json([
+                'message' => 'Access revoked. You are no longer in the org Discord.',
+                'state'   => 'LEFT_GUILD'
+            ], 403);
+        }
+
+    // -----------------------------------------------------
+    // 🔥 ROTATE ACCESS TOKEN ONLY
+    // -----------------------------------------------------
+
+        // Delete old access tokens only
+        $user->tokens()
+            ->where('name', 'access_token')
+            ->delete();
+
+        // Determine expiration based on rank
+        $isLeadership = ($user->rank >= 2);
+        $accessExpires = now()->addDay();
+
+        // Issue new access token
+        $newAccess = $user->createToken(
+            'access_token',
+        ['access'],
+        $accessExpires
+        )->plainTextToken;
 
         return response()->json([
-            'message' => 'Token refreshed successfully.',
-            'token' => $newToken,
-            'token_type' => 'Bearer',
+            'message'       => 'Access token refreshed.',
+            'access_token'  => $newAccess,
+            'expires_in'    => 86400,
+            'rank'          => $user->rank,
+            'leadership'    => $isLeadership
         ]);
     }
+
+
 }

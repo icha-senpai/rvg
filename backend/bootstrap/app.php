@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'rank' => \App\Http\Middleware\RankMiddleware::class,
             'auth:sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-
+            'rsi.verified' => \App\Http\Middleware\EnsureRsiVerified::class,
         ]);
 
         // DO NOT re-alias Laravel auth middleware.

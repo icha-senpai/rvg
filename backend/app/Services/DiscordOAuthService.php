@@ -5,6 +5,8 @@ namespace App\Services;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Str;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Log;
 
 class DiscordOAuthService
 {
@@ -32,6 +34,51 @@ class DiscordOAuthService
         }
 
         return $driver->user();
+    }
+
+    public function checkGuildMembership(?string $discordId): bool
+    {
+    // No Discord ID? No guild.
+        if (!$discordId) {
+            return false;
+        }
+
+    // Global toggle – can ship system before bot is live.
+        if (!config('services.discord.guild_check')) {
+            return true;
+        }
+
+        $guildId  = config('services.discord.guild_id');
+        $botToken = config('services.discord.bot_token');
+
+        if (!$guildId || !$botToken) {
+            Log::warning('Discord guild check skipped: missing GUILD_ID or BOT_TOKEN.');
+            // In production you might want this to be `false` instead.
+            return true;
+        }
+
+        $client = new Client([
+            'base_uri' => 'https://discord.com/api/v10',
+            'timeout'  => 5,
+        ]);
+
+        try {
+            $response = $client->get("/guilds/{$guildId}/members/{$discordId}", [
+                'headers' => [
+                    'Authorization' => "Bot {$botToken}",
+                ],
+            ]);
+
+            return $response->getStatusCode() === 200;
+        } catch (\Throwable $e) {
+            Log::error('Discord guild membership check failed', [
+                'discord_id' => $discordId,
+                'error'      => $e->getMessage(),
+            ]);
+
+            // On error, safest is to treat as NOT in guild
+            return false;
+        }
     }
 
     /**
@@ -72,4 +119,15 @@ class DiscordOAuthService
 
         return [$user, $code];
     }
+    public function isMemberOfGuild(string $discordId, string $guildId): bool
+    {
+        try {
+            $response = $this->botClient->get("/guilds/{$guildId}/members/{$discordId}");
+
+            return $response->getStatusCode() === 200;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 }
+

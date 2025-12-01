@@ -38,6 +38,10 @@ return [
         'client_id' => env('DISCORD_CLIENT_ID'),
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         'redirect' => env('DISCORD_REDIRECT_URI'),
+        'bot_token'     => env('DISCORD_BOT_TOKEN'),
+        'guild_id'      => env('DISCORD_GUILD_ID'),
+        'guild_check' => env('DISCORD_GUILD_CHECK', true),
+        'scopes' => ['identify', 'guilds'], 
     ],
 
 ];
