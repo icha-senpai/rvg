@@ -8,4 +8,29 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Core brand colors */
+    --color-horizon-blue: #2A78C8;
+    --color-horizon-blue-light: #51A2F5;
+    --color-horizon-blue-dark: #1D5A96;
+
+    --color-horizon-alloy: #4A6C8E;  /* Interstellar metallic */
+    --color-horizon-steel: #94A3B8;  /* soft gray-blue */
+    --color-horizon-gray: #6B7280;
+
+    --color-horizon-white: #FFFFFF;
+    --color-horizon-offwhite: #E5E7EB;
+
+    /* Text */
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #6B7280;
+    --color-text-link: #2A78C8;
+
+    /* Backgrounds for your dark UI */
+    --color-bg-base: #0F131A;        /* main background */
+    --color-bg-surface: #171C24;     /* cards, panels */
+    --color-bg-elevated: #1F2630;    /* modals, hoverables */
+    --color-bg-hover: #222B36;       /* hover states */
+
+   
 }
