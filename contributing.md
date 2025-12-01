@@ -1,7 +1,7 @@
 # Contributing Guide
 
-Welcome to the RVG System!  
-This repository houses the **backend (Laravel 12 API)** and **frontend (WordPress bridge & UI layer)** for the Raven Guard organizational platform.
+Welcome to the Horizion Interstellar System!  
+This repository houses the **backend (Laravel 12 API)** and **frontend (Laravel 12)** for the Raven Guard organizational platform.
 
 This document explains how to contribute safely and consistently.
 
@@ -10,7 +10,7 @@ This document explains how to contribute safely and consistently.
 ## 🧭 Project Structure
 
 /backend → Laravel 12 API (auth, Sanctum, ranks, UEX, missions)
-/frontend → WordPress theme + bridge plugin (UI, auth relay, dashboards)
+/frontend → Laravel 12 (UI, auth relay, dashboards)
 
 
 Backend and frontend live together in a monorepo, but each is treated as its own app.
@@ -30,7 +30,6 @@ Examples:
 
 - `feature/add-pagination`
 - `feature/mission-endpoints`
-- `feature/wp-bridge-ui`
 - `fix/profile-endpoint`
 
 Never push directly to `main`.
@@ -78,7 +77,6 @@ Helpers may safely take tasks such as:
 - CRUD endpoints
 - Small controllers
 - Request validation
-- WordPress plugin scaffolding
 - API response formatting
 - Basic migrations
 - Documentation updates
@@ -100,4 +98,4 @@ All contributions should preserve or strengthen these principles.
 
 ---
 
-Thank you for supporting the project and helping bring RVG to life.
+Thank you for supporting the project and helping bring Horizion to life.
