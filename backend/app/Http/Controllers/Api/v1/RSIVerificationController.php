@@ -262,6 +262,18 @@ class RSIVerificationController extends Controller
                     Response::HTTP_INTERNAL_SERVER_ERROR
                 );
             }
+        } catch (\Exception $e) {
+            // This handles any exceptions in the outer try block
+            Log::error('Outer RSI verification error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return ApiResponse::error(
+                'An unexpected error occurred during verification.',
+                [],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
     }
 }
