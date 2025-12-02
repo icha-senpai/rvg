@@ -45,4 +45,9 @@ return [
         'scopes' => ['identify', 'guilds'], 
     ],
 
+    'rsi' => [
+        'required_org' => env('RSI_REQUIRED_ORG', 'SRN'),
+        'verification_timeout' => env('RSI_VERIFICATION_TIMEOUT', 10),
+    ],
+
 ];
