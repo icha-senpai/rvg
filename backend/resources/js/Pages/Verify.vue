@@ -22,7 +22,10 @@ const discordVerified = ref(!!accessToken);
 // RSI state
 const rsiHandle = ref('');
 const verificationCode = ref('');
-const error = ref(null);
+const error = ref({
+    message: null,
+    details: {}
+});
 const loadingCode = ref(false);
 const verifying = ref(false);
 
@@ -52,10 +55,16 @@ const getCode = async () => {
         // Your ApiResponse::success() wraps data under .data
         verificationCode.value = res.data.data.verification_code;
     } catch (e) {
-        if (e.response && e.response.data && e.response.data.message) {
-            error.value = e.response.data.message;
+        if (e.response?.data?.message) {
+            error.value = {
+                message: e.response.data.message,
+                details: e.response.data.data || {}
+            };
         } else {
-            error.value = "Couldn't get verification code.";
+            error.value = {
+                message: "Couldn't generate verification code. Please try again.",
+                details: { error: e.message }
+            };
         }
     } finally {
         loadingCode.value = false;
@@ -72,7 +81,10 @@ const verifyRsi = async () => {
     }
 
     if (!rsiHandle.value) {
-        error.value = 'Please enter your RSI handle.';
+        error.value = {
+            message: 'Please enter your RSI handle.',
+            details: { field: 'rsi_handle' }
+        };
         return;
     }
 
@@ -90,10 +102,16 @@ const verifyRsi = async () => {
         // On success, send them home
         window.location.href = '/';
     } catch (e) {
-        if (e.response && e.response.data && e.response.data.message) {
-            error.value = e.response.data.message;
+        if (e.response?.data) {
+            error.value = {
+                message: e.response.data.message || 'Verification failed',
+                details: e.response.data.data || {}
+            };
         } else {
-            error.value = 'RSI verification failed.';
+            error.value = {
+                message: 'Failed to connect to the verification service. Please check your connection and try again.',
+                details: { error: e.message }
+            };
         }
     } finally {
         verifying.value = false;
@@ -114,10 +132,26 @@ const verifyRsi = async () => {
 
             <!-- Error box -->
             <div
-                v-if="error"
-                class="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+                v-if="error.message"
+                class="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200"
             >
-                {{ error }}
+                <div class="font-medium">{{ error.message }}</div>
+                <!-- Display multi-line error details -->
+                <div v-if="typeof error.message === 'string' && error.message.includes('\n')" 
+                     class="mt-2 font-mono text-xs whitespace-pre-line">
+                    {{ error.message }}
+                </div>
+                <!-- Display error details if available -->
+                <div v-if="Object.keys(error.details).length > 0" class="mt-2 pt-2 border-t border-red-500/20">
+                    <div v-if="error.details.help_link" class="mt-1">
+                        <a :href="error.details.help_link" target="_blank" class="text-blue-400 hover:underline">
+                            {{ error.details.help_link.includes('orgs/') ? 'View Organization' : 'View Profile' }}
+                        </a>
+                    </div>
+                    <div v-if="error.details.error_reference" class="text-xs opacity-75 mt-1">
+                        Reference: {{ error.details.error_reference }}
+                    </div>
+                </div>
             </div>
 
             <!-- STEP 1: Discord verification -->
@@ -166,7 +200,7 @@ const verifyRsi = async () => {
                 </div>
 
                 <!-- RSI handle input -->
-                <div class="mb-3">
+                <div class="mb-3" :class="{ 'has-error': error.details?.field === 'rsi_handle' }">
                     <label class="block text-xs uppercase tracking-wide text-gray-400 mb-1">
                         RSI Handle
                     </label>
@@ -174,7 +208,11 @@ const verifyRsi = async () => {
                         v-model="rsiHandle"
                         type="text"
                         placeholder="ichaa"
-                        class="w-full px-3 py-2 rounded-lg bg-gray-800 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        :class="{
+                            'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2': true,
+                            'bg-gray-800 border border-white/10 focus:ring-indigo-500': error.details?.field !== 'rsi_handle',
+                            'bg-red-900/30 border-red-500 focus:ring-red-500': error.details?.field === 'rsi_handle'
+                        }"
                     />
                 </div>
 

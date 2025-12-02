@@ -15,7 +15,11 @@ class VerificationCodeController extends Controller
         $user = auth()->user();
 
         if (!$user) {
-            return ApiResponse::error('Unauthorized', [], 401);
+            return ApiResponse::error(
+                'Please log in to generate a verification code.',
+                [],
+                401
+            );
         }
 
         // Generate code like ABC-123
@@ -25,7 +29,7 @@ class VerificationCodeController extends Controller
         $user->verification_expires_at = now()->addMinutes(10);
         $user->save();
 
-        return ApiResponse::success('Verification code generated successfully', [
+        return ApiResponse::success('Your verification code has been generated successfully. It will expire in 10 minutes.', [
             'verification_code' => $code,
             'expires_at' => $user->verification_expires_at,
         ]);

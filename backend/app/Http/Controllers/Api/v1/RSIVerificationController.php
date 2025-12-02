@@ -36,7 +36,7 @@ class RSIVerificationController extends Controller
         // Rate limiting check
         if (RateLimiter::tooManyAttempts($throttleKey, $this->maxAttempts)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            $message = 'Too many verification attempts. Please try again in ' . $seconds . ' seconds.';
+            $message = 'Verification limit reached. Please wait ' . $seconds . ' seconds before trying again.';
             
             DiscordLogger::rsiVerification('rate_limit_exceeded', [
                 'ip' => $request->ip(),
@@ -69,7 +69,7 @@ class RSIVerificationController extends Controller
                 ]);
                 
                 return ApiResponse::error(
-                    'Authentication required',
+                    'Please log in to verify your RSI account.',
                     [],
                     Response::HTTP_UNAUTHORIZED
                 );
@@ -84,7 +84,7 @@ class RSIVerificationController extends Controller
                 ]);
                 
                 return ApiResponse::error(
-                    'No verification code found. Please generate a new one.',
+                    'No active verification code found. Please generate a new code and try again.',
                     [],
                     Response::HTTP_BAD_REQUEST
                 );
@@ -98,7 +98,7 @@ class RSIVerificationController extends Controller
                 ]);
                 
                 return ApiResponse::error(
-                    'Verification code has expired. Please generate a new one.',
+                    'Your verification code has expired. Please generate a new one and try again.',
                     [],
                     Response::HTTP_BAD_REQUEST
                 );
@@ -122,7 +122,7 @@ class RSIVerificationController extends Controller
                     ]);
                     
                     return ApiResponse::error(
-                        'Unable to verify RSI profile at this time. Please try again later.',
+                        "We're having trouble connecting to RSI right now. Please try again in a few minutes. If the issue persists, please check the RSI website status.",
                         [],
                         Response::HTTP_SERVICE_UNAVAILABLE
                     );
@@ -159,8 +159,10 @@ class RSIVerificationController extends Controller
                     ]);
                     
                     return ApiResponse::error(
-                        'No organization membership found on your RSI profile. Please join the required organization first.',
-                        [],
+                        "Organization membership required: We couldn't find any organization linked to your RSI profile. Please join the required organization on RSI and try again.",
+                        [
+                            'help_link' => 'https://robertsspaceindustries.com/orgs/' . config('services.rsi.required_org', 'SRN')
+                        ],
                         Response::HTTP_BAD_REQUEST
                     );
                 }
@@ -178,10 +180,11 @@ class RSIVerificationController extends Controller
                     ]);
                     
                     return ApiResponse::error(
-                        'You must be a member of ' . $requiredOrg . ' to verify your account.',
+                        'Organization mismatch: Your RSI profile shows membership in ' . $orgCode . ', but you need to be a member of ' . $requiredOrg . ' to continue.',
                         [
                             'found_org' => $orgCode,
                             'required_org' => $requiredOrg,
+                            'help_link' => 'https://robertsspaceindustries.com/orgs/' . $requiredOrg
                         ],
                         Response::HTTP_FORBIDDEN
                     );
@@ -202,8 +205,15 @@ class RSIVerificationController extends Controller
                     ]);
                     
                     return ApiResponse::error(
-                        'Verification code not found on your RSI profile. Please make sure to add it exactly as shown.',
-                        [],
+                        "We couldn't find the verification code in your RSI profile. Please make sure to:"
+                        . "\n1. Copy the code exactly as shown"
+                        . "\n2. Paste it into the 'About Me' section of your RSI profile"
+                        . "\n3. Click 'Save Changes'"
+                        . "\n4. Try verifying again",
+                        [
+                            'verification_code' => $user->verification_code,
+                            'help_link' => 'https://robertsspaceindustries.com/account/profile'
+                        ],
                         Response::HTTP_BAD_REQUEST
                     );
                 }
@@ -257,8 +267,11 @@ class RSIVerificationController extends Controller
                 DiscordLogger::rsiVerification('verification_error', $errorContext);
 
                 return ApiResponse::error(
-                    'An error occurred while verifying your RSI profile. Please try again later.',
-                    [],
+                    "We encountered an issue verifying your RSI profile. Our team has been notified. Please try again in a few minutes.",
+                    [
+                        'support_contact' => 'support@yourdomain.com',
+                        'error_reference' => 'ERR-' . time()
+                    ],
                     Response::HTTP_INTERNAL_SERVER_ERROR
                 );
             }
@@ -270,8 +283,11 @@ class RSIVerificationController extends Controller
             ]);
             
             return ApiResponse::error(
-                'An unexpected error occurred during verification.',
-                [],
+                "We're having trouble processing your verification right now. Please try again later or contact support if the issue persists.",
+                [
+                    'support_contact' => 'support@yourdomain.com',
+                    'error_reference' => 'SYS-ERR-' . time()
+                ],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
