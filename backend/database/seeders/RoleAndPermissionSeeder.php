@@ -34,25 +34,25 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Lieutenant',
                     'slug'        => 'lieutenant',
-                    'description' => 'Junior officer. Can host smaller events.',
+                    'description' => 'Junior officer. Can host smaller operations.',
                     'is_system'   => false,
                 ],
                 [
                     'name'        => 'Commander – Squadron',
                     'slug'        => 'commander_squadron',
-                    'description' => 'Micro commander: manages their own squadron and LTs.',
+                    'description' => 'Manages their squadron and its officers.',
                     'is_system'   => false,
                 ],
                 [
                     'name'        => 'Commander – Staff',
                     'slug'        => 'commander_staff',
-                    'description' => 'Macro commander: manages a domain (Fleet, Logistics, etc).',
+                    'description' => 'Manages a domain: Fleet, Logistics, etc.',
                     'is_system'   => false,
                 ],
                 [
                     'name'        => 'Wing Commander',
                     'slug'        => 'wing_commander',
-                    'description' => 'Oversees multiple squadrons and their commanders.',
+                    'description' => 'Oversees multiple squadrons.',
                     'is_system'   => false,
                 ],
                 [
@@ -76,19 +76,19 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Mission Commander',
                     'slug'        => 'mission_commander',
-                    'description' => 'Analytics and doctrine: evaluates missions and ops.',
+                    'description' => 'Analytics + doctrine creation for operations.',
                     'is_system'   => false,
                 ],
                 [
                     'name'        => 'Technical Director',
                     'slug'        => 'tech_director',
-                    'description' => 'Manages technical infrastructure & RBAC.',
+                    'description' => 'Manages technical infrastructure and RBAC.',
                     'is_system'   => true,
                 ],
                 [
                     'name'        => 'Technical Team',
                     'slug'        => 'tech_team',
-                    'description' => 'Assists with technical operations.',
+                    'description' => 'Supports technical operations.',
                     'is_system'   => false,
                 ],
             ];
@@ -103,7 +103,7 @@ class RoleAndPermissionSeeder extends Seeder
 
             /**
              * -----------------------------------------
-             * 2. PERMISSIONS
+             * 2. PERMISSIONS (UNIFIED OPERATIONS ENGINE)
              * -----------------------------------------
              */
             $permissions = [
@@ -125,64 +125,48 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Add or remove members from squadrons.',
                 ],
 
-                // Events
+                // OPERATIONS (replaces events + missions entirely)
                 [
-                    'name'        => 'Create events',
-                    'slug'        => 'event.create',
-                    'description' => 'Create new events.',
+                    'name'        => 'Create operations',
+                    'slug'        => 'operation.create',
+                    'description' => 'Create new operations (events or missions).',
                 ],
                 [
-                    'name'        => 'Manage all events',
-                    'slug'        => 'event.manage',
-                    'description' => 'Edit and delete events.',
+                    'name'        => 'Manage all operations',
+                    'slug'        => 'operation.manage',
+                    'description' => 'Edit or delete any operation.',
+                ],
+                [
+                    'name'        => 'View operations',
+                    'slug'        => 'operation.view',
+                    'description' => 'View operation listings and details.',
+                ],
+                [
+                    'name'        => 'Manage operation members',
+                    'slug'        => 'operation.members.manage',
+                    'description' => 'Add/remove operation participants.',
                 ],
 
-                // Event host tiers
+                // Operation host tiers
                 [
-                    'name'        => 'Host small events',
-                    'slug'        => 'event.host.small',
-                    'description' => 'Host small squad-level events.',
+                    'name'        => 'Host small operations',
+                    'slug'        => 'operation.host.small',
+                    'description' => 'Host squad-level operations.',
                 ],
                 [
-                    'name'        => 'Host medium events',
-                    'slug'        => 'event.host.medium',
-                    'description' => 'Host medium multi-squad or domain events.',
+                    'name'        => 'Host medium operations',
+                    'slug'        => 'operation.host.medium',
+                    'description' => 'Host multi-squad or domain operations.',
                 ],
                 [
-                    'name'        => 'Host large events',
-                    'slug'        => 'event.host.large',
-                    'description' => 'Host division-wide or large-scale events.',
+                    'name'        => 'Host large operations',
+                    'slug'        => 'operation.host.large',
+                    'description' => 'Host division-wide operations.',
                 ],
                 [
-                    'name'        => 'Host org-wide events',
-                    'slug'        => 'event.host.org',
+                    'name'        => 'Host org-wide operations',
+                    'slug'        => 'operation.host.org',
                     'description' => 'Host org-wide strategic operations.',
-                ],
-
-                // Missions
-                [
-                    'name'        => 'Create missions',
-                    'slug'        => 'mission.create',
-                    'description' => 'Create new missions.',
-                ],
-                [
-                    'name'        => 'Manage all missions',
-                    'slug'        => 'mission.manage',
-                    'description' => 'Edit and delete missions.',
-                ],
-
-                // NEW — Mission view
-                [
-                    'name'        => 'View missions',
-                    'slug'        => 'mission.view',
-                    'description' => 'View mission listings and details.',
-                ],
-
-                // NEW — Mission member management
-                [
-                    'name'        => 'Manage mission members',
-                    'slug'        => 'mission.members.manage',
-                    'description' => 'Add/remove mission members and adjust attendance.',
                 ],
 
                 // Users / System
@@ -216,12 +200,12 @@ class RoleAndPermissionSeeder extends Seeder
                 [
                     'name'        => 'Manage domain resources',
                     'slug'        => 'domain.manage.resources',
-                    'description' => 'Manage resources for a domain.',
+                    'description' => 'Manage domain-level resources.',
                 ],
                 [
-                    'name'        => 'Manage domain events',
-                    'slug'        => 'domain.manage.events',
-                    'description' => 'Create/manage domain-level events.',
+                    'name'        => 'Manage domain operations',
+                    'slug'        => 'domain.manage.operations',
+                    'description' => 'Create/manage domain-level operations.',
                 ],
 
                 // Analytics
@@ -231,9 +215,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'View analytics dashboards.',
                 ],
                 [
-                    'name'        => 'Analyze missions',
-                    'slug'        => 'analytics.mission',
-                    'description' => 'Analyze mission data and produce doctrine.',
+                    'name'        => 'Analyze operations',
+                    'slug'        => 'analytics.operation',
+                    'description' => 'Analyze operational data and help build doctrine.',
                 ],
             ];
 
@@ -247,11 +231,11 @@ class RoleAndPermissionSeeder extends Seeder
 
             /**
              * -----------------------------------------
-             * 3. ROLE → PERMISSION MAPPING
+             * 3. ROLE → PERMISSION MAPPING (UPDATED)
              * -----------------------------------------
              */
 
-            // Director
+            // Director (gets EVERYTHING)
             $roleModels['director']->permissions()->sync(
                 collect($permissionModels)->pluck('id')->all()
             );
@@ -259,35 +243,33 @@ class RoleAndPermissionSeeder extends Seeder
             // Member
             $roleModels['member']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['mission.create']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
             ]);
 
             // Viewer
             $roleModels['viewer']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['user.view']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['mission.create']->id,
+                $permissionModels['operation.view']->id,
                 $permissionModels['analytics.view']->id,
             ]);
 
-            // Mission Commander
+            // Mission Commander  → now Operation Analyst
             $roleModels['mission_commander']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['user.view']->id,
                 $permissionModels['analytics.view']->id,
-                $permissionModels['analytics.mission']->id,
-                $permissionModels['mission.view']->id,
+                $permissionModels['analytics.operation']->id,
+                $permissionModels['operation.view']->id,
             ]);
 
             // Lieutenant
             $roleModels['lieutenant']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.host.small']->id,
-                $permissionModels['mission.create']->id,
-                $permissionModels['mission.view']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.host.small']->id,
             ]);
 
             // Commander – Squadron
@@ -295,25 +277,22 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.view']->id,
                 $permissionModels['squadron.manage']->id,
                 $permissionModels['squadron.members.manage']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.host.small']->id,
-                $permissionModels['event.host.medium']->id,
-                $permissionModels['mission.create']->id,
-                $permissionModels['mission.manage']->id,
-                $permissionModels['mission.view']->id,
-                $permissionModels['mission.members.manage']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.host.small']->id,
+                $permissionModels['operation.host.medium']->id,
+                $permissionModels['operation.members.manage']->id,
             ]);
 
             // Commander – Staff
             $roleModels['commander_staff']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.host.medium']->id,
-                $permissionModels['event.host.large']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.host.medium']->id,
+                $permissionModels['operation.host.large']->id,
                 $permissionModels['domain.manage.resources']->id,
-                $permissionModels['domain.manage.events']->id,
+                $permissionModels['domain.manage.operations']->id,
                 $permissionModels['analytics.view']->id,
-                $permissionModels['mission.view']->id,
             ]);
 
             // Wing Commander
@@ -321,28 +300,25 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.view']->id,
                 $permissionModels['squadron.manage']->id,
                 $permissionModels['squadron.members.manage']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.host.medium']->id,
-                $permissionModels['event.host.large']->id,
-                $permissionModels['mission.manage']->id,
-                $permissionModels['domain.manage.events']->id,
-                $permissionModels['mission.view']->id,
-                $permissionModels['mission.members.manage']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.host.medium']->id,
+                $permissionModels['operation.host.large']->id,
+                $permissionModels['operation.members.manage']->id,
+                $permissionModels['domain.manage.operations']->id,
             ]);
 
             // Admiral
             $roleModels['admiral']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.manage']->id,
-                $permissionModels['event.host.large']->id,
-                $permissionModels['event.host.org']->id,
-                $permissionModels['mission.manage']->id,
-                $permissionModels['mission.view']->id,
-                $permissionModels['mission.members.manage']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.manage']->id,
+                $permissionModels['operation.host.large']->id,
+                $permissionModels['operation.host.org']->id,
+                $permissionModels['operation.members.manage']->id,
                 $permissionModels['user.view']->id,
                 $permissionModels['domain.manage.resources']->id,
-                $permissionModels['domain.manage.events']->id,
+                $permissionModels['domain.manage.operations']->id,
                 $permissionModels['analytics.view']->id,
             ]);
 
@@ -351,19 +327,18 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.view']->id,
                 $permissionModels['squadron.manage']->id,
                 $permissionModels['squadron.members.manage']->id,
-                $permissionModels['event.create']->id,
-                $permissionModels['event.manage']->id,
-                $permissionModels['event.host.large']->id,
-                $permissionModels['event.host.org']->id,
-                $permissionModels['mission.manage']->id,
-                $permissionModels['mission.view']->id,
-                $permissionModels['mission.members.manage']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.manage']->id,
+                $permissionModels['operation.host.large']->id,
+                $permissionModels['operation.host.org']->id,
+                $permissionModels['operation.members.manage']->id,
                 $permissionModels['user.view']->id,
                 $permissionModels['user.manage']->id,
                 $permissionModels['domain.manage.resources']->id,
-                $permissionModels['domain.manage.events']->id,
+                $permissionModels['domain.manage.operations']->id,
                 $permissionModels['analytics.view']->id,
-                $permissionModels['analytics.mission']->id,
+                $permissionModels['analytics.operation']->id,
                 $permissionModels['system.manage_roles']->id,
                 $permissionModels['system.manage_permissions']->id,
                 $permissionModels['system.settings']->id,
@@ -377,15 +352,15 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['system.manage_permissions']->id,
                 $permissionModels['system.settings']->id,
                 $permissionModels['analytics.view']->id,
-                $permissionModels['analytics.mission']->id,
-                $permissionModels['mission.view']->id,
+                $permissionModels['analytics.operation']->id,
+                $permissionModels['operation.view']->id,
             ]);
 
             // Tech Team
             $roleModels['tech_team']->permissions()->sync([
                 $permissionModels['user.view']->id,
                 $permissionModels['analytics.view']->id,
-                $permissionModels['mission.view']->id,
+                $permissionModels['operation.view']->id,
             ]);
         });
     }
