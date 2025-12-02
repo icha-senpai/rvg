@@ -39,6 +39,7 @@ return [
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         'redirect' => env('DISCORD_REDIRECT_URI'),
         'bot_token'     => env('DISCORD_BOT_TOKEN'),
+        'bot_secret' => env('DISCORD_BOT_SECRET'),
         'guild_id'      => env('DISCORD_GUILD_ID'),
         'guild_check' => env('DISCORD_GUILD_CHECK', true),
         'frontend_redirect' => env('DISCORD_FRONTEND_REDIRECT'),

@@ -30,6 +30,16 @@ use App\Http\Controllers\Api\V1\TokenController;
 | These remain open so Discord bot and WordPress can use them without rank.
 |
 */
+/*
+|--------------------------------------------------------------------------
+| Bot API Routes
+|--------------------------------------------------------------------------
+|
+| These routes are used by the Discord bot to interact with the application.
+| They are protected by the 'api' and 'bot' middleware groups.
+|
+*/
+
 
 // Health check
 Route::get('/ping', function () {

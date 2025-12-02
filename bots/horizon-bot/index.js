@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, Events } = require('discord.js');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -8,206 +8,177 @@ const path = require('path');
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent
     ]
 });
 
-// Log file setup
-const LOG_FILE = path.join(process.cwd(), 'storage/logs/laravel.log');
-let fileSize = fs.existsSync(LOG_FILE) ? fs.statSync(LOG_FILE).size : 0;
-
-// Slash command setup
+// Slash Commands
 const commands = [
     {
         name: 'verify',
-        description: 'Manually verify yourself with Horizon Interstellar.'
+        description: 'Verify your RSI account',
+        options: [
+            {
+                name: 'rsi_handle',
+                description: 'Your RSI handle',
+                type: 3, // STRING
+                required: true
+            }
+        ]
+    },
+    {
+        name: 'status',
+        description: 'Check your verification status'
     }
 ];
 
-// Deploy slash commands
+// Register slash commands
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 async function registerCommands() {
     try {
+        console.log('Started refreshing application (/) commands.');
+
         await rest.put(
             Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
             { body: commands }
         );
-        console.log('✅ Slash commands deployed');
+
+        console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
-        console.error('❌ Failed to deploy commands:', error);
+        console.error('Error refreshing commands:', error);
     }
 }
 
-// Log monitoring functions
-function watchLogs() {
-    if (!fs.existsSync(LOG_FILE)) {
-        console.error(`Log file not found at: ${LOG_FILE}`);
-        return;
-    }
-    
-    // Initial read
-    readNewLogs();
-    
-    // Watch for changes
-    fs.watch(LOG_FILE, (eventType) => {
-        if (eventType === 'change') {
-            readNewLogs();
-        }
-    });
-}
-
-function readNewLogs() {
-    const stream = fs.createReadStream(LOG_FILE, { start: fileSize, encoding: 'utf8' });
-    
-    stream.on('data', (data) => {
-        fileSize += Buffer.byteLength(data, 'utf8');
-        
-        data.split('\n').filter(Boolean).forEach(line => {
-            try {
-                const log = JSON.parse(line);
-                if (log.type === 'auth' || log.type === 'rsi_verification') {
-                    sendToDiscord(log);
-                }
-            } catch (e) {
-                // Ignore non-JSON lines or parse errors
-            }
-        });
-    });
-}
-
-function sendToDiscord(log) {
-    const channel = client.channels.cache.get(process.env.DISCORD_LOGS_CHANNEL_ID);
-    if (!channel) {
-        console.error('Log channel not found!');
-        return;
-    }
-
-    const embed = new EmbedBuilder()
-        .setColor(getColor(log))
-        .setTitle(getTitle(log))
-        .setTimestamp()
-        .addFields(getFields(log));
-
-    channel.send({ embeds: [embed] }).catch(console.error);
-}
-
-function getColor(log) {
-    const colors = {
-        auth: '#3498db',
-        rsi_verification: '#2ecc71'
-    };
-    return colors[log.type] || '#9b59b6';
-}
-
-function getTitle(log) {
-    const titles = {
-        auth: {
-            login_success: '✅ Login Successful',
-            login_failed: '❌ Login Failed'
-        },
-        rsi_verification: {
-            verification_success: '✅ RSI Verification Success',
-            verification_failed: '❌ RSI Verification Failed'
-        }
-    };
-    return titles[log.type]?.[log.action] || log.action || 'New Log Entry';
-}
-
-function getFields(log) {
-    const fields = [];
-    
-    // Common fields
-    if (log.user_id) fields.push({ name: 'User ID', value: log.user_id.toString(), inline: true });
-    if (log.discord_id) fields.push({ name: 'Discord ID', value: log.discord_id, inline: true });
-    if (log.rsi_handle) fields.push({ name: 'RSI Handle', value: log.rsi_handle, inline: true });
-    
-    // Error handling
-    if (log.error) {
-        fields.push({
-            name: 'Error',
-            value: `\`\`\`${log.error}\`\`\``
-        });
-    }
-    
-    // IP and User Agent
-    if (log.ip) fields.push({ name: 'IP', value: log.ip, inline: true });
-    if (log.user_agent) {
-        fields.push({
-            name: 'User Agent',
-            value: `\`${log.user_agent.substring(0, 100)}${log.user_agent.length > 100 ? '...' : ''}\``,
-            inline: false
-        });
-    }
-    
-    // Timestamp
-    fields.push({
-        name: 'Timestamp',
-        value: new Date(log.timestamp || Date.now()).toISOString(),
-        inline: false
-    });
-    
-    return fields;
-}
-
-// Bot events
-client.once('ready', () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
-    console.log(`👀 Watching log file: ${LOG_FILE}`);
-    watchLogs();
-    registerCommands();
-});
-
-// Slash command handler
-client.on('interactionCreate', async (interaction) => {
+// Handle slash commands
+client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === 'verify') {
+        await handleVerifyCommand(interaction);
+    } else if (interaction.commandName === 'status') {
+        await handleStatusCommand(interaction);
+    }
+});
+
+async function handleVerifyCommand(interaction) {
+    const rsiHandle = interaction.options.getString('rsi_handle');
+    
+    try {
         await interaction.deferReply({ ephemeral: true });
 
-        try {
-            const res = await axios.post(
-                `${process.env.API_BASE_URL}/api/v1/discord/verify`,
-                { discord_id: interaction.user.id },
-                { headers: { 'X-Bot-Secret': process.env.API_SECRET } }
-            );
-
-            const roleId = res.data.role_id;
-            if (roleId) {
-                const member = await interaction.guild.members.fetch(interaction.user.id);
-                await member.roles.add(roleId);
-                await interaction.editReply({ content: '✅ You have been verified and your roles have been updated!' });
-            } else {
-                await interaction.editReply({ content: '✅ Verification complete!' });
-            }
-        } catch (error) {
-            console.error('Verification error:', error);
-            const errorMessage = error.response?.data?.message || 'Failed to verify. Please try again later.';
-            await interaction.editReply({ content: `❌ ${errorMessage}` });
+        // Call your Laravel API to verify the user
+        const response = await verifyUser(interaction.user.id, rsiHandle);
+        
+        if (response.success) {
+            await interaction.editReply({
+                content: `✅ Successfully verified as ${rsiHandle}!`,
+                ephemeral: true
+            });
+        } else {
+            await interaction.editReply({
+                content: '❌ Verification failed. Please try again later.',
+                ephemeral: true
+            });
         }
+    } catch (error) {
+        console.error('Verification error:', error);
+        const errorMessage = error.response?.data?.error || 'An error occurred during verification.';
+        
+        await interaction.editReply({
+            content: `❌ Error: ${errorMessage}`,
+            ephemeral: true
+        });
     }
+}
+
+async function handleStatusCommand(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+        
+        const response = await checkVerificationStatus(interaction.user.id);
+        
+        if (response.user?.is_verified) {
+            await interaction.editReply({
+                content: `✅ You are verified as ${response.user.rsi_handle || 'an RSI user'}.`,
+                ephemeral: true
+            });
+        } else {
+            await interaction.editReply({
+                content: '❌ You are not verified. Use `/verify` to get started.',
+                ephemeral: true
+            });
+        }
+    } catch (error) {
+        console.error('Status check error:', error);
+        await interaction.editReply({
+            content: '❌ Failed to check verification status.',
+            ephemeral: true
+        });
+    }
+}
+
+// API Helper Functions
+async function verifyUser(discordId, rsiHandle) {
+    try {
+        const response = await axios.post(
+            `${process.env.API_BASE_URL}/api/bot/verify`,
+            { 
+                discord_id: discordId,
+                rsi_handle: rsiHandle
+            },
+            { 
+                headers: { 
+                    'X-Bot-Secret': process.env.API_SECRET,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                } 
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('API Error:', error.response?.data || error.message);
+        throw error;
+    }
+}
+
+async function checkVerificationStatus(discordId) {
+    try {
+        const response = await axios.get(
+            `${process.env.API_BASE_URL}/api/bot/users/${discordId}`,
+            { 
+                headers: { 
+                    'X-Bot-Secret': process.env.API_SECRET,
+                    'Accept': 'application/json'
+                } 
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Status check API error:', error.response?.data || error.message);
+        throw error;
+    }
+}
+
+// Bot startup
+client.once('ready', () => {
+    console.log(`Logged in as ${client.user.tag}!`);
+    registerCommands().catch(console.error);
 });
 
 // Error handling
-process.on('unhandledRejection', error => {
-    console.error('Unhandled promise rejection:', error);
-    const logChannel = client.channels.cache.get(process.env.DISCORD_LOGS_CHANNEL_ID);
-    if (logChannel) {
-        logChannel.send({
-            embeds: [new EmbedBuilder()
-                .setColor('#e74c3c')
-                .setTitle('❌ Bot Error')
-                .setDescription('```' + error.stack.substring(0, 1800) + '```')
-                .setTimestamp()
-            ]
-        }).catch(console.error);
-    }
+client.on('error', error => {
+    console.error('Discord client error:', error);
 });
 
-// Start the bot
-client.login(process.env.DISCORD_TOKEN)
-    .catch(error => {
-        console.error('Failed to log in:', error);
-        process.exit(1);
-    });
+process.on('unhandledRejection', error => {
+    console.error('Unhandled promise rejection:', error);
+});
+
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN).catch(error => {
+    console.error('Failed to log in to Discord:', error);
+    process.exit(1);
+});
