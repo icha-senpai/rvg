@@ -21,7 +21,8 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\MePreferenceController;
 use App\Http\Controllers\Api\V1\RsiHandleController;
 use App\Http\Controllers\Api\V1\TokenController;
-
+use App\Http\Controllers\Api\V1\OperationController;
+use App\Http\Controllers\Api\V1\OperationParticipantController;
 /*
 |--------------------------------------------------------------------------
 | Public API Endpoints (No Auth Required)
@@ -209,43 +210,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'update']);
         Route::delete('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'destroy']);
 
-       // List events
-        Route::get('/events', [EventController::class, 'index']);
-        Route::get('/events/{event}', [EventController::class, 'show']);
 
-        // Create event under squadron
-        Route::post('/squadrons/{squadron}/events', [EventController::class, 'store']);
+        // New unified operations API
+        Route::get('/operations', [OperationController::class, 'index']);
+        Route::get('/operations/{operation}', [OperationController::class, 'show']);
 
-        // Update / delete event
-        Route::put('/events/{event}', [EventController::class, 'update']);
-        Route::delete('/events/{event}', [EventController::class, 'destroy']);
-        Route::post('/events/{event}/join-role', [EventMemberController::class, 'joinWithRole']);
-        Route::patch('/events/{event}/status', [EventController::class, 'updateStatus']);
-        // Members - join/leave
-        Route::post('/events/{event}/join', [EventMemberController::class, 'join']);
-        Route::post('/events/{event}/leave', [EventMemberController::class, 'leave']);
-        Route::post('/events/{event}/roles', [EventRoleController::class, 'store']);
+        // Optionally: create under squadron
+        Route::post('/squadrons/{squadron}/operations', [OperationController::class, 'store']);
 
-        // Leadership actions
-        Route::put('/events/{event}/members/{member}/role', [EventMemberController::class, 'updateRole']);
-        Route::put('/events/{event}/members/{member}/stats', [EventMemberController::class, 'updateStats']);
+        Route::put('/operations/{operation}', [OperationController::class, 'update']);
+        Route::delete('/operations/{operation}', [OperationController::class, 'destroy']);
+        Route::patch('/operations/{operation}/status', [OperationController::class, 'updateStatus']);
 
-        // List / show missions
-        Route::get('/missions', [MissionController::class, 'index']);
-        Route::get('/missions/{mission}', [MissionController::class, 'show']);
+        // Participants
+        Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join']);
+        Route::post('/operations/{operation}/leave', [OperationParticipantController::class, 'leave']);
+        Route::put('/operations/{operation}/participants/{participant}/slot', [OperationParticipantController::class, 'updateSlot']);
+        Route::put('/operations/{operation}/participants/{participant}/stats', [OperationParticipantController::class, 'updateStats']);
 
-        // Create / update / delete missions
-        Route::post('/missions', [MissionController::class, 'store']);
-        Route::put('/missions/{mission}', [MissionController::class, 'update']);
-        Route::delete('/missions/{mission}', [MissionController::class, 'destroy']);
-
-        // Member join/leave
-        Route::post('/missions/{mission}/join', [MissionMemberController::class, 'join']);
-        Route::post('/missions/{mission}/leave', [MissionMemberController::class, 'leave']);
-
-        // Leadership management
-        Route::put('/missions/{mission}/members/{member}/slot', [MissionMemberController::class, 'updateSlot']);
-        Route::put('/missions/{mission}/members/{member}/stats', [MissionMemberController::class, 'updateStats']);
+    
+    
     });
 
 });
