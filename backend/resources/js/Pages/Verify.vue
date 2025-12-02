@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 // --- 1) Grab token from URL (after Discord callback) ---
@@ -14,10 +14,11 @@ if (tokenFromUrl) {
 }
 
 // Always read the current token from localStorage
-const accessToken = localStorage.getItem('access_token') || null;
+let accessToken = localStorage.getItem('access_token') || null;
 
-// Simple state: if we have a token, Discord is "verified"
-const discordVerified = ref(!!accessToken);
+// Discord state: we DO NOT trust just having a token;
+// we validate it against /api/v1/me on mount.
+const discordVerified = ref(false);
 
 // RSI state
 const rsiHandle = ref('');
@@ -34,12 +35,48 @@ const authHeaders = () => ({
     Authorization: `Bearer ${accessToken}`,
 });
 
-// --- 2) Generate verification code (uses your existing /generate-code endpoint) ---
+// --- 2) On mount: validate token with /api/v1/me ---
+onMounted(async () => {
+    if (!accessToken) {
+        discordVerified.value = false;
+        return;
+    }
+
+    try {
+        // If this succeeds, the token is valid and tied to a real user
+        await axios.get('/api/v1/me', { headers: authHeaders() });
+        discordVerified.value = true;
+    } catch (e) {
+        // Token is invalid (DB wiped, user deleted, token revoked, etc)
+        localStorage.removeItem('access_token');
+        accessToken = null;
+        discordVerified.value = false;
+
+        error.value = {
+            message: 'Your Discord session expired or became invalid. Please verify Discord again.',
+            details: {}
+        };
+    }
+});
+
+// Utility to reset error cleanly
+const clearError = () => {
+    error.value = { message: null, details: {} };
+};
+
+// --- 3) Generate verification code (uses /api/v1/generate-code) ---
 const getCode = async () => {
-    error.value = null;
+    clearError();
+
+    // Always re-read token in case it was cleared
+    accessToken = localStorage.getItem('access_token') || null;
 
     if (!accessToken) {
-        error.value = 'Missing access token. Please verify Discord again.';
+        discordVerified.value = false;
+        error.value = {
+            message: 'Missing access token. Please verify Discord again.',
+            details: {}
+        };
         return;
     }
 
@@ -71,12 +108,19 @@ const getCode = async () => {
     }
 };
 
-// --- 3) Verify RSI (uses your existing /verify-rsi endpoint) ---
+// --- 4) Verify RSI (uses /api/v1/verify-rsi) ---
 const verifyRsi = async () => {
-    error.value = null;
+    clearError();
+
+    // Always re-read token in case something cleared it
+    accessToken = localStorage.getItem('access_token') || null;
 
     if (!accessToken) {
-        error.value = 'Missing access token. Please verify Discord again.';
+        discordVerified.value = false;
+        error.value = {
+            message: 'Missing access token. Please verify Discord again.',
+            details: {}
+        };
         return;
     }
 
@@ -94,7 +138,7 @@ const verifyRsi = async () => {
         await axios.post(
             '/api/v1/verify-rsi',
             {
-                rsi_handle: rsiHandle.value, // 👈 matches RSIVerificationController
+                rsi_handle: rsiHandle.value, // matches RSIVerificationController
             },
             { headers: authHeaders() }
         );
@@ -136,19 +180,35 @@ const verifyRsi = async () => {
                 class="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200"
             >
                 <div class="font-medium">{{ error.message }}</div>
+
                 <!-- Display multi-line error details -->
-                <div v-if="typeof error.message === 'string' && error.message.includes('\n')" 
-                     class="mt-2 font-mono text-xs whitespace-pre-line">
+                <div
+                    v-if="typeof error.message === 'string' && error.message.includes('\n')"
+                    class="mt-2 font-mono text-xs whitespace-pre-line"
+                >
                     {{ error.message }}
                 </div>
+
                 <!-- Display error details if available -->
-                <div v-if="Object.keys(error.details).length > 0" class="mt-2 pt-2 border-t border-red-500/20">
+                <div
+                    v-if="Object.keys(error.details).length > 0"
+                    class="mt-2 pt-2 border-t border-red-500/20"
+                >
                     <div v-if="error.details.help_link" class="mt-1">
-                        <a :href="error.details.help_link" target="_blank" class="text-blue-400 hover:underline">
-                            {{ error.details.help_link.includes('orgs/') ? 'View Organization' : 'View Profile' }}
+                        <a
+                            :href="error.details.help_link"
+                            target="_blank"
+                            class="text-blue-400 hover:underline"
+                        >
+                            {{ error.details.help_link.includes('orgs/')
+                                ? 'View Organization'
+                                : 'View Profile' }}
                         </a>
                     </div>
-                    <div v-if="error.details.error_reference" class="text-xs opacity-75 mt-1">
+                    <div
+                        v-if="error.details.error_reference"
+                        class="text-xs opacity-75 mt-1"
+                    >
                         Reference: {{ error.details.error_reference }}
                     </div>
                 </div>
@@ -200,7 +260,10 @@ const verifyRsi = async () => {
                 </div>
 
                 <!-- RSI handle input -->
-                <div class="mb-3" :class="{ 'has-error': error.details?.field === 'rsi_handle' }">
+                <div
+                    class="mb-3"
+                    :class="{ 'has-error': error.details?.field === 'rsi_handle' }"
+                >
                     <label class="block text-xs uppercase tracking-wide text-gray-400 mb-1">
                         RSI Handle
                     </label>
@@ -210,8 +273,10 @@ const verifyRsi = async () => {
                         placeholder="ichaa"
                         :class="{
                             'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2': true,
-                            'bg-gray-800 border border-white/10 focus:ring-indigo-500': error.details?.field !== 'rsi_handle',
-                            'bg-red-900/30 border-red-500 focus:ring-red-500': error.details?.field === 'rsi_handle'
+                            'bg-gray-800 border border-white/10 focus:ring-indigo-500':
+                                error.details?.field !== 'rsi_handle',
+                            'bg-red-900/30 border-red-500 focus:ring-red-500':
+                                error.details?.field === 'rsi_handle'
                         }"
                     />
                 </div>
