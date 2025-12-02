@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Services\DiscordLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Http\Response;
@@ -35,8 +36,16 @@ class RSIVerificationController extends Controller
         // Rate limiting check
         if (RateLimiter::tooManyAttempts($throttleKey, $this->maxAttempts)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+            $message = 'Too many verification attempts. Please try again in ' . $seconds . ' seconds.';
+            
+            DiscordLogger::rsiVerification('rate_limit_exceeded', [
+                'ip' => $request->ip(),
+                'remaining' => $seconds . ' seconds',
+                'user_agent' => $request->userAgent()
+            ]);
+            
             return ApiResponse::error(
-                'Too many verification attempts. Please try again in ' . $seconds . ' seconds.',
+                $message,
                 [],
                 Response::HTTP_TOO_MANY_REQUESTS
             );
@@ -53,10 +62,12 @@ class RSIVerificationController extends Controller
             // 2) Get authenticated user
             $user = $request->user();
             if (!$user) {
-                Log::warning('Unauthorized RSI verification attempt', [
+                DiscordLogger::rsiVerification('unauthorized_attempt', [
                     'ip' => $request->ip(),
-                    'rsi_handle' => $request->rsi_handle
+                    'rsi_handle' => $validated['rsi_handle'],
+                    'user_agent' => $request->userAgent()
                 ]);
+                
                 return ApiResponse::error(
                     'Authentication required',
                     [],
@@ -66,10 +77,12 @@ class RSIVerificationController extends Controller
 
             // 3) Check verification code and expiration
             if (!$user->verification_code) {
-                Log::warning('No verification code found for user', [
+                DiscordLogger::rsiVerification('no_verification_code', [
                     'user_id' => $user->id,
+                    'discord_id' => $user->discord_id,
                     'rsi_handle' => $validated['rsi_handle']
                 ]);
+                
                 return ApiResponse::error(
                     'No verification code found. Please generate a new one.',
                     [],
@@ -78,10 +91,12 @@ class RSIVerificationController extends Controller
             }
 
             if ($user->verification_expires_at === null || now()->greaterThan($user->verification_expires_at)) {
-                Log::warning('Verification code expired', [
+                DiscordLogger::rsiVerification('verification_code_expired', [
                     'user_id' => $user->id,
-                    'expires_at' => $user->verification_expires_at
+                    'discord_id' => $user->discord_id,
+                    'expires_at' => $user->verification_expires_at?->toIso8601String()
                 ]);
+                
                 return ApiResponse::error(
                     'Verification code has expired. Please generate a new one.',
                     [],
@@ -98,11 +113,14 @@ class RSIVerificationController extends Controller
                     ->get($url);
 
                 if ($response->failed()) {
-                    Log::error('Failed to fetch RSI profile', [
-                        'status' => $response->status(),
-                        'url' => $url,
-                        'user_id' => $user->id
+                    DiscordLogger::rsiVerification('rsi_profile_fetch_failed', [
+                        'user_id' => $user->id,
+                        'discord_id' => $user->discord_id,
+                        'rsi_handle' => $validated['rsi_handle'],
+                        'status_code' => $response->status(),
+                        'error' => 'Failed to fetch RSI profile'
                     ]);
+                    
                     return ApiResponse::error(
                         'Unable to verify RSI profile at this time. Please try again later.',
                         [],
@@ -133,10 +151,13 @@ class RSIVerificationController extends Controller
                 }
 
                 if (!$orgCode) {
-                    Log::warning('No org membership found on RSI profile', [
+                    DiscordLogger::rsiVerification('no_org_membership', [
                         'user_id' => $user->id,
-                        'rsi_handle' => $validated['rsi_handle']
+                        'discord_id' => $user->discord_id,
+                        'rsi_handle' => $validated['rsi_handle'],
+                        'error' => 'No organization membership found on RSI profile'
                     ]);
+                    
                     return ApiResponse::error(
                         'No organization membership found on your RSI profile. Please join the required organization first.',
                         [],
@@ -147,11 +168,15 @@ class RSIVerificationController extends Controller
                 // Required org check
                 $requiredOrg = config('services.rsi.required_org', 'SRN');
                 if ($orgCode !== $requiredOrg) {
-                    Log::warning('User not in required org', [
+                    DiscordLogger::rsiVerification('wrong_org', [
                         'user_id' => $user->id,
+                        'discord_id' => $user->discord_id,
+                        'rsi_handle' => $validated['rsi_handle'],
                         'found_org' => $orgCode,
-                        'required_org' => $requiredOrg
+                        'required_org' => $requiredOrg,
+                        'error' => 'User not in required organization'
                     ]);
+                    
                     return ApiResponse::error(
                         'You must be a member of ' . $requiredOrg . ' to verify your account.',
                         [
@@ -168,10 +193,14 @@ class RSIVerificationController extends Controller
                 |--------------------------------------------------------------------------
                 */
                 if (!str_contains($html, $user->verification_code)) {
-                    Log::warning('Verification code not found on profile', [
+                    DiscordLogger::rsiVerification('verification_code_not_found', [
                         'user_id' => $user->id,
-                        'rsi_handle' => $validated['rsi_handle']
+                        'discord_id' => $user->discord_id,
+                        'rsi_handle' => $validated['rsi_handle'],
+                        'verification_code' => $user->verification_code,
+                        'error' => 'Verification code not found on RSI profile'
                     ]);
+                    
                     return ApiResponse::error(
                         'Verification code not found on your RSI profile. Please make sure to add it exactly as shown.',
                         [],
@@ -184,17 +213,21 @@ class RSIVerificationController extends Controller
                 | VERIFIED SUCCESSFULLY
                 |--------------------------------------------------------------------------
                 */
+                // Update user verification status
                 $user->rsi_handle = $validated['rsi_handle'];
                 $user->rsi_verified_at = now();
-                $user->global_status = 'active';  // flip from pending → active
-                $user->verification_code = null;  // Clear the used code
+                $user->global_status = 'active';
+                $user->verification_code = null;
                 $user->verification_expires_at = null;
                 $user->save();
 
-                Log::info('User verified successfully', [
+                // Log successful verification
+                DiscordLogger::rsiVerification('verification_success', [
                     'user_id' => $user->id,
+                    'discord_id' => $user->discord_id,
                     'rsi_handle' => $user->rsi_handle,
-                    'org' => $requiredOrg
+                    'org' => $requiredOrg,
+                    'verified_at' => $user->rsi_verified_at->toIso8601String()
                 ]);
 
                 // Clear rate limiter on successful verification
@@ -208,12 +241,20 @@ class RSIVerificationController extends Controller
                 ]);
 
             } catch (\Exception $e) {
-                Log::error('RSI verification error', [
+                // Log the error to both Laravel log and Discord
+                $errorContext = [
                     'user_id' => $user->id ?? null,
+                    'discord_id' => $user->discord_id ?? null,
                     'rsi_handle' => $validated['rsi_handle'] ?? null,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
-                ]);
+                ];
+                
+                Log::error('RSI verification error', $errorContext);
+                
+                // Send to Discord without the full trace to avoid hitting character limits
+                unset($errorContext['trace']);
+                DiscordLogger::rsiVerification('verification_error', $errorContext);
 
                 return ApiResponse::error(
                     'An error occurred while verifying your RSI profile. Please try again later.',
