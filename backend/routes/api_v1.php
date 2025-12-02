@@ -45,18 +45,23 @@ Route::post('/auth/verify-discord', [AuthController::class, 'verifyDiscord'])
     ->middleware('throttle:10,1');
 
 //Route::get('/auth/discord/redirect', [DiscordAuthController::class, 'redirect']);
-Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback']);
+//Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback']);
 
 Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::post('/auth/refresh', [TokenController::class, 'refresh'])
      ->middleware('throttle:20,1');
 
-// Generate verification code
-Route::post('/generate-code', [VerificationCodeController::class, 'generate']);
+// 🔐 These require Sanctum auth (token from Discord login)
+Route::middleware(['auth:sanctum'])->group(function () {
 
-// Verify RSI handle + org membership + code
-Route::post('/verify-rsi', [RSIVerificationController::class, 'verify'])
-    ->middleware('throttle:10,1');
+    // Generate verification code (uses auth()->user())
+    Route::post('/generate-code', [VerificationCodeController::class, 'generate'])
+        ->middleware('throttle:10,1');
+
+    // Verify RSI handle + org membership + code
+    Route::post('/verify-rsi', [RSIVerificationController::class, 'verify'])
+        ->middleware('throttle:10,1');
+});
 
 // Issue token after successful Discord login
 //Route::post('/auth/token', function (Request $request) {

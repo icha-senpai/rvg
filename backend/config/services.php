@@ -41,6 +41,7 @@ return [
         'bot_token'     => env('DISCORD_BOT_TOKEN'),
         'guild_id'      => env('DISCORD_GUILD_ID'),
         'guild_check' => env('DISCORD_GUILD_CHECK', true),
+        'frontend_redirect' => env('DISCORD_FRONTEND_REDIRECT'),
         'scopes' => ['identify', 'guilds'], 
     ],
 

@@ -105,7 +105,7 @@ class DiscordOAuthService
      */
     public function syncWithVerification($discordUser): array
     {
-        $code = strtoupper(Str::random(6));
+        $code = strtoupper(Str::random(3)) . '-' . rand(100, 999);
 
         $user = User::updateOrCreate(
             ['discord_id' => $discordUser->getId()],

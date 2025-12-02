@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 
@@ -14,15 +13,14 @@ class RSIVerificationController extends Controller
     {
         // 1) Validate inputs
         $request->validate([
-            'discord_id' => 'required',
             'rsi_handle' => 'required',
         ]);
 
-        // 2) Find user by Discord ID
-        $user = User::where('discord_id', $request->discord_id)->first();
+        // 2) Use authenticated user (Sanctum)
+        $user = $request->user();
 
-        if (! $user) {
-            return ApiResponse::error('User not found', [], 404);
+        if (!$user) {
+            return ApiResponse::error('Unauthorized', [], 401);
         }
 
         // 3) Check expiration
@@ -40,46 +38,42 @@ class RSIVerificationController extends Controller
 
         $html = $response->body();
 
-/*
- |----------------------------------------------------------------------
- | ORG EXTRACTION (bulletproof for all RSI layouts)
- |----------------------------------------------------------------------
- |
- | Searches multiple patterns because RSI can't keep consistency.
- |
-*/
+        /*
+        |--------------------------------------------------------------------------
+        | ORG EXTRACTION
+        |--------------------------------------------------------------------------
+        */
 
-        // Pattern A: sidebar org link (your profile uses this)
+        // Pattern A: sidebar org link
         if (preg_match('/href="\/orgs\/([A-Z0-9]+)"/i', $html, $orgMatch)) {
             $orgCode = strtoupper($orgMatch[1]);
         }
-        // Pattern B: /en/orgs/XYZ format
+        // Pattern B: /en/orgs/XYZ
         elseif (preg_match('/href="\/en\/orgs\/([A-Z0-9]+)"/i', $html, $orgMatch)) {
             $orgCode = strtoupper($orgMatch[1]);
         }
-        // Pattern C: Organization section (old layout)
+        // Pattern C: generic /en/orgs/XXX somewhere
         elseif (preg_match('/\/en\/orgs\/([A-Z0-9]{2,20})/i', $html, $orgMatch)) {
             $orgCode = strtoupper($orgMatch[1]);
         }
         else {
-            return ApiResponse::error('No org membership found on RSI profile.', [], 400);  
+            return ApiResponse::error('No org membership found on RSI profile.', [], 400);
         }
 
         // Required org check
-        if ($orgCode !== 'XVILEGION') {
+        if ($orgCode !== 'SRN') {
             return ApiResponse::error('User is not part of the required org.', [
-                'found_org' => $orgCode,
-                'required_org' => 'XVILEGION'
+                'found_org'    => $orgCode,
+                'required_org' => 'SRN',
             ], 403);
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | CODE CHECK: just search the entire HTML for the verification code
-        --------------------------------------------------------------------------
+        | CODE CHECK: verify the code is on the profile
+        |--------------------------------------------------------------------------
         */
-        if (! str_contains($html, $user->verification_code)) {
+        if (! $user->verification_code || ! str_contains($html, $user->verification_code)) {
             return ApiResponse::error('Verification code not found anywhere on profile.', [], 400);
         }
 
@@ -90,12 +84,13 @@ class RSIVerificationController extends Controller
         */
         $user->rsi_handle      = $request->rsi_handle;
         $user->rsi_verified_at = now();
+        $user->global_status   = 'active';  // flip from pending → active
         $user->save();
 
         return ApiResponse::success('User verified successfully', [
             'discord_id'  => $user->discord_id,
             'rsi_handle'  => $user->rsi_handle,
-            'org'         => 'XVILEGION',
+            'org'         => 'SRN',
             'verified_at' => $user->rsi_verified_at,
         ]);
     }

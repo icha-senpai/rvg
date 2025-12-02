@@ -95,8 +95,7 @@ class User extends Authenticatable
         'personal_tags',
         'availability_status',
         'loa_note',
-    ];
-    protected $guarded = [
+   
         'rsi_handle',
         'rsi_verified_at',
     ];

@@ -152,106 +152,107 @@ function warpJump() {
 
 <!-- ADVANCED SEXY CARDS -->
 <section class="space-y-8">
-  <h2 class="text-2xl font-semibold text-horizon-white">Advanced Horizon Cards (Curves & Premium Lines)</h2>
+  <h2 class="text-2xl font-semibold text-horizon-white">Advanced Horizon Cards (Curves, Glow & Premium Depth)</h2>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-    <!-- Curved Horizon Panel -->
-    <div class="bg-bg-surface rounded-[28px] p-6 shadow-xl border border-bg-hover">
+    <!-- Curved Horizon Panel – ambient depth -->
+    <div class="bg-bg-surface rounded-[28px] p-6 border border-bg-hover horizon-ambient">
       <h3 class="text-xl font-semibold text-horizon-white">Curved Horizon Panel</h3>
       <p class="text-text-secondary mt-2">A soft, luxurious profile with wide curvature.</p>
     </div>
-    <div class="bg-bg-surface p-4 shadow-lg 
-            rounded-tl-[18px] rounded-tr-[6px]
-            rounded-bl-[24px] rounded-br-[12px]
-            border border-horizon-blue/10">
+
+    <!-- Pulse Curve – little neon rim -->
+    <div class="relative bg-bg-surface p-4 rounded-tl-[18px] rounded-tr-[6px]
+                rounded-bl-[24px] rounded-br-[12px]
+                border border-horizon-blue/20 horizon-rim horizon-ambient">
       <h3 class="text-lg font-semibold text-horizon-white">Pulse Curve</h3>
       <p class="text-text-secondary mt-2">Tiny but expressive. Great for dashboards.</p>
     </div>
-    <div class="bg-bg-surface p-6 shadow-xl 
-            rounded-tl-[36px] rounded-tr-[20px]
-            rounded-bl-[28px] rounded-br-[12px]
-            border border-horizon-blue/20">
+
+    <!-- Delta Curve – strong glow -->
+    <div class="bg-bg-surface p-6 rounded-tl-[36px] rounded-tr-[20px]
+                rounded-bl-[28px] rounded-br-[12px]
+                border border-horizon-blue/20 horizon-glow horizon-deep">
       <h3 class="text-xl font-semibold text-horizon-white">Delta Curve</h3>
       <p class="text-text-secondary mt-2">Smooth, directional, quietly aggressive.</p>
     </div>
-    <!-- Soft Asymmetric Curve (replacement for dual-cut) -->
-    <div class="bg-bg-surface p-6 shadow-xl 
-                rounded-tl-[28px] rounded-tr-[12px]
+
+    <!-- Asymmetric Horizon Curve – balanced shadow -->
+    <div class="bg-bg-surface p-6 rounded-tl-[28px] rounded-tr-[12px]
                 rounded-bl-[12px] rounded-br-[28px]
-                border border-horizon-blue/20">
+                border border-horizon-blue/20 horizon-ambient">
       <h3 class="text-xl font-semibold text-horizon-white">Asymmetric Horizon Curve</h3>
       <p class="text-text-secondary mt-2">Asymmetric shape with commanding presence.</p>
     </div>
 
-    <div class="bg-bg-surface p-6 shadow-xl 
-            rounded-tl-[48px] rounded-tr-[48px]
-            rounded-bl-[20px] rounded-br-[20px]
-            border border-bg-hover">
+    <!-- Cradle Curve – glowing warmth -->
+    <div class="bg-bg-surface p-6 rounded-tl-[48px] rounded-tr-[48px]
+                rounded-bl-[20px] rounded-br-[20px]
+                border border-bg-hover horizon-glow">
       <h3 class="text-xl font-semibold text-horizon-white">Cradle Curve</h3>
       <p class="text-text-secondary mt-2">Gentle wraparound curvature for warm UI.</p>
     </div>
 
-    <!-- Hybrid Round + Angular-ish curve -->
-    <div class="bg-bg-surface p-6 shadow-xl 
-                rounded-tl-[32px] rounded-tr-[18px]
+    <!-- Horizon Hybrid Curve – deep drop shadow -->
+    <div class="bg-bg-surface p-6 rounded-tl-[32px] rounded-tr-[18px]
                 rounded-bl-[8px] rounded-br-[26px]
-                border border-horizon-blue/20">
+                border border-horizon-blue/20 horizon-deep">
       <h3 class="text-xl font-semibold text-horizon-white">Horizon Hybrid Curve</h3>
       <p class="text-text-secondary mt-2">Soft edges with directional form.</p>
     </div>
 
-    <div class="bg-bg-surface p-6 shadow-xl 
-            rounded-tl-[20px] rounded-tr-[40px]
-            rounded-bl-[28px] rounded-br-[6px]
-            border border-horizon-blue/20">
+    <!-- Blade & Silk – thin neon edge -->
+    <div class="bg-bg-surface p-6 rounded-tl-[20px] rounded-tr-[40px]
+                rounded-bl-[28px] rounded-br-[6px]
+                border border-horizon-blue/20 horizon-rim">
       <h3 class="text-xl font-semibold text-horizon-white">Blade & Silk</h3>
       <p class="text-text-secondary mt-2">Soft everywhere except one assertive corner.</p>
     </div>
 
-
-    <!-- Executive Split-Line -->
-    <div class="bg-bg-surface p-6 shadow-xl rounded-2xl relative overflow-hidden">
-      <div class="absolute top-0 left-0 w-full h-[2px] bg-horizon-blue/40"></div>
-      <div class="absolute bottom-0 right-0 w-full h-[2px] bg-horizon-blue-dark/30"></div>
+    <!-- Executive Split-Line – cinematic shadow -->
+    <div class="relative bg-bg-surface p-6 rounded-2xl overflow-hidden horizon-deep">
+      <div class="absolute top-0 left-0 w-full h-[4px] bg-horizon-blue/40"></div>
+      <div class="absolute bottom-0 right-0 w-full h-[4px] bg-horizon-blue-dark/30"></div>
 
       <h3 class="text-xl font-semibold text-horizon-white">Executive Split-Line</h3>
       <p class="text-text-secondary mt-3">Minimal, premium, corporate sci-fi.</p>
     </div>
 
-    <div class="bg-bg-surface p-6 shadow-xl 
-            rounded-tl-[32px] rounded-tr-[12px]
-            rounded-bl-[12px] rounded-br-[32px]
-            border border-bg-hover">
+    <!-- Symphony Curve – ambient shadow -->
+    <div class="bg-bg-surface p-6 rounded-tl-[32px] rounded-tr-[12px]
+                rounded-bl-[12px] rounded-br-[32px]
+                border border-bg-hover horizon-ambient">
       <h3 class="text-xl font-semibold text-horizon-white">Symphony Curve</h3>
       <p class="text-text-secondary mt-2">Balance through mirrored asymmetry.</p>
     </div>
 
-    <!-- Neon Trim Card -->
-    <div class="bg-bg-surface p-6 rounded-2xl shadow-xl border border-bg-hover relative">
+    <!-- Neon Trim Card – already glowing, enhance with deep shadow -->
+    <div class="relative bg-bg-surface p-6 rounded-2xl border border-bg-hover horizon-deep">
       <div class="absolute inset-0 rounded-2xl border border-horizon-blue/30 blur-[2px]"></div>
       <h3 class="text-xl font-semibold text-horizon-white">Neon Trim Card</h3>
       <p class="text-text-secondary mt-2">Soft glow, tasteful and elegant.</p>
     </div>
 
-    <div class="bg-bg-surface p-6 shadow-xl 
-            rounded-tl-[40px] rounded-tr-xl
-            rounded-bl-xl rounded-br-[40px]
-            border border-horizon-blue/20">
+    <!-- Command Crest – glow + deep shadow -->
+    <div class="bg-bg-surface p-6 rounded-tl-[40px] rounded-tr-xl
+                rounded-bl-xl rounded-br-[40px]
+                border border-horizon-blue/20 horizon-glow horizon-deep">
       <h3 class="text-xl font-semibold text-horizon-white">Command Crest</h3>
-      <p class="text-text-secondary mt-2">A leader’s curve — strong, elegant, decisive.</p>
+      <p class="text-text-secondary mt-2">Strong, elegant, decisive.</p>
     </div>
-    <!-- Command Curve (curved version of command card) -->
-    <div class="bg-bg-surface p-6 shadow-xl 
-                rounded-tr-[40px] rounded-bl-[40px] 
+
+    <!-- Command Curve Card – ambient hover lift -->
+    <div class="bg-bg-surface p-6 rounded-tr-[40px] rounded-bl-[40px]
                 rounded-tl-xl rounded-br-xl
-                border border-bg-hover">
+                border border-bg-hover horizon-ambient">
       <h3 class="text-xl font-semibold text-horizon-white">Command Curve Card</h3>
       <p class="text-text-secondary mt-2">Authority through curvature, not edges.</p>
     </div>
 
   </div>
 </section>
+
 
 
   </div>
