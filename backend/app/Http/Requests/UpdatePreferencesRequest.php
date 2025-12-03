@@ -26,7 +26,7 @@ class UpdatePreferencesRequest extends FormRequest
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'max:255'],
 
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

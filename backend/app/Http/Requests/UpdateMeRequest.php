@@ -22,6 +22,7 @@ class UpdateMeRequest extends FormRequest
             'preferred_roles.*' => ['string', 'max:50'],
 
             'notification_settings' => ['nullable', 'array'],
+            'notification_settings.*'   => ['boolean'],
 
             'availability_status' => ['nullable', 'string', 'max:32'],
             'loa_note' => ['nullable', 'string', 'max:1000'],

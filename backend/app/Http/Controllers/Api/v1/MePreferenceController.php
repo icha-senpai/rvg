@@ -11,31 +11,26 @@ class MePreferenceController extends Controller
 {
     /**
      * GET /api/v1/me/preferences
-     * Return the authenticated user's preferences, or sensible defaults.
+     * Return the authenticated user's preferences, or create defaults if missing.
      */
     public function show(Request $request)
     {
         $user = $request->user();
 
+        // Get existing preferences or create defaults
         $prefs = $user->preferences;
 
         if (!$prefs) {
-            $prefs = new MemberPreference([
-                'status'          => 'active',
-                'preferred_times' => [],
-                'focus'           => [],
-                'roles'           => [],
-                'notes'           => null,
-            ]);
+            $prefs = $user->preferences()->create(MemberPreference::defaults());
         }
 
         return response()->json([
             'data' => [
                 'status'          => $prefs->status,
                 'loa_until'       => $prefs->loa_until,
-                'preferred_times' => $prefs->preferred_times ?? [],
-                'focus'           => $prefs->focus ?? [],
-                'roles'           => $prefs->roles ?? [],
+                'preferred_times' => $prefs->preferred_times,
+                'focus'           => $prefs->focus,
+                'roles'           => $prefs->roles,
                 'notes'           => $prefs->notes,
             ],
         ]);
@@ -52,8 +47,7 @@ class MePreferenceController extends Controller
         $prefs = $user->preferences;
 
         if (!$prefs) {
-            $prefs = new MemberPreference();
-            $prefs->user_id = $user->id;
+            $prefs = $user->preferences()->create(MemberPreference::defaults());
         }
 
         $data = $request->validated();
@@ -75,16 +69,14 @@ class MePreferenceController extends Controller
         $prefs->fill($safeData);
         $prefs->save();
 
-        $prefs->refresh();
-
         return response()->json([
             'message' => 'Preferences updated.',
             'data' => [
                 'status'          => $prefs->status,
                 'loa_until'       => $prefs->loa_until,
-                'preferred_times' => $prefs->preferred_times ?? [],
-                'focus'           => $prefs->focus ?? [],
-                'roles'           => $prefs->roles ?? [],
+                'preferred_times' => $prefs->preferred_times,
+                'focus'           => $prefs->focus,
+                'roles'           => $prefs->roles,
                 'notes'           => $prefs->notes,
             ],
         ]);

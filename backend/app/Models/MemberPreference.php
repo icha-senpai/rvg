@@ -9,6 +9,17 @@ class MemberPreference extends Model
 {
     use HasFactory;
 
+    public static function defaults()
+    {
+        return [
+            'status'          => 'active',
+            'preferred_times' => [],
+            'focus'           => [],
+            'roles'           => [],
+            'notes'           => null,
+        ];
+    }
+
     protected $fillable = [
         'user_id',
         'status',

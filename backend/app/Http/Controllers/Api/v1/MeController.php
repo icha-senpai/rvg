@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateMeRequest;
+use App\Http\Resources\MeResource;
 use Illuminate\Http\Request;
 
 class MeController extends Controller
@@ -16,40 +17,7 @@ class MeController extends Controller
     {
         $user = $request->user()->load('roles');
 
-        return response()->json([
-            'data' => [
-                'id'                  => $user->id,
-                'name'                => $user->name,
-                'email'               => $user->email,
-                'rank'                => $user->rank,
-                'rank_level'          => $user->rank_level,
-                'rank_name'           => $user->rank_name ?? null,
-
-                // Discord
-                'discord_id'          => $user->discord_id,
-                'discord_name'        => $user->discord_name,
-                'discord_avatar'      => $user->discord_avatar,
-
-                // RSI (read-only here)
-                'rsi_handle'          => $user->rsi_handle,
-                'rsi_verified_at'     => $user->rsi_verified_at,
-
-                // Self-service profile
-                'bio'                 => $user->bio,
-                'timezone'            => $user->timezone,
-                'preferred_roles'     => $user->preferred_roles ?? [],
-                'notification_settings' => $user->notification_settings ?? [],
-                'availability_status' => $user->availability_status,
-                'loa_note'            => $user->loa_note,
-                'personal_tags'       => $user->personal_tags ?? [],
-
-                // Roles (RBAC)
-                'roles'               => $user->roles->map(fn ($role) => [
-                    'slug' => $role->slug,
-                    'name' => $role->name,
-                ])->values(),
-            ],
-        ]);
+        return new MeResource($user);
     }
 
     /**
@@ -60,10 +28,7 @@ class MeController extends Controller
     {
         $user = $request->user();
 
-        $data = $request->validated();
-
-        // Only allow these specific keys to be mass-assigned, even if
-        // something weird slips through from the client.
+        // Strict extraction of allowed fields
         $allowed = [
             'bio',
             'timezone',
@@ -74,10 +39,11 @@ class MeController extends Controller
             'personal_tags',
         ];
 
-        $safeData = collect($data)
+        $safeData = collect($request->validated())
             ->only($allowed)
             ->toArray();
 
+        // Update user profile
         $user->fill($safeData);
         $user->save();
 
@@ -85,21 +51,7 @@ class MeController extends Controller
 
         return response()->json([
             'message' => 'Profile updated.',
-            'data'    => [
-                'id'                  => $user->id,
-                'name'                => $user->name,
-                'bio'                 => $user->bio,
-                'timezone'            => $user->timezone,
-                'preferred_roles'     => $user->preferred_roles ?? [],
-                'notification_settings' => $user->notification_settings ?? [],
-                'availability_status' => $user->availability_status,
-                'loa_note'            => $user->loa_note,
-                'personal_tags'       => $user->personal_tags ?? [],
-                'roles'               => $user->roles->map(fn ($role) => [
-                    'slug' => $role->slug,
-                    'name' => $role->name,
-                ])->values(),
-            ],
+            'data'    => new MeResource($user),
         ]);
     }
 }
