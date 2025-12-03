@@ -10,7 +10,7 @@ Desktop.ini
 *.code-workspace
 $RECYCLE.BIN/
 Icon?
-
+wordpress/
 ########################################
 # 🔐  ENV FILES / SECRETS
 ########################################
