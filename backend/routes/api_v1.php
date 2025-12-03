@@ -3,20 +3,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\Api\V1\RSIVerificationController;
-use App\Http\Controllers\Api\V1\VerificationCodeController;
-use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\v1\RSIVerificationController;
+use App\Http\Controllers\Api\v1\VerificationCodeController;
+use App\Http\Controllers\Api\v1\UserController;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\ApiResponse;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\SquadronController;
-use App\Http\Controllers\Api\V1\SquadronMemberController;
-use App\Http\Controllers\Api\V1\MeController;
-use App\Http\Controllers\Api\V1\MePreferenceController;
-use App\Http\Controllers\Api\V1\RsiHandleController;
-use App\Http\Controllers\Api\V1\TokenController;
-use App\Http\Controllers\Api\V1\OperationController;
-use App\Http\Controllers\Api\V1\OperationParticipantController;
+use App\Http\Controllers\Api\v1\AuthController;
+use App\Http\Controllers\Api\v1\SquadronController;
+use App\Http\Controllers\Api\v1\SquadronMemberController;
+use App\Http\Controllers\Api\v1\MeController;
+use App\Http\Controllers\Api\v1\MePreferenceController;
+use App\Http\Controllers\Api\v1\RsiHandleController;
+use App\Http\Controllers\Api\v1\TokenController;
+use App\Http\Controllers\Api\v1\OperationController;
+use App\Http\Controllers\Api\v1\OperationParticipantController;
 /*
 |--------------------------------------------------------------------------
 | Public API Endpoints (No Auth Required)
