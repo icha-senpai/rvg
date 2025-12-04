@@ -35,26 +35,3473 @@
    
 }
 @layer utilities {
-  .horizon-glow {
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.25),
-                0 0 40px rgba(56, 189, 248, 0.15);
-  }
 
-  .horizon-ambient {
+  /* ---------------------------------------------------------
+     HORIZON COLOR UTILITIES — TEXT, SURFACE, ACCENTS
+  --------------------------------------------------------- */
+
+  .text-hz-blue        { color: var(--color-horizon-blue); }
+  .text-hz-blue-light  { color: var(--color-horizon-blue-light); }
+  .text-hz-blue-dark   { color: var(--color-horizon-blue-dark); }
+
+  .text-hz-metal       { color: var(--color-horizon-alloy); }   /* metallic blue-gray */
+  .text-hz-steel       { color: var(--color-horizon-steel); }   /* softer steel */
+  .text-hz-muted       { color: var(--color-text-muted); }
+  .text-hz-soft        { color: var(--color-text-secondary); }
+  .text-hz-link        { color: var(--color-text-link); }
+
+  .bg-hz-base          { background-color: var(--color-bg-base); }
+  .bg-hz-surface       { background-color: var(--color-bg-surface); }
+  .bg-hz-elevated      { background-color: var(--color-bg-elevated); }
+  .bg-hz-hover         { background-color: var(--color-bg-hover); }
+
+  .border-hz-blue      { border-color: var(--color-horizon-blue); }
+  .border-hz-alloy     { border-color: var(--color-horizon-alloy); }
+  .border-hz-steel     { border-color: var(--color-horizon-steel); }
+  .border-hz-hover     { border-color: var(--color-bg-hover); }
+  .border-hz-elevated  { border-color: var(--color-bg-elevated); }
+
+
+  /* ---------------------------------------------------------
+     HORIZON OPACITY-VARIANT BORDERS
+  --------------------------------------------------------- */
+
+  .border-hz-blue-10 { border-color: rgb(42 120 200 / 0.10); }
+  .border-hz-blue-20 { border-color: rgb(42 120 200 / 0.20); }
+  .border-hz-blue-30 { border-color: rgb(42 120 200 / 0.30); }
+  .border-hz-blue-40 { border-color: rgb(42 120 200 / 0.40); }
+  .border-hz-blue-60 { border-color: rgb(42 120 200 / 0.60); }
+
+
+  /* ---------------------------------------------------------
+     HORIZON DEPTH SYSTEM — SHADOWS & GLOWS
+     (These form your entire visual *depth grammar*)
+  --------------------------------------------------------- */
+
+  /* Ambient softness */
+  .hz-shadow-ambient {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
 
-  .horizon-deep {
+  /* Cinematic depth */
+  .hz-shadow-deep {
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65);
   }
 
-  .horizon-rim::after {
+  /* Very soft floating panel */
+  .hz-shadow-soft {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Hard sci-fi edges */
+  .hz-shadow-crisp {
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Cyan glow */
+  .hz-glow {
+    box-shadow:
+      0 0 15px rgba(56, 189, 248, 0.22),
+      0 0 35px rgba(56, 189, 248, 0.12);
+  }
+
+  /* Cyan glow + depth */
+  .hz-glow-deep {
+    box-shadow:
+      0 0 20px rgba(56, 189, 248, 0.28),
+      0 0 45px rgba(56, 189, 248, 0.18),
+      0 20px 50px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Inner rim light */
+  .hz-rim::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.4);
-    opacity: .6;
+    box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.35);
   }
+
+
+  /* ---------------------------------------------------------
+     NEON TRIM & EDGE EFFECTS
+  --------------------------------------------------------- */
+
+  /* Neon top edge */
+  .hz-trim-top {
+    position: relative;
+  }
+  .hz-trim-top::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    height: 3px;
+    width: 100%;
+    background: rgb(42 120 200 / 0.4);
+    top: 0;
+    left: 0;
+  }
+
+  /* Neon bottom edge */
+  .hz-trim-bottom {
+    position: relative;
+  }
+  .hz-trim-bottom::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    height: 3px;
+    width: 100%;
+    background: rgb(42 120 200 / 0.4);
+    bottom: 0;
+    left: 0;
+  }
+
+  /* Full perimeter neon halo */
+  .hz-trim-halo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgb(42 120 200 / 0.30);
+    filter: blur(2px);
+  }
+
+
+  /* ---------------------------------------------------------
+     BLUR & GLASS SURFACES
+  --------------------------------------------------------- */
+
+  .hz-blur-sm { backdrop-filter: blur(4px); }
+  .hz-blur-md { backdrop-filter: blur(8px); }
+  .hz-blur-lg { backdrop-filter: blur(14px); }
+
+  /* Frosted panel */
+  .hz-glass {
+    backdrop-filter: blur(12px);
+    background: rgba(23, 28, 36, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+
+  /* ---------------------------------------------------------
+     CURVATURE LANGUAGE — HORIZON RADIUS SYSTEM
+     (Consistent curvature = consistent brand identity)
+  --------------------------------------------------------- */
+
+  /* Single-value radii */
+  .hz-rad-6  { border-radius: 6px; }
+  .hz-rad-12 { border-radius: 12px; }
+  .hz-rad-18 { border-radius: 18px; }
+  .hz-rad-20 { border-radius: 20px; }
+  .hz-rad-24 { border-radius: 24px; }
+  .hz-rad-28 { border-radius: 28px; }
+  .hz-rad-32 { border-radius: 32px; }
+  .hz-rad-36 { border-radius: 36px; }
+  .hz-rad-40 { border-radius: 40px; }
+  .hz-rad-48 { border-radius: 48px; }
+
+  /* Per-corner shaping */
+  .hz-rtl-18 { border-top-left-radius: 18px; }
+  .hz-rtr-6  { border-top-right-radius: 6px; }
+  .hz-rbl-24 { border-bottom-left-radius: 24px; }
+  .hz-rbr-12 { border-bottom-right-radius: 12px; }
+
+  .hz-rtl-36 { border-top-left-radius: 36px; }
+  .hz-rtr-20 { border-top-right-radius: 20px; }
+  .hz-rbl-28 { border-bottom-left-radius: 28px; }
+  .hz-rbr-12 { border-bottom-right-radius: 12px; }
+
+  .hz-rtl-28 { border-top-left-radius: 28px; }
+  .hz-rtr-12 { border-top-right-radius: 12px; }
+  .hz-rbl-12 { border-bottom-left-radius: 12px; }
+  .hz-rbr-28 { border-bottom-right-radius: 28px; }
+
+  .hz-rtl-48 { border-top-left-radius: 48px; }
+  .hz-rtr-48 { border-top-right-radius: 48px; }
+  .hz-rbl-20 { border-bottom-left-radius: 20px; }
+  .hz-rbr-20 { border-bottom-right-radius: 20px; }
+
+
+  /* ---------------------------------------------------------
+     PREMIUM CARD & PANEL BASE UTILITIES
+  --------------------------------------------------------- */
+
+  .hz-card {
+    background: var(--color-bg-surface);
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid var(--color-bg-hover);
+  }
+
+  .hz-card-soft   { @apply hz-card hz-shadow-soft; }
+  .hz-card-glow   { @apply hz-card hz-glow; }
+  .hz-card-deep   { @apply hz-card hz-shadow-deep; }
+  .hz-card-glass  { @apply hz-card hz-glass; }
+
+
+  /* ---------------------------------------------------------
+     ANIMATION UTILITIES
+  --------------------------------------------------------- */
+
+  @keyframes hz-float {
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-4px); }
+    100% { transform: translateY(0px); }
+  }
+  .hz-float { animation: hz-float 3s ease-in-out infinite; }
+
+  @keyframes hz-pulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+  .hz-pulse { animation: hz-pulse 2.2s ease-in-out infinite; }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     CORE BUTTON PHYSICS — padding, rounding, text style
+  --------------------------------------------------------- */
+
+  .hz-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.55rem 1.15rem;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      box-shadow 180ms ease,
+      transform 120ms ease;
+  }
+
+  /* Hover motion (universal for all variants) */
+  .hz-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Press down */
+  .hz-btn:active {
+    transform: translateY(1px) scale(0.98);
+  }
+
+  /* Disabled state */
+  .hz-btn-disabled,
+  .hz-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+
+  /* ---------------------------------------------------------
+     SIZE VARIANTS — tiny to large
+  --------------------------------------------------------- */
+
+  .hz-btn-sm { padding: 0.35rem 0.8rem; font-size: 0.875rem; }
+  .hz-btn-md { padding: 0.55rem 1.15rem; font-size: 1rem; }
+  .hz-btn-lg { padding: 0.85rem 1.5rem; font-size: 1.1rem; border-radius: 10px; }
+
+
+  /* ---------------------------------------------------------
+     PRIMARY BUTTONS — strong interstellar blue
+  --------------------------------------------------------- */
+
+  .hz-btn-primary {
+    @apply hz-btn;
+    background: var(--color-horizon-blue);
+    color: var(--color-horizon-white);
+    border: 1px solid var(--color-horizon-blue-dark);
+  }
+
+  .hz-btn-primary:hover {
+    background: var(--color-horizon-blue-dark);
+  }
+
+  /* Premium glow version */
+  .hz-btn-primary-glow {
+    @apply hz-btn hz-glow;
+    background: var(--color-horizon-blue);
+    border: 1px solid var(--color-horizon-blue-light);
+  }
+
+  /* Dimmed version for dashboard actions */
+  .hz-btn-primary-soft {
+    @apply hz-btn;
+    background: var(--color-horizon-blue-light);
+    border: 1px solid var(--color-horizon-blue);
+    color: white;
+  }
+
+
+  /* ---------------------------------------------------------
+     SECONDARY BUTTONS — neutral steely Horizon tone
+  --------------------------------------------------------- */
+
+  .hz-btn-secondary {
+    @apply hz-btn;
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-bg-hover);
+  }
+
+  .hz-btn-secondary:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .hz-btn-secondary-strong {
+    @apply hz-btn;
+    background: var(--color-horizon-steel);
+    color: var(--color-bg-base);
+    border: 1px solid var(--color-horizon-alloy);
+  }
+
+  .hz-btn-secondary-muted {
+    @apply hz-btn;
+    background: var(--color-bg-surface);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     GHOST / OUTLINE BUTTONS — minimalist sci-fi
+  --------------------------------------------------------- */
+
+  .hz-btn-ghost {
+    @apply hz-btn;
+    background: transparent;
+    border: 1px solid var(--color-horizon-blue);
+    color: var(--color-horizon-blue);
+  }
+
+  .hz-btn-ghost:hover {
+    background: rgb(42 120 200 / 0.15);
+  }
+
+  .hz-btn-ghost-light {
+    @apply hz-btn;
+    background: transparent;
+    border: 1px solid var(--color-horizon-blue-light);
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-btn-ghost-dark {
+    @apply hz-btn;
+    border: 1px solid var(--color-horizon-blue-dark);
+    color: var(--color-horizon-blue-dark);
+  }
+
+  .hz-btn-ghost-soft {
+    @apply hz-btn;
+    border: 1px solid var(--color-horizon-steel);
+    color: var(--color-horizon-steel);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON BUTTON SERIES — glowing interactive elements
+  --------------------------------------------------------- */
+
+  .hz-btn-neon {
+    @apply hz-btn hz-glow;
+    background: var(--color-bg-surface);
+    border: 1px solid rgb(56 189 248 / 0.35);
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-btn-neon:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .hz-btn-neon-solid {
+    @apply hz-btn hz-glow-deep;
+    background: var(--color-horizon-blue-dark);
+    color: white;
+    border: 1px solid var(--color-horizon-blue-light);
+  }
+
+  .hz-btn-neon-ghost {
+    @apply hz-btn hz-rim;
+    background: transparent;
+    color: var(--color-horizon-blue-light);
+    border: 1px solid transparent;
+  }
+
+
+  /* ---------------------------------------------------------
+     GLASS BUTTONS — frosted horizon UI
+  --------------------------------------------------------- */
+
+  .hz-btn-glass {
+    @apply hz-btn hz-glass;
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-btn-glass-strong {
+    @apply hz-btn hz-glass hz-glow;
+    border: 1px solid rgb(56 189 248 / 0.35);
+    color: white;
+  }
+
+  .hz-btn-glass-light {
+    @apply hz-btn hz-blur-sm;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-horizon-blue-light);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .hz-btn-glass-dark {
+    @apply hz-btn hz-blur-md;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-horizon-white);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+  }
+
+
+  /* ---------------------------------------------------------
+     MINIMAL BUTTONS — text-first, zero-chrome UI
+  --------------------------------------------------------- */
+
+  .hz-btn-minimal {
+    @apply hz-btn;
+    background: transparent;
+    border: none;
+    color: var(--color-text-link);
+  }
+
+  .hz-btn-minimal:hover {
+    text-decoration: underline;
+  }
+
+  .hz-btn-minimal-soft {
+    @apply hz-btn;
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+  }
+
+  .hz-btn-minimal-ghost {
+    @apply hz-btn;
+    background: transparent;
+    border: none;
+    color: var(--color-horizon-steel);
+  }
+
+
+  /* ---------------------------------------------------------
+     DESTRUCTIVE BUTTON SERIES
+  --------------------------------------------------------- */
+
+  .hz-btn-danger {
+    @apply hz-btn;
+    background: #b91c1c;
+    border: 1px solid #7f1d1d;
+    color: white;
+  }
+
+  .hz-btn-danger:hover {
+    background: #991b1b;
+  }
+
+  .hz-btn-danger-ghost {
+    @apply hz-btn;
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+  }
+
+  .hz-btn-danger-minimal {
+    @apply hz-btn;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+  }
+
+
+  /* ---------------------------------------------------------
+     SUCCESS / OK / CONFIRMATION BUTTONS
+  --------------------------------------------------------- */
+
+  .hz-btn-success {
+    @apply hz-btn;
+    background: #15803d;
+    color: white;
+    border: 1px solid #166534;
+  }
+
+  .hz-btn-success:hover {
+    background: #166534;
+  }
+
+  .hz-btn-success-soft {
+    @apply hz-btn;
+    background: rgba(21, 128, 61, 0.25);
+    border: 1px solid rgba(21, 128, 61, 0.35);
+    color: #22c55e;
+  }
+
+  .hz-btn-success-ghost {
+    @apply hz-btn;
+    background: transparent;
+    border: 1px solid #22c55e;
+    color: #22c55e;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     BASE PANELS — essential building blocks
+  --------------------------------------------------------- */
+
+  .hz-panel {
+    background: var(--color-bg-surface);
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid var(--color-bg-hover);
+  }
+
+  .hz-panel-soft {
+    @apply hz-panel hz-shadow-soft;
+  }
+
+  .hz-panel-ambient {
+    @apply hz-panel hz-shadow-ambient;
+  }
+
+  .hz-panel-deep {
+    @apply hz-panel hz-shadow-deep;
+  }
+
+  .hz-panel-glow {
+    @apply hz-panel hz-glow;
+    border: 1px solid var(--color-horizon-blue-30);
+  }
+
+
+  /* ---------------------------------------------------------
+     GLASS PANELS — frosted UI layers
+  --------------------------------------------------------- */
+
+  .hz-panel-glass {
+    @apply hz-panel hz-glass;
+  }
+
+  .hz-panel-glass-strong {
+    @apply hz-panel hz-glass hz-glow;
+  }
+
+  .hz-panel-glass-lite {
+    @apply hz-panel;
+    backdrop-filter: blur(6px);
+    background: rgba(23, 28, 36, 0.45);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+
+  /* ---------------------------------------------------------
+     RIM-LIGHT PANELS — inner neon edge
+  --------------------------------------------------------- */
+
+  .hz-panel-rim {
+    @apply hz-panel hz-rim;
+    position: relative;
+  }
+
+  .hz-panel-rim-deep {
+    @apply hz-panel hz-rim hz-shadow-deep;
+  }
+
+  .hz-panel-rim-glow {
+    @apply hz-panel hz-rim hz-glow;
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON PANELS — bold sci-fi highlight
+  --------------------------------------------------------- */
+
+  .hz-panel-neon {
+    @apply hz-panel hz-glow;
+    border: 1px solid rgb(56 189 248 / 0.30);
+  }
+
+  .hz-panel-neon-strong {
+    @apply hz-panel hz-glow-deep;
+    border: 1px solid rgb(56 189 248 / 0.45);
+  }
+
+  .hz-panel-neon-ghost {
+    background: transparent;
+    border: 1px solid rgb(56 189 248 / 0.25);
+    border-radius: 20px;
+    padding: 1.5rem;
+    color: var(--color-horizon-blue-light);
+  }
+
+
+  /* ---------------------------------------------------------
+     ASYMMETRIC / SIGNATURE HORIZON PANELS
+     (Matches your advanced card shapes)
+  --------------------------------------------------------- */
+
+  .hz-panel-asym-1 {
+    @apply hz-panel
+      hz-rtl-28 hz-rtr-12
+      hz-rbl-12 hz-rbr-28;
+  }
+
+  .hz-panel-asym-2 {
+    @apply hz-panel
+      hz-rtl-36 hz-rtr-20
+      hz-rbl-28 hz-rbr-12;
+  }
+
+  .hz-panel-asym-3 {
+    @apply hz-panel
+      hz-rtl-48 hz-rtr-48
+      hz-rbl-20 hz-rbr-20
+      hz-shadow-ambient;
+  }
+
+  .hz-panel-asym-4 {
+    @apply hz-panel
+      hz-rtl-32 hz-rtr-18
+      hz-rbl-8 hz-rbr-26;
+  }
+
+
+  /* ---------------------------------------------------------
+     CUT CORNERS / CHAMFER PANELS
+  --------------------------------------------------------- */
+
+  .hz-panel-chamfer {
+    position: relative;
+    background: var(--color-bg-surface);
+    padding: 1.5rem;
+    border: 1px solid var(--color-bg-hover);
+    clip-path: polygon(
+      8px 0%, calc(100% - 8px) 0%,
+      100% 8px, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 8px 100%,
+      0% calc(100% - 8px), 0% 8px
+    );
+  }
+
+  .hz-panel-chamfer-glow {
+    @apply hz-panel-chamfer hz-glow;
+  }
+
+
+  /* ---------------------------------------------------------
+     CINEMATIC PANELS — layered sci-fi UI
+  --------------------------------------------------------- */
+
+  .hz-panel-cinematic {
+    @apply hz-panel hz-shadow-deep;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hz-panel-cinematic::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    height: 4px;
+    width: 100%;
+    background: rgb(42 120 200 / 0.35);
+  }
+
+  .hz-panel-cinematic::after {
+    content: "";
+    position: absolute;
+    bottom: 0; right: 0;
+    height: 4px;
+    width: 100%;
+    background: rgb(29 90 150 / 0.35);
+  }
+
+
+  /* ---------------------------------------------------------
+     HOVER-RAISED / INTERACTIVE PANELS
+  --------------------------------------------------------- */
+
+  .hz-panel-hover {
+    @apply hz-panel;
+    transition: transform 150ms ease, box-shadow 200ms ease;
+  }
+
+  .hz-panel-hover:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 10px 25px rgba(0,0,0,0.55),
+      0 0 20px rgba(42,120,200,0.20);
+  }
+
+  .hz-panel-pressable {
+    @apply hz-panel-hover;
+  }
+
+  .hz-panel-pressable:active {
+    transform: scale(0.97);
+  }
+
+
+  /* ---------------------------------------------------------
+     MISSION / OPERATION PANELS — tactical UI
+  --------------------------------------------------------- */
+
+  .hz-panel-mission {
+    @apply hz-panel hz-rtl-28 hz-rbr-28 hz-shadow-ambient;
+    border-left: 4px solid var(--color-horizon-blue);
+  }
+
+  .hz-panel-mission-urgent {
+    @apply hz-panel hz-shadow-deep;
+    border-left: 4px solid #ef4444;
+  }
+
+  .hz-panel-mission-soft {
+    @apply hz-panel hz-shadow-soft hz-rtl-20 hz-rbr-20;
+    border-left: 4px solid var(--color-horizon-steel);
+  }
+
+
+  /* ---------------------------------------------------------
+     SMALL PANELS / MICROCARDS
+  --------------------------------------------------------- */
+
+  .hz-mini {
+    background: var(--color-bg-elevated);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-bg-hover);
+  }
+
+  .hz-mini-glow { @apply hz-mini hz-glow; }
+
+  .hz-mini-soft { @apply hz-mini hz-shadow-soft; }
+
+
+  /* ---------------------------------------------------------
+     STRIP / SPLIT-LINE PANELS
+  --------------------------------------------------------- */
+
+  .hz-panel-strip {
+    @apply hz-panel;
+    border-top: 3px solid var(--color-horizon-blue);
+  }
+
+  .hz-panel-strip-bottom {
+    @apply hz-panel;
+    border-bottom: 3px solid var(--color-horizon-blue-dark);
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     ALERT BASE — shared structure
+  --------------------------------------------------------- */
+
+  .hz-alert {
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border: 1px solid transparent;
+    background: var(--color-bg-surface);
+  }
+
+  .hz-alert-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .hz-alert-body {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     INFO ALERTS — Horizon blue
+  --------------------------------------------------------- */
+
+  .hz-alert-info {
+    @apply hz-alert;
+    border-color: var(--color-horizon-blue);
+    background: rgb(42 120 200 / 0.15);
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-alert-info-solid {
+    @apply hz-alert;
+    background: var(--color-horizon-blue);
+    color: white;
+  }
+
+  .hz-alert-info-glow {
+    @apply hz-alert hz-glow;
+    background: rgb(42 120 200 / 0.15);
+    border-color: rgb(42 120 200 / 0.30);
+  }
+
+
+  /* ---------------------------------------------------------
+     SUCCESS ALERTS — green tones
+  --------------------------------------------------------- */
+
+  .hz-alert-success {
+    @apply hz-alert;
+    background: rgba(21, 128, 61, 0.15);
+    border-color: rgba(21, 128, 61, 0.35);
+    color: #22c55e;
+  }
+
+  .hz-alert-success-solid {
+    @apply hz-alert;
+    background: #15803d;
+    color: white;
+  }
+
+  .hz-alert-success-glow {
+    @apply hz-alert hz-shadow-soft;
+    background: rgba(21, 128, 61, 0.25);
+    border-color: rgba(21, 128, 61, 0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     WARNING ALERTS — golden amber
+  --------------------------------------------------------- */
+
+  .hz-alert-warn {
+    @apply hz-alert;
+    background: rgba(234,179,8,0.12);
+    border-color: rgba(234,179,8,0.35);
+    color: rgb(234 179 8);
+  }
+
+  .hz-alert-warn-solid {
+    @apply hz-alert;
+    background: rgb(234 179 8);
+    color: #1f2630;
+  }
+
+  .hz-alert-warn-glow {
+    @apply hz-alert hz-shadow-soft;
+    border-color: rgba(234,179,8,0.4);
+  }
+
+
+  /* ---------------------------------------------------------
+     DANGER ALERTS — reds
+  --------------------------------------------------------- */
+
+  .hz-alert-danger {
+    @apply hz-alert;
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.45);
+    color: #ef4444;
+  }
+
+  .hz-alert-danger-solid {
+    @apply hz-alert;
+    background: #b91c1c;
+    color: white;
+  }
+
+  .hz-alert-danger-glow {
+    @apply hz-alert hz-shadow-deep;
+    border-color: rgba(239,68,68,0.6);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON SIGNAL STRIPS — left-bar callouts
+  --------------------------------------------------------- */
+
+  .hz-callout-info {
+    @apply hz-alert;
+    border-left: 4px solid var(--color-horizon-blue);
+  }
+
+  .hz-callout-success {
+    @apply hz-alert;
+    border-left: 4px solid #22c55e;
+  }
+
+  .hz-callout-warn {
+    @apply hz-alert;
+    border-left: 4px solid rgb(234 179 8);
+  }
+
+  .hz-callout-danger {
+    @apply hz-alert;
+    border-left: 4px solid #ef4444;
+  }
+
+
+  /* ---------------------------------------------------------
+     STATUS BADGES — pills
+  --------------------------------------------------------- */
+
+  .hz-badge {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .hz-badge-info {
+    background: rgb(42 120 200 / 0.2);
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-badge-success {
+    background: rgba(21,128,61,0.25);
+    color: #22c55e;
+  }
+
+  .hz-badge-warn {
+    background: rgba(234,179,8,0.2);
+    color: rgb(234 179 8);
+  }
+
+  .hz-badge-danger {
+    background: rgba(239,68,68,0.2);
+    color: #ef4444;
+  }
+
+  .hz-badge-muted {
+    background: var(--color-bg-hover);
+    color: var(--color-text-secondary);
+  }
+
+
+  /* ---------------------------------------------------------
+     MICRO BADGES / DOTS
+  --------------------------------------------------------- */
+
+  .hz-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .hz-dot-sm {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .hz-dot-info    { background: var(--color-horizon-blue); }
+  .hz-dot-success { background: #22c55e; }
+  .hz-dot-warn    { background: rgb(234 179 8); }
+  .hz-dot-danger  { background: #ef4444; }
+  .hz-dot-muted   { background: var(--color-text-muted); }
+
+
+  /* ---------------------------------------------------------
+     PULSING STATUS DOTS
+  --------------------------------------------------------- */
+
+  @keyframes hz-pulse-status {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.55; }
+  }
+
+  .hz-dot-pulse {
+    animation: hz-pulse-status 1.5s ease-in-out infinite;
+  }
+
+  .hz-dot-pulse-info    { background: var(--color-horizon-blue); }
+  .hz-dot-pulse-success { background: #22c55e; }
+  .hz-dot-pulse-warn    { background: rgb(234 179 8); }
+  .hz-dot-pulse-danger  { background: #ef4444; }
+
+
+  /* ---------------------------------------------------------
+     ALERT STRIPES / HAZARD OVERLAYS
+  --------------------------------------------------------- */
+
+  .hz-stripe-warn {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(234,179,8,0.25),
+      rgba(234,179,8,0.25) 10px,
+      rgba(234,179,8,0.45) 10px,
+      rgba(234,179,8,0.45) 20px
+    );
+  }
+
+  .hz-stripe-danger {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(239,68,68,0.25),
+      rgba(239,68,68,0.25) 10px,
+      rgba(239,68,68,0.55) 10px,
+      rgba(239,68,68,0.55) 20px
+    );
+  }
+
+
+  /* ---------------------------------------------------------
+     TOAST / MINI ALERTS — bottom-right popups
+  --------------------------------------------------------- */
+
+  .hz-toast {
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-bg-hover);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+    width: 280px;
+  }
+
+  .hz-toast-info {
+    @apply hz-toast;
+    border-left: 4px solid var(--color-horizon-blue);
+  }
+
+  .hz-toast-success {
+    @apply hz-toast;
+    border-left: 4px solid #22c55e;
+  }
+
+  .hz-toast-warn {
+    @apply hz-toast;
+    border-left: 4px solid rgb(234 179 8);
+  }
+
+  .hz-toast-danger {
+    @apply hz-toast;
+    border-left: 4px solid #ef4444;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     SPACING UTILITIES — core vertical rhythm
+  --------------------------------------------------------- */
+
+  .hz-stack-sm { display: flex; flex-direction: column; gap: 0.5rem; }
+  .hz-stack    { display: flex; flex-direction: column; gap: 1rem; }
+  .hz-stack-lg { display: flex; flex-direction: column; gap: 1.5rem; }
+  .hz-stack-xl { display: flex; flex-direction: column; gap: 2rem; }
+
+
+  /* ---------------------------------------------------------
+     ROWS — inline flex layouts
+  --------------------------------------------------------- */
+
+  .hz-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hz-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .hz-row-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+
+  /* ---------------------------------------------------------
+     HORIZONTAL & VERTICAL SEPARATORS
+  --------------------------------------------------------- */
+
+  .hz-separator {
+    height: 1px;
+    width: 100%;
+    background: var(--color-bg-hover);
+  }
+
+  .hz-separator-vertical {
+    width: 1px;
+    height: 100%;
+    background: var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     PAGE CONTAINERS / MAX WIDTHS
+  --------------------------------------------------------- */
+
+  .hz-container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem;
+  }
+
+  .hz-container-wide {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem;
+  }
+
+  .hz-container-narrow {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     PAGE HEADERS
+  --------------------------------------------------------- */
+
+  .hz-page-header {
+    @apply hz-row-between;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-bg-hover);
+  }
+
+  .hz-subheader {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.25rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     GRID SYSTEM — macro dashboards
+  --------------------------------------------------------- */
+
+  .hz-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 1.5rem;
+  }
+
+  .hz-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 1.5rem;
+  }
+
+  .hz-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 1.5rem;
+  }
+
+  .hz-grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Masonry-style equal width, dynamic height */
+  .hz-grid-masonry {
+    column-count: 3;
+    column-gap: 1.5rem;
+  }
+
+  .hz-grid-masonry > * {
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     SPLIT LAYOUTS — side-by-side content blocks
+  --------------------------------------------------------- */
+
+  .hz-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .hz-split-30-70 {
+    display: grid;
+    grid-template-columns: 30% 70%;
+    gap: 2rem;
+  }
+
+  .hz-split-70-30 {
+    display: grid;
+    grid-template-columns: 70% 30%;
+    gap: 2rem;
+  }
+
+  .hz-split-40-60 {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 2rem;
+  }
+
+  .hz-split-60-40 {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 2rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     SIDEBAR LAYOUTS
+  --------------------------------------------------------- */
+
+  .hz-sidebar-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 2rem;
+  }
+
+  .hz-sidebar-layout-wide {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+  }
+
+  .hz-sidebar {
+    background: var(--color-bg-surface);
+    padding: 1.25rem;
+    border-radius: 16px;
+    border: 1px solid var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     HUD / OPERATIONS CONTAINERS
+  --------------------------------------------------------- */
+
+  .hz-hud {
+    background: var(--color-bg-elevated);
+    padding: 1.25rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-bg-hover);
+    box-shadow: 0 10px 35px rgba(0,0,0,0.55);
+  }
+
+  .hz-hud-thin {
+    background: var(--color-bg-surface);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     SCROLL REGIONS
+  --------------------------------------------------------- */
+
+  .hz-scroll-y {
+    overflow-y: auto;
+  }
+
+  .hz-scroll-x {
+    overflow-x: auto;
+  }
+
+  .hz-scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  .hz-scroll-shadow {
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     CONTENT GROUPING UTILITIES
+  --------------------------------------------------------- */
+
+  .hz-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+  }
+
+  .hz-meta-soft {
+    opacity: 0.75;
+  }
+
+
+  /* ---------------------------------------------------------
+     WRAPPERS FOR CARDS / PANELS
+  --------------------------------------------------------- */
+
+  .hz-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .hz-card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+
+  /* ---------------------------------------------------------
+     FULLSCREEN SHELLS / PAGE FRAMES
+  --------------------------------------------------------- */
+
+  .hz-fullscreen {
+    min-height: 100vh;
+    background: var(--color-bg-base);
+    padding: 2rem;
+  }
+
+  .hz-fullscreen-center {
+    @apply hz-fullscreen;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     GLOBAL RADII — the backbone of all geometry
+  --------------------------------------------------------- */
+
+  .hz-rad-2  { border-radius: 2px; }
+  .hz-rad-4  { border-radius: 4px; }
+  .hz-rad-6  { border-radius: 6px; }
+  .hz-rad-8  { border-radius: 8px; }
+  .hz-rad-10 { border-radius: 10px; }
+  .hz-rad-12 { border-radius: 12px; }
+  .hz-rad-14 { border-radius: 14px; }
+  .hz-rad-16 { border-radius: 16px; }
+  .hz-rad-20 { border-radius: 20px; }
+  .hz-rad-24 { border-radius: 24px; }
+  .hz-rad-28 { border-radius: 28px; }
+  .hz-rad-32 { border-radius: 32px; }
+  .hz-rad-36 { border-radius: 36px; }
+  .hz-rad-40 { border-radius: 40px; }
+  .hz-rad-48 { border-radius: 48px; }
+  .hz-rad-56 { border-radius: 56px; }
+  .hz-rad-64 { border-radius: 64px; }
+
+
+  /* ---------------------------------------------------------
+     PER-CORNER RADII — individual corner expressions
+  --------------------------------------------------------- */
+
+  /* Top-left */
+  .hz-rtl-4   { border-top-left-radius: 4px; }
+  .hz-rtl-6   { border-top-left-radius: 6px; }
+  .hz-rtl-12  { border-top-left-radius: 12px; }
+  .hz-rtl-18  { border-top-left-radius: 18px; }
+  .hz-rtl-20  { border-top-left-radius: 20px; }
+  .hz-rtl-28  { border-top-left-radius: 28px; }
+  .hz-rtl-32  { border-top-left-radius: 32px; }
+  .hz-rtl-36  { border-top-left-radius: 36px; }
+  .hz-rtl-48  { border-top-left-radius: 48px; }
+
+  /* Top-right */
+  .hz-rtr-6   { border-top-right-radius: 6px; }
+  .hz-rtr-12  { border-top-right-radius: 12px; }
+  .hz-rtr-18  { border-top-right-radius: 18px; }
+  .hz-rtr-20  { border-top-right-radius: 20px; }
+  .hz-rtr-28  { border-top-right-radius: 28px; }
+  .hz-rtr-32  { border-top-right-radius: 32px; }
+  .hz-rtr-40  { border-top-right-radius: 40px; }
+  .hz-rtr-48  { border-top-right-radius: 48px; }
+
+  /* Bottom-left */
+  .hz-rbl-8   { border-bottom-left-radius: 8px; }
+  .hz-rbl-12  { border-bottom-left-radius: 12px; }
+  .hz-rbl-20  { border-bottom-left-radius: 20px; }
+  .hz-rbl-24  { border-bottom-left-radius: 24px; }
+  .hz-rbl-28  { border-bottom-left-radius: 28px; }
+  .hz-rbl-32  { border-bottom-left-radius: 32px; }
+  .hz-rbl-40  { border-bottom-left-radius: 40px; }
+
+  /* Bottom-right */
+  .hz-rbr-6   { border-bottom-right-radius: 6px; }
+  .hz-rbr-12  { border-bottom-right-radius: 12px; }
+  .hz-rbr-20  { border-bottom-right-radius: 20px; }
+  .hz-rbr-26  { border-bottom-right-radius: 26px; }
+  .hz-rbr-28  { border-bottom-right-radius: 28px; }
+  .hz-rbr-32  { border-bottom-right-radius: 32px; }
+  .hz-rbr-40  { border-bottom-right-radius: 40px; }
+
+
+  /* ---------------------------------------------------------
+     SIGNATURE HORIZON SHAPES — asymmetric silhouettes
+  --------------------------------------------------------- */
+
+  .hz-curve-pulse {
+    @apply hz-rtl-18 hz-rtr-6 hz-rbl-24 hz-rbr-12;
+  }
+
+  .hz-curve-delta {
+    @apply hz-rtl-36 hz-rtr-20 hz-rbl-28 hz-rbr-12;
+  }
+
+  .hz-curve-sym {
+    @apply hz-rtl-28 hz-rtr-12 hz-rbl-12 hz-rbr-28;
+  }
+
+  .hz-curve-cradle {
+    @apply hz-rtl-48 hz-rtr-48 hz-rbl-20 hz-rbr-20;
+  }
+
+  .hz-curve-hybrid {
+    @apply hz-rtl-32 hz-rtr-18 hz-rbl-8 hz-rbr-26;
+  }
+
+  .hz-curve-blade-silk {
+    @apply hz-rtl-20 hz-rtr-40 hz-rbl-28 hz-rbr-6;
+  }
+
+
+  /* ---------------------------------------------------------
+     CYLINDERS / CAPSULES / PILLS
+  --------------------------------------------------------- */
+
+  .hz-pill      { border-radius: 999px; }
+  .hz-pill-sm   { border-radius: 999px; padding: 0.25rem 0.75rem; }
+  .hz-pill-lg   { border-radius: 999px; padding: 0.5rem 1.25rem; }
+  .hz-pill-thin { border-radius: 999px; padding: 0.15rem 0.65rem; }
+
+
+  /* ---------------------------------------------------------
+     GEOMETRIC FORMS — concave, convex, cut corner
+  --------------------------------------------------------- */
+
+  .hz-cut-8 {
+    clip-path: polygon(
+      8px 0%, calc(100% - 8px) 0%,
+      100% 8px, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 8px 100%,
+      0% calc(100% - 8px), 0% 8px
+    );
+  }
+
+  .hz-cut-12 {
+    clip-path: polygon(
+      12px 0%, calc(100% - 12px) 0%,
+      100% 12px, 100% calc(100% - 12px),
+      calc(100% - 12px) 100%, 12px 100%,
+      0% calc(100% - 12px), 0% 12px
+    );
+  }
+
+  .hz-convex {
+    border-radius: 50% / 20%;
+  }
+
+  .hz-concave {
+    border-radius: 20% / 50%;
+  }
+
+
+  /* ---------------------------------------------------------
+     INSET FRAMES — subtle inner rims
+  --------------------------------------------------------- */
+
+  .hz-inset {
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.05);
+  }
+
+  .hz-inset-strong {
+    box-shadow: inset 0 0 18px rgba(255,255,255,0.08);
+  }
+
+  .hz-inset-neon {
+    box-shadow: inset 0 0 20px rgba(56,189,248,0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     OUTLINE PROFILES — accent edge geometry
+  --------------------------------------------------------- */
+
+  .hz-outline-soft {
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .hz-outline-strong {
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .hz-outline-neon {
+    border: 1px solid rgb(56 189 248 / 0.35);
+  }
+
+  .hz-outline-heavy {
+    border: 2px solid var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     SPLIT EDGE ACCENTS — top/bottom/side highlights
+  --------------------------------------------------------- */
+
+  .hz-edge-top {
+    position: relative;
+  }
+  .hz-edge-top::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    height: 4px; width: 100%;
+    background: var(--color-horizon-blue-light);
+  }
+
+  .hz-edge-bottom {
+    position: relative;
+  }
+  .hz-edge-bottom::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 4px; width: 100%;
+    background: var(--color-horizon-blue-dark);
+  }
+
+  .hz-edge-left {
+    border-left: 4px solid var(--color-horizon-blue);
+  }
+
+  .hz-edge-right {
+    border-right: 4px solid var(--color-horizon-blue-light);
+  }
+
+
+  /* ---------------------------------------------------------
+     RING + INSET RING SHAPES
+  --------------------------------------------------------- */
+
+  .hz-ring {
+    padding: 1.25rem;
+    border-radius: 20px;
+    border: 2px solid rgba(255,255,255,0.08);
+  }
+
+  .hz-ring-neon {
+    border: 2px solid rgb(56 189 248 / 0.45);
+  }
+
+  .hz-ring-inset {
+    box-shadow: inset 0 0 22px rgba(0,0,0,0.55);
+  }
+
+  .hz-ring-soft {
+    box-shadow: inset 0 0 14px rgba(255,255,255,0.05);
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     BASE INPUT — the foundation
+  --------------------------------------------------------- */
+
+  .hz-input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-bg-hover);
+    color: var(--color-text-primary);
+    transition: 
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      background 150ms ease;
+  }
+
+  .hz-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .hz-input:focus {
+    outline: none;
+    border-color: var(--color-horizon-blue);
+    box-shadow: 0 0 0 3px rgb(42 120 200 / 0.25);
+  }
+
+  .hz-input-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+
+  /* ---------------------------------------------------------
+     VARIANT: FILLED INPUT
+  --------------------------------------------------------- */
+
+  .hz-input-filled {
+    @apply hz-input;
+    background: var(--color-bg-elevated);
+    border-color: var(--color-bg-elevated);
+  }
+
+  .hz-input-filled:focus {
+    background: var(--color-bg-surface);
+    border-color: var(--color-horizon-blue);
+  }
+
+
+  /* ---------------------------------------------------------
+     VARIANT: UNDERLINED INPUT
+  --------------------------------------------------------- */
+
+  .hz-input-under {
+    width: 100%;
+    padding: 0.6rem 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+
+  .hz-input-under:focus {
+    outline: none;
+    border-bottom-color: var(--color-horizon-blue);
+    box-shadow: 0 4px 12px rgb(42 120 200 / 0.25);
+  }
+
+
+  /* ---------------------------------------------------------
+     VARIANT: GLASS INPUT
+  --------------------------------------------------------- */
+
+  .hz-input-glass {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+    color: var(--color-horizon-white);
+  }
+
+  .hz-input-glass:focus {
+    border-color: var(--color-horizon-blue-light);
+    box-shadow: 0 0 12px rgb(56 189 248 / 0.25);
+  }
+
+
+  /* ---------------------------------------------------------
+     VARIANT: NEON INPUT
+  --------------------------------------------------------- */
+
+  .hz-input-neon {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    background: var(--color-bg-surface);
+    border: 1px solid rgb(56 189 248 / 0.35);
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-input-neon:focus {
+    border-color: var(--color-horizon-blue-light);
+    box-shadow: 0 0 20px rgb(56 189 248 / 0.3);
+  }
+
+
+  /* ---------------------------------------------------------
+     TEXTAREA
+  --------------------------------------------------------- */
+
+  .hz-textarea {
+    @apply hz-input;
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .hz-textarea-neon {
+    @apply hz-input-neon;
+    min-height: 140px;
+  }
+
+
+  /* ---------------------------------------------------------
+     SELECT MENU
+  --------------------------------------------------------- */
+
+  .hz-select {
+    @apply hz-input;
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--color-horizon-blue) 50%),
+      linear-gradient(135deg, var(--color-horizon-blue) 50%, transparent 50%),
+      linear-gradient(to right, var(--color-bg-surface), var(--color-bg-surface));
+    background-position:
+      calc(100% - 20px) calc(1em + 2px),
+      calc(100% - 15px) calc(1em + 2px),
+      0 0;
+    background-size: 5px 5px, 5px 5px, 100%;
+    background-repeat: no-repeat;
+  }
+
+
+  /* ---------------------------------------------------------
+     SEARCH BAR
+  --------------------------------------------------------- */
+
+  .hz-search {
+    @apply hz-input;
+    padding-left: 2.4rem;
+    position: relative;
+  }
+
+  .hz-search-icon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--color-text-muted);
+  }
+
+
+  /* ---------------------------------------------------------
+     CHECKBOXES — minimal, sci-fi, neon
+  --------------------------------------------------------- */
+
+  .hz-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--color-bg-hover);
+    background: var(--color-bg-surface);
+    cursor: pointer;
+    transition: all 120ms ease;
+  }
+
+  .hz-checkbox:checked {
+    background: var(--color-horizon-blue);
+    border-color: var(--color-horizon-blue);
+  }
+
+  .hz-checkbox-neon:checked {
+    background: var(--color-horizon-blue);
+    border-color: var(--color-horizon-blue-light);
+    box-shadow: 0 0 12px rgb(56 189 248 / 0.45);
+  }
+
+  .hz-checkbox-soft:checked {
+    background: var(--color-horizon-blue-light);
+    border-color: var(--color-bg-hover);
+  }
+
+
+  /* ---------------------------------------------------------
+     RADIO BUTTONS — clean & neon
+  --------------------------------------------------------- */
+
+  .hz-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 2px solid var(--color-bg-hover);
+    background: var(--color-bg-surface);
+    cursor: pointer;
+    transition: all 120ms ease;
+  }
+
+  .hz-radio:checked {
+    border-color: var(--color-horizon-blue);
+    background: radial-gradient(
+      circle,
+      var(--color-horizon-blue) 45%,
+      transparent 50%
+    );
+  }
+
+  .hz-radio-neon:checked {
+    border-color: var(--color-horizon-blue-light);
+    background: radial-gradient(
+      circle,
+      var(--color-horizon-blue-light) 50%,
+      transparent 55%
+    );
+    box-shadow: 0 0 14px rgb(56 189 248 / 0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     TOGGLES / SWITCHES
+  --------------------------------------------------------- */
+
+  /* Minimal toggle */
+  .hz-switch {
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--color-bg-hover);
+    position: relative;
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+
+  .hz-switch::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px; top: 3px;
+    background: var(--color-bg-surface);
+    border-radius: 999px;
+    transition: transform 150ms ease;
+  }
+
+  .hz-switch.active {
+    background: var(--color-horizon-blue);
+  }
+
+  .hz-switch.active::after {
+    transform: translateX(18px);
+  }
+
+
+  /* Neon toggle */
+  .hz-switch-neon {
+    @apply hz-switch;
+    background: rgb(56 189 248 / 0.25);
+    border: 1px solid rgb(56 189 248 / 0.35);
+    box-shadow: 0 0 10px rgb(56 189 248 / 0.25);
+  }
+
+  .hz-switch-neon.active {
+    background: var(--color-horizon-blue-light);
+    box-shadow: 0 0 14px rgb(56 189 248 / 0.55);
+  }
+
+
+  /* ---------------------------------------------------------
+     INPUT GROUPS / ICON MERGES
+  --------------------------------------------------------- */
+
+  .hz-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .hz-input-group-left {
+    padding-left: 2.25rem;
+  }
+
+  .hz-input-icon-left {
+    position: absolute;
+    left: 0.75rem;
+    pointer-events: none;
+    color: var(--color-text-secondary);
+  }
+
+  .hz-input-group-right {
+    padding-right: 2.25rem;
+  }
+
+  .hz-input-icon-right {
+    position: absolute;
+    right: 0.75rem;
+    pointer-events: none;
+    color: var(--color-text-secondary);
+  }
+
+
+  /* ---------------------------------------------------------
+     HELPER TEXT / VALIDATION
+  --------------------------------------------------------- */
+
+  .hz-input-help {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 0.3rem;
+  }
+
+  .hz-input-error {
+    font-size: 0.85rem;
+    color: #ef4444;
+    margin-top: 0.3rem;
+  }
+
+  .hz-input-success {
+    font-size: 0.85rem;
+    color: #22c55e;
+    margin-top: 0.3rem;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     CORE NEON GLOWS — the foundation
+  --------------------------------------------------------- */
+
+  .hz-glow {
+    box-shadow:
+      0 0 12px rgb(56 189 248 / 0.45),
+      0 0 24px rgb(56 189 248 / 0.25);
+  }
+
+  .hz-glow-soft {
+    box-shadow:
+      0 0 14px rgb(56 189 248 / 0.25);
+  }
+
+  .hz-glow-deep {
+    box-shadow:
+      0 0 18px rgb(56 189 248 / 0.55),
+      0 0 38px rgb(56 189 248 / 0.35);
+  }
+
+  .hz-glow-heavy {
+    box-shadow:
+      0 0 26px rgb(56 189 248 / 0.75),
+      0 0 50px rgb(56 189 248 / 0.45);
+  }
+
+  .hz-glow-focus {
+    box-shadow:
+      0 0 0 4px rgb(56 189 248 / 0.25),
+      0 0 20px rgb(56 189 248 / 0.4);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON RIMS — inner rim light
+  --------------------------------------------------------- */
+
+  .hz-rim {
+    position: relative;
+  }
+
+  .hz-rim::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 20px rgba(56,189,248,0.35);
+    opacity: .7;
+  }
+
+  .hz-rim-strong::after {
+    box-shadow: inset 0 0 30px rgba(56,189,248,0.55);
+  }
+
+  .hz-rim-double::after {
+    box-shadow:
+      inset 0 0 20px rgba(56,189,248,0.35),
+      inset 0 0 40px rgba(56,189,248,0.25);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON OUTLINE BORDERS
+  --------------------------------------------------------- */
+
+  .hz-neon-border {
+    border: 1px solid rgb(56 189 248 / 0.35);
+  }
+
+  .hz-neon-border-strong {
+    border: 2px solid rgb(56 189 248 / 0.55);
+  }
+
+  .hz-neon-border-soft {
+    border: 1px solid rgb(56 189 248 / 0.2);
+  }
+
+  .hz-neon-border-heavy {
+    border: 3px solid rgb(56 189 248 / 0.75);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON LINES — horizontal, vertical, diagonal
+  --------------------------------------------------------- */
+
+  .hz-line {
+    height: 2px;
+    width: 100%;
+    background: rgb(56 189 248 / 0.35);
+  }
+
+  .hz-line-strong {
+    height: 3px;
+    background: rgb(56 189 248 / 0.55);
+  }
+
+  .hz-line-soft {
+    height: 1px;
+    background: rgb(56 189 248 / 0.2);
+  }
+
+  .hz-line-vertical {
+    width: 2px;
+    height: 100%;
+    background: rgb(56 189 248 / 0.35);
+  }
+
+  .hz-line-diagonal {
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(45deg,
+      transparent 0%,
+      rgb(56 189 248 / 0.45) 50%,
+      transparent 100%);
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON BEAMS & HARDLIGHT BARS
+  --------------------------------------------------------- */
+
+  .hz-beam {
+    height: 6px;
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      rgb(56 189 248 / 0) 0%,
+      rgb(56 189 248 / 0.6) 50%,
+      rgb(56 189 248 / 0) 100%
+    );
+  }
+
+  .hz-beam-strong {
+    height: 8px;
+    background: linear-gradient(
+      90deg,
+      rgb(56 189 248 / 0.1),
+      rgb(56 189 248 / 0.85),
+      rgb(56 189 248 / 0.1)
+    );
+  }
+
+  .hz-beam-vertical {
+    width: 6px;
+    background: linear-gradient(
+      180deg,
+      rgb(56 189 248 / 0),
+      rgb(56 189 248 / 0.6),
+      rgb(56 189 248 / 0)
+    );
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON GRID OVERLAYS — sci-fi navigation look
+  --------------------------------------------------------- */
+
+  .hz-grid-overlay {
+    position: relative;
+  }
+
+  .hz-grid-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.12) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: .5;
+  }
+
+  .hz-grid-overlay-fine::after {
+    background-size: 24px 24px;
+    opacity: .28;
+  }
+
+
+  /* ---------------------------------------------------------
+     PULSE BARS — animated active signals
+  --------------------------------------------------------- */
+
+  @keyframes hz-pulse-bar {
+    0% { width: 0%; opacity: .5; }
+    50% { width: 75%; opacity: 1; }
+    100% { width: 0%; opacity: .5; }
+  }
+
+  .hz-pulse-bar {
+    height: 4px;
+    border-radius: 4px;
+    background: rgb(56 189 248 / 0.55);
+    animation: hz-pulse-bar 1.8s ease-in-out infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON BURSTS — interaction flashes
+  --------------------------------------------------------- */
+
+  @keyframes hz-burst {
+    0%   { opacity: 0; transform: scale(0.7); }
+    50%  { opacity: .85; transform: scale(1.1); }
+    100% { opacity: 0; transform: scale(1.4); }
+  }
+
+  .hz-burst {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 40px rgb(56 189 248 / 0.55);
+    animation: hz-burst 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+
+  /* ---------------------------------------------------------
+     NEON AURAS — ambient soft fog
+  --------------------------------------------------------- */
+
+  .hz-aura {
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(
+      circle,
+      rgb(56 189 248 / 0.18) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .hz-aura-strong {
+    inset: -30px;
+    background: radial-gradient(
+      circle,
+      rgb(56 189 248 / 0.25) 0%,
+      transparent 75%
+    );
+  }
+
+
+  /* ---------------------------------------------------------
+     RETICLE / TARGETING LINES (for HUDs)
+  --------------------------------------------------------- */
+
+  .hz-reticle {
+    position: relative;
+  }
+
+  .hz-reticle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px dashed rgb(56 189 248 / 0.3);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .hz-reticle-strong::after {
+    border-color: rgb(56 189 248 / 0.55);
+  }
+
+
+  /* ---------------------------------------------------------
+     MOVING NEON SCANLINE — for headers/cards
+  --------------------------------------------------------- */
+
+  @keyframes hz-scan {
+    0%   { transform: translateX(-100%); opacity: 0; }
+    50%  { opacity: .8; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+
+  .hz-scanline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hz-scanline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(56 189 248 / 0.35),
+      transparent
+    );
+    animation: hz-scan 2.3s infinite linear;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     BASE MOTION VARIABLES — physics backbone
+  --------------------------------------------------------- */
+
+  .hz-motion {
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hz-motion-fast {
+    transition: all 120ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .hz-motion-slow {
+    transition: all 260ms cubic-bezier(0.17, 0.84, 0.44, 1);
+  }
+
+
+  /* ---------------------------------------------------------
+     HOVER LIFTS — subtle to aggressive
+  --------------------------------------------------------- */
+
+  .hz-lift-sm:hover {
+    transform: translateY(-2px);
+  }
+
+  .hz-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  .hz-lift-lg:hover {
+    transform: translateY(-8px);
+  }
+
+  .hz-lift-xl:hover {
+    transform: translateY(-12px);
+  }
+
+
+  /* ---------------------------------------------------------
+     ACTIVE PRESS — tactile physics
+  --------------------------------------------------------- */
+
+  .hz-press:active {
+    transform: translateY(2px) scale(0.98);
+  }
+
+  .hz-press-heavy:active {
+    transform: translateY(3px) scale(0.96);
+  }
+
+
+  /* ---------------------------------------------------------
+     ELASTIC SPRING — interaction bounce
+  --------------------------------------------------------- */
+
+  @keyframes hz-spring {
+    0%   { transform: scale(0.94); }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  .hz-spring {
+    animation: hz-spring 250ms cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+
+
+  /* ---------------------------------------------------------
+     MATERIALIZE-IN — sci-fi hardlight spawn
+  --------------------------------------------------------- */
+
+  @keyframes hz-materialize {
+    0% {
+      opacity: 0;
+      transform: scale(0.85) translateY(12px);
+      filter: blur(6px);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.02) translateY(0px);
+      filter: blur(1px);
+    }
+    100% {
+      transform: scale(1);
+      filter: blur(0px);
+    }
+  }
+
+  .hz-materialize {
+    animation: hz-materialize 320ms cubic-bezier(.2, .9, .3, 1);
+  }
+
+
+  /* ---------------------------------------------------------
+     FADE STACK — sequential appearance
+  --------------------------------------------------------- */
+
+  @keyframes hz-fade-up {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .hz-fade-up {
+    animation: hz-fade-up 300ms ease-out;
+  }
+
+  @keyframes hz-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .hz-fade-in {
+    animation: hz-fade-in 300ms ease-out;
+  }
+
+
+  /* ---------------------------------------------------------
+     WARP — distortion flicker (sci-fi digital distortion)
+  --------------------------------------------------------- */
+
+  @keyframes hz-warp {
+    0% { transform: skewX(0deg) scale(1); opacity: 1; }
+    20% { transform: skewX(6deg) scale(0.97); opacity: 0.85; }
+    40% { transform: skewX(-4deg) scale(1.03); opacity: 1; }
+    60% { transform: skewX(3deg) scale(0.99); opacity: .9; }
+    100% { transform: skewX(0deg) scale(1); opacity: 1; }
+  }
+
+  .hz-warp {
+    animation: hz-warp 450ms cubic-bezier(.6,0,.4,1);
+  }
+
+
+  /* ---------------------------------------------------------
+     HOVER NEON PULSE — light reacting to the cursor
+  --------------------------------------------------------- */
+
+  @keyframes hz-pulse-glow {
+    0% { box-shadow: 0 0 0px rgba(56,189,248,0.0); }
+    50% { box-shadow: 0 0 16px rgba(56,189,248,0.45); }
+    100% { box-shadow: 0 0 0px rgba(56,189,248,0.0); }
+  }
+
+  .hz-pulse-glow:hover {
+    animation: hz-pulse-glow 1s ease-in-out infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     MICRO-VIBRATIONS — HUD style
+  --------------------------------------------------------- */
+
+  @keyframes hz-vibe {
+    0% { transform: translateX(0); }
+    33% { transform: translateX(-1px); }
+    66% { transform: translateX(1px); }
+    100% { transform: translateX(0); }
+  }
+
+  .hz-vibe {
+    animation: hz-vibe 90ms linear infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     HOLOGRAM SHIMMER — shimmering neon surface
+  --------------------------------------------------------- */
+
+  @keyframes hz-shimmer {
+    0% { opacity: 0.7; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-2px); }
+    100% { opacity: 0.7; transform: translateY(0); }
+  }
+
+  .hz-shimmer {
+    animation: hz-shimmer 2s ease-in-out infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     GRID SCAN — subtle vertical HUD scanner
+  --------------------------------------------------------- */
+
+  @keyframes hz-grid-scan {
+    0% { opacity: 0; transform: translateY(-100%); }
+    50% { opacity: 0.35; }
+    100% { opacity: 0; transform: translateY(100%); }
+  }
+
+  .hz-grid-scan {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hz-grid-scan::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      rgba(56,189,248,0),
+      rgba(56,189,248,0.25),
+      rgba(56,189,248,0)
+    );
+    animation: hz-grid-scan 3s ease-in-out infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     SLIDE-IN — panel/page transitions
+  --------------------------------------------------------- */
+
+  @keyframes hz-slide-right {
+    0% { opacity: 0; transform: translateX(-20px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+
+  .hz-slide-right {
+    animation: hz-slide-right 300ms ease-out;
+  }
+
+  @keyframes hz-slide-left {
+    0% { opacity: 0; transform: translateX(20px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+
+  .hz-slide-left {
+    animation: hz-slide-left 300ms ease-out;
+  }
+
+  @keyframes hz-slide-up {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .hz-slide-up {
+    animation: hz-slide-up 300ms ease-out;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     BASE FONT SETTINGS & GLOBAL SCALES
+  --------------------------------------------------------- */
+
+  .hz-font-sans {
+    font-family: var(--font-sans);
+  }
+
+  .hz-font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .hz-font-digit {
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: 0.02em;
+  }
+
+
+  /* ---------------------------------------------------------
+     DISPLAY HEADERS — cinematic, heroic, command hierarchy
+  --------------------------------------------------------- */
+
+  .hz-display-1 {
+    font-size: 3.75rem; /* 60px */
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .hz-display-2 {
+    font-size: 3rem; /* 48px */
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .hz-display-3 {
+    font-size: 2.5rem; /* 40px */
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+
+  /* ---------------------------------------------------------
+     CORE HEADINGS (H1–H6)
+  --------------------------------------------------------- */
+
+  .hz-h1 {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .hz-h2 {
+    font-size: 1.875rem; /* 30px */
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .hz-h3 {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .hz-h4 {
+    font-size: 1.25rem; /* 20px */
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .hz-h5 {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .hz-h6 {
+    font-size: 1rem; /* 16px */
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+
+  /* ---------------------------------------------------------
+     SUBTITLES & SECTION LABELS
+  --------------------------------------------------------- */
+
+  .hz-subtitle {
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+  }
+
+  .hz-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-overline {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-muted);
+  }
+
+
+  /* ---------------------------------------------------------
+     PARAGRAPH STYLES
+  --------------------------------------------------------- */
+
+  .hz-body {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+
+  .hz-body-strong {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+  }
+
+  .hz-caption {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+  }
+
+  .hz-tiny {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--color-text-muted);
+  }
+
+
+  /* ---------------------------------------------------------
+     NUMERIC / DATA TYPE STYLING
+  --------------------------------------------------------- */
+
+  .hz-number {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.125rem;
+    color: var(--color-horizon-blue-light);
+    letter-spacing: 0.02em;
+  }
+
+  .hz-number-large {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-horizon-blue-light);
+  }
+
+  .hz-data-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.08em;
+  }
+
+
+  /* ---------------------------------------------------------
+     EFFECT TEXT — neon, gradient, holographic text
+  --------------------------------------------------------- */
+
+  .hz-text-neon {
+    color: var(--color-horizon-blue-light);
+    text-shadow:
+      0 0 6px rgba(56,189,248,0.6),
+      0 0 12px rgba(56,189,248,0.4);
+  }
+
+  .hz-text-soft {
+    color: var(--color-text-secondary);
+  }
+
+  .hz-text-gradient {
+    background: linear-gradient(
+      90deg,
+      var(--color-horizon-blue-light),
+      var(--color-horizon-blue-dark)
+    );
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .hz-text-glow {
+    color: var(--color-horizon-blue-light);
+    filter: drop-shadow(0 0 6px rgba(56,189,248,0.4));
+  }
+
+  .hz-text-holo {
+    background: linear-gradient(
+      120deg,
+      rgb(56 189 248 / 0.2),
+      rgb(255 255 255 / 0.8),
+      rgb(56 189 248 / 0.3)
+    );
+    -webkit-background-clip: text;
+    color: transparent;
+    opacity: .85;
+  }
+
+
+  /* ---------------------------------------------------------
+     SPACING / DENSITY UTILITIES FOR TEXT BLOCKS
+  --------------------------------------------------------- */
+
+  .hz-tight {
+    line-height: 1.15;
+  }
+
+  .hz-normal {
+    line-height: 1.4;
+  }
+
+  .hz-loose {
+    line-height: 1.7;
+  }
+
+
+  /* ---------------------------------------------------------
+     TRACKING UTILITIES
+  --------------------------------------------------------- */
+
+  .hz-track-tight {
+    letter-spacing: -0.02em;
+  }
+
+  .hz-track-wide {
+    letter-spacing: 0.06em;
+  }
+
+  .hz-track-ultra {
+    letter-spacing: 0.12em;
+  }
+
+
+  /* ---------------------------------------------------------
+     CASE UTILITIES — sci-fi labeling
+  --------------------------------------------------------- */
+
+  .hz-upper {
+    text-transform: uppercase;
+  }
+
+  .hz-lower {
+    text-transform: lowercase;
+  }
+
+  .hz-caps {
+    text-transform: capitalize;
+  }
+
+  .hz-nocase {
+    text-transform: none;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     1. BASE OVERLAY LAYERS
+  --------------------------------------------------------- */
+
+  .hz-overlay {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hz-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+
+  /* ---------------------------------------------------------
+     2. DIM / DARKEN OVERLAYS (for modals & depth)
+  --------------------------------------------------------- */
+
+  .hz-overlay-dim::after {
+    background: rgb(0 0 0 / 0.35);
+  }
+
+  .hz-overlay-dark::after {
+    background: rgb(0 0 0 / 0.55);
+  }
+
+  .hz-overlay-heavy::after {
+    background: rgb(0 0 0 / 0.75);
+  }
+
+
+  /* ---------------------------------------------------------
+     3. LIGHT / GLOW OVERLAYS
+  --------------------------------------------------------- */
+
+  .hz-overlay-light::after {
+    background: radial-gradient(
+      circle at center,
+      rgb(255 255 255 / 0.08),
+      transparent 70%
+    );
+  }
+
+  .hz-overlay-blue::after {
+    background: radial-gradient(
+      circle at center,
+      rgb(56 189 248 / 0.12),
+      transparent 70%
+    );
+  }
+
+
+  /* ---------------------------------------------------------
+     4. HOLOGRAPHIC GLASS — the sci-fi blur layer
+  --------------------------------------------------------- */
+
+  .hz-holo::after {
+    backdrop-filter: blur(12px) saturate(1.3);
+    background: rgb(255 255 255 / 0.05);
+    border: 1px solid rgb(255 255 255 / 0.06);
+  }
+
+  .hz-holo-light::after {
+    backdrop-filter: blur(18px) saturate(1.5);
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .hz-holo-dark::after {
+    backdrop-filter: blur(10px) saturate(1.2);
+    background: rgb(0 0 0 / 0.25);
+  }
+
+
+  /* ---------------------------------------------------------
+     5. FROST PANELS
+  --------------------------------------------------------- */
+
+  .hz-frost::after {
+    backdrop-filter: blur(6px);
+    background: rgb(255 255 255 / 0.06);
+  }
+
+  .hz-frost-heavy::after {
+    backdrop-filter: blur(12px);
+    background: rgb(255 255 255 / 0.08);
+  }
+
+
+  /* ---------------------------------------------------------
+     6. DEPTH-OF-FIELD VIGNETTES
+  --------------------------------------------------------- */
+
+  .hz-vignette::after {
+    background:
+      radial-gradient(circle at center,
+        transparent 40%,
+        rgb(0 0 0 / 0.4) 100%
+      );
+  }
+
+  .hz-vignette-light::after {
+    background:
+      radial-gradient(circle at center,
+        transparent 55%,
+        rgb(0 0 0 / 0.25) 100%
+      );
+  }
+
+  .hz-vignette-heavy::after {
+    background:
+      radial-gradient(circle at center,
+        transparent 30%,
+        rgb(0 0 0 / 0.55) 100%
+      );
+  }
+
+
+  /* ---------------------------------------------------------
+     7. NEON EDGE OVERLAYS — cinematic light bleed
+  --------------------------------------------------------- */
+
+  .hz-neon-edges::after {
+    background:
+      linear-gradient(90deg,
+        rgb(56 189 248 / 0.2),
+        transparent 30%,
+        transparent 70%,
+        rgb(56 189 248 / 0.2)
+      );
+  }
+
+  .hz-neon-bottom::after {
+    background:
+      linear-gradient(
+        to top,
+        rgb(56 189 248 / 0.3),
+        transparent
+      );
+  }
+
+  .hz-neon-top::after {
+    background:
+      linear-gradient(
+        to bottom,
+        rgb(56 189 248 / 0.3),
+        transparent
+      );
+  }
+
+
+  /* ---------------------------------------------------------
+     8. GRID OVERLAYS — sci-fi HUD foundation
+  --------------------------------------------------------- */
+
+  .hz-grid::after {
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .hz-grid-fine::after {
+    background-size: 24px 24px;
+  }
+
+  .hz-grid-blue::after {
+    background-image:
+      linear-gradient(rgb(56 189 248 / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(56 189 248 / 0.08) 1px, transparent 1px);
+  }
+
+
+  /* ---------------------------------------------------------
+     9. SCANLINES — subtle CRT / HUD motion
+  --------------------------------------------------------- */
+
+  @keyframes hz-scanlines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 4px; }
+  }
+
+  .hz-scanlines::after {
+    background-image:
+      linear-gradient(
+        to bottom,
+        rgb(255 255 255 / 0.06) 2px,
+        transparent 2px
+      );
+    background-size: 100% 4px;
+    animation: hz-scanlines 200ms linear infinite;
+    opacity: .15;
+  }
+
+
+  /* ---------------------------------------------------------
+     10. STATIC NOISE (CYBER FOIL)
+  --------------------------------------------------------- */
+
+  @keyframes hz-noise {
+    0% { opacity: .08; }
+    50% { opacity: .18; }
+    100% { opacity: .08; }
+  }
+
+  .hz-noise::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%23FFFFFF' fill-opacity='0.06'%3E%3Crect width='2' height='2' x='10' y='20' /%3E%3Crect width='1' height='1' x='50' y='80' /%3E%3Crect width='1' height='1' x='90' y='40' /%3E%3Crect width='1' height='2' x='30' y='100' /%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    animation: hz-noise 1.8s steps(6) infinite;
+  }
+
+
+  /* ---------------------------------------------------------
+     11. CHROMATIC ABERRATION — sci-fi lens effect
+  --------------------------------------------------------- */
+
+  .hz-chroma::after {
+    mix-blend-mode: screen;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255,0,0,0.12),
+        rgba(0,255,255,0.12)
+      );
+  }
+
+
+  /* ---------------------------------------------------------
+     12. MODAL CURTAINS
+  --------------------------------------------------------- */
+
+  .hz-curtain-soft::after {
+    backdrop-filter: blur(4px);
+    background: rgb(0 0 0 / 0.25);
+  }
+
+  .hz-curtain-heavy::after {
+    backdrop-filter: blur(8px);
+    background: rgb(0 0 0 / 0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     13. INTERACTION HALO — cursor-reactive effect
+  --------------------------------------------------------- */
+
+  @keyframes hz-halo {
+    from {
+      opacity: 0.4;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.5);
+    }
+  }
+
+  .hz-halo {
+    position: relative;
+  }
+
+  .hz-halo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 18px rgb(56 189 248 / 0.4);
+    animation: hz-halo 0.6s ease-out forwards;
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     0. BASE SHADOW COLORS (auto picks up your palette)
+  --------------------------------------------------------- */
+
+  .hz-shadow-base {
+    --hz-shadow: 0, 0, 0; /* black fallback */
+  }
+
+  .hz-shadow-blue {
+    --hz-shadow: 56, 189, 248; /* horizon neon */
+  }
+
+  .hz-shadow-white {
+    --hz-shadow: 255, 255, 255;
+  }
+
+
+  /* ---------------------------------------------------------
+     1. ELEVATION STACKS (material-style physical depth)
+  --------------------------------------------------------- */
+
+  .hz-elev-1 {
+    box-shadow:
+      0 1px 2px rgb(var(--hz-shadow) / 0.15),
+      0 2px 4px rgb(var(--hz-shadow) / 0.10);
+  }
+
+  .hz-elev-2 {
+    box-shadow:
+      0 2px 4px rgb(var(--hz-shadow) / 0.2),
+      0 4px 8px rgb(var(--hz-shadow) / 0.15);
+  }
+
+  .hz-elev-3 {
+    box-shadow:
+      0 4px 8px rgb(var(--hz-shadow) / 0.25),
+      0 8px 16px rgb(var(--hz-shadow) / 0.20);
+  }
+
+  .hz-elev-4 {
+    box-shadow:
+      0 6px 12px rgb(var(--hz-shadow) / 0.3),
+      0 12px 24px rgb(var(--hz-shadow) / 0.25);
+  }
+
+  .hz-elev-5 {
+    box-shadow:
+      0 10px 20px rgb(var(--hz-shadow) / 0.35),
+      0 20px 40px rgb(var(--hz-shadow) / 0.30);
+  }
+
+
+  /* ---------------------------------------------------------
+     2. AMBIENT OCCLUSION (soft environmental depth)
+  --------------------------------------------------------- */
+
+  .hz-ao-sm {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-ao {
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
+  }
+
+  .hz-ao-lg {
+    box-shadow: 0 10px 38px rgb(0 0 0 / 0.55);
+  }
+
+  .hz-ao-xl {
+    box-shadow: 0 18px 50px rgb(0 0 0 / 0.65);
+  }
+
+
+  /* ---------------------------------------------------------
+     3. DIRECTIONAL SHADOWS (cinematic scene lighting)
+  --------------------------------------------------------- */
+
+  .hz-dir-top {
+    box-shadow: 0 -12px 24px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-dir-bottom {
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.4);
+  }
+
+  .hz-dir-left {
+    box-shadow: -12px 0 24px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-dir-right {
+    box-shadow: 12px 0 24px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-dir-angle {
+    box-shadow: 10px 18px 32px rgb(0 0 0 / 0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     4. HARDLIGHT NEON SHADOWS (light that casts *glow*)
+  --------------------------------------------------------- */
+
+  .hz-neon-shadow {
+    box-shadow:
+      0 0 16px rgb(56 189 248 / 0.45),
+      0 0 32px rgb(56 189 248 / 0.30);
+  }
+
+  .hz-neon-shadow-heavy {
+    box-shadow:
+      0 0 24px rgb(56 189 248 / 0.55),
+      0 0 48px rgb(56 189 248 / 0.45);
+  }
+
+  .hz-neon-contact {
+    box-shadow:
+      0 2px 8px rgb(56 189 248 / 0.35);
+  }
+
+  .hz-neon-aura {
+    box-shadow:
+      0 0 32px rgb(56 189 248 / 0.25),
+      0 0 64px rgb(56 189 248 / 0.18);
+  }
+
+
+  /* ---------------------------------------------------------
+     5. EDGE SHADOWS (thin sci-fi structural shadows)
+  --------------------------------------------------------- */
+
+  .hz-edge {
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.05),
+      inset 0 0 0 1px rgb(0 0 0 / 0.4);
+  }
+
+  .hz-edge-strong {
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.08),
+      inset 0 0 0 2px rgb(0 0 0 / 0.5);
+  }
+
+
+  /* ---------------------------------------------------------
+     6. FLOATING LAYERS (HUD separation depth)
+  --------------------------------------------------------- */
+
+  .hz-float {
+    box-shadow:
+      0 6px 18px rgb(0 0 0 / 0.35),
+      0 12px 30px rgb(0 0 0 / 0.30);
+  }
+
+  .hz-float-high {
+    box-shadow:
+      0 14px 32px rgb(0 0 0 / 0.45),
+      0 24px 48px rgb(0 0 0 / 0.38);
+  }
+
+  .hz-float-holo {
+    box-shadow:
+      0 0 18px rgb(56 189 248 / 0.25),
+      0 12px 36px rgb(0 0 0 / 0.35);
+  }
+
+
+  /* ---------------------------------------------------------
+     7. PANEL BASE SHADOWS (card/panel defaults)
+  --------------------------------------------------------- */
+
+  .hz-panel {
+    box-shadow:
+      0 4px 18px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-panel-deep {
+    box-shadow:
+      0 10px 34px rgb(0 0 0 / 0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     8. HOVER SHADOWS (movement + depth)
+  --------------------------------------------------------- */
+
+  .hz-hover-shallow:hover {
+    box-shadow:
+      0 6px 20px rgb(0 0 0 / 0.45);
+  }
+
+  .hz-hover-deep:hover {
+    box-shadow:
+      0 14px 34px rgb(0 0 0 / 0.55);
+  }
+
+  .hz-hover-neon:hover {
+    box-shadow:
+      0 0 18px rgb(56 189 248 / 0.5),
+      0 0 40px rgb(56 189 248 / 0.3);
+  }
+
+
+  /* ---------------------------------------------------------
+     9. INSET / INTERNAL SHADOWS (HUD frames + screens)
+  --------------------------------------------------------- */
+
+  .hz-inset {
+    box-shadow:
+      inset 0 0 16px rgb(0 0 0 / 0.35);
+  }
+
+  .hz-inset-heavy {
+    box-shadow:
+      inset 0 0 24px rgb(0 0 0 / 0.55);
+  }
+
+  .hz-inset-holo {
+    box-shadow:
+      inset 0 0 28px rgb(56 189 248 / 0.25);
+  }
+
+}
+@layer utilities {
+
+  /* ---------------------------------------------------------
+     1. CHROME TRIMS — thin polished outlines
+  --------------------------------------------------------- */
+
+  .hz-trim {
+    border: 1px solid rgb(255 255 255 / 0.06);
+  }
+
+  .hz-trim-strong {
+    border: 2px solid rgb(255 255 255 / 0.12);
+  }
+
+  .hz-trim-blue {
+    border: 1px solid rgb(56 189 248 / 0.35);
+  }
+
+  .hz-trim-neon {
+    border: 1px solid rgba(56,189,248,0.6);
+    box-shadow: 0 0 6px rgba(56,189,248,0.4);
+  }
+
+
+  /* ---------------------------------------------------------
+     2. BEVEL / CHAMFER EFFECTS — technical silhouettes
+  --------------------------------------------------------- */
+
+  .hz-bevel {
+    border-radius: 0;
+    clip-path: polygon(
+      8px 0, 100% 0, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 0 100%, 0 8px
+    );
+  }
+
+  .hz-bevel-soft {
+    clip-path: polygon(
+      12px 0, 100% 0, 100% calc(100% - 12px),
+      calc(100% - 12px) 100%, 0 100%, 0 12px
+    );
+  }
+
+  .hz-chamfer {
+    clip-path: polygon(
+      6px 0, calc(100% - 6px) 0,
+      100% 6px, 100% calc(100% - 6px),
+      calc(100% - 6px) 100%, 6px 100%,
+      0 calc(100% - 6px), 0 6px
+    );
+  }
+
+
+  /* ---------------------------------------------------------
+     3. CORNER BRACKETS — Horizon signature geometry
+  --------------------------------------------------------- */
+
+  .hz-bracket {
+    position: relative;
+  }
+
+  .hz-bracket::after,
+  .hz-bracket::before {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(56,189,248,0.4);
+    border-radius: 4px;
+  }
+
+  .hz-bracket::before {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .hz-bracket::after {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+  }
+
+
+  /* ---------------------------------------------------------
+     4. MICRO ACCENTS — tiny sci-fi “greebles”
+  --------------------------------------------------------- */
+
+  .hz-accent-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: rgb(56 189 248 / 0.6);
+  }
+
+  .hz-accent-line {
+    height: 2px;
+    width: 40px;
+    background: rgb(56 189 248 / 0.3);
+  }
+
+  .hz-accent-split {
+    height: 2px;
+    width: 60px;
+    background:
+      linear-gradient(
+        90deg,
+        rgb(56 189 248 / 0),
+        rgb(56 189 248 / 0.35),
+        rgb(56 189 248 / 0)
+      );
+  }
+
+  .hz-accent-pulse {
+    height: 3px;
+    border-radius: 3px;
+    background: rgb(56 189 248 / 0.45);
+    animation: hz-accent-pulse-anim 1.6s infinite ease-in-out;
+  }
+
+  @keyframes hz-accent-pulse-anim {
+    0% { opacity: .3; width: 20%; }
+    50% { opacity: .9; width: 70%; }
+    100% { opacity: .3; width: 20%; }
+  }
+
+
+  /* ---------------------------------------------------------
+     5. SEGMENT DIVIDERS — structural bars
+  --------------------------------------------------------- */
+
+  .hz-divider {
+    height: 1px;
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .hz-divider-strong {
+    height: 2px;
+    background: rgb(255 255 255 / 0.16);
+  }
+
+  .hz-divider-blue {
+    height: 2px;
+    background: rgb(56 189 248 / 0.35);
+  }
+
+  .hz-divider-neon {
+    height: 3px;
+    background: rgb(56 189 248 / 0.55);
+    box-shadow: 0 0 6px rgba(56,189,248,0.45);
+  }
+
+
+  /* ---------------------------------------------------------
+     6. DIAGONAL STRIPS — sci-fi industrial language
+  --------------------------------------------------------- */
+
+  .hz-strip {
+    height: 6px;
+    background: linear-gradient(
+      135deg,
+      rgb(56 189 248 / 0.2) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgb(56 189 248 / 0.2) 50%,
+      rgb(56 189 248 / 0.2) 75%,
+      transparent 75%,
+      transparent 100%
+    );
+    background-size: 14px 14px;
+    opacity: .35;
+  }
+
+  .hz-strip-blue {
+    height: 6px;
+    background: linear-gradient(
+      135deg,
+      rgb(56 189 248 / 0.35) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgb(56 189 248 / 0.35) 50%,
+      rgb(56 189 248 / 0.35) 75%,
+      transparent 75%,
+      transparent 100%
+    );
+    background-size: 14px 14px;
+  }
+
+
+  /* ---------------------------------------------------------
+     7. CORNER GLYPHS — minimal Horizon “markings”
+  --------------------------------------------------------- */
+
+  .hz-glyph {
+    position: relative;
+  }
+
+  .hz-glyph::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 2px;
+    background: rgb(56 189 248 / 0.45);
+    top: -6px;
+    left: 0;
+  }
+
+  .hz-glyph::before {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 2px;
+    background: rgb(56 189 248 / 0.3);
+    bottom: -6px;
+    right: 0;
+  }
+
+
+  /* ---------------------------------------------------------
+     8. CORNER NOTCHES — subtle angular identity marks
+  --------------------------------------------------------- */
+
+  .hz-notch {
+    position: relative;
+    overflow: visible;
+  }
+
+  .hz-notch::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-top: 2px solid rgb(56 189 248 / 0.45);
+    border-left: 2px solid rgb(56 189 248 / 0.45);
+    top: -2px;
+    left: -2px;
+  }
+
+  .hz-notch::before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-bottom: 2px solid rgb(56 189 248 / 0.45);
+    border-right: 2px solid rgb(56 189 248 / 0.45);
+    bottom: -2px;
+    right: -2px;
+  }
+
 }
