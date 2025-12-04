@@ -1,8 +1,7 @@
 <template>
-  <div class="bg-bg-surface p-6 rounded-xl hz-panel hz-overlay hz-elev-2 hz-trim">
+  <div class="hz-panel hz-shadow-soft hz-stack">
     <slot />
   </div>
 </template>
 
-<script setup>
-</script>
+<script setup></script>

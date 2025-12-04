@@ -1,11 +1,25 @@
 <template>
-  <div class="bg-bg-surface p-6 rounded-2xl hz-elev-3 hz-overlay-light hz-trim-blue hz-lift">
-    <div v-if="title" class="flex items-center gap-3 mb-4">
-      <div class="hz-accent-dot"></div>
-      <h3 class="hz-h3 text-horizon-white">{{ title }}</h3>
+  <div class="hz-card hz-stack">
+
+    <!-- Optional Title -->
+    <div v-if="title" class="flex items-center gap-3">
+      
+      <!-- Accent Dot -->
+      <div
+        class="w-2 h-2 rounded-full mt-1"
+        style="background: var(--color-horizon-blue-light);"
+      ></div>
+
+      <!-- Title -->
+      <h3 class="hz-title-md text-horizon-white">
+        {{ title }}
+      </h3>
+
     </div>
 
+    <!-- Content -->
     <slot />
+
   </div>
 </template>
 

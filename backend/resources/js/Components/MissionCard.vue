@@ -1,26 +1,43 @@
 <template>
-  <div class="bg-bg-surface rounded-2xl p-6 hz-elev-3 hz-rim hz-overlay-light hz-lift hz-glyph">
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="hz-h3 text-horizon-white">{{ title }}</h3>
-      <div class="hz-progress-pill">{{ status }}</div>
-    </div>
+  <div class="hz-card hz-shadow-soft hz-stack">
 
-    <p class="hz-body mb-4">{{ description }}</p>
+    <!-- Header -->
+    <div class="flex justify-between items-start">
+      <h3 class="hz-title-md text-horizon-white">
+        {{ title }}
+      </h3>
 
-    <div class="grid grid-cols-2 gap-4 mt-4">
-      <div>
-        <div class="hz-data-label">Start</div>
-        <div class="hz-number">{{ start }}</div>
-      </div>
-      <div>
-        <div class="hz-data-label">ETA</div>
-        <div class="hz-number">{{ eta }}</div>
+      <div class="px-3 py-1 rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-horizon-blue-light)] text-xs font-semibold">
+        {{ status }}
       </div>
     </div>
 
-    <div class="hz-divider-blue my-4"></div>
+    <!-- Description -->
+    <p class="hz-body hz-text-soft">
+      {{ description }}
+    </p>
 
+    <!-- Mission timings -->
+    <div class="grid grid-cols-2 gap-4">
+
+      <div class="hz-stack-sm">
+        <div class="hz-section-label">Start</div>
+        <div class="hz-title-md text-horizon-white">{{ start }}</div>
+      </div>
+
+      <div class="hz-stack-sm">
+        <div class="hz-section-label">ETA</div>
+        <div class="hz-title-md text-horizon-white">{{ eta }}</div>
+      </div>
+
+    </div>
+
+    <!-- Divider -->
+    <div class="border-t border-[var(--color-bg-hover)] my-2"></div>
+
+    <!-- Slot for actions or footer -->
     <slot />
+
   </div>
 </template>
 

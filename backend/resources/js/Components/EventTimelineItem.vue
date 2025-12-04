@@ -1,12 +1,24 @@
 <template>
   <div class="flex gap-4 items-start">
-    <div class="hz-accent-dot mt-1"></div>
-    <div class="flex-1">
-      <div class="flex justify-between">
-        <h4 class="hz-h5">{{ title }}</h4>
-        <span class="hz-caption">{{ time }}</span>
+
+    <!-- Timeline Dot -->
+    <div
+      class="mt-1 w-2 h-2 rounded-full"
+      style="background: var(--color-horizon-blue-light);"
+    ></div>
+
+    <!-- Content Block -->
+    <div class="flex-1 hz-stack-sm">
+
+      <!-- Title + Time -->
+      <div class="flex justify-between items-baseline">
+        <h4 class="hz-title-md">{{ title }}</h4>
+        <span class="hz-tiny hz-text-muted">{{ time }}</span>
       </div>
-      <p class="hz-body-strong">{{ detail }}</p>
+
+      <!-- Detail -->
+      <p class="hz-body">{{ detail }}</p>
+
     </div>
   </div>
 </template>

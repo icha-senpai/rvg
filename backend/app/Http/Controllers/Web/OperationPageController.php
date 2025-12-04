@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Operation;
-use Illuminate\Support\Facades\Route;
 
 class OperationPageController extends Controller
 {
@@ -34,10 +32,10 @@ class OperationPageController extends Controller
         ]);
     }
 
-    public function create($squadronId)
+    public function create($squadron)
     {
         return Inertia::render('Operations/MissionEditor', [
-            'squadronId' => $squadronId,
+            'squadronId' => (int) $squadron,
         ]);
     }
 
@@ -49,17 +47,3 @@ class OperationPageController extends Controller
         ]);
     }
 }
-Route::middleware(['auth', 'verified'])->group(function () {
-
-    Route::get('/operations', [OperationPageController::class, 'index'])
-        ->name('operations.index');
-
-    Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
-        ->name('operations.show');
-
-    Route::get('/squadrons/{squadron}/operations/create', [OperationPageController::class, 'create'])
-        ->name('operations.create');
-
-    Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
-        ->name('operations.edit');
-});

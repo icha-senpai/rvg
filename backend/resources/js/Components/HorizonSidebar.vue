@@ -1,5 +1,5 @@
 <template>
-  <aside class="h-full w-64 bg-bg-elevated hz-grid hz-elev-3 hz-inset-holo p-6 space-y-4">
+  <aside class="h-full w-64 bg-[var(--color-bg-elevated)] hz-shadow-deep p-6 hz-stack">
     <slot />
   </aside>
 </template>

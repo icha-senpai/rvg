@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-bg-base text-text-primary p-10 hz-vignette hz-noise">
+  <div class="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)] p-10">
     <slot />
   </div>
 </template>

@@ -1,7 +1,7 @@
 <template>
-  <div :class="['p-4 rounded-xl hz-panel hz-overlay-light border-l-4', variantClasses[variant]]">
-    <div class="hz-h5 mb-1">{{ title }}</div>
-    <div class="hz-body">{{ message }}</div>
+  <div :class="['hz-alert hz-stack-sm', variantMap[variant]]">
+    <div class="hz-title-md">{{ title }}</div>
+    <div class="hz-body hz-text-soft">{{ message }}</div>
   </div>
 </template>
 
@@ -12,10 +12,13 @@ defineProps({
   variant: { type: String, default: 'info' }
 });
 
-const variantClasses = {
-  info: 'border-horizon-blue text-text-secondary',
-  warning: 'border-yellow-400 text-yellow-300',
-  danger: 'border-red-500 text-red-400',
-  success: 'border-green-400 text-green-300',
+/*
+  Map Vue variants -> Horizon alert classes
+*/
+const variantMap = {
+  info: 'hz-alert-info',
+  warning: 'hz-alert-warn',
+  danger: 'hz-alert-danger',
+  success: 'hz-alert-success',
 };
 </script>

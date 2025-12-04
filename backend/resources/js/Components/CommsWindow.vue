@@ -1,9 +1,24 @@
 <template>
-  <div class="rounded-2xl p-6 hz-holo-light hz-neon-edges hz-elev-3 hz-overlay-blue space-y-3">
-    <h3 class="hz-h4 text-horizon-white">{{ sender }}</h3>
-    <p class="hz-body">{{ message }}</p>
-    <div class="hz-divider-blue"></div>
-    <div class="hz-caption text-right">{{ timestamp }}</div>
+  <div class="hz-panel hz-shadow-ambient hz-stack">
+
+    <!-- Sender -->
+    <h3 class="hz-title-md text-horizon-white">
+      {{ sender }}
+    </h3>
+
+    <!-- Message Body -->
+    <p class="hz-body">
+      {{ message }}
+    </p>
+
+    <!-- Divider -->
+    <div class="border-t border-[var(--color-bg-hover)] my-2"></div>
+
+    <!-- Timestamp -->
+    <div class="hz-tiny text-right hz-text-muted">
+      {{ timestamp }}
+    </div>
+
   </div>
 </template>
 

@@ -1,12 +1,25 @@
 <template>
-  <div class="bg-bg-elevated rounded-xl p-5 hz-float hz-overlay-blue hz-border hz-bracket">
-    <h4 class="hz-h5 mb-2">{{ title }}</h4>
+  <div class="hz-panel hz-shadow-soft hz-stack">
 
-    <div class="hz-number-large mb-1">{{ stat }}</div>
-    <div class="hz-caption">{{ label }}</div>
+    <!-- Title -->
+    <h4 class="hz-title-md">
+      {{ title }}
+    </h4>
 
-    <div class="mt-4 hz-accent-split"></div>
+    <!-- Statistic -->
+    <div class="hz-title-xl mt-1">
+      {{ stat }}
+    </div>
 
+    <!-- Label -->
+    <div class="hz-soft">
+      {{ label }}
+    </div>
+
+    <!-- Divider -->
+    <div class="border-t border-[var(--color-bg-hover)] my-3"></div>
+
+    <!-- Slot -->
     <slot />
   </div>
 </template>

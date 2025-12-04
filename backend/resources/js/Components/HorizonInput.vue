@@ -1,12 +1,19 @@
 <template>
-  <div class="space-y-1">
-    <label v-if="label" class="hz-data-label">{{ label }}</label>
+  <div class="hz-stack-sm">
+
+    <!-- Label -->
+    <label v-if="label" class="hz-section-label">
+      {{ label }}
+    </label>
+
+    <!-- Input -->
     <input
       :type="type"
       v-model="model"
       :placeholder="placeholder"
-      class="w-full px-3 py-2 rounded-lg bg-bg-elevated text-text-primary hz-input hz-motion"
+      class="hz-input"
     />
+
   </div>
 </template>
 
@@ -16,6 +23,6 @@ const model = defineModel();
 defineProps({
   label: String,
   placeholder: String,
-  type: { type: String, default: 'text' }
+  type: { type: String, default: 'text' },
 });
 </script>

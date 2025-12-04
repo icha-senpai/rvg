@@ -1,55 +1,57 @@
 <template>
   <HorizonContainer>
-    <!-- HUD status bar -->
-    <HUDStatusBar
-      label="Operations"
-      :value="`${activeCount}/${totalCount} active`"
-    />
 
-    <div class="mt-16 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-8">
-      <!-- LEFT: mission list + filters -->
-      <section>
+    <!-- HUD Status Bar -->
+    <div class="hz-container-wide mb-20">
+      <HUDStatusBar
+        label="Operations"
+        :value="`${activeCount}/${totalCount} active`"
+      />
+    </div>
+
+    <!-- Main Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-[2.2fr,1fr] gap-14">
+
+      <!-- LEFT COLUMN -->
+      <section class="space-y-14">
+
+        <!-- Header -->
         <HorizonSectionHeader
           label="Operations"
-          title="Mission & Event Board"
+          title="Operations Board"
         />
 
-        <!-- Filters -->
-        <div class="flex flex-wrap items-center gap-3 mb-6">
-          <!-- Status filter -->
-          <HorizonButton
-            v-for="s in statusFilters"
-            :key="s.value"
-            size="sm"
-            :variant="statusFilter === s.value ? 'primary' : 'ghost'"
-            @click="statusFilter = s.value"
-          >
-            {{ s.label }}
-          </HorizonButton>
+        <!-- Filter Panel -->
+        <HorizonPanel class="p-6 rounded-2xl hz-overlay-light space-y-6">
 
-          <!-- Kind filter -->
-          <HorizonButton
-            v-for="k in kindFilters"
-            :key="k.value"
-            size="sm"
-            :variant="kindFilter === k.value ? 'primary' : 'ghost'"
-            @click="kindFilter = k.value"
-          >
-            {{ k.label }}
-          </HorizonButton>
-
-          <!-- Search -->
-          <div class="ml-auto w-64">
-            <HorizonInput
-              v-model="search"
-              label="Search"
-              placeholder="Title, squadron..."
-            />
+          <!-- STATUS FILTERS -->
+          <div class="flex flex-wrap gap-3">
+            <HorizonButton
+              v-for="s in statusFilters"
+              :key="s.value"
+              size="sm"
+              :variant="statusFilter === s.value ? 'primary' : 'ghost'"
+              @click="statusFilter = s.value"
+            >
+              {{ s.label }}
+            </HorizonButton>
           </div>
-        </div>
 
-        <!-- Mission grid -->
-        <MissionGrid>
+          <!-- SEARCH -->
+          <div class="flex items-center gap-3">
+            <div class="ml-auto w-full sm:w-64">
+              <HorizonInput
+                v-model="search"
+                label="Search"
+                placeholder="Title, squadron..."
+              />
+            </div>
+          </div>
+
+        </HorizonPanel>
+
+        <!-- OPERATION GRID -->
+        <MissionGrid v-if="filteredOperations.length > 0" class="pt-2">
           <MissionCard
             v-for="op in filteredOperations"
             :key="op.id"
@@ -59,13 +61,10 @@
             :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
             :status="op.status"
           >
-            <div class="mt-4 flex items-center justify-between">
+            <div class="mt-6 flex items-center justify-between">
+
               <div class="hz-caption">
-                {{ op.operation_kind === 'mission' ? 'Mission' : 'Event' }}
-                •
-                {{ op.difficulty ? op.difficulty.toUpperCase() : 'N/A' }}
-                •
-                {{ op.visibility ?? 'open' }}
+                Difficulty: {{ op.difficulty ?? 'N/A' }} • Visibility: {{ op.visibility ?? 'open' }}
               </div>
 
               <HorizonButton
@@ -75,19 +74,44 @@
               >
                 View
               </HorizonButton>
+
             </div>
           </MissionCard>
         </MissionGrid>
+
+        <!-- EMPTY STATE -->
+        <HorizonPanel
+          v-else
+          class="text-center py-20 space-y-6 hz-holo-light hz-lift"
+        >
+          <div class="hz-title-lg text-horizon-white">
+            No Operations Found
+          </div>
+
+          <p class="hz-caption hz-text-muted">
+            Use the operation editor to create the first entry.
+          </p>
+
+          <HorizonButton
+            variant="primary"
+            size="lg"
+            @click="$inertia.visit(route('operations.create', { squadron: 1 }))"
+          >
+            Create Operation
+          </HorizonButton>
+        </HorizonPanel>
+
       </section>
 
-      <!-- RIGHT: quick stats / context -->
-      <aside class="space-y-6">
+      <!-- RIGHT SIDEBAR -->
+      <aside class="space-y-10">
+
         <CommandWidget
           title="Ops Load"
           :stat="activeCount"
           label="Active or in-progress"
         >
-          <div class="hz-caption mt-2">
+          <div class="hz-caption mt-3">
             {{ draftCount }} draft ·
             {{ plannedCount }} published ·
             {{ completedCount }} completed
@@ -95,31 +119,26 @@
         </CommandWidget>
 
         <div class="grid grid-cols-2 gap-4">
-          <HorizonStat
-            label="Total Operations"
-            :value="totalCount"
-          />
-          <HorizonStat
-            label="Missions / Events"
-            :value="`${missionCount}/${eventCount}`"
-          />
+          <HorizonStat label="Total Operations" :value="totalCount" />
+          <HorizonStat label="Active Ops" :value="activeCount" />
         </div>
 
-        <HorizonPanel>
-          <div class="hz-section-label mb-2">Filter Context</div>
-          <p class="hz-caption">
-            Status: <strong>{{ statusFilterLabel }}</strong><br />
-            Kind: <strong>{{ kindFilterLabel }}</strong>
+        <HorizonPanel class="p-6">
+          <div class="hz-section-label mb-3">Filter Context</div>
+          <p class="hz-caption leading-relaxed">
+            Status: <strong>{{ statusFilterLabel }}</strong><br>
+            Search: <strong>{{ search || 'None' }}</strong>
           </p>
         </HorizonPanel>
 
-        <MiniMapPanel>
-          <span class="hz-caption">
-            Future: sector / theater overview can live here.
-          </span>
+        <MiniMapPanel class="h-64 flex items-center justify-center">
+          <span class="hz-caption">Future: sector / theater overview here</span>
         </MiniMapPanel>
+
       </aside>
+
     </div>
+
   </HorizonContainer>
 </template>
 
@@ -155,14 +174,7 @@ const statusFilters = [
   { label: 'Canceled', value: 'canceled' },
 ];
 
-const kindFilters = [
-  { label: 'All kinds', value: 'all' },
-  { label: 'Missions', value: 'mission' },
-  { label: 'Events', value: 'event' },
-];
-
 const statusFilter = ref('all');
-const kindFilter = ref('all');
 const search = ref('');
 
 const filteredOperations = computed(() => {
@@ -170,16 +182,13 @@ const filteredOperations = computed(() => {
     const matchesStatus =
       statusFilter.value === 'all' || op.status === statusFilter.value;
 
-    const matchesKind =
-      kindFilter.value === 'all' || op.operation_kind === kindFilter.value;
-
     const q = search.value.toLowerCase();
     const matchesSearch =
       !q ||
       op.title.toLowerCase().includes(q) ||
       (op.description || '').toLowerCase().includes(q);
 
-    return matchesStatus && matchesKind && matchesSearch;
+    return matchesStatus && matchesSearch;
   });
 });
 
@@ -189,6 +198,7 @@ const activeCount = computed(() =>
     ['published', 'in_progress'].includes(op.status)
   ).length
 );
+
 const draftCount = computed(() =>
   props.operations.filter(op => op.status === 'draft').length
 );
@@ -198,24 +208,13 @@ const completedCount = computed(() =>
 const plannedCount = computed(() =>
   props.operations.filter(op => op.status === 'published').length
 );
-const missionCount = computed(() =>
-  props.operations.filter(op => op.operation_kind === 'mission').length
-);
-const eventCount = computed(() =>
-  props.operations.filter(op => op.operation_kind === 'event').length
-);
 
-const statusFilterLabel = computed(() => {
-  return statusFilters.find(s => s.value === statusFilter.value)?.label ?? 'All';
-});
-
-const kindFilterLabel = computed(() => {
-  return kindFilters.find(k => k.value === kindFilter.value)?.label ?? 'All kinds';
-});
+const statusFilterLabel = computed(
+  () => statusFilters.find(s => s.value === statusFilter.value)?.label ?? 'All'
+);
 
 function formatDate(value) {
   if (!value) return 'TBD';
-  // assume backend already gives ISO or nice string; keep it simple
   return String(value);
 }
 </script>
