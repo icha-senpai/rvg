@@ -161,10 +161,16 @@ class User extends Authenticatable
 
     public function squadron()
     {
-        // Convenience: the "main" squadron for a user, if you treat them as having 0–1
-        return $this->hasOne(SquadronMember::class)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE);
+        return $this->belongsToMany(
+            Squadron::class,
+            'squadron_members',
+            'user_id',
+            'squadron_id'
+        )
+        ->wherePivot('membership_status', SquadronMember::STATUS_ACTIVE)
+        ->limit(1);
     }
+
 
 
     public function preferences()

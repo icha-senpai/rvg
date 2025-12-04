@@ -92,13 +92,15 @@
             Use the operation editor to create the first entry.
           </p>
 
-          <HorizonButton
+        <HorizonButton
             variant="primary"
             size="lg"
-            @click="$inertia.visit(route('operations.create', { squadron: 1 }))"
-          >
+            @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
+        >
             Create Operation
-          </HorizonButton>
+        </HorizonButton>
+
+
         </HorizonPanel>
 
       </section>
@@ -145,6 +147,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
@@ -157,6 +160,14 @@ import MissionGrid from '@/Components/MissionGrid.vue';
 import MissionCard from '@/Components/MissionCard.vue';
 import CommandWidget from '@/Components/CommandWidget.vue';
 import MiniMapPanel from '@/Components/MiniMapPanel.vue';
+
+const page = usePage();
+
+const userSquadronId = computed(() => {
+  const user = page.props.auth?.user;
+  if (!user) return null;
+  return user.squadrons?.[0]?.id ?? null;
+});
 
 const props = defineProps({
   operations: {

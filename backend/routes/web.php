@@ -40,3 +40,10 @@ Route::get('/squadrons/{squadron}/operations/create', [OperationPageController::
 
 Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
     ->name('operations.edit');
+
+Route::middleware(['auth'])->group(function () {
+    Route::post(
+        'squadrons/{squadron}/operations',
+        [OperationPageController::class, 'store']
+    )->name('operations.store');
+});

@@ -18,6 +18,7 @@
         "@inertiajs/vue3": "^2.2.19",
         "@vitejs/plugin-vue": "^6.0.2",
         "discord.js": "^14.24.2",
-        "vue": "^3.5.25"
+        "vue": "^3.5.25",
+        "ziggy-js": "^2.6.0"
     }
 }

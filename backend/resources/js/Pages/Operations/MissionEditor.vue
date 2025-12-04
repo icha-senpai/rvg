@@ -1,9 +1,79 @@
+<script setup>
+import { useForm } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import HorizonContainer from '@/Components/HorizonContainer.vue';
+import {route} from 'ziggy-js';
+import { Ziggy } from '../../ziggy';
+// Props coming from controller
+const props = defineProps({
+  squadronId: {
+    type: Number,
+    required: true,
+  },
+  auth: Object,
+  isEdit: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+// -------------------------------
+// FORM STATE
+// -------------------------------
+const form = useForm({
+  title: '',
+  operation_kind: 'mission',
+  type: '',
+  starts_at: '',
+  ends_at: '',
+  description: '',
+  notes: '',
+  visibility: 'open',
+  difficulty: '',
+  operation_strictness: '',
+  rsvp_deadline: '',
+  icon: '',
+  image_url: '',
+  slots: [],
+
+  squadron_id: props.squadronId,
+});
+
+// expose for template
+const processing = form.processing;
+
+// -------------------------------
+// SLOT FUNCTIONS
+// -------------------------------
+function addSlot() {
+  form.slots.push('');
+}
+
+function removeSlot(index) {
+  form.slots.splice(index, 1);
+}
+
+// -------------------------------
+// SUBMIT HANDLER
+// -------------------------------
+function submit(mode) {
+    form.post(
+        route('operations.store', { squadron: props.squadronId }, Ziggy),
+        {
+            preserveScroll: true,
+            onSuccess: () => { console.log("OK"); },
+            onError: (e) => { console.error(e); }
+        }
+    );
+}
+</script>
+
+
 <template>
   <HorizonContainer>
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-10">
-
       <div class="hz-stack-sm">
         <div class="hz-section-label">
           {{ isEdit ? 'Update Operation' : 'New Operation' }}
@@ -27,7 +97,6 @@
 
       <!-- LEFT: Core configuration -->
       <HorizonPanel>
-
         <div class="hz-stack">
 
           <!-- Title -->
@@ -37,70 +106,64 @@
             placeholder="Convoy Escort – Stanton Corridor"
           />
 
-          <!-- Operation kind -->
-          <div class="hz-stack-sm">
-            <label class="hz-section-label">Operation kind</label>
-            <select v-model="form.operation_kind" class="hz-input w-full">
-              <option value="mission">Mission</option>
-              <option value="event">Event</option>
-            </select>
-          </div>
+          <!-- Operation Kind -->
+          <HorizonInput
+            type="select"
+            label="Operation kind"
+            v-model="form.operation_kind"
+            :options="[
+              { label: 'Mission', value: 'mission' },
+              { label: 'Event', value: 'event' }
+            ]"
+          />
 
           <!-- Type -->
-          <div class="hz-stack-sm">
-            <label class="hz-section-label">Type (optional)</label>
-            <input
-              v-model="form.type"
-              class="hz-input w-full"
-              placeholder="e.g. Escort / Recon / Training"
-            />
-          </div>
+          <HorizonInput
+            label="Type (optional)"
+            placeholder="e.g. Escort / Recon / Training"
+            v-model="form.type"
+          />
 
           <!-- Start / End -->
           <div class="grid md:grid-cols-2 gap-4">
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Starts at</label>
-              <input
-                v-model="form.starts_at"
-                type="datetime-local"
-                class="hz-input w-full"
-              />
-            </div>
+            <HorizonInput
+              label="Starts at"
+              type="datetime-local"
+              v-model="form.starts_at"
+            />
 
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Ends at (optional)</label>
-              <input
-                v-model="form.ends_at"
-                type="datetime-local"
-                class="hz-input w-full"
-              />
-            </div>
+            <HorizonInput
+              label="Ends at (optional)"
+              type="datetime-local"
+              v-model="form.ends_at"
+            />
           </div>
 
-          <!-- Description -->
+          <!-- DESCRIPTION -->
           <div class="hz-stack-sm">
             <label class="hz-section-label">Description</label>
+
             <textarea
               v-model="form.description"
-              rows="4"
-              class="hz-textarea w-full"
-              placeholder="Briefly describe the mission or event."
+              rows="6"
+              class="hz-textarea w-full resize-y"
+              placeholder="Briefly describe the mission or event. You can hit Enter freely."
             ></textarea>
           </div>
 
-          <!-- Notes -->
+          <!-- NOTES -->
           <div class="hz-stack-sm">
             <label class="hz-section-label">Notes (GM / Ops notes)</label>
+
             <textarea
               v-model="form.notes"
-              rows="4"
-              class="hz-textarea w-full"
+              rows="6"
+              class="hz-textarea w-full resize-y"
               placeholder="Additional guidance, expectations, or briefing notes."
             ></textarea>
           </div>
 
         </div>
-
       </HorizonPanel>
 
       <!-- RIGHT: Meta + Slots -->
@@ -112,68 +175,59 @@
 
           <div class="hz-stack">
 
-            <!-- Visibility -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Visibility</label>
-              <select v-model="form.visibility" class="hz-input w-full">
-                <option value="open">Open</option>
-                <option value="squadron">Squadron-only</option>
-                <option value="private">Private</option>
-              </select>
-            </div>
+            <HorizonInput
+              label="Visibility"
+              type="select"
+              v-model="form.visibility"
+              :options="[
+                { label: 'Open', value: 'open' },
+                { label: 'Squadron-only', value: 'squadron' },
+                { label: 'Private', value: 'private' }
+              ]"
+            />
 
-            <!-- Difficulty -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Difficulty</label>
-              <select v-model="form.difficulty" class="hz-input w-full">
-                <option value="">Unspecified</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
+            <HorizonInput
+              label="Difficulty"
+              type="select"
+              v-model="form.difficulty"
+              :options="[
+                { label: 'Unspecified', value: '' },
+                { label: 'Low', value: 'low' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'High', value: 'high' }
+              ]"
+            />
 
-            <!-- Strictness -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Strictness</label>
-              <select v-model="form.operation_strictness" class="hz-input w-full">
-                <option value="">Default</option>
-                <option value="casual">Casual</option>
-                <option value="normal">Normal</option>
-                <option value="strict">Strict</option>
-                <option value="roleplay">Roleplay</option>
-              </select>
-            </div>
+            <HorizonInput
+              label="Strictness"
+              type="select"
+              v-model="form.operation_strictness"
+              :options="[
+                { label: 'Default', value: '' },
+                { label: 'Casual', value: 'casual' },
+                { label: 'Normal', value: 'normal' },
+                { label: 'Strict', value: 'strict' },
+                { label: 'Roleplay', value: 'roleplay' }
+              ]"
+            />
 
-            <!-- RSVP Deadline -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">RSVP deadline</label>
-              <input
-                v-model="form.rsvp_deadline"
-                type="datetime-local"
-                class="hz-input w-full"
-              />
-            </div>
+            <HorizonInput
+              label="RSVP deadline"
+              type="datetime-local"
+              v-model="form.rsvp_deadline"
+            />
 
-            <!-- Icon -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Icon (short code)</label>
-              <input
-                v-model="form.icon"
-                class="hz-input w-full"
-                placeholder="e.g. shield, skull, star"
-              />
-            </div>
+            <HorizonInput
+              label="Icon (short code)"
+              placeholder="e.g. shield, skull, star"
+              v-model="form.icon"
+            />
 
-            <!-- Image URL -->
-            <div class="hz-stack-sm">
-              <label class="hz-section-label">Image URL</label>
-              <input
-                v-model="form.image_url"
-                class="hz-input w-full"
-                placeholder="https://..."
-              />
-            </div>
+            <HorizonInput
+              label="Image URL"
+              placeholder="https://..."
+              v-model="form.image_url"
+            />
 
           </div>
         </HorizonPanel>
@@ -182,6 +236,7 @@
         <HorizonPanel>
           <div class="flex items-center justify-between mb-3">
             <div class="hz-section-label">Slots (optional)</div>
+
             <HorizonButton size="sm" variant="ghost" @click="addSlot">
               Add slot
             </HorizonButton>
@@ -193,9 +248,8 @@
               :key="index"
               class="flex items-center gap-2"
             >
-              <input
+              <HorizonInput
                 v-model="form.slots[index]"
-                class="hz-input flex-1"
                 placeholder="e.g. Mission Lead, Escort, Medic"
               />
 
@@ -241,3 +295,4 @@
 
   </HorizonContainer>
 </template>
+

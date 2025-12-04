@@ -1,0 +1,5 @@
+const Ziggy = {"url":"https:\/\/backend.test","port":null,"defaults":{},"routes":{"sanctum.csrf-cookie":{"uri":"sanctum\/csrf-cookie","methods":["GET","HEAD"]},"home":{"uri":"\/","methods":["GET","HEAD"]},"verify":{"uri":"verify","methods":["GET","HEAD"]},"discord.redirect":{"uri":"auth\/discord","methods":["GET","HEAD"]},"discord.callback":{"uri":"auth\/discord\/callback","methods":["GET","HEAD"]},"operations.create":{"uri":"squadrons\/{squadron}\/operations\/create","methods":["GET","HEAD"],"parameters":["squadron"]},"operations.index":{"uri":"operations","methods":["GET","HEAD"]},"operations.show":{"uri":"operations\/{operation}","methods":["GET","HEAD"],"parameters":["operation"],"bindings":{"operation":"id"}},"operations.edit":{"uri":"operations\/{operation}\/edit","methods":["GET","HEAD"],"parameters":["operation"],"bindings":{"operation":"id"}},"storage.local":{"uri":"storage\/{path}","methods":["GET","HEAD"],"wheres":{"path":".*"},"parameters":["path"]}}};
+if (typeof window !== 'undefined' && typeof window.Ziggy !== 'undefined') {
+  Object.assign(Ziggy.routes, window.Ziggy.routes);
+}
+export { Ziggy };

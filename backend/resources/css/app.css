@@ -424,6 +424,11 @@
   .hz-shadow-ambient { box-shadow: var(--shadow-medium); }
   .hz-neon-glow { box-shadow: var(--shadow-neon); }
 
+  .hz-autogrow {
+    overflow: hidden;
+    resize: none;
+  }
+
   .hz-rim { position: relative; }
   .hz-rim::after {
     content: "";

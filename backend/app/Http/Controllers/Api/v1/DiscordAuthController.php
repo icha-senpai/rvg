@@ -28,31 +28,35 @@ class DiscordAuthController extends Controller
     {
         try {
             $discordUser = $this->discord->getUser(stateless: true);
-            
+
             $user = $this->discord->syncBasicUser($discordUser);
-            
+
+            // Create a Laravel session for web routes (Inertia)
+            \Illuminate\Support\Facades\Auth::login($user, remember: true);
+
             // Log successful auth
             DiscordLogger::auth('login_success', [
-                'user_id' => $user->id,
-                'discord_id' => $discordUser->getId(),
+                'user_id'        => $user->id,
+                'discord_id'     => $discordUser->getId(),
                 'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
-                'user_agent' => $request->userAgent()
+                'user_agent'     => $request->userAgent(),
             ]);
 
+            // Issue API tokens for your JS app
             $tokens = $this->tokens->createTokensFor($user);
+
             return redirect('/verify?token=' . $tokens['access_token']);
-            
+
         } catch (\Exception $e) {
-            // Log auth failure
+
             DiscordLogger::auth('login_failed', [
-                'error' => $e->getMessage(),
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'error'      => $e->getMessage(),
+                'ip'         => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
-            
+
             return redirect('/verify?error=oauth');
         }
     }
-
-
 }
+

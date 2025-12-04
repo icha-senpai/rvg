@@ -5,7 +5,8 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import axios from 'axios';
-
+import { route } from 'ziggy-js';
+import { Ziggy } from '@/ziggy'; // This file will exist once you publish
 /* ============================================================
    HORIZON COMPONENT IMPORTS (GLOBAL REGISTRATION)
    ============================================================ */
@@ -23,6 +24,9 @@ import MissionGrid from '@/Components/MissionGrid.vue';
 import MissionCard from '@/Components/MissionCard.vue';
 import ProgressPill from '@/Components/ProgressPill.vue';
 import RoleSlotCard from '@/Components/RoleSlotCard.vue';
+import HorizonContainer from '@/Components/HorizonContainer.vue';
+
+
 
 /* ============================================================
    INERTIA APP INITIALIZATION
@@ -38,7 +42,8 @@ createInertiaApp({
         const app = createApp({ render: () => h(App, props) });
 
         app.use(plugin);
-
+        app.config.globalProperties.route = (name, params, absolute) =>
+            route(name, params, absolute, Ziggy);
         /* ============================================================
            REGISTER GLOBAL HORIZON COMPONENTS
            ============================================================ */
@@ -56,6 +61,7 @@ createInertiaApp({
         app.component('MissionCard', MissionCard);
         app.component('ProgressPill', ProgressPill);
         app.component('RoleSlotCard', RoleSlotCard);
+        app.component('HorizonContainer', HorizonContainer);
 
         app.mount(el);
     },
