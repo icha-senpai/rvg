@@ -7,42 +7,33 @@ use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Http\Requests\SquadronMemberAddRequest;
 use App\Http\Requests\SquadronMemberUpdateStatusRequest;
-
+use App\Domain\Squadrons\MembershipService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\ValidationException;
 
-class SquadronMemberController extends Controller   
+class SquadronMemberController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Add a member to a squadron (admin or director action).
-     */
+
+    public function __construct(
+        protected MembershipService $membership
+    ) {}
+
     public function store(SquadronMemberAddRequest $request, Squadron $squadron)
     {
         $this->authorize('manageMembers', $squadron);
 
-        $exists = SquadronMember::where('user_id', $request->user_id)
-            ->where('squadron_id', $squadron->id)
-            ->exists();
-
-        if ($exists) {
+        try {
+            $member = $this->membership->adminAddMember($squadron, $request->user_id);
+        } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'User already in squadron',
+                'message' => $e->errors()['user_id'][0] ?? 'Cannot add member',
             ], 409);
         }
-
-        $member = SquadronMember::create([
-            'user_id' => $request->user_id,
-            'squadron_id' => $squadron->id,
-            'membership_status' => 'active',
-            'joined_at' => now(),
-        ]);
 
         return response()->json($member, 201);
     }
 
-    /**
-     * Update membership status.
-     */
     public function update(
         SquadronMemberUpdateStatusRequest $request,
         Squadron $squadron,
@@ -50,81 +41,50 @@ class SquadronMemberController extends Controller
     ) {
         $this->authorize('manageMembers', $squadron);
 
-        if ($member->squadron_id !== $squadron->id) {
-            return response()->json(['message' => 'Member does not belong to this squadron'], 409);
-        }
+        $updated = $this->membership->adminUpdateStatus(
+            $squadron,
+            $member,
+            $request->membership_status
+        );
 
-        $member->update([
-            'membership_status' => $request->membership_status,
-        ]);
-
-        return response()->json($member);
+        return response()->json($updated);
     }
 
-    /**
-     * Remove member (kick from squadron).
-     */
     public function destroy(Squadron $squadron, SquadronMember $member)
     {
         $this->authorize('manageMembers', $squadron);
 
-        if ($member->squadron_id !== $squadron->id) {
-            return response()->json(['message' => 'Member does not belong to this squadron'], 409);
-        }
-
-        $member->update([
-            'left_at' => now(),
-            'membership_status' => 'pending',
-        ]);
-
-        $member->delete();
+        $this->membership->adminRemoveMember($squadron, $member);
 
         return response()->json(['message' => 'Member removed']);
     }
 
-    /**
-     * User joins a squadron themselves.
-     */
     public function join(Squadron $squadron)
     {
         $user = auth()->user();
 
-        // Prevent joining multiple squadrons
-        $already = SquadronMember::where('user_id', $user->id)->exists();
-        if ($already) {
-            return response()->json(['message' => 'Already in a squadron'], 409);
+        try {
+            $member = $this->membership->userJoin($squadron, $user);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->errors()['member'][0] ?? 'Cannot join squadron',
+            ], 409);
         }
-
-        $member = SquadronMember::create([
-            'user_id' => $user->id,
-            'squadron_id' => $squadron->id,
-            'membership_status' => 'pending',
-            'joined_at' => now(),
-        ]);
 
         return response()->json($member, 201);
     }
 
-    /**
-     * User leaves their squadron.
-     */
     public function leave(Squadron $squadron)
     {
         $user = auth()->user();
 
-        $member = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->first();
-
-        if (!$member) {
-            return response()->json(['message' => 'Not a member of this squadron'], 404);
+        try {
+            $this->membership->userLeave($squadron, $user);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->errors()['member'][0] ?? 'Cannot leave squadron',
+            ], 404);
         }
-
-        $member->update([
-            'left_at' => now(),
-        ]);
-
-        $member->delete();
 
         return response()->json(['message' => 'Left squadron successfully']);
     }

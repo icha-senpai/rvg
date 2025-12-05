@@ -8,16 +8,25 @@ class OperationRole extends Model
 {
     protected $fillable = [
         'operation_id',
-        'role_name',         // internal identifier, e.g. "wing_lead"
-        'role_display_name', // human name, e.g. "Wing Lead"
-        'capacity',          // max members in this role
-        'min_required',      // min needed for "green" readiness
+
+        // Naming
+        'role_name',          // internal identifier  
+        'role_display_name',  // shown in UI
+
+        // Structure
+        'capacity',
+        'min_required',
         'description',
-        'requirements',      // json (ship type, certs, etc)
+        'requirements',
+
+        // Optional for sorting in UI
+        'sort_order',
+        'is_required'
     ];
 
     protected $casts = [
         'requirements' => 'array',
+        'is_required'  => 'boolean',
     ];
 
     public function operation()
@@ -28,5 +37,17 @@ class OperationRole extends Model
     public function participants()
     {
         return $this->hasMany(OperationParticipant::class, 'operation_role_id');
+    }
+
+    /* Helper: how many members are assigned to this role */
+    public function filledCount(): int
+    {
+        return $this->participants()->count();
+    }
+
+    public function isFull(): bool
+    {
+        return $this->capacity !== null
+            && $this->filledCount() >= $this->capacity;
     }
 }

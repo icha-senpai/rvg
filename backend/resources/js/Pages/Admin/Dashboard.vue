@@ -63,6 +63,7 @@ const props = defineProps({
   squadrons: Array,
   roles: Array,
   filters: Object,
+  eligibleLeaders: Array,
 });
 
 const activeTab = ref('users');

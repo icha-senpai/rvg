@@ -2,18 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Squadron extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'name',
         'slug',
         'status',
-        'leader_id', // IMPORTANT: You must add this
+        'leader_id',
         'motto',
         'description',
         'primary_color',
@@ -22,40 +19,39 @@ class Squadron extends Model
         'recruiting',
     ];
 
-    public const STATUS_ACTIVE    = 'active';
-    public const STATUS_INACTIVE  = 'inactive';
-    public const STATUS_DISBANDED = 'disbanded';
+    protected $casts = [
+        'recruiting' => 'boolean',
+    ];
 
+    /* Relationships */
+    public function leader()
+    {
+        return $this->belongsTo(User::class, 'leader_id');
+    }
 
-    /**
-     * All membership rows (any status)
-     */
     public function members()
     {
         return $this->hasMany(SquadronMember::class);
     }
 
-
-    /**
-     * Only active members
-     */
     public function activeMembers()
     {
-        return $this->members()->active();
+        return $this->members()->where('membership_status', 'active');
     }
 
-
-    /**
-     * Legacy: return all members who have "leader" as squadron role
-     * (supports future multiple-leader systems)
-     */
-    public function leaders()
+    public function operations()
     {
-        return $this->members()
-            ->active()
-            ->where('role', SquadronMember::ROLE_LEADER);
+        return $this->hasMany(Operation::class);
     }
 
+    /* Status helpers */
+    public function isActive()    { return $this->status === 'active'; }
+    public function isInactive()  { return $this->status === 'inactive'; }
+    public function isDisbanded() { return $this->status === 'disbanded'; }
 
-
+    /* Scopes */
+    public function scopeActive($q)
+    {
+        return $q->where('status', 'active');
+    }
 }

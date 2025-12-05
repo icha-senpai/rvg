@@ -173,55 +173,29 @@ class AdminController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'slug'      => ['required', 'string', 'max:255', 'unique:squadrons,slug'],
             'status'    => ['required', 'in:active,inactive,disbanded'],
-            'leader_id' => ['nullable', 'exists:users,id'],
+            'leader_id' => [
+                'nullable',
+                'exists:users,id',
+                function ($attr, $value, $fail) {
+                    if ($value) {
+                        $leader = \App\Models\User::find($value);
+                        // Commander and above = rank_level >= 3
+                        if (! $leader || $leader->rank_level < 3) {
+                            $fail('Selected leader does not have sufficient rank.');
+                        }
+                    }
+                },
+            ],
         ]);
 
-            // Do NOT attempt to store leader_id on the squadron itself
+        // DO NOT try to save leader_id on squadrons table
         $squadron = Squadron::create([
             'name'   => $data['name'],
             'slug'   => $data['slug'],
             'status' => $data['status'],
         ]);
 
-        if (!empty($data['leader_id'])) {
-            SquadronMember::create([
-                'user_id'           => $data['leader_id'],
-                'squadron_id'       => $squadron->id,
-                'membership_status' => 'active',
-                'role'              => 'leader',
-                'joined_at'         => now(),
-            ]);
-        }
-
-        return redirect()
-            ->route('admin.squadrons.index')
-            ->with('success', 'Squadron created.');
-    }
-
-    /**
-     * UPDATE SQUADRON
-     */
-    public function updateSquadron(Request $request)
-    {
-        $this->authorize('create', Squadron::class);
-
-        $data = $request->validate([
-            'id'        => ['required', 'exists:squadrons,id'],
-            'name'      => ['required', 'string', 'max:255'],
-            'slug'      => ['required', 'string', 'max:255'],
-            'status'    => ['required', 'in:active,inactive,disbanded'],
-            'leader_id' => ['nullable', 'exists:users,id'],
-        ]);
-
-        $squadron = Squadron::findOrFail($data['id']);
-        $squadron->update($data);
-
-        // Remove old leaders
-        SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', 'leader')
-            ->update(['role' => null]);
-
-        // Assign new leader
+        // Assign leader via squadron_members
         if (!empty($data['leader_id'])) {
             SquadronMember::updateOrCreate(
                 [
@@ -236,10 +210,72 @@ class AdminController extends Controller
             );
         }
 
-        return redirect()
-            ->route('admin.squadrons.index')
-            ->with('success', 'Squadron updated.');
+        return redirect()->route('admin.dashboard')
+        ->with('success', 'Squadron updated.');
+
     }
+
+
+    /**
+     * UPDATE SQUADRON
+     */
+    public function updateSquadron(Request $request)
+    {
+        $this->authorize('create', Squadron::class);
+
+        $data = $request->validate([
+            'id'        => ['required', 'exists:squadrons,id'],
+            'name'      => ['required', 'string', 'max:255'],
+            'slug'      => ['required', 'string', 'max:255'],
+            'status'    => ['required', 'in:active,inactive,disbanded'],
+            'leader_id' => [
+                'nullable',
+                'exists:users,id',
+                function ($attr, $value, $fail) {
+                    if ($value) {
+                        $leader = \App\Models\User::find($value);
+                        if (! $leader || $leader->rank_level < 3) {
+                            $fail('Selected leader does not have sufficient rank.');
+                        }
+                    }
+                },
+            ],
+        ]);
+
+        $squadron = Squadron::findOrFail($data['id']);
+
+        // Only update fields that actually exist on squadrons table
+        $squadron->update([
+            'name'   => $data['name'],
+            'slug'   => $data['slug'],
+            'status' => $data['status'],
+        ]);
+
+        // Clear old leaders for this squadron
+        SquadronMember::where('squadron_id', $squadron->id)
+            ->where('role', 'leader')
+            ->update(['role' => null]);
+
+        // Assign new leader if provided
+        if (!empty($data['leader_id'])) {
+            SquadronMember::updateOrCreate(
+                [
+                    'user_id'     => $data['leader_id'],
+                    'squadron_id' => $squadron->id,
+                ],
+                [
+                    'membership_status' => 'active',
+                    'role'              => 'leader',
+                    'joined_at'         => now(),
+                ]
+            );
+        }
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Squadron updated.');
+
+    }
+
 
     /**
      * DELETE SQUADRON
@@ -254,9 +290,9 @@ class AdminController extends Controller
 
         Squadron::findOrFail($data['id'])->delete();
 
-        return redirect()
-            ->route('admin.squadrons.index')
+        return redirect()->route('admin.dashboard')
             ->with('success', 'Squadron deleted.');
+
     }
 
     /**
@@ -336,8 +372,16 @@ class AdminController extends Controller
 
         $squadrons = Squadron::orderBy('name')->get();
 
+        $eligibleLeaders = User::where('rank_level', '>=', 3)
+            ->select('id', 'discord_name', 'rank', 'rank_level')
+            ->orderByDesc('rank_level')
+            ->orderBy('discord_name')
+            ->get();
+
         return Inertia::render('Admin/SquadronsIndex', [
-            'squadrons' => $squadrons
+            'squadrons'       => $squadrons,
+            'eligibleLeaders' => $eligibleLeaders,
         ]);
     }
+
 }

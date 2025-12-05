@@ -3,18 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class OperationParticipant extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'operation_id',
         'user_id',
-
-        // Either a structured role relation or a loose slot name
         'operation_role_id',
-        'slot',              // e.g. "pilot", "gunner", "logistics"
-
-        'attendance_status', // signed_up / attended / missed etc.
+        'slot',
+        'attendance_status',
         'notes',
         'stats',
     ];
@@ -23,6 +23,7 @@ class OperationParticipant extends Model
         'stats' => 'array',
     ];
 
+    /* Relationships */
     public function operation()
     {
         return $this->belongsTo(Operation::class);
@@ -38,18 +39,25 @@ class OperationParticipant extends Model
         return $this->belongsTo(OperationRole::class, 'operation_role_id');
     }
 
-    public function markAttended()
-    {
-        $this->update(['attendance_status' => 'attended']);
-    }
-
-    public function markMissed()
-    {
-        $this->update(['attendance_status' => 'missed']);
-    }
-
+    /* Helpers */
     public function isLeader()
     {
-        return $this->slot === 'leader' || $this->role?->role_name === 'leader';
+        return $this->slot === 'leader'
+            || ($this->role && $this->role->role_name === 'leader');
+    }
+
+    public function markAttended() { $this->update(['attendance_status' => 'attended']); }
+    public function markMissed()   { $this->update(['attendance_status' => 'missed']); }
+
+    /* Scopes */
+    public function scopeWithRole($q, string $roleName)
+    {
+        return $q->whereHas('role', fn($r) => $r->where('role_name', $roleName));
+    }
+
+    public function scopeLeaders($q)
+    {
+        return $q->where('slot', 'leader')
+                 ->orWhereHas('role', fn($r) => $r->where('role_name', 'leader'));
     }
 }

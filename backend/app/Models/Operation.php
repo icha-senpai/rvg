@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Operation extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'squadron_id',
         'created_by',
@@ -16,24 +19,24 @@ class Operation extends Model
         'starts_at',
         'ends_at',
 
-        // Visibility & classification
-        'visibility',          // open / squadron / private
-        'operation_kind',      // 'event' or 'mission'
-        'type',                // e.g. operation, squadron_training, mission_subtype, etc.
+        // Classification
+        'visibility',
+        'operation_kind',
+        'type',
 
-        // Flavor & rules
-        'difficulty',          // low / medium / high
-        'operation_strictness',// casual / normal / strict / roleplay
+        // Style
+        'difficulty',
+        'operation_strictness',
         'icon',
         'image_url',
 
         // Logistics
         'rsvp_deadline',
         'notes',
-        'status',              // draft / published / in_progress / completed / canceled
+        'status',
         'cancellation_reason',
 
-        // Mission-style slots (optional)
+        // Mission structure
         'slots',
     ];
 
@@ -45,6 +48,9 @@ class Operation extends Model
         'status'         => 'string',
     ];
 
+    /* ---------------------------------
+     | Relationships
+     --------------------------------- */
     public function squadron()
     {
         return $this->belongsTo(Squadron::class);
@@ -65,24 +71,51 @@ class Operation extends Model
         return $this->hasMany(OperationRole::class);
     }
 
-    /**
-     * Status transitions (based on Event::transitionTo)
-     */
+    /* ---------------------------------
+     | Status Helpers
+     --------------------------------- */
+    public function isDraft()         { return $this->status === 'draft'; }
+    public function isPublished()     { return $this->status === 'published'; }
+    public function isInProgress()    { return $this->status === 'in_progress'; }
+    public function isCompleted()     { return $this->status === 'completed'; }
+    public function isCanceled()      { return $this->status === 'canceled'; }
+
+    /* ---------------------------------
+     | Scopes
+     --------------------------------- */
+    public function scopeUpcoming($q)
+    {
+        return $q->where('starts_at', '>', now());
+    }
+
+    public function scopePast($q)
+    {
+        return $q->where('ends_at', '<', now());
+    }
+
+    public function scopeActive($q)
+    {
+        return $q->whereIn('status', ['draft', 'published', 'in_progress']);
+    }
+
+    /* ---------------------------------
+     | Transition System
+     --------------------------------- */
     public function transitionTo(string $newStatus, ?string $reason = null): bool
     {
-        $validTransitions = [
-            'draft'      => ['published', 'canceled'],
-            'published'  => ['in_progress', 'canceled'],
-            'in_progress'=> ['completed', 'canceled'],
+        $valid = [
+            'draft'       => ['published', 'canceled'],
+            'published'   => ['in_progress', 'canceled'],
+            'in_progress' => ['completed',  'canceled'],
         ];
 
-        if (!in_array($newStatus, $validTransitions[$this->status] ?? [])) {
+        if (!in_array($newStatus, $valid[$this->status] ?? [])) {
             throw new \Exception("Invalid transition from {$this->status} to {$newStatus}");
         }
 
         $this->status = $newStatus;
 
-        if ($newStatus === 'canceled' && $reason) {
+        if ($newStatus === 'canceled') {
             $this->cancellation_reason = $reason;
         }
 

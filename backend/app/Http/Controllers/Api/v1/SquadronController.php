@@ -6,75 +6,93 @@ use App\Http\Controllers\Controller;
 use App\Models\Squadron;
 use App\Http\Requests\SquadronStoreRequest;
 use App\Http\Requests\SquadronUpdateRequest;
+use App\Domain\Squadrons\SquadronService;
+use App\Domain\Squadrons\Presenters\SquadronPresenter;
+use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-
 
 class SquadronController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        protected SquadronService $squadrons
+    ) {}
+
     /**
-     * List all squadrons.
+     * GET /api/v1/squadrons
      */
     public function index()
     {
         $this->authorize('viewAny', Squadron::class);
 
-        return Squadron::withCount('members')->get();
+        return SquadronPresenter::collection(
+            $this->squadrons->listAll()
+        );
     }
 
     /**
-     * Show a single squadron.
+     * GET /api/v1/squadrons/{squadron}
      */
     public function show(Squadron $squadron)
     {
         $this->authorize('view', $squadron);
 
-        return $squadron->load('members.user');
+        return SquadronPresenter::make(
+            $this->squadrons->show($squadron)
+        );
     }
 
     /**
-     * Create a squadron.
+     * POST /api/v1/squadrons
      */
     public function store(SquadronStoreRequest $request)
     {
         $this->authorize('create', Squadron::class);
 
-        $squadron = Squadron::create($request->validated());
+        $squadron = $this->squadrons->create($request->validated());
 
-        return response()->json($squadron, 201);
+        return response()->json(
+            SquadronPresenter::make($squadron),
+            201
+        );
     }
 
     /**
-     * Update a squadron.
+     * PUT /api/v1/squadrons/{squadron}
      */
     public function update(SquadronUpdateRequest $request, Squadron $squadron)
     {
         $this->authorize('update', $squadron);
 
-        $squadron->update($request->validated());
+        $updated = $this->squadrons->update($squadron, $request->validated());
 
-        return response()->json($squadron);
+        return response()->json(
+            SquadronPresenter::make($updated)
+        );
     }
 
     /**
-     * Delete a squadron.
+     * DELETE /api/v1/squadrons/{squadron}
      */
     public function destroy(Squadron $squadron)
     {
         $this->authorize('delete', $squadron);
 
-        $squadron->delete();
+        $this->squadrons->delete($squadron);
 
         return response()->json(['message' => 'Squadron deleted']);
     }
 
     /**
-     * View members of a squadron.
+     * GET /api/v1/squadrons/{squadron}/members
      */
     public function members(Squadron $squadron)
     {
         $this->authorize('view', $squadron);
 
-        return $squadron->members()->with('user')->get();
+        $members = $this->squadrons->members($squadron);
+
+        return SquadronMemberPresenter::collection($members);
     }
 }

@@ -171,9 +171,10 @@ function openEditModal(sq) {
     name: sq.name,
     slug: sq.slug,
     status: sq.status,
-    leader_id: sq.leader_id || '',
+    leader_id: sq.leader ? sq.leader.id : '',
   };
 }
+
 
 /* CLOSE */
 function closeModal() {

@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Web;
 
 use App\Models\Squadron;
 use App\Models\User;
-use App\Models\SquadronMember;
 use App\Http\Controllers\Controller;
+use App\Domain\Squadrons\MembershipService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class SquadronPromotionController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        protected MembershipService $membership
+    ) {}
 
     public function promoteLieutenant(Request $request, Squadron $squadron)
     {
@@ -21,24 +26,13 @@ class SquadronPromotionController extends Controller
             'user_id' => 'required|exists:users,id',
         ]);
 
-        $member = SquadronMember::where('user_id', $data['user_id'])
-            ->where('squadron_id', $squadron->id)
-            ->firstOrFail();
+        $user = User::findOrFail($data['user_id']);
 
-        // Count existing lieutenants
-        $ltCount = SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->count();
-
-        if ($ltCount >= 2) {
-            return back()->withErrors(['max_lt' => 'This squadron already has the maximum of two Lieutenants.']);
+        try {
+            $this->membership->promoteLieutenant($squadron, $user);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
         }
-
-        // Promote
-        $member->update([
-            'role' => SquadronMember::ROLE_LIEUTENANT,
-            'membership_status' => SquadronMember::STATUS_ACTIVE,
-        ]);
 
         return back()->with('success', 'Lieutenant promoted successfully.');
     }
