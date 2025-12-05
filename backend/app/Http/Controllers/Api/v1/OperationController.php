@@ -35,7 +35,7 @@ class OperationController extends Controller
 
     public function store(Request $request, ?Squadron $squadron = null)
     {
-        $this->authorize('create', Operation::class);
+        $this->authorize('create', [Operation::class, $squadron]);
 
         $data = $request->validate([
             'title'              => 'required|string|max:255',

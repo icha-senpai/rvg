@@ -15,15 +15,26 @@
       <!-- LEFT COLUMN -->
       <section class="space-y-14">
 
-        <!-- Header -->
-        <HorizonSectionHeader
-          label="Operations"
-          title="Operations Board"
-        />
+        <!-- Header + Create button -->
+        <div class="flex items-center justify-between gap-4">
+          <HorizonSectionHeader
+            label="Operations"
+            title="Operations Board"
+          />
+
+          <HorizonButton
+            v-if="canCreateOperation && userSquadronId"
+            variant="primary"
+            size="md"
+            @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
+          >
+            Create Operation
+          </HorizonButton>
+        </div>
 
         <!-- Filter Panel -->
         <HorizonPanel class="p-6 rounded-2xl hz-overlay-light space-y-6">
-
+          
           <!-- STATUS FILTERS -->
           <div class="flex flex-wrap gap-3">
             <HorizonButton
@@ -67,13 +78,28 @@
                 Difficulty: {{ op.difficulty ?? 'N/A' }} • Visibility: {{ op.visibility ?? 'open' }}
               </div>
 
-              <HorizonButton
-                size="sm"
-                variant="outline"
-                @click="$inertia.visit(route('operations.show', op.id))"
-              >
-                View
-              </HorizonButton>
+              <div class="flex gap-2">
+                
+                <!-- VIEW -->
+                <HorizonButton
+                  size="sm"
+                  variant="outline"
+                  @click="$inertia.visit(route('operations.show', op.id))"
+                >
+                  View
+                </HorizonButton>
+
+                <!-- EDIT -->
+                <HorizonButton
+                  v-if="canEdit(op)"
+                  size="sm"
+                  variant="ghost"
+                  @click="$inertia.visit(route('operations.edit', op.id))"
+                >
+                  Edit
+                </HorizonButton>
+
+              </div>
 
             </div>
           </MissionCard>
@@ -91,15 +117,6 @@
           <p class="hz-caption hz-text-muted">
             Use the operation editor to create the first entry.
           </p>
-
-        <HorizonButton
-            variant="primary"
-            size="lg"
-            @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
-        >
-            Create Operation
-        </HorizonButton>
-
 
         </HorizonPanel>
 
@@ -144,10 +161,10 @@
   </HorizonContainer>
 </template>
 
+
 <script setup>
 import { computed, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
@@ -162,19 +179,61 @@ import CommandWidget from '@/Components/CommandWidget.vue';
 import MiniMapPanel from '@/Components/MiniMapPanel.vue';
 
 const page = usePage();
+const props = defineProps({
+  operations: Array,
+});
+
+/* ----------------------------------------
+   USER + PERMISSIONS
+---------------------------------------- */
+
+const user = computed(() => page.props.auth?.user ?? null);
 
 const userSquadronId = computed(() => {
-  const user = page.props.auth?.user;
-  if (!user) return null;
-  return user.squadrons?.[0]?.id ?? null;
+  const u = user.value;
+  if (!u?.squadrons?.length) return null;
+
+  const lt = u.squadrons.find(s => s.pivot?.role === 'lieutenant');
+  if (lt) return lt.id;
+
+  const leader = u.squadrons.find(s => s.pivot?.role === 'leader');
+  if (leader) return leader.id;
+
+  return u.squadrons[0]?.id ?? null;
 });
 
-const props = defineProps({
-  operations: {
-    type: Array,
-    default: () => [],
-  },
+const can = computed(() => page.props.auth?.can ?? {});
+
+const isSquadronLeader = computed(() =>
+  user.value?.squadrons?.some(s => s.pivot?.role === 'leader')
+);
+
+const isSquadronLieutenant = computed(() =>
+  user.value?.squadrons?.some(s => s.pivot?.role === 'lieutenant')
+);
+
+const canCreateOperation = computed(() => {
+  if (can.value['operation.create']) return true;
+  if (can.value['operation.host.small']) return true;
+  if (can.value['operation.host.medium']) return true;
+  if (can.value['operation.host.large']) return true;
+  if (can.value['operation.host.org']) return true;
+  if (isSquadronLeader.value) return true;
+  if (isSquadronLieutenant.value) return true;
+  return false;
 });
+
+// EDIT permission
+function canEdit(op) {
+  if (can.value['operation.update']) return true;
+  if (op.created_by === user.value?.id) return true;
+  if (isSquadronLeader.value) return true;
+  return false;
+}
+
+/* ----------------------------------------
+   FILTERING
+---------------------------------------- */
 
 const statusFilters = [
   { label: 'All', value: 'all' },
@@ -203,13 +262,16 @@ const filteredOperations = computed(() => {
   });
 });
 
+/* ----------------------------------------
+   STATS
+---------------------------------------- */
+
 const totalCount = computed(() => props.operations.length);
 const activeCount = computed(() =>
   props.operations.filter(op =>
     ['published', 'in_progress'].includes(op.status)
   ).length
 );
-
 const draftCount = computed(() =>
   props.operations.filter(op => op.status === 'draft').length
 );
@@ -224,6 +286,7 @@ const statusFilterLabel = computed(
   () => statusFilters.find(s => s.value === statusFilter.value)?.label ?? 'All'
 );
 
+// UTIL
 function formatDate(value) {
   if (!value) return 'TBD';
   return String(value);

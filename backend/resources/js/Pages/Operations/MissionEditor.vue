@@ -1,46 +1,46 @@
 <script setup>
+import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { usePage } from '@inertiajs/vue3';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
-import {route} from 'ziggy-js';
+import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
-// Props coming from controller
+
+// -------------------------------
+// PROPS
+// -------------------------------
 const props = defineProps({
-  squadronId: {
-    type: Number,
-    required: true,
-  },
-  auth: Object,
-  isEdit: {
-    type: Boolean,
-    default: false,
-  },
+  squadronId: { type: Number, required: true },
+  mission: { type: Object, default: null },
 });
+
+// -------------------------------
+// EDIT MODE
+// -------------------------------
+const isEdit = computed(() => props.mission !== null);
 
 // -------------------------------
 // FORM STATE
 // -------------------------------
 const form = useForm({
-  title: '',
-  operation_kind: 'mission',
-  type: '',
-  starts_at: '',
-  ends_at: '',
-  description: '',
-  notes: '',
-  visibility: 'open',
-  difficulty: '',
-  operation_strictness: '',
-  rsvp_deadline: '',
-  icon: '',
-  image_url: '',
-  slots: [],
+  title: props.mission?.title ?? '',
+  operation_kind: props.mission?.operation_kind ?? 'mission',
+  type: props.mission?.type ?? '',
+  starts_at: props.mission?.starts_at ?? '',
+  ends_at: props.mission?.ends_at ?? '',
+  description: props.mission?.description ?? '',
+  notes: props.mission?.notes ?? '',
+  visibility: props.mission?.visibility ?? 'open',
+  difficulty: props.mission?.difficulty ?? '',
+  operation_strictness: props.mission?.operation_strictness ?? '',
+  rsvp_deadline: props.mission?.rsvp_deadline ?? '',
+  icon: props.mission?.icon ?? '',
+  image_url: props.mission?.image_url ?? '',
+  slots: props.mission?.slots ?? [],
+
+  status: props.mission?.status ?? 'draft',
 
   squadron_id: props.squadronId,
 });
-
-// expose for template
-const processing = form.processing;
 
 // -------------------------------
 // SLOT FUNCTIONS
@@ -57,17 +57,31 @@ function removeSlot(index) {
 // SUBMIT HANDLER
 // -------------------------------
 function submit(mode) {
-    form.post(
-        route('operations.store', { squadron: props.squadronId }, Ziggy),
-        {
-            preserveScroll: true,
-            onSuccess: () => { console.log("OK"); },
-            onError: (e) => { console.error(e); }
-        }
+  form.status = mode === 'draft' ? 'draft' : 'published';
+
+  // EDIT MODE
+  if (isEdit.value) {
+    return form.put(
+      route('operations.update', props.mission.id, Ziggy),
+      {
+        preserveScroll: true,
+        onSuccess: () => console.log("UPDATED"),
+        onError: (e) => console.error(e),
+      }
     );
+  }
+
+  // CREATE MODE
+  return form.post(
+    route('operations.store', { squadron: props.squadronId }, Ziggy),
+    {
+      preserveScroll: true,
+      onSuccess: () => console.log("CREATED"),
+      onError: (e) => console.error(e),
+    }
+  );
 }
 </script>
-
 
 <template>
   <HorizonContainer>
@@ -95,18 +109,16 @@ function submit(mode) {
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-[2fr,1.2fr] gap-8">
 
-      <!-- LEFT: Core configuration -->
+      <!-- LEFT -->
       <HorizonPanel>
         <div class="hz-stack">
 
-          <!-- Title -->
           <HorizonInput
             v-model="form.title"
             label="Title"
             placeholder="Convoy Escort – Stanton Corridor"
           />
 
-          <!-- Operation Kind -->
           <HorizonInput
             type="select"
             label="Operation kind"
@@ -117,14 +129,12 @@ function submit(mode) {
             ]"
           />
 
-          <!-- Type -->
           <HorizonInput
             label="Type (optional)"
             placeholder="e.g. Escort / Recon / Training"
             v-model="form.type"
           />
 
-          <!-- Start / End -->
           <div class="grid md:grid-cols-2 gap-4">
             <HorizonInput
               label="Starts at"
@@ -139,37 +149,31 @@ function submit(mode) {
             />
           </div>
 
-          <!-- DESCRIPTION -->
           <div class="hz-stack-sm">
             <label class="hz-section-label">Description</label>
-
             <textarea
               v-model="form.description"
               rows="6"
               class="hz-textarea w-full resize-y"
-              placeholder="Briefly describe the mission or event. You can hit Enter freely."
+              placeholder="Brief description..."
             ></textarea>
           </div>
 
-          <!-- NOTES -->
           <div class="hz-stack-sm">
-            <label class="hz-section-label">Notes (GM / Ops notes)</label>
-
+            <label class="hz-section-label">Notes</label>
             <textarea
               v-model="form.notes"
               rows="6"
               class="hz-textarea w-full resize-y"
-              placeholder="Additional guidance, expectations, or briefing notes."
             ></textarea>
           </div>
 
         </div>
       </HorizonPanel>
 
-      <!-- RIGHT: Meta + Slots -->
+      <!-- RIGHT -->
       <div class="hz-stack">
 
-        <!-- META PANEL -->
         <HorizonPanel>
           <div class="hz-section-label mb-3">Meta</div>
 
@@ -218,8 +222,7 @@ function submit(mode) {
             />
 
             <HorizonInput
-              label="Icon (short code)"
-              placeholder="e.g. shield, skull, star"
+              label="Icon"
               v-model="form.icon"
             />
 
@@ -232,10 +235,10 @@ function submit(mode) {
           </div>
         </HorizonPanel>
 
-        <!-- SLOTS PANEL -->
+        <!-- SLOTS -->
         <HorizonPanel>
           <div class="flex items-center justify-between mb-3">
-            <div class="hz-section-label">Slots (optional)</div>
+            <div class="hz-section-label">Slots</div>
 
             <HorizonButton size="sm" variant="ghost" @click="addSlot">
               Add slot
@@ -250,7 +253,7 @@ function submit(mode) {
             >
               <HorizonInput
                 v-model="form.slots[index]"
-                placeholder="e.g. Mission Lead, Escort, Medic"
+                placeholder="e.g. Escort / Medic / Lead"
               />
 
               <button
@@ -264,17 +267,17 @@ function submit(mode) {
           </div>
 
           <p v-else class="hz-tiny hz-text-muted">
-            Leave this empty to allow “Unassigned”, or add recommended roles.
+            Leave blank to allow unassigned participants.
           </p>
         </HorizonPanel>
 
-        <!-- ACTIONS -->
+        <!-- ACTION BUTTONS -->
         <div class="flex gap-3">
           <HorizonButton
             variant="primary"
             class="flex-1"
-            :disabled="processing"
-            @click="submit('primary')"
+            :disabled="form.processing"
+            @click="submit('published')"
           >
             {{ isEdit ? 'Save Changes' : 'Create & Publish Draft' }}
           </HorizonButton>
@@ -282,7 +285,7 @@ function submit(mode) {
           <HorizonButton
             variant="outline"
             class="flex-1"
-            :disabled="processing"
+            :disabled="form.processing"
             @click="submit('draft')"
           >
             Save as Draft
@@ -295,4 +298,3 @@ function submit(mode) {
 
   </HorizonContainer>
 </template>
-

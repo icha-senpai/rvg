@@ -8,7 +8,7 @@ use App\Models\Squadron;
 class SquadronPolicy
 {
     /**
-     * Director override.
+     * Director / Tech Director override.
      */
     private function directorOverride(User $user): bool
     {
@@ -16,24 +16,11 @@ class SquadronPolicy
     }
 
     /**
-     * Check if this user is the squadron commander
-     * AND the squadron matches their own assigned squadron.
+     * Check if this user is the squadron leader (per-squadron role).
      */
-    private function isSquadronCommanderOf(User $user, Squadron $squadron): bool
+    private function isSquadronLeaderOf(User $user, Squadron $squadron): bool
     {
-        // User must have the commander_squadron role
-        if (! $user->hasRole('commander_squadron')) {
-            return false;
-        }
-
-        // User must have an active squadron membership record
-        $member = $user->squadron;
-        if (! $member) {
-            return false;
-        }
-
-        // They must match the squadron they’re trying to manage
-        return intval($member->squadron_id) === intval($squadron->id);
+        return $user->isSquadronLeader($squadron);
     }
 
     /* ------------------------------
@@ -64,7 +51,8 @@ class SquadronPolicy
 
     public function create(User $user): bool
     {
-        return $this->directorOverride($user);
+        // Only Director or Tech Director can create squadrons
+        return $user->hasRole('director') || $user->hasRole('tech_director');
     }
 
     /* ------------------------------
@@ -78,8 +66,8 @@ class SquadronPolicy
             return true;
         }
 
-        // Squadron Commander can update THEIR squadron
-        if ($this->isSquadronCommanderOf($user, $squadron)) {
+        // Squadron Leader can update THEIR squadron
+        if ($this->isSquadronLeaderOf($user, $squadron)) {
             return true;
         }
 
@@ -112,8 +100,8 @@ class SquadronPolicy
             return true;
         }
 
-        // Squadron Commander can manage THEIR squadron
-        if ($this->isSquadronCommanderOf($user, $squadron)) {
+        // Squadron Leader can manage THEIR squadron
+        if ($this->isSquadronLeaderOf($user, $squadron)) {
             return true;
         }
 
@@ -122,6 +110,28 @@ class SquadronPolicy
             return true;
         }
 
+         // Lieutenant can manage their own squadron ONLY
+        if ($user->isSquadronLieutenant($squadron)) {
+            return true;
+        }
+
         return false;
     }
+
+    public function promoteLieutenant(User $user, Squadron $squadron): bool
+    {
+        // Directors / Tech Directors can always do it
+        if ($this->directorOverride($user)) {
+            return true;
+        }
+
+        // Only the squadron leader can promote lieutenants
+        if ($user->isSquadronLeader($squadron)) {
+            return true;
+        }
+
+        return false;
+    }
+
+
 }

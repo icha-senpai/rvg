@@ -5,12 +5,15 @@ namespace App\Providers;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
+use App\Models\User;
 use App\Models\Squadron;
 use App\Models\Operation;
 use App\Models\RsiChangeRequest;
+
 use App\Policies\SquadronPolicy;
 use App\Policies\OperationPolicy;
 use App\Policies\RsiChangeRequestPolicy;
+use App\Policies\AdminPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -20,9 +23,10 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        Squadron::class => SquadronPolicy::class,
-        Operation::class => OperationPolicy::class,
+        Squadron::class        => SquadronPolicy::class,
+        Operation::class       => OperationPolicy::class,
         RsiChangeRequest::class => RsiChangeRequestPolicy::class,
+        User::class            => AdminPolicy::class,
     ];
 
     /**
@@ -30,9 +34,12 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Laravel 12 still requires parent::boot() for policy registration
         $this->registerPolicies();
 
-        // Extra gates (if any) can go here later
+        // Admin panel access gate
+        Gate::define('access-admin-panel', function (User $user) {
+            return $user->hasRole('director') 
+                || $user->hasRole('tech_director');
+        });
     }
 }

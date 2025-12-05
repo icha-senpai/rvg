@@ -1,3 +1,70 @@
+<script setup>
+import HorizonContainer from '@/Components/HorizonContainer.vue';
+import HorizonPanel from '@/Components/HorizonPanel.vue';
+import HorizonButton from '@/Components/HorizonButton.vue';
+import ProgressPill from '@/Components/ProgressPill.vue';
+import MiniMapPanel from '@/Components/MiniMapPanel.vue';
+import { ref, reactive, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
+
+
+const props = defineProps({
+  operation: Object,
+  participants: Array,
+  participantsBySlot: Object,
+  unassignedParticipants: Array,
+  currentParticipant: Object,
+});
+const operation = props.operation;
+const participants = props.participants ?? [];
+const participantsBySlot = props.participantsBySlot ?? {};
+const unassignedParticipants = props.unassignedParticipants ?? [];
+const currentParticipant = props.currentParticipant ?? null;
+
+function asText(v) {
+  if (!v) return 'TBD';
+  return String(v);
+}
+/* ---------------------------------------------
+   STATUS VARIANT FOR THE STATUS PILL
+--------------------------------------------- */
+const statusVariant = computed(() => {
+  switch (operation.status) {
+    case 'draft': return 'neutral';
+    case 'published': return 'info';
+    case 'in_progress': return 'primary';
+    case 'completed': return 'success';
+    case 'canceled': return 'danger';
+    default: return 'neutral';
+  }
+});
+
+/* ---------------------------------------------
+   JOIN FORM STATE
+--------------------------------------------- */
+const joinForm = reactive({
+  slot: '',
+  notes: '',
+});
+
+const joinProcessing = ref(false);
+
+/* ---------------------------------------------
+   JOIN / UPDATE / LEAVE PLACEHOLDERS
+--------------------------------------------- */
+function join() {
+  console.log("JOIN", joinForm);
+}
+
+function updateSlot() {
+  console.log("UPDATE SLOT", joinForm);
+}
+
+function leave() {
+  console.log("LEAVE OP");
+}
+</script>
+
 <template>
   <HorizonContainer>
 
@@ -275,3 +342,4 @@
     </div>
   </HorizonContainer>
 </template>
+

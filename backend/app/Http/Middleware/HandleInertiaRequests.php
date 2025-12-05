@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Inertia\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -25,17 +26,28 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
-        $user = $request->user();
+        $user = Auth::user();
 
-        return [
+        return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $user ? [
-                    'id'        => $user->id,
-                    'name'      => $user->name,
-                    'rank'      => $user->rank,
-                    'squadrons' => $user->squadron()->get(),
-                ] : null,
+                'user' => $user
+                    ? $user->load([
+                        // 🔥 Add RBAC roles to payload
+                        'roles:id,slug,name',
+
+                        // Existing squadron relationship with pivot fields
+                        'squadrons' => function ($query) {
+                            $query->withPivot([
+                                'membership_status',
+                                'role',
+                                'joined_at',
+                                'left_at',
+                                'removed_at',
+                            ]);
+                        },
+                    ])
+                    : null,
             ],
-        ];
+        ]);
     }
 }
