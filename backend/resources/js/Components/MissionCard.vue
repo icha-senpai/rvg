@@ -3,7 +3,7 @@
 
     <!-- Header -->
     <div class="flex justify-between items-start">
-      <h3 class="hz-title-md text-horizon-white">
+      <h3 class="hz-title-lg text-horizon-white">
         {{ title }}
       </h3>
 
@@ -12,41 +12,53 @@
       </div>
     </div>
 
-    <!-- Description -->
-    <p class="hz-body hz-text-soft">
+    <!-- DESCRIPTION -->
+    <p class="text-base hz-text-soft leading-relaxed">
       {{ description }}
     </p>
 
-    <!-- Mission timings -->
-    <div class="grid grid-cols-2 gap-4">
+    <!-- META: START + ETA -->
+    <div class="grid grid-cols-2 gap-4 mt-3">
 
       <div class="hz-stack-sm">
         <div class="hz-section-label">Start</div>
-        <div class="hz-title-md text-horizon-white">{{ start }}</div>
-      </div>
-
-      <div class="hz-stack-sm">
-        <div class="hz-section-label">ETA</div>
-        <div class="hz-title-md text-horizon-white">{{ eta }}</div>
+        <div class="hz-caption text-[var(--color-text-muted)]">{{ startFormatted }}</div>
       </div>
 
     </div>
 
     <!-- Divider -->
-    <div class="border-t border-[var(--color-bg-hover)] my-2"></div>
+    <div class="border-t border-bg-hover my-3"></div>
 
-    <!-- Slot for actions or footer -->
+    <!-- Slot (footer/actions) -->
     <slot />
 
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   title: String,
   description: String,
   start: String,
   eta: String,
   status: String,
-});
+})
+
+function formatDate(dt) {
+  if (!dt) return 'N/A'
+  return new Date(dt).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const startFormatted = computed(() => formatDate(props.start))
+const etaFormatted = computed(() => formatDate(props.eta))
 </script>
+

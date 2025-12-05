@@ -24,7 +24,6 @@ class AdminController extends Controller
 
         $search = $request->input('search');
 
-        // USERS — full payload needed by UsersPanel
         $users = User::query()
             ->select(
                 'id',
@@ -50,12 +49,10 @@ class AdminController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // SQUADRONS LIST
         $squadrons = Squadron::select('id', 'name', 'slug', 'status')
             ->orderBy('name')
             ->get();
 
-        // ROLES LIST
         $roles = Role::select('id', 'name', 'slug')
             ->orderBy('name')
             ->get();
@@ -71,7 +68,7 @@ class AdminController extends Controller
     }
 
     /**
-     * LEGACY USERS PAGE (kept for routing compatibility)
+     * LEGACY USERS PAGE
      */
     public function usersIndex(Request $request)
     {
@@ -136,10 +133,11 @@ class AdminController extends Controller
         ]);
 
         $user = User::findOrFail($data['id']);
-
         $user->fill($data)->save();
 
-        return back()->with('success', 'User updated.');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'User updated.');
     }
 
     /**
@@ -159,7 +157,9 @@ class AdminController extends Controller
             ->roles()
             ->sync($data['role_ids'] ?? []);
 
-        return back()->with('success', 'Roles updated successfully.');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'Roles updated successfully.');
     }
 
     /**
@@ -176,7 +176,12 @@ class AdminController extends Controller
             'leader_id' => ['nullable', 'exists:users,id'],
         ]);
 
-        $squadron = Squadron::create($data);
+            // Do NOT attempt to store leader_id on the squadron itself
+        $squadron = Squadron::create([
+            'name'   => $data['name'],
+            'slug'   => $data['slug'],
+            'status' => $data['status'],
+        ]);
 
         if (!empty($data['leader_id'])) {
             SquadronMember::create([
@@ -188,7 +193,9 @@ class AdminController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Squadron created.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'Squadron created.');
     }
 
     /**
@@ -229,7 +236,9 @@ class AdminController extends Controller
             );
         }
 
-        return back()->with('success', 'Squadron updated.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'Squadron updated.');
     }
 
     /**
@@ -245,9 +254,14 @@ class AdminController extends Controller
 
         Squadron::findOrFail($data['id'])->delete();
 
-        return back()->with('success', 'Squadron deleted.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'Squadron deleted.');
     }
 
+    /**
+     * ADD SQUADRON MEMBER
+     */
     public function addSquadronMember(Request $request)
     {
         $this->authorize('create', Squadron::class);
@@ -265,9 +279,14 @@ class AdminController extends Controller
             'joined_at'         => now(),
         ]);
 
-        return back()->with('success', 'User added to squadron.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'User added to squadron.');
     }
 
+    /**
+     * UPDATE SQUADRON MEMBER
+     */
     public function updateSquadronMember(Request $request)
     {
         $this->authorize('create', Squadron::class);
@@ -285,9 +304,14 @@ class AdminController extends Controller
             'membership_status' => $data['membership_status'],
         ]);
 
-        return back()->with('success', 'Member updated.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'Member updated.');
     }
 
+    /**
+     * REMOVE SQUADRON MEMBER
+     */
     public function removeSquadronMember(Request $request)
     {
         $this->authorize('create', Squadron::class);
@@ -298,9 +322,14 @@ class AdminController extends Controller
 
         SquadronMember::findOrFail($data['id'])->delete();
 
-        return back()->with('success', 'Member removed from squadron.');
+        return redirect()
+            ->route('admin.squadrons.index')
+            ->with('success', 'Member removed.');
     }
 
+    /**
+     * SQUADRONS LIST PAGE
+     */
     public function squadronsIndex(Request $request)
     {
         $this->authorize('access-admin-panel');
