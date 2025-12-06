@@ -258,4 +258,13 @@
 </template>
 
 <script setup>
+import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonInput from '@/Components/HorizonInput.vue';
+import HorizonPanel from '@/Components/HorizonPanel.vue';
+import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import HorizonStat from '@/Components/HorizonStat.vue';
+import HUDStatusBar from '@/Components/HUDStatusBar.vue';
+import CommandWidget from '@/Components/CommandWidget.vue';
+import MiniMapPanel from '@/Components/MiniMapPanel.vue';
+import SquadronBadge from '@/Components/SquadronBadge.vue';
 </script>

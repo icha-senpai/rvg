@@ -74,7 +74,7 @@
           >
             <div class="mt-6 flex items-center justify-between">
 
-              <div class="hz-caption">
+              <div class="hz-caption text-horizon-offwhite">
                 Difficulty: {{ op.difficulty ?? 'N/A' }} • Visibility: {{ op.visibility ?? 'open' }}
               </div>
 
@@ -83,7 +83,7 @@
                 <!-- VIEW -->
                 <HorizonButton
                   size="sm"
-                  variant="outline"
+                  variant="primary"
                   @click="$inertia.visit(route('operations.show', op.id))"
                 >
                   View
@@ -93,7 +93,7 @@
                 <HorizonButton
                   v-if="canEdit(op)"
                   size="sm"
-                  variant="ghost"
+                  variant="primary"
                   @click="$inertia.visit(route('operations.edit', op.id))"
                 >
                   Edit

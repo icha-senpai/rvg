@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Operations;
+namespace App\Domain\Operations\Services;
 
 use App\Models\Operation;
 use App\Models\Squadron;

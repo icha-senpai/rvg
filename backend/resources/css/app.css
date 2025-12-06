@@ -14,9 +14,19 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 
     /* Core brand colors */
-    --color-horizon-blue: #2A78C8;
-    --color-horizon-blue-light: #51A2F5;
-    --color-horizon-blue-dark: #11D5A96;
+    --color-horizon-blue: #1f5993;
+    --color-horizon-blue-light: #074d92;
+    --color-horizon-blue-dark: #1C3A5E;
+    --horizon-blue_50:  #6c89e0;
+    --horizon-blue_100: #5778db;
+    --horizon-blue_200: #4267d7;
+    --horizon-blue_300: #2d56d2;
+    --horizon-blue_400: #284dbd;
+    --horizon-blue_500: #2445a8;
+    --horizon-blue_600: #1f3c93;
+    --horizon-blue_700: #1b347e;
+    --horizon-blue_800: #162b69;
+    --horizon-blue_900: #122254;
 
     --color-horizon-alloy: #4A6C8E;
     --color-horizon-steel: #94A3B8;
@@ -33,7 +43,7 @@
 
     /* Backgrounds */
     --color-bg-base: #0F131A;
-    --color-bg-surface: #171C24;
+    --color-bg-surface:  #222B45;
     --color-bg-elevated: #1F2630;
     --color-bg-hover: #222B36;
 }
@@ -138,7 +148,27 @@
     color: var(--color-horizon-blue-light);
   }
 }
-
+.bg-grid-horizon {
+  background-image: url('/images/Grid_Horizon.png');
+  background-repeat: repeat;
+  background-size: 600px 600px; /* adjust tile size */
+  background-position: center;
+  background-color: #161922;   /* fallback deep space tone */
+}
+.bg-grid-horizon_2 {
+  background-image: url('/images/Horizon_Grid_V2.png');
+  background-repeat: repeat;
+  background-size: 600px 600px; /* adjust tile size */
+  background-position: center;
+  background-color: #161922;   /* fallback deep space tone */
+}
+.bg-grid-horizon_3 {
+  background-image: url('/images/Horizon_Grid_V3.png');
+  background-repeat: repeat;
+  background-size: 600px 600px; /* adjust tile size */
+  background-position: center;
+  background-color: #161922;   /* fallback deep space tone */
+}
 /* --------------------------------------------------------------------------
    GLASS UTILITIES
 -------------------------------------------------------------------------- */
@@ -260,7 +290,7 @@
   /* CARDS -------------------------------------------------- */
 
   .hz-card {
-    background: var(--color-bg-surface);
+    background: var(--horizon-blue_900);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-bg-hover);
@@ -268,7 +298,7 @@
   }
 
   .hz-card-soft {
-    background: var(--color-bg-surface);
+    background: var(--horizon-blue_900);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-bg-hover);
@@ -276,7 +306,7 @@
   }
 
   .hz-card-glow {
-    background: var(--color-bg-surface);
+    background: var(--horizon-blue_900);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-horizon-blue-20);
@@ -294,7 +324,7 @@
   /* PANELS -------------------------------------------------- */
 
   .hz-panel {
-    background: var(--color-bg-surface);
+    background: var(--horizon-blue_900);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-bg-hover);
@@ -484,7 +514,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-horizon-blue-light);
+    color: var(--color-horizon-blue);
   }
 
   .hz-subheader {

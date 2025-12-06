@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Operation;
 use App\Models\Squadron;
-use App\Domain\Operations\OperationService;
-use App\Domain\Operations\Presenters\OperationPresenter;
+use App\Domain\Services\Operations\OperationService;
+use App\Domain\Services\Operations\Presenters\OperationPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class OperationController extends Controller
@@ -90,4 +90,5 @@ class OperationController extends Controller
             OperationPresenter::make($updated)->full()
         );
     }
+    
 }

@@ -1,7 +1,7 @@
 <template>
   <div
     class="w-full sticky top-0 hz-container-wide px-6 py-4 z-40
-           bg-bg-elevated hz-scanlines hz-neon-edges hz-overlay-light
+           bg-[var(--horizon-blue_900)] hz-scanlines hz-neon-edges hz-overlay-light
            rounded-2xl backdrop-blur-md
            flex justify-between items-center"
   >

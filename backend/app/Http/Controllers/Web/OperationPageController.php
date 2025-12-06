@@ -7,16 +7,18 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\Operation;
 use App\Models\Squadron;
-use App\Domain\Operations\OperationService;
+use App\Domain\Operations\Services\OperationService;
 use App\Domain\Operations\Presenters\OperationPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Domain\Operations\Queries\OperationQuery;
 
 class OperationPageController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected OperationService $service
+        protected OperationService $service,
+        protected OperationQuery $query
     ) {}
 
     public function index()
@@ -80,5 +82,13 @@ class OperationPageController extends Controller
         return redirect()
             ->route('operations.show', $updated->id)
             ->with('success', 'Operation updated.');
+    }
+    public function memberIndex(Request $request)
+    {
+        $operations = $this->query->forUser($request->user());
+
+        return Inertia::render('Operations/MemberIndex', [
+            'operations' => $operations,
+        ]);
     }
 }

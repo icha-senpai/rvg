@@ -1,5 +1,5 @@
 <template>
-  <div class="hz-card hz-shadow-soft hz-stack">
+  <div class="hz-card-glow hz-shadow-soft hz-stack">
 
     <!-- Header -->
     <div class="flex justify-between items-start">
@@ -7,7 +7,7 @@
         {{ title }}
       </h3>
 
-      <div class="px-3 py-1 rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-horizon-blue-light)] text-xs font-semibold">
+      <div class="px-3 py-1 rounded-full bg-[var(--color-horizon-offwhite)] text-[var(--color-horizon-alloy)] text-xs font-semibold">
         {{ status }}
       </div>
     </div>
@@ -22,13 +22,13 @@
 
       <div class="hz-stack-sm">
         <div class="hz-section-label">Start</div>
-        <div class="hz-caption text-[var(--color-text-muted)]">{{ startFormatted }}</div>
+        <div class="hz-caption text-horizon-offwhite">{{ startFormatted }}</div>
       </div>
 
     </div>
 
     <!-- Divider -->
-    <div class="border-t border-bg-hover my-3"></div>
+    <div class="border-t border-horizon-offwhite my-3"></div>
 
     <!-- Slot (footer/actions) -->
     <slot />
@@ -43,7 +43,6 @@ const props = defineProps({
   title: String,
   description: String,
   start: String,
-  eta: String,
   status: String,
 })
 
@@ -59,6 +58,5 @@ function formatDate(dt) {
 }
 
 const startFormatted = computed(() => formatDate(props.start))
-const etaFormatted = computed(() => formatDate(props.eta))
 </script>
 
