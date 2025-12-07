@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth:sanctum'       => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'rsi.verified'       => \App\Http\Middleware\EnsureRsiVerified::class,
             'verify.bot.secret'  => \App\Http\Middleware\VerifyBotSecret::class,
+            'Authority'          => \App\Domain\AccessControl\Facades\Authority::class,
         ]);
 
         // 2. WEB GROUP — just attach both middlewares normally
@@ -36,7 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // nothing yet
         ]);
     })
-
+    ->withProviders([
+        \App\Providers\AccessControlServiceProvider::class,
+    ])
 
     ->withExceptions(function (Exceptions $exceptions): void {
 

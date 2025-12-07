@@ -31,4 +31,9 @@ class Role extends Model
             'permission_id'
         );
     }
+    protected static function booted()
+    {
+        static::saved(fn() => Cache::flush());
+        static::deleted(fn() => Cache::flush());
+    }
 }

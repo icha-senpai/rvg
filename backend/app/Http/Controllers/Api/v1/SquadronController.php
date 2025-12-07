@@ -19,33 +19,31 @@ class SquadronController extends Controller
         protected SquadronService $squadrons
     ) {}
 
-    /**
-     * GET /api/v1/squadrons
-     */
+    /** GET /api/v1/squadrons */
     public function index()
     {
         $this->authorize('viewAny', Squadron::class);
 
-        return SquadronPresenter::collection(
-            $this->squadrons->listAll()
+        return response()->json(
+            SquadronPresenter::collection(
+                $this->squadrons->listAll()
+            )
         );
     }
 
-    /**
-     * GET /api/v1/squadrons/{squadron}
-     */
+    /** GET /api/v1/squadrons/{squadron} */
     public function show(Squadron $squadron)
     {
         $this->authorize('view', $squadron);
 
-        return SquadronPresenter::make(
-            $this->squadrons->show($squadron)
+        return response()->json(
+            SquadronPresenter::make(
+                $this->squadrons->show($squadron)
+            )
         );
     }
 
-    /**
-     * POST /api/v1/squadrons
-     */
+    /** POST /api/v1/squadrons */
     public function store(SquadronStoreRequest $request)
     {
         $this->authorize('create', Squadron::class);
@@ -58,23 +56,19 @@ class SquadronController extends Controller
         );
     }
 
-    /**
-     * PUT /api/v1/squadrons/{squadron}
-     */
+    /** PUT /api/v1/squadrons/{squadron} */
     public function update(SquadronUpdateRequest $request, Squadron $squadron)
     {
         $this->authorize('update', $squadron);
 
-        $updated = $this->squadrons->update($squadron, $request->validated());
-
         return response()->json(
-            SquadronPresenter::make($updated)
+            SquadronPresenter::make(
+                $this->squadrons->update($squadron, $request->validated())
+            )
         );
     }
 
-    /**
-     * DELETE /api/v1/squadrons/{squadron}
-     */
+    /** DELETE /api/v1/squadrons/{squadron} */
     public function destroy(Squadron $squadron)
     {
         $this->authorize('delete', $squadron);
@@ -84,15 +78,15 @@ class SquadronController extends Controller
         return response()->json(['message' => 'Squadron deleted']);
     }
 
-    /**
-     * GET /api/v1/squadrons/{squadron}/members
-     */
+    /** GET /api/v1/squadrons/{squadron}/members */
     public function members(Squadron $squadron)
     {
         $this->authorize('view', $squadron);
 
-        $members = $this->squadrons->members($squadron);
-
-        return SquadronMemberPresenter::collection($members);
+        return response()->json(
+            SquadronMemberPresenter::collection(
+                $this->squadrons->members($squadron)
+            )
+        );
     }
 }

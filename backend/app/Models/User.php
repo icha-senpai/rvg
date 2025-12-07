@@ -11,10 +11,11 @@ use App\Models\Role;
 use App\Models\Permission;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
+use App\Domain\AccessControl\Traits\HasRolesAndPermissions;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
 
     /* --------------------------------------
      |  ROLES / PERMISSIONS
@@ -193,4 +194,11 @@ class User extends Authenticatable
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE  = 'active';
     public const STATUS_BANNED  = 'banned';
+
+    protected static function booted()
+    {
+        static::saved(fn() => Cache::forget("user_roles_{$this->id}"));
+        static::saved(fn() => Cache::forget("user_permissions_{$this->id}"));
+    }
+
 }
