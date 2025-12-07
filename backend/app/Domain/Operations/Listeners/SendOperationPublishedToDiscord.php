@@ -20,7 +20,7 @@ class SendOperationPublishedToDiscord
                 'id' => $op->id,
                 'title' => $op->title,
                 'description' => $op->description,
-                'starts_at' => optional($op->starts_at)->toIso8601String(),
+                'starts_at' => optional($op->starts_at)->clone()->timezone('UTC')->format('Y-m-d\TH:i:s\Z'),
                 'operation_strictness' => $op->operation_strictness,
                 'visibility' => $op->visibility,
                 'squadron_name' => $op->squadron->name ?? null,
