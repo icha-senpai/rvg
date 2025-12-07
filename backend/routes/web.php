@@ -71,8 +71,11 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/operations/{operation}', [OperationPageController::class, 'update'])
         ->name('operations.update');
     Route::post('/operations/{operation}/publish', 
-        [OperationPageController::class, 'publish']
-    )->name('operations.publish');
+        [OperationPageController::class, 'publish'])
+        ->name('operations.publish');
+    Route::delete('/operations/{operation}', 
+        [OperationPageController::class, 'destroy'])
+        ->name('operations.destroy');
 });
 
 

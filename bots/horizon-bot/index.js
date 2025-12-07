@@ -1,23 +1,33 @@
 require('dotenv').config();
-console.log("BOT SECRET LOADED:", process.env.API_SECRET);
+console.log("DISCORD_BOT_SECRET:", process.env.DISCORD_BOT_SECRET);
 
-const { Client, GatewayIntentBits, Collection, REST, Routes, Events } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
-
-// --------------------
-// EXPRESS APP (required for webhook)
-// --------------------
-const app = express();
+const app = express(); // MUST EXIST BEFORE app.use()
 app.use(express.json());
 app.use((req, res, next) => {
     console.log("🔥 GLOBAL REQUEST HEADERS:", req.method, req.url, req.headers);
     next();
 });
+
+// --------------------
+// LOAD WEBHOOK ROUTES
+// --------------------
+const webhookRoutes = require('./services/webhook');        // nickname sync webhook
+const webhookOpRoutes = require('./services/webhookOperations'); // operation published webhook
+
+console.log("Loaded webhookOpRoutes:", webhookOpRoutes);
+
+// Mount all /bot routes AFTER app is created
+app.use('/bot', webhookRoutes);
+app.use('/bot', webhookOpRoutes);
+
 // --------------------
 // DISCORD CLIENT
 // --------------------
+const { Client, GatewayIntentBits, Collection, REST, Routes, Events } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -27,7 +37,7 @@ const client = new Client({
     ]
 });
 
-// Make client accessible to webhook routes
+// Make client accessible inside webhook handlers
 app.set('client', client);
 
 // --------------------
@@ -52,7 +62,10 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
         console.log('Updating slash commands...');
         await rest.put(
-            Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
+            Routes.applicationGuildCommands(
+                process.env.DISCORD_CLIENT_ID,
+                process.env.DISCORD_GUILD_ID
+            ),
             { body: commands }
         );
         console.log('Slash commands updated.');
@@ -77,33 +90,21 @@ for (const file of eventFiles) {
 }
 
 // --------------------
-// LOG WATCHER SERVICE
+// LOG WATCHER
 // --------------------
 const logWatcher = require('./services/logWatcher');
 
 // --------------------
-// WEBHOOK ROUTES FOR NICKNAME SYNC
-// --------------------
-const webhookRoutes = require('./services/webhook');
-app.use('/bot', webhookRoutes);
-const webhookOpRoutes = require('./services/webhookOperations');
-app.use('/bot', webhookOpRoutes);
-
-// --------------------
-// CRON (periodic nickname sync)
+// CRON SERVICE
 // --------------------
 const nicknameCron = require('./services/nicknameCron');
 
 // --------------------
-// BOT READY EVENT
+// BOT READY
 // --------------------
 client.once(Events.ClientReady, () => {
     console.log(`🚀 Logged in as ${client.user.tag}!`);
-
-    // Start log watcher
     logWatcher.start(client);
-
-    // Start periodic nickname sync
     nicknameCron.start(client);
 });
 
@@ -113,7 +114,7 @@ client.once(Events.ClientReady, () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // --------------------
-// START EXPRESS API
+// START EXPRESS SERVER
 // --------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

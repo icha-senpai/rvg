@@ -91,7 +91,7 @@ class OperationPageController extends Controller
             'operations' => $operations,
         ]);
     }
-        public function publish(Request $request, Operation $operation)
+    public function publish(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
@@ -103,5 +103,13 @@ class OperationPageController extends Controller
             ->route('operations.show', $operation->id)
             ->with('success', 'Operation published successfully.');
     }
+
+    public function destroy(Operation $operation)
+    {
+        $operation->delete();
+
+        return back()->with('success', 'Operation deleted.');
+    }
+
 }
 

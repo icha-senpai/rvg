@@ -9,18 +9,24 @@ class SendOperationPublishedToDiscord
 {
     public function handle(OperationPublished $event)
     {
-        $op = $event->operation;
+        $op = $event->operation->fresh();
 
         \Log::info("📡 Listener fired for operation {$op->id}");
+        \Log::info("Sending timestamp to bot", [
+            'starts_at' => $op->starts_at,
+            'unix' => $op->starts_at?->timestamp,
+        ]);
 
         try {
             $response = Http::withHeaders([
                 'X-Bot-Secret' => config('services.bot.secret'),
-            ])->post(config('services.bot.url') . '/op-published', [
+            ])
+            ->asJson()   // <<< 🔥 REQUIRED: ensures JSON payload is correct
+            ->post(config('services.bot.url') . '/op-published', [
                 'id' => $op->id,
                 'title' => $op->title,
                 'description' => $op->description,
-                'starts_at' => optional($op->starts_at)->clone()->timezone('UTC')->format('Y-m-d\TH:i:s\Z'),
+                'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
                 'operation_strictness' => $op->operation_strictness,
                 'visibility' => $op->visibility,
                 'squadron_name' => $op->squadron->name ?? null,

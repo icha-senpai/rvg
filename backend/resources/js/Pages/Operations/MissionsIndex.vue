@@ -95,7 +95,13 @@
               >
                 Edit
               </HorizonButton>
-
+              <HorizonButton
+                variant="danger"
+                size="sm"
+                @click="destroy(op.id)"
+              >
+                Delete
+              </HorizonButton>
             </div>
 
           </div>
@@ -127,6 +133,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
+import { Ziggy } from '../../ziggy';
 
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
@@ -139,6 +147,7 @@ import MissionGrid from '@/Components/MissionGrid.vue';
 import MissionCard from '@/Components/MissionCard.vue';
 import CommandWidget from '@/Components/CommandWidget.vue';
 import MiniMapPanel from '@/Components/MiniMapPanel.vue';
+import HorizonSelect from '@/Components/HorizonSelect.vue';
 
 const page = usePage();
 const props = defineProps({
@@ -191,6 +200,14 @@ function canEdit(op) {
   if (op.created_by === user.value?.id) return true;
   if (isSquadronLeader.value) return true;
   return false;
+}
+
+function destroy(operationId) {
+  if (!confirm('Delete this operation?')) return;
+
+  router.delete(route('operations.destroy', operationId, Ziggy), {
+    preserveScroll: true,
+  });
 }
 
 /* ----------------------------------------

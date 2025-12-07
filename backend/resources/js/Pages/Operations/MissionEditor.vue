@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
 
@@ -10,6 +11,7 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSection from '@/Components/HorizonSection.vue';
+import HorizonSelect from '@/Components/HorizonSelect.vue';
 
 // ----------------------
 // PROPS
@@ -25,20 +27,32 @@ const props = defineProps({
 const isEdit = computed(() => props.mission !== null);
 
 // ----------------------
+// DATETIME — NO CONVERSION
+// Clean UTC string -> datetime-local compatible string
+// ----------------------
+function cleanUTC(iso) {
+  if (!iso) return '';
+  return iso.replace('Z', '').slice(0, 16);
+}
+
+// ----------------------
 // FORM
 // ----------------------
 const form = useForm({
   title: props.mission?.title ?? '',
   operation_kind: props.mission?.operation_kind ?? 'mission',
   type: props.mission?.type ?? '',
-  starts_at: props.mission?.starts_at ?? '',
-  ends_at: props.mission?.ends_at ?? '',
+  
+  // PURE UTC, NO CONVERSION
+  starts_at: props.mission?.starts_at ? cleanUTC(props.mission.starts_at) : '',
+  ends_at: props.mission?.ends_at ? cleanUTC(props.mission.ends_at) : '',
+  rsvp_deadline: props.mission?.rsvp_deadline ? cleanUTC(props.mission.rsvp_deadline) : '',
+
   description: props.mission?.description ?? '',
   notes: props.mission?.notes ?? '',
   visibility: props.mission?.visibility ?? 'open',
   difficulty: props.mission?.difficulty ?? '',
   operation_strictness: props.mission?.operation_strictness ?? '',
-  rsvp_deadline: props.mission?.rsvp_deadline ?? '',
   icon: props.mission?.icon ?? '',
   image_url: props.mission?.image_url ?? '',
   slots: props.mission?.slots ?? [],
@@ -62,66 +76,81 @@ function removeSlot(index) {
 // ----------------------
 async function submit(mode) {
   const isPublishing = mode === 'published';
-
-  // update form status value
   form.status = isPublishing ? 'published' : 'draft';
 
+  // ----------------------
   // EDIT MODE
+  // ----------------------
   if (isEdit.value) {
-    if (isPublishing) {
-      console.log("🚀 Publishing operation via publish endpoint…");
-
-      try {
-        await axios.post(
-          route('operations.publish', props.mission.id, Ziggy)
-        );
-
-        window.location.href = route('operations.show', props.mission.id, Ziggy);
-      } catch (e) {
-        console.error("PUBLISH ERROR:", e);
-      }
-
-      return;
-    }
-
-    // normal update
     return form.put(
       route('operations.update', props.mission.id, Ziggy),
       {
         preserveScroll: true,
-        onSuccess: () => console.log("UPDATED"),
-        onError: (e) => console.error(e),
+        async onSuccess() {
+          if (isPublishing) {
+            try {
+              await axios.post(route('operations.publish', props.mission.id, Ziggy));
+            } catch (err) {
+              console.error("Publish error:", err);
+            }
+          }
+
+          window.location.href = route('operations.show', props.mission.id, Ziggy);
+        },
+        onError: (e) => console.error('UPDATE ERROR:', e),
       }
     );
   }
 
+  // ----------------------
   // CREATE MODE
+  // ----------------------
   try {
     const response = await form.post(
       route('operations.store', { squadron: props.squadronId }, Ziggy),
       { preserveScroll: true }
     );
 
-    const newId = response.props?.operation?.id || form.id;
+    const newId =
+      response?.props?.operation?.id ??
+      form?.id ??
+      response?.operation?.id;
 
     if (isPublishing) {
-      console.log("🚀 Publishing newly created operation…");
-
-      await axios.post(
-        route('operations.publish', newId, Ziggy)
-      );
+      try {
+        await axios.post(route('operations.publish', newId, Ziggy));
+      } catch (err) {
+        console.error("Publish error (create):", err);
+      }
     }
 
-    console.log("CREATED + maybe published");
-  } catch (e) {
-    console.error("ERROR CREATING:", e);
+    window.location.href = route('operations.show', newId, Ziggy);
+
+  } catch (err) {
+    console.error("CREATE ERROR:", err);
   }
 }
 
+// ----------------------
+// DELETE HANDLER
+// ----------------------
+async function destroyOperation() {
+  if (!props.mission) return;
+  if (!confirm("Delete this operation? This cannot be undone.")) return;
 
-
-
+  await form.delete(
+    route('operations.destroy', props.mission.id, Ziggy),
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        window.location.href = route('operations.index', Ziggy);
+      }
+    }
+  );
+}
 </script>
+
+
 
 
 
@@ -150,7 +179,10 @@ async function submit(mode) {
 
     <!-- Main Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-[2fr,1.2fr] gap-10">
-
+      <div class="text-s text-horizon-offwhite mt-2 opacity-80">
+        ⏱️ Detected timezone: <strong>{{ timezone }}</strong><br>
+        If this is incorrect, adjust your OS timezone for accurate scheduling.
+      </div>
       <!-- LEFT SIDE -->
       <div class="space-y-6">
 
@@ -217,9 +249,8 @@ async function submit(mode) {
         <HorizonSection title="Meta Information">
           <div class="hz-stack">
 
-            <HorizonInput
+            <HorizonSelect
               label="Visibility"
-              type="select"
               v-model="form.visibility"
               :options="[
                 { label: 'Open', value: 'open' },
@@ -228,9 +259,8 @@ async function submit(mode) {
             />
 
 
-            <HorizonInput
+            <HorizonSelect
               label="Strictness"
-              type="select"
               v-model="form.operation_strictness"
               :options="[
                 { label: 'Default', value: '' },

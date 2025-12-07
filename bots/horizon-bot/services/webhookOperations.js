@@ -1,9 +1,16 @@
+console.log("🔥 webhookOperations.js LOADED");
+
 const express = require('express');
 const router = express.Router();
 const operationService = require('./operationService');
 
 router.post('/op-published', async (req, res) => {
+    console.log("🔥 BODY TYPE:", typeof req.body);
+    console.log("🔥 RAW BODY VALUE:", req.body);
+
     console.log("=== WEBHOOK DEBUG ===");
+    console.log("📥 Incoming payload:", req.body);
+
 
     const received = req.headers['x-bot-secret'];
     const expected = process.env.DISCORD_BOT_SECRET;

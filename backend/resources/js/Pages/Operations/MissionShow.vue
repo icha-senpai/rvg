@@ -122,12 +122,7 @@ function leave() {
               </div>
             </div>
 
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Difficulty</div>
-              <div class="hz-body-strong">
-                {{ operation.difficulty ?? 'unspecified' }}
-              </div>
-            </div>
+
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Strictness</div>

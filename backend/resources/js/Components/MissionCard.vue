@@ -17,14 +17,21 @@
       {{ description }}
     </p>
 
-    <!-- META: START + ETA -->
+    <!-- META: START -->
     <div class="grid grid-cols-2 gap-4 mt-3">
-
       <div class="hz-stack-sm">
         <div class="hz-section-label">Start</div>
-        <div class="hz-caption text-horizon-offwhite">{{ startFormatted }}</div>
-      </div>
 
+        <div class="hz-caption text-horizon-offwhite">
+          <!-- UTC -->
+          <div>{{ startUTC }}</div>
+
+          <!-- LOCAL -->
+          <div class="text-horizon-offwhite text-xs opacity-70">
+            {{ startLocal }} (local)
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Divider -->
@@ -36,27 +43,53 @@
   </div>
 </template>
 
+
 <script setup>
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps({
   title: String,
   description: String,
   start: String,
   status: String,
-})
+});
 
-function formatDate(dt) {
-  if (!dt) return 'N/A'
-  return new Date(dt).toLocaleString(undefined, {
+/* ============================
+   FORMATTERS
+   ============================ */
+
+/* PURE UTC FORMAT — NO TIMEZONE CONVERSION */
+function formatUTC(dt) {
+  if (!dt) return 'N/A';
+
+  // Remove timezone suffix + milliseconds
+  const clean = dt.replace('Z', '').replace('+00:00', '');
+
+  const date = clean.slice(0, 10);  // YYYY-MM-DD
+  const time = clean.slice(11, 16); // HH:MM
+
+  return `${date} ${time} UTC`;
+}
+
+/* LOCAL FORMAT — FOR DISPLAY ONLY (SAFE) */
+function formatLocal(dt) {
+  if (!dt) return 'N/A';
+
+  const d = new Date(dt); // Only for display, never used in editor
+
+  return d.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  });
 }
 
-const startFormatted = computed(() => formatDate(props.start))
+/* COMPUTED VALUES */
+const startUTC   = computed(() => formatUTC(props.start));
+const startLocal = computed(() => formatLocal(props.start));
+
 </script>
+
 

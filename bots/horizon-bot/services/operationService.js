@@ -45,7 +45,7 @@ module.exports = {
             .addFields(
                 {
                     name: '🕒 Starts At',
-                    value: tsDisplay,
+                    value: op.starts_at_discord || "N/A",
                     inline: true,
                 },
                 {

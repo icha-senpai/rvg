@@ -345,17 +345,32 @@
     width: 100%;
     padding: 0.65rem 0.85rem;
     border-radius: var(--radius-sm);
-    background: var(--color-bg-surface);
+    background: var(--color-horizon-blue-20);
     border: 1px solid var(--color-bg-hover);
     color: var(--color-text-primary);
     transition: all var(--motion-fast) var(--ease-smooth);
   }
 
+ 
+  select.hz-input {
+    background-color: var(--color-horizon-blue-20) !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    appearance: none !important;
+  }
+
+  select.hz-input:focus {
+    outline: none !important;
+    border-color: var(--color-horizon-blue-20) !important;
+    box-shadow: 0 0 0 2px var(--color-horizon-blue-glow) !important;
+  }
   .hz-input:focus {
     outline: none;
     border-color: var(--color-horizon-blue);
     box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.25);
-    background: var(--color-bg-elevated);
+    background: var(--color-horizon-blue-20);
   }
 
   .hz-textarea {
@@ -363,8 +378,8 @@
     min-height: 120px;
     padding: 0.75rem 0.9rem;
     border-radius: var(--radius-sm);
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-bg-hover);
+    background: var(--color-horizon-blue-20);
+    border: 1px solid var(--color-horizon-blue-20);
     color: var(--color-text-primary);
     resize: vertical;
   }
