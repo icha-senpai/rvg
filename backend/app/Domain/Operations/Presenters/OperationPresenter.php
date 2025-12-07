@@ -39,6 +39,7 @@ class OperationPresenter
             'starts_at'   => $this->operation->starts_at?->toIso8601String(),
             'visibility'  => $this->operation->visibility,
             'difficulty'  => $this->operation->difficulty,
+            'operation_strictness' => $this->operation->operation_strictness,
             'status'      => $this->operation->status,
 
             'squadron' => [

@@ -9,157 +9,119 @@
       />
     </div>
 
-    <!-- Main Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-[2.2fr,1fr] gap-14">
+    <!-- MAIN PAGE (single column, screenshot style) -->
+    <section class="space-y-14">
 
-      <!-- LEFT COLUMN -->
-      <section class="space-y-14">
+      <!-- Header + Create button -->
+      <div class="flex items-center justify-between gap-4">
+        <HorizonSectionHeader
+          label="Operations"
+          title="Operations Board"
+        />
 
-        <!-- Header + Create button -->
-        <div class="flex items-center justify-between gap-4">
-          <HorizonSectionHeader
-            label="Operations"
-            title="Operations Board"
-          />
+        <HorizonButton
+          v-if="canCreateOperation && userSquadronId"
+          variant="primary"
+          size="md"
+          @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
+        >
+          Create Operation
+        </HorizonButton>
+      </div>
 
+      <!-- FILTER PANEL (centered, slim like screenshot) -->
+      <HorizonPanel class="p-3 rounded-xl hz-overlay-light space-y-4 max-w-4xl mx-auto">
+        
+        <!-- FILTER BUTTONS -->
+        <div class="flex flex-wrap gap-2">
           <HorizonButton
-            v-if="canCreateOperation && userSquadronId"
-            variant="primary"
-            size="md"
-            @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
+            v-for="s in statusFilters"
+            :key="s.value"
+            size="xs"
+            :variant="statusFilter === s.value ? 'primary' : 'ghost'"
+            @click="statusFilter = s.value"
           >
-            Create Operation
+            {{ s.label }}
           </HorizonButton>
         </div>
 
-        <!-- Filter Panel -->
-        <HorizonPanel class="p-6 rounded-2xl hz-overlay-light space-y-6">
-          
-          <!-- STATUS FILTERS -->
-          <div class="flex flex-wrap gap-3">
-            <HorizonButton
-              v-for="s in statusFilters"
-              :key="s.value"
-              size="sm"
-              :variant="statusFilter === s.value ? 'primary' : 'ghost'"
-              @click="statusFilter = s.value"
-            >
-              {{ s.label }}
-            </HorizonButton>
+        <!-- SEARCH -->
+        <div class="flex">
+          <div class="ml-auto w-full sm:w-64">
+            <HorizonInput
+              v-model="search"
+              label="Search"
+              placeholder="Title, squadron..."
+            />
           </div>
-
-          <!-- SEARCH -->
-          <div class="flex items-center gap-3">
-            <div class="ml-auto w-full sm:w-64">
-              <HorizonInput
-                v-model="search"
-                label="Search"
-                placeholder="Title, squadron..."
-              />
-            </div>
-          </div>
-
-        </HorizonPanel>
-
-        <!-- OPERATION GRID -->
-        <MissionGrid v-if="filteredOperations.length > 0" class="pt-2">
-          <MissionCard
-            v-for="op in filteredOperations"
-            :key="op.id"
-            :title="op.title"
-            :description="op.description"
-            :start="formatDate(op.starts_at)"
-            :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
-            :status="op.status"
-          >
-            <div class="mt-6 flex items-center justify-between">
-
-              <div class="hz-caption text-horizon-offwhite">
-                Difficulty: {{ op.difficulty ?? 'N/A' }} • Visibility: {{ op.visibility ?? 'open' }}
-              </div>
-
-              <div class="flex gap-2">
-                
-                <!-- VIEW -->
-                <HorizonButton
-                  size="sm"
-                  variant="primary"
-                  @click="$inertia.visit(route('operations.show', op.id))"
-                >
-                  View
-                </HorizonButton>
-
-                <!-- EDIT -->
-                <HorizonButton
-                  v-if="canEdit(op)"
-                  size="sm"
-                  variant="primary"
-                  @click="$inertia.visit(route('operations.edit', op.id))"
-                >
-                  Edit
-                </HorizonButton>
-
-              </div>
-
-            </div>
-          </MissionCard>
-        </MissionGrid>
-
-        <!-- EMPTY STATE -->
-        <HorizonPanel
-          v-else
-          class="text-center py-20 space-y-6 hz-holo-light hz-lift"
-        >
-          <div class="hz-title-lg text-horizon-white">
-            No Operations Found
-          </div>
-
-          <p class="hz-caption hz-text-muted">
-            Use the operation editor to create the first entry.
-          </p>
-
-        </HorizonPanel>
-
-      </section>
-
-      <!-- RIGHT SIDEBAR -->
-      <aside class="space-y-10">
-
-        <CommandWidget
-          title="Ops Load"
-          :stat="activeCount"
-          label="Active or in-progress"
-        >
-          <div class="hz-caption mt-3">
-            {{ draftCount }} draft ·
-            {{ plannedCount }} published ·
-            {{ completedCount }} completed
-          </div>
-        </CommandWidget>
-
-        <div class="grid grid-cols-2 gap-4">
-          <HorizonStat label="Total Operations" :value="totalCount" />
-          <HorizonStat label="Active Ops" :value="activeCount" />
         </div>
 
-        <HorizonPanel class="p-6">
-          <div class="hz-section-label mb-3">Filter Context</div>
-          <p class="hz-caption leading-relaxed">
-            Status: <strong>{{ statusFilterLabel }}</strong><br>
-            Search: <strong>{{ search || 'None' }}</strong>
-          </p>
-        </HorizonPanel>
+      </HorizonPanel>
 
-        <MiniMapPanel class="h-64 flex items-center justify-center">
-          <span class="hz-caption">Future: sector / theater overview here</span>
-        </MiniMapPanel>
+      <!-- OPERATION GRID -->
+      <MissionGrid v-if="filteredOperations.length > 0" class="pt-2">
+        <MissionCard
+          v-for="op in filteredOperations"
+          :key="op.id"
+          :title="op.title"
+          :description="op.description"
+          :start="formatDate(op.starts_at)"
+          :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
+          :status="op.status"
+        >
+          <div class="mt-6 flex items-center justify-between">
 
-      </aside>
+            <div class="hz-caption text-horizon-offwhite">
+              Strictness: {{ op.operation_strictness ?? 'default' }} • Visibility: {{ op.visibility ?? 'open' }}
+            </div>
 
-    </div>
+            <div class="flex gap-2">
+              
+              <!-- VIEW -->
+              <HorizonButton
+                size="sm"
+                variant="primary"
+                @click="$inertia.visit(route('operations.show', op.id))"
+              >
+                View
+              </HorizonButton>
+
+              <!-- EDIT -->
+              <HorizonButton
+                v-if="canEdit(op)"
+                size="sm"
+                variant="primary"
+                @click="$inertia.visit(route('operations.edit', op.id))"
+              >
+                Edit
+              </HorizonButton>
+
+            </div>
+
+          </div>
+        </MissionCard>
+      </MissionGrid>
+
+      <!-- EMPTY STATE -->
+      <HorizonPanel
+        v-else
+        class="text-center py-20 space-y-6 hz-holo-light hz-lift"
+      >
+        <div class="hz-title-lg text-horizon-white">
+          No Operations Found
+        </div>
+
+        <p class="hz-caption hz-text-muted">
+          Use the operation editor to create the first entry.
+        </p>
+
+      </HorizonPanel>
+
+    </section>
 
   </HorizonContainer>
 </template>
+
 
 
 <script setup>

@@ -10,7 +10,7 @@ class OperationQuery
     public function forUser(User $user)
     {
         return Operation::visibleToUser($user)
-            ->orderByDesc('starts_at')
+            ->orderByDesc('starts_at',  'asc')
             ->get();
     }
 

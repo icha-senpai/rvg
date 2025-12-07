@@ -48,9 +48,14 @@ Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback'])
 // Public listings & viewing
 Route::get('/operations', [OperationPageController::class, 'index'])
     ->name('operations.index');
+    
+Route::get('/operations/member', [OperationPageController::class, 'memberIndex' ])
+    ->name('operations.member');
 
 Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->name('operations.show');
+
+
 
 // Create operation (requires auth)
 Route::middleware(['auth'])->group(function () {

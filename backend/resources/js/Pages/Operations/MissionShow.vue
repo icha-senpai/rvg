@@ -69,10 +69,9 @@ function leave() {
   <HorizonContainer>
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex items-center justify-between mb-12">
 
       <div class="flex items-center gap-4">
-
         <HorizonButton
           variant="ghost"
           size="sm"
@@ -95,87 +94,103 @@ function leave() {
       <ProgressPill :variant="statusVariant">
         {{ operation.status }}
       </ProgressPill>
+
     </div>
 
-
     <!-- MAIN GRID -->
-    <div class="grid grid-cols-1 lg:grid-cols-[2fr,1.2fr] gap-10">
+    <div class="mt-10 mb-20 grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
 
       <!-- LEFT COLUMN -->
-      <section class="hz-stack-lg">
+      <section class="flex flex-col gap-8">
 
         <!-- META PANEL -->
-        <HorizonPanel>
+        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
           <div class="grid md:grid-cols-2 gap-6">
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Window</div>
               <div class="hz-body-strong">
-                {{ asText(operation.starts_at) }} → 
+                {{ asText(operation.starts_at) }} →
                 {{ operation.ends_at ? asText(operation.ends_at) : 'TBD' }}
               </div>
             </div>
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Visibility</div>
-              <div class="hz-body-strong">{{ operation.visibility ?? 'open' }}</div>
+              <div class="hz-body-strong">
+                {{ operation.visibility ?? 'open' }}
+              </div>
             </div>
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Difficulty</div>
-              <div class="hz-body-strong">{{ operation.difficulty ?? 'unspecified' }}</div>
+              <div class="hz-body-strong">
+                {{ operation.difficulty ?? 'unspecified' }}
+              </div>
             </div>
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Strictness</div>
-              <div class="hz-body-strong">{{ operation.operation_strictness ?? 'normal' }}</div>
+              <div class="hz-body-strong">
+                {{ operation.operation_strictness ?? 'normal' }}
+              </div>
             </div>
 
             <div v-if="operation.rsvp_deadline" class="hz-stack-xs">
               <div class="hz-section-label">RSVP Deadline</div>
-              <div class="hz-body-strong">{{ asText(operation.rsvp_deadline) }}</div>
+              <div class="hz-body-strong">
+                {{ asText(operation.rsvp_deadline) }}
+              </div>
             </div>
 
             <div v-if="operation.type" class="hz-stack-xs">
               <div class="hz-section-label">Type</div>
-              <div class="hz-body-strong">{{ operation.type }}</div>
+              <div class="hz-body-strong">
+                {{ operation.type }}
+              </div>
             </div>
 
           </div>
         </HorizonPanel>
 
-
         <!-- BRIEFING -->
-        <HorizonPanel v-if="operation.description">
+        <HorizonPanel
+          v-if="operation.description"
+          class="rounded-xl shadow-lg hz-overlay-light"
+        >
           <div class="hz-section-label mb-2">Briefing</div>
           <p class="hz-body">{{ operation.description }}</p>
         </HorizonPanel>
 
-
         <!-- NOTES -->
-        <HorizonPanel v-if="operation.notes">
+        <HorizonPanel
+          v-if="operation.notes"
+          class="rounded-xl shadow-lg hz-overlay-light"
+        >
           <div class="hz-section-label mb-2">Notes</div>
           <p class="hz-body">{{ operation.notes }}</p>
         </HorizonPanel>
 
-
         <!-- SLOTS -->
-        <HorizonPanel>
+        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
 
           <div class="hz-section-label mb-3">Slots</div>
 
-          <!-- If slots exist -->
-          <div v-if="(operation.slots || []).length" class="hz-stack">
+          <!-- Slots exist -->
+          <div
+            v-if="(operation.slots || []).length"
+            class="flex flex-col gap-4"
+          >
 
             <div
               v-for="slotName in operation.slots"
               :key="slotName"
-              class="p-4 rounded-xl bg-bg-elevated hz-inset hz-stack-xs"
+              class="p-4 rounded-xl bg-bg-elevated/60 hz-inset hz-stack-xs shadow"
             >
 
               <div class="flex justify-between items-center">
                 <div class="hz-body-strong">{{ slotName }}</div>
-                <div class="hz-caption">
+                <div class="hz-caption opacity-70">
                   {{ (participantsBySlot[slotName] || []).length }} participants
                 </div>
               </div>
@@ -186,20 +201,26 @@ function leave() {
                   :key="p.id"
                 >
                   • {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
-                  <span class="opacity-60">({{ p.attendance_status }})</span>
+                  <span class="opacity-60">
+                    ({{ p.attendance_status }})
+                  </span>
                 </li>
 
-                <li v-if="!(participantsBySlot[slotName] || []).length" class="opacity-60">
+                <li
+                  v-if="!(participantsBySlot[slotName] || []).length"
+                  class="opacity-60"
+                >
                   No one assigned yet.
                 </li>
               </ul>
+
             </div>
 
           </div>
 
           <!-- No slots -->
           <div v-else class="hz-caption hz-text-muted">
-            No slots defined. Participants will join as “Unassigned”.
+            No slots defined. Participants join as “Unassigned”.
           </div>
 
           <!-- Unassigned -->
@@ -212,7 +233,9 @@ function leave() {
                 :key="p.id"
               >
                 • {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
-                <span class="opacity-60">({{ p.attendance_status }})</span>
+                <span class="opacity-60">
+                  ({{ p.attendance_status }})
+                </span>
               </li>
             </ul>
           </div>
@@ -221,12 +244,11 @@ function leave() {
 
       </section>
 
+      <!-- RIGHT SIDEBAR -->
+      <aside class="flex flex-col gap-8 sticky top-10 h-fit">
 
-      <!-- RIGHT COLUMN -->
-      <aside class="hz-stack-lg">
-
-        <!-- USER STATUS PANEL -->
-        <HorizonPanel>
+        <!-- USER STATUS -->
+        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
           <div class="hz-section-label mb-3">Your Status</div>
 
           <!-- Already joined -->
@@ -238,10 +260,19 @@ function leave() {
             </p>
 
             <div class="flex gap-3">
-              <HorizonButton variant="primary" class="flex-1" @click="updateSlot">
+              <HorizonButton
+                variant="primary"
+                class="flex-1"
+                @click="updateSlot"
+              >
                 Update Slot
               </HorizonButton>
-              <HorizonButton variant="outline" class="flex-1" @click="leave">
+
+              <HorizonButton
+                variant="outline"
+                class="flex-1"
+                @click="leave"
+              >
                 Leave Operation
               </HorizonButton>
             </div>
@@ -250,12 +281,13 @@ function leave() {
           <!-- Not joined -->
           <template v-else>
             <p class="hz-body mb-4">
-              Join this {{ operation.operation_kind }} with an optional slot & note.
+              Join this {{ operation.operation_kind }} with an optional slot &
+              note.
             </p>
 
             <div class="hz-stack">
 
-              <!-- Slot -->
+              <!-- Slot selection -->
               <div v-if="(operation.slots || []).length" class="hz-stack-xs">
                 <label class="hz-section-label">Slot (optional)</label>
                 <select v-model="joinForm.slot" class="hz-input w-full">
@@ -295,9 +327,8 @@ function leave() {
 
         </HorizonPanel>
 
-
-        <!-- PARTICIPANT SUMMARY -->
-        <HorizonPanel>
+        <!-- PARTICIPANTS -->
+        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
           <div class="hz-section-label mb-3">Participants</div>
 
           <p class="hz-body mb-3">
@@ -305,14 +336,17 @@ function leave() {
           </p>
 
           <ul class="hz-caption max-h-48 overflow-auto hz-stack-2xs">
-            <li v-for="p in participants" :key="p.id" class="flex justify-between">
+            <li
+              v-for="p in participants"
+              :key="p.id"
+              class="flex justify-between"
+            >
               <span>
                 {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
                 <span class="opacity-60">
                   ({{ p.slot ?? 'Unassigned' }})
                 </span>
               </span>
-
               <span class="opacity-60">
                 {{ p.attendance_status }}
               </span>
@@ -320,22 +354,7 @@ function leave() {
           </ul>
         </HorizonPanel>
 
-
-        <!-- IMAGE / HOLO -->
-        <MiniMapPanel>
-          <div class="text-center">
-            <div v-if="operation.image_url" class="mb-3">
-              <img
-                :src="operation.image_url"
-                alt="Operation"
-                class="mx-auto max-h-44 rounded-xl hz-rim"
-              />
-            </div>
-            <span class="hz-caption">
-              Icon: {{ operation.icon ?? 'None' }}
-            </span>
-          </div>
-        </MiniMapPanel>
+       
 
       </aside>
 

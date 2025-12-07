@@ -39,22 +39,15 @@
           </div>
         </div>
 
-        <!-- END -->
-        <div>
-          <div class="hz-section-label">ETA</div>
-          <div class="hz-title-sm text-horizon-offwhite">
-            {{ operation.ends_at ? formatDate(operation.ends_at) : 'TBD' }}
-          </div>
-        </div>
+
 
       </div>
 
       <div class="hz-caption">
-        Difficulty: {{ operation.difficulty ?? 'N/A' }}
+        Strictness: {{ operation.operation_strictness ?? 'N/A' }}
         <br />
         Visibility: {{ operation.visibility ?? 'open' }}
-        <br />
-        Status: {{ operation.status }}
+
       </div>
 
       <HorizonButton

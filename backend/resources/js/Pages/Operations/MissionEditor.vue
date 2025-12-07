@@ -126,16 +126,6 @@ function submit(mode) {
             />
 
             <HorizonInput
-              type="select"
-              label="Operation Kind"
-              v-model="form.operation_kind"
-              :options="[
-                { label: 'Mission', value: 'mission' },
-                { label: 'Event', value: 'event' }
-              ]"
-            />
-
-            <HorizonInput
               label="Subtype (optional)"
               placeholder="Escort / Recon / Patrol"
               v-model="form.type"
@@ -196,21 +186,9 @@ function submit(mode) {
               :options="[
                 { label: 'Open', value: 'open' },
                 { label: 'Squadron Only', value: 'squadron' },
-                { label: 'Private', value: 'private' }
               ]"
             />
 
-            <HorizonInput
-              label="Difficulty"
-              type="select"
-              v-model="form.difficulty"
-              :options="[
-                { label: 'Unspecified', value: '' },
-                { label: 'Low', value: 'low' },
-                { label: 'Medium', value: 'medium' },
-                { label: 'High', value: 'high' }
-              ]"
-            />
 
             <HorizonInput
               label="Strictness"
@@ -226,7 +204,7 @@ function submit(mode) {
             />
 
             <HorizonInput
-              label="RSVP Deadline"
+              label="Sign Up Deadline"
               type="datetime-local"
               v-model="form.rsvp_deadline"
             />

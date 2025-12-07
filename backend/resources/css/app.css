@@ -27,7 +27,7 @@
     --horizon-blue_700: #1b347e;
     --horizon-blue_800: #162b69;
     --horizon-blue_900: #122254;
-
+    --horizon-card: #222B45;
     --color-horizon-alloy: #4A6C8E;
     --color-horizon-steel: #94A3B8;
     --color-horizon-gray: #6B7280;
@@ -290,7 +290,7 @@
   /* CARDS -------------------------------------------------- */
 
   .hz-card {
-    background: var(--horizon-blue_900);
+    background: var(--horizon-card);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-bg-hover);
@@ -298,7 +298,7 @@
   }
 
   .hz-card-soft {
-    background: var(--horizon-blue_900);
+    background: var(--horizon-card);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-bg-hover);
@@ -306,7 +306,7 @@
   }
 
   .hz-card-glow {
-    background: var(--horizon-blue_900);
+    background: var(--horizon-card);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-horizon-blue-20);
@@ -324,7 +324,7 @@
   /* PANELS -------------------------------------------------- */
 
   .hz-panel {
-    background: var(--horizon-blue_900);
+    background: var(--horizon-card);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-bg-hover);
@@ -332,7 +332,7 @@
   }
 
   .hz-panel-deep {
-    background: var(--color-bg-surface);
+    background: var(--horizon-card);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-bg-hover);
