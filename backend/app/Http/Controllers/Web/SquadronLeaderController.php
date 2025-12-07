@@ -7,9 +7,12 @@ use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Domain\Squadrons\SquadronService;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class SquadronLeaderController extends Controller
 {
+    use AuthorizesRequests;
+    
     public function __construct(
         protected SquadronService $squadrons
     ) {}

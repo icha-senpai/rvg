@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\v1\RsiHandleController;
 use App\Http\Controllers\Api\v1\TokenController;
 use App\Http\Controllers\Api\v1\OperationController;
 use App\Http\Controllers\Api\v1\OperationParticipantController;
+use App\Http\Controllers\Api\V1\DiscordIdentityController;
+use App\Http\Controllers\Api\v1\OperationPageController;
 /*
 |--------------------------------------------------------------------------
 | Public API Endpoints (No Auth Required)
@@ -55,7 +57,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->middleware('throttle:10,1');
 });
 
-
+ Route::get('/discord/identity/{discordId}', [DiscordIdentityController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------

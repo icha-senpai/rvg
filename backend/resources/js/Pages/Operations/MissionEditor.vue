@@ -20,12 +20,12 @@ const props = defineProps({
 });
 
 // ----------------------
-// EDIT MODE
+// MODE
 // ----------------------
 const isEdit = computed(() => props.mission !== null);
 
 // ----------------------
-// FORM STATE
+// FORM
 // ----------------------
 const form = useForm({
   title: props.mission?.title ?? '',
@@ -42,7 +42,6 @@ const form = useForm({
   icon: props.mission?.icon ?? '',
   image_url: props.mission?.image_url ?? '',
   slots: props.mission?.slots ?? [],
-
   status: props.mission?.status ?? 'draft',
   squadron_id: props.squadronId,
 });
@@ -61,10 +60,31 @@ function removeSlot(index) {
 // ----------------------
 // SUBMIT HANDLER
 // ----------------------
-function submit(mode) {
-  form.status = mode === 'draft' ? 'draft' : 'published';
+async function submit(mode) {
+  const isPublishing = mode === 'published';
 
+  // update form status value
+  form.status = isPublishing ? 'published' : 'draft';
+
+  // EDIT MODE
   if (isEdit.value) {
+    if (isPublishing) {
+      console.log("🚀 Publishing operation via publish endpoint…");
+
+      try {
+        await axios.post(
+          route('operations.publish', props.mission.id, Ziggy)
+        );
+
+        window.location.href = route('operations.show', props.mission.id, Ziggy);
+      } catch (e) {
+        console.error("PUBLISH ERROR:", e);
+      }
+
+      return;
+    }
+
+    // normal update
     return form.put(
       route('operations.update', props.mission.id, Ziggy),
       {
@@ -75,16 +95,34 @@ function submit(mode) {
     );
   }
 
-  return form.post(
-    route('operations.store', { squadron: props.squadronId }, Ziggy),
-    {
-      preserveScroll: true,
-      onSuccess: () => console.log("CREATED"),
-      onError: (e) => console.error(e),
+  // CREATE MODE
+  try {
+    const response = await form.post(
+      route('operations.store', { squadron: props.squadronId }, Ziggy),
+      { preserveScroll: true }
+    );
+
+    const newId = response.props?.operation?.id || form.id;
+
+    if (isPublishing) {
+      console.log("🚀 Publishing newly created operation…");
+
+      await axios.post(
+        route('operations.publish', newId, Ziggy)
+      );
     }
-  );
+
+    console.log("CREATED + maybe published");
+  } catch (e) {
+    console.error("ERROR CREATING:", e);
+  }
 }
+
+
+
+
 </script>
+
 
 
 <template>

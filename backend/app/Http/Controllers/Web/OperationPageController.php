@@ -91,4 +91,17 @@ class OperationPageController extends Controller
             'operations' => $operations,
         ]);
     }
+        public function publish(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        \Log::info("🟢 publish() endpoint hit for operation {$operation->id}");
+
+        $updated = $this->service->transition($operation, 'published');
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('success', 'Operation published successfully.');
+    }
 }
+

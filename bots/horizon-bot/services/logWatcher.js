@@ -1,37 +1,63 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = path.join(process.cwd(), 'storage/logs/laravel.log');
+const LOG_FILE = process.env.LARAVEL_LOG_PATH;
 
 module.exports = {
     start(client) {
-        console.log('🛰️ Log watcher initialized.');
+        console.log('🛰️ Log watcher initializing...');
 
-        let fileSize = fs.existsSync(LOG_FILE)
-            ? fs.statSync(LOG_FILE).size
-            : 0;
+        // If the file doesn't exist yet — create it so fs.watch won't explode
+        ensureLogFileExists(LOG_FILE);
 
-        readNewLogs(client, fileSize);
-
-        fs.watch(LOG_FILE, (eventType) => {
-            if (eventType === 'change') {
-                readNewLogs(client, fileSize);
-            }
-        });
+        watchLogFile(client);
     }
 };
 
-function readNewLogs(client, prevSize) {
-    let fileSize = prevSize;
+// Ensures the log file exists, or creates an empty file
+function ensureLogFileExists(filepath) {
+    const dir = path.dirname(filepath);
 
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    if (!fs.existsSync(filepath)) {
+        fs.writeFileSync(filepath, ""); // create empty file
+        console.log("📄 Created missing laravel.log");
+    }
+}
+
+function watchLogFile(client) {
+    let fileSize = fs.statSync(LOG_FILE).size;
+
+    console.log(`📡 Watching log file: ${LOG_FILE}`);
+
+    // Try-catch so Windows doesn't hard-crash
+    try {
+        fs.watch(LOG_FILE, (eventType) => {
+            if (eventType === 'change') {
+                readNewLogs(client, fileSize);
+                fileSize = fs.statSync(LOG_FILE).size;
+            }
+        });
+    } catch (e) {
+        console.error("❌ Failed to watch file, retrying in 2s:", e.message);
+
+        setTimeout(() => watchLogFile(client), 2000);
+    }
+
+    // Initial read
+    readNewLogs(client, fileSize);
+}
+
+function readNewLogs(client, prevSize) {
     const stream = fs.createReadStream(LOG_FILE, {
-        start: fileSize,
+        start: prevSize,
         encoding: 'utf8'
     });
 
     stream.on('data', (data) => {
-        fileSize += Buffer.byteLength(data, 'utf8');
-
         data.split('\n').filter(Boolean).forEach(line => {
             try {
                 const log = JSON.parse(line);
@@ -39,7 +65,7 @@ function readNewLogs(client, prevSize) {
                 if (log.type === 'auth' || log.type === 'rsi_verification') {
                     sendToDiscord(client, log);
                 }
-            } catch (e) {
+            } catch {
                 // ignore malformed lines
             }
         });
@@ -48,10 +74,7 @@ function readNewLogs(client, prevSize) {
 
 function sendToDiscord(client, log) {
     const channel = client.channels.cache.get(process.env.DISCORD_LOGS_CHANNEL_ID);
-    if (!channel) {
-        console.error('❌ Log channel not found!');
-        return;
-    }
+    if (!channel) return console.error('❌ Log channel not found!');
 
     const embed = {
         color: getColor(log),

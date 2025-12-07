@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withProviders([
         \App\Providers\AccessControlServiceProvider::class,
+        \App\Providers\DomainEventServiceProvider::class,
     ])
 
     ->withExceptions(function (Exceptions $exceptions): void {

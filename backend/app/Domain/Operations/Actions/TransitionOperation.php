@@ -4,13 +4,45 @@ namespace App\Domain\Operations\Actions;
 
 use App\Domain\Operations\States\OperationState;
 use App\Models\Operation;
+use App\Domain\Operations\Events\OperationPublished;
 
 class TransitionOperation
 {
     public function execute(Operation $operation, string $targetStatus, ?string $reason = null): Operation
     {
-        $state = OperationState::from($operation);
+        \Log::info("⚙️ TransitionOperation START", [
+            'id' => $operation->id,
+            'current_status' => $operation->status,
+            'target_status' => $targetStatus,
+        ]);
 
-        return $state->transitionTo($targetStatus, $reason);
+        $previousStatus = $operation->status;
+
+        $state = OperationState::from($operation);
+        $updatedOperation = $state->transitionTo($targetStatus, $reason);
+
+        \Log::info("⚙️ Transition AFTER transitionTo()", [
+            'before' => $previousStatus,
+            'after' => $updatedOperation->status,
+            'operation_same_instance' => $updatedOperation->is($operation),
+        ]);
+
+        // EVENT CHECK
+        if ($targetStatus === 'published' && $previousStatus !== 'published') {
+            \Log::info("🔥 DISPATCHING OperationPublished", [
+                'id' => $updatedOperation->id,
+                'status' => $updatedOperation->status,
+            ]);
+
+            OperationPublished::dispatch($updatedOperation);
+        } else {
+            \Log::warning("🙅 NO DISPATCH — Conditions not met", [
+                'previous' => $previousStatus,
+                'target' => $targetStatus,
+                'final' => $updatedOperation->status,
+            ]);
+        }
+
+        return $updatedOperation;
     }
 }

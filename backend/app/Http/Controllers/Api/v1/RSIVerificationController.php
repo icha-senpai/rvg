@@ -292,4 +292,33 @@ class RSIVerificationController extends Controller
             );
         }
     }
+
+    /**
+     * Notify the Discord bot about a successful verification
+     *
+     * @param \App\Models\User $user
+     * @return void
+     */
+    protected function notifyDiscordBotOfVerification(User $user): void
+    {
+        $botUrl = env('DISCORD_BOT_URL'); // e.g. http://127.0.0.1:3001
+
+        if (!$botUrl || !$user->discord_id) {
+            return;
+        }
+
+        try {
+            Http::withHeaders([
+                'X-BOT-TOKEN' => config('services.discord.bot_token'),
+            ])->post($botUrl . '/sync-nickname', [
+                'discord_id' => $user->discord_id,
+            ]);
+        } catch (\Throwable $e) {
+            // Log, but do not break verification
+            Log::warning('Failed to notify Discord bot of RSI verification', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
 }

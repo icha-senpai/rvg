@@ -2,40 +2,34 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-// --- 1) Grab token from URL (after Discord callback) ---
+// --- URL token from Discord OAuth callback ---
 const params = new URLSearchParams(window.location.search);
 const tokenFromUrl = params.get('token');
 
-// If we just came back from Discord, save token
 if (tokenFromUrl) {
     localStorage.setItem('access_token', tokenFromUrl);
-    // Optional: clean the URL so token isn't visible forever
     window.history.replaceState({}, '', '/verify');
 }
 
-// Always read the current token from localStorage
 let accessToken = localStorage.getItem('access_token') || null;
 
-// Discord state: we DO NOT trust just having a token;
-// we validate it against /api/v1/me on mount.
+// Verification state
 const discordVerified = ref(false);
+const rsiVerified = ref(false);
 
-// RSI state
+// RSI fields
 const rsiHandle = ref('');
 const verificationCode = ref('');
-const error = ref({
-    message: null,
-    details: {}
-});
+const error = ref({ message: null, details: {} });
 const loadingCode = ref(false);
 const verifying = ref(false);
 
-// Helper for auth header
+// Auth header helper
 const authHeaders = () => ({
     Authorization: `Bearer ${accessToken}`,
 });
 
-// --- 2) On mount: validate token with /api/v1/me ---
+// --- On mount: validate Discord + determine RSI verification state ---
 onMounted(async () => {
     if (!accessToken) {
         discordVerified.value = false;
@@ -43,11 +37,18 @@ onMounted(async () => {
     }
 
     try {
-        // If this succeeds, the token is valid and tied to a real user
-        await axios.get('/api/v1/me', { headers: authHeaders() });
+        const res = await axios.get('/api/v1/me', { headers: authHeaders() });
+
         discordVerified.value = true;
+        rsiVerified.value = !!res.data.data.rsi_verified;
+
+        // If RSI is already verified, skip step completely
+        if (rsiVerified.value) {
+            window.location.href = '/';
+            return;
+        }
+
     } catch (e) {
-        // Token is invalid (DB wiped, user deleted, token revoked, etc)
         localStorage.removeItem('access_token');
         accessToken = null;
         discordVerified.value = false;
@@ -59,104 +60,65 @@ onMounted(async () => {
     }
 });
 
-// Utility to reset error cleanly
+// --- Utility to clear errors ---
 const clearError = () => {
     error.value = { message: null, details: {} };
 };
 
-// --- 3) Generate verification code (uses /api/v1/generate-code) ---
+// --- Generate RSI verification code ---
 const getCode = async () => {
     clearError();
-
-    // Always re-read token in case it was cleared
     accessToken = localStorage.getItem('access_token') || null;
 
     if (!accessToken) {
         discordVerified.value = false;
-        error.value = {
-            message: 'Missing access token. Please verify Discord again.',
-            details: {}
-        };
+        error.value = { message: 'Missing access token. Please verify Discord again.', details: {} };
         return;
     }
 
     loadingCode.value = true;
 
     try {
-        const res = await axios.post(
-            '/api/v1/generate-code',
-            {},
-            { headers: authHeaders() }
-        );
-
-        // Your ApiResponse::success() wraps data under .data
+        const res = await axios.post('/api/v1/generate-code', {}, { headers: authHeaders() });
         verificationCode.value = res.data.data.verification_code;
     } catch (e) {
-        if (e.response?.data?.message) {
-            error.value = {
-                message: e.response.data.message,
-                details: e.response.data.data || {}
-            };
-        } else {
-            error.value = {
-                message: "Couldn't generate verification code. Please try again.",
-                details: { error: e.message }
-            };
-        }
+        error.value = {
+            message: e.response?.data?.message || "Couldn't generate verification code.",
+            details: e.response?.data?.data || {}
+        };
     } finally {
         loadingCode.value = false;
     }
 };
 
-// --- 4) Verify RSI (uses /api/v1/verify-rsi) ---
+// --- Submit RSI verification ---
 const verifyRsi = async () => {
     clearError();
-
-    // Always re-read token in case something cleared it
     accessToken = localStorage.getItem('access_token') || null;
 
     if (!accessToken) {
         discordVerified.value = false;
-        error.value = {
-            message: 'Missing access token. Please verify Discord again.',
-            details: {}
-        };
+        error.value = { message: 'Missing access token. Please verify Discord again.', details: {} };
         return;
     }
 
     if (!rsiHandle.value) {
-        error.value = {
-            message: 'Please enter your RSI handle.',
-            details: { field: 'rsi_handle' }
-        };
+        error.value = { message: 'Please enter your RSI handle.', details: { field: 'rsi_handle' } };
         return;
     }
 
     verifying.value = true;
 
     try {
-        await axios.post(
-            '/api/v1/verify-rsi',
-            {
-                rsi_handle: rsiHandle.value, // matches RSIVerificationController
-            },
-            { headers: authHeaders() }
-        );
+        await axios.post('/api/v1/verify-rsi', { rsi_handle: rsiHandle.value }, { headers: authHeaders() });
 
-        // On success, send them home
+        // Success = send them home
         window.location.href = '/';
     } catch (e) {
-        if (e.response?.data) {
-            error.value = {
-                message: e.response.data.message || 'Verification failed',
-                details: e.response.data.data || {}
-            };
-        } else {
-            error.value = {
-                message: 'Failed to connect to the verification service. Please check your connection and try again.',
-                details: { error: e.message }
-            };
-        }
+        error.value = {
+            message: e.response?.data?.message || 'Verification failed',
+            details: e.response?.data?.data || {}
+        };
     } finally {
         verifying.value = false;
     }
@@ -166,60 +128,34 @@ const verifyRsi = async () => {
 <template>
     <div class="min-h-screen flex items-center justify-center bg-black text-white px-4">
         <div class="w-full max-w-xl p-6 rounded-2xl bg-gray-900 shadow-xl border border-white/10">
-            <!-- Header -->
-            <h1 class="text-3xl font-bold mb-2">
-                Horizon Interstellar Verification
-            </h1>
+
+            <h1 class="text-3xl font-bold mb-2">Horizon Interstellar Verification</h1>
             <p class="text-sm text-gray-400 mb-6">
                 Step 1: Link Discord · Step 2: Prove RSI org membership.
             </p>
 
-            <!-- Error box -->
+            <!-- Error -->
             <div
                 v-if="error.message"
                 class="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200"
             >
                 <div class="font-medium">{{ error.message }}</div>
 
-                <!-- Display multi-line error details -->
                 <div
-                    v-if="typeof error.message === 'string' && error.message.includes('\n')"
-                    class="mt-2 font-mono text-xs whitespace-pre-line"
+                    v-if="Object.keys(error.details).length"
+                    class="mt-2 pt-2 border-t border-red-500/20 text-xs opacity-80"
                 >
-                    {{ error.message }}
-                </div>
-
-                <!-- Display error details if available -->
-                <div
-                    v-if="Object.keys(error.details).length > 0"
-                    class="mt-2 pt-2 border-t border-red-500/20"
-                >
-                    <div v-if="error.details.help_link" class="mt-1">
-                        <a
-                            :href="error.details.help_link"
-                            target="_blank"
-                            class="text-blue-400 hover:underline"
-                        >
-                            {{ error.details.help_link.includes('orgs/')
-                                ? 'View Organization'
-                                : 'View Profile' }}
-                        </a>
-                    </div>
-                    <div
-                        v-if="error.details.error_reference"
-                        class="text-xs opacity-75 mt-1"
-                    >
-                        Reference: {{ error.details.error_reference }}
+                    <div v-for="(val, key) in error.details" :key="key">
+                        {{ key }}: {{ val }}
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 1: Discord verification -->
+            <!-- STEP 1: Discord -->
             <div v-if="!discordVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 1 · Verify with Discord</h2>
                 <p class="text-sm text-gray-300 mb-4">
-                    Click the button below to log in with Discord. Once approved, you’ll be
-                    returned here to finish RSI verification.
+                    Click below to log in with Discord. You’ll return here afterward.
                 </p>
 
                 <a
@@ -230,40 +166,32 @@ const verifyRsi = async () => {
                 </a>
             </div>
 
-            <!-- STEP 2: RSI verification -->
-            <div v-else>
+            <!-- STEP 2: RSI — only if not yet verified -->
+            <div v-else-if="!rsiVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 2 · RSI Verification</h2>
                 <p class="text-sm text-gray-300 mb-4">
-                    1) Click "Generate Code" and paste it into your RSI profile bio.<br />
+                    1) Generate your code and paste it into your RSI bio.<br>
                     2) Enter your RSI handle and click "Verify RSI".
                 </p>
 
-                <!-- Generate code button -->
+                <!-- Generate code -->
                 <button
                     @click="getCode"
                     :disabled="loadingCode"
-                    class="mb-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    class="mb-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
                 >
                     <span v-if="!loadingCode">Generate Code</span>
                     <span v-else>Generating...</span>
                 </button>
 
-                <!-- Show code if generated -->
-                <div
-                    v-if="verificationCode"
-                    class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm"
-                >
-                    <p class="text-gray-400 mb-1">Paste this EXACTLY into your RSI bio:</p>
-                    <code class="font-mono text-lg tracking-widest">
-                        {{ verificationCode }}
-                    </code>
+                <!-- Show code -->
+                <div v-if="verificationCode" class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm">
+                    <p class="text-gray-400 mb-1">Paste this EXACTLY in your RSI bio:</p>
+                    <code class="font-mono text-lg tracking-widest">{{ verificationCode }}</code>
                 </div>
 
                 <!-- RSI handle input -->
-                <div
-                    class="mb-3"
-                    :class="{ 'has-error': error.details?.field === 'rsi_handle' }"
-                >
+                <div class="mb-3">
                     <label class="block text-xs uppercase tracking-wide text-gray-400 mb-1">
                         RSI Handle
                     </label>
@@ -271,26 +199,27 @@ const verifyRsi = async () => {
                         v-model="rsiHandle"
                         type="text"
                         placeholder="ichaa"
-                        :class="{
-                            'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2': true,
-                            'bg-gray-800 border border-white/10 focus:ring-indigo-500':
-                                error.details?.field !== 'rsi_handle',
-                            'bg-red-900/30 border-red-500 focus:ring-red-500':
-                                error.details?.field === 'rsi_handle'
-                        }"
+                        :class="[
+                            'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2',
+                            error.details?.field === 'rsi_handle'
+                                ? 'bg-red-900/30 border-red-500 focus:ring-red-500'
+                                : 'bg-gray-800 border border-white/10 focus:ring-indigo-500'
+                        ]"
                     />
                 </div>
 
-                <!-- Verify button -->
+                <!-- Verify -->
                 <button
                     @click="verifyRsi"
                     :disabled="verifying"
-                    class="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
                 >
                     <span v-if="!verifying">Verify RSI</span>
                     <span v-else>Verifying...</span>
                 </button>
             </div>
+
+            <!-- (Optional) If rsiVerified AND discordVerified → instant redirect happens above -->
         </div>
     </div>
 </template>

@@ -11,12 +11,14 @@ class MeController extends Controller
 {
     /**
      * GET /api/v1/me
-     * Return the authenticated user's profile + roles.
+     * Return the authenticated user's profile + roles + verification states.
      */
     public function show(Request $request)
     {
         $user = $request->user()->load('roles');
 
+        // Ensure RSI/Discord fields are present in the response payload
+        // by passing them explicitly into MeResource.
         return new MeResource($user);
     }
 

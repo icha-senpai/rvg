@@ -26,6 +26,7 @@ class MeResource extends JsonResource
             // RSI
             'rsi_handle'          => $this->rsi_handle,
             'rsi_verified_at'     => $this->rsi_verified_at,
+            'rsi_verified'        => !is_null($this->rsi_verified_at), // <-- The magic flag
 
             // User-editable profile fields
             'bio'                 => $this->bio,

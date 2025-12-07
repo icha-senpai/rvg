@@ -50,5 +50,9 @@ return [
         'required_org' => env('RSI_REQUIRED_ORG', 'SRN'),
         'verification_timeout' => env('RSI_VERIFICATION_TIMEOUT', 10),
     ],
+    'bot' => [
+    'secret' => env('DISCORD_BOT_SECRET'),
+    'url' => env('BOT_WEBHOOK_URL', 'http://localhost:3001/bot'),
+    ],
 
 ];
