@@ -75,12 +75,12 @@ class OperationPresenter
 
             'creator' => [
                 'id'   => $this->operation->creator?->id,
-                'name' => $this->operation->creator?->display_name,
+                'rsi_handle' => $this->operation->creator?->rsi_handle,
             ],
 
             'squadron' => [
                 'id'   => $this->operation->squadron?->id,
-                'name' => $this->operation->squadron?->name,
+                'rsi_handle' => $this->operation->squadron?->rsi_handle,
             ],
 
             'participants' => $this->operation->participants->map(function ($p) {
@@ -97,7 +97,7 @@ class OperationPresenter
                     ]),
                     'user' => [
                         'id'           => $p->user->id,
-                        'display_name' => $p->user->display_name,
+                        'rsi_handle' => $p->user->rsi_handle,
                     ],
                 ];
             })->values(),

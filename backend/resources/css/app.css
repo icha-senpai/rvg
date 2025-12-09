@@ -153,6 +153,7 @@
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
+  background-attachment: fixed;
   background-color: #161922;   /* fallback deep space tone */
 }
 .bg-grid-horizon_2 {
@@ -160,6 +161,7 @@
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
+  background-attachment: fixed;
   background-color: #161922;   /* fallback deep space tone */
 }
 .bg-grid-horizon_3 {
@@ -167,6 +169,7 @@
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
+  background-attachment: fixed;
   background-color: #161922;   /* fallback deep space tone */
 }
 /* --------------------------------------------------------------------------

@@ -3,10 +3,10 @@ import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import ProgressPill from '@/Components/ProgressPill.vue';
-import MiniMapPanel from '@/Components/MiniMapPanel.vue';
-import { ref, reactive, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import HorizonSelect from '@/Components/HorizonSelect.vue';
 
+import { ref, reactive, computed, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
   operation: Object,
@@ -15,55 +15,125 @@ const props = defineProps({
   unassignedParticipants: Array,
   currentParticipant: Object,
 });
+
 const operation = props.operation;
-const participants = props.participants ?? [];
-const participantsBySlot = props.participantsBySlot ?? {};
-const unassignedParticipants = props.unassignedParticipants ?? [];
 const currentParticipant = props.currentParticipant ?? null;
 
+/* ============================================================
+   FORMATTER
+============================================================ */
 function asText(v) {
-  if (!v) return 'TBD';
-  return String(v);
+  return v ? String(v) : "TBD";
 }
-/* ---------------------------------------------
-   STATUS VARIANT FOR THE STATUS PILL
---------------------------------------------- */
+
+/* ============================================================
+   STATUS PILL VARIANT
+============================================================ */
 const statusVariant = computed(() => {
   switch (operation.status) {
-    case 'draft': return 'neutral';
-    case 'published': return 'info';
-    case 'in_progress': return 'primary';
-    case 'completed': return 'success';
-    case 'canceled': return 'danger';
-    default: return 'neutral';
+    case "draft": return "neutral";
+    case "published": return "info";
+    case "in_progress": return "primary";
+    case "completed": return "success";
+    case "canceled": return "danger";
+    default: return "neutral";
   }
 });
 
-/* ---------------------------------------------
-   JOIN FORM STATE
---------------------------------------------- */
+/* ============================================================
+   JOIN FORM + PREFILL
+============================================================ */
 const joinForm = reactive({
-  slot: '',
-  notes: '',
+  slot: "",
+  notes: "",
 });
+
+watch(
+  () => currentParticipant,
+  () => {
+    if (currentParticipant) {
+      joinForm.slot = currentParticipant.slot ?? "";
+      joinForm.notes = currentParticipant.notes ?? "";
+    }
+  },
+  { immediate: true }
+);
 
 const joinProcessing = ref(false);
 
-/* ---------------------------------------------
-   JOIN / UPDATE / LEAVE PLACEHOLDERS
---------------------------------------------- */
-function join() {
-  console.log("JOIN", joinForm);
+/* ============================================================
+   JOIN (WEB)
+============================================================ */
+async function join() {
+  joinProcessing.value = true;
+
+  router.post(
+    route("operations.join", operation.id),
+    {
+      slot: joinForm.slot,
+      notes: joinForm.notes,
+      operation_role_id: null,
+    },
+    {
+      preserveScroll: true,
+      onFinish: () => {
+        joinProcessing.value = false;
+        router.visit(window.location.href, { preserveScroll: true });
+      },
+    }
+  );
 }
 
-function updateSlot() {
-  console.log("UPDATE SLOT", joinForm);
+/* ============================================================
+   LEAVE (WEB)
+============================================================ */
+async function leave() {
+  if (!confirm("Leave this operation?")) return;
+
+  joinProcessing.value = true;
+
+  router.post(
+    route("operations.leave", operation.id),
+    {},
+    {
+      preserveScroll: true,
+      onFinish: () => {
+        joinProcessing.value = false;
+        router.visit(window.location.href, { preserveScroll: true });
+      },
+    }
+  );
 }
 
-function leave() {
-  console.log("LEAVE OP");
+/* ============================================================
+   UPDATE SLOT (WEB)
+============================================================ */
+async function updateSlot() {
+  if (!currentParticipant) return;
+
+  joinProcessing.value = true;
+
+  router.post(
+    route("operations.participants.slot", {
+      operation: operation.id,
+      participant: currentParticipant.id,
+    }),
+    {
+      slot: joinForm.slot,
+      operation_role_id: null,
+    },
+    {
+      preserveScroll: true,
+      onFinish: () => {
+        joinProcessing.value = false;
+        router.visit(window.location.href, { preserveScroll: true });
+      },
+    }
+  );
 }
 </script>
+
+
 
 <template>
   <HorizonContainer>
@@ -195,7 +265,7 @@ function leave() {
                   v-for="p in participantsBySlot[slotName] || []"
                   :key="p.id"
                 >
-                  • {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
+                  • {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
                   <span class="opacity-60">
                     ({{ p.attendance_status }})
                   </span>
@@ -227,7 +297,7 @@ function leave() {
                 v-for="p in unassignedParticipants"
                 :key="p.id"
               >
-                • {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
+                • {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
                 <span class="opacity-60">
                   ({{ p.attendance_status }})
                 </span>
@@ -281,21 +351,12 @@ function leave() {
             </p>
 
             <div class="hz-stack">
+              <HorizonSelect
+                label="Slot (optional)"
+                v-model="joinForm.slot"
+                :options="operation.slots.map(slot => ({ label: slot, value: slot }))"
+              />
 
-              <!-- Slot selection -->
-              <div v-if="(operation.slots || []).length" class="hz-stack-xs">
-                <label class="hz-section-label">Slot (optional)</label>
-                <select v-model="joinForm.slot" class="hz-input w-full">
-                  <option value="">Unassigned</option>
-                  <option
-                    v-for="slotName in operation.slots"
-                    :key="slotName"
-                    :value="slotName"
-                  >
-                    {{ slotName }}
-                  </option>
-                </select>
-              </div>
 
               <!-- Notes -->
               <div class="hz-stack-xs">
@@ -337,7 +398,8 @@ function leave() {
               class="flex justify-between"
             >
               <span>
-                {{ p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
+                {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
+
                 <span class="opacity-60">
                   ({{ p.slot ?? 'Unassigned' }})
                 </span>

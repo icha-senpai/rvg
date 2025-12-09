@@ -10,14 +10,14 @@ class OperationQuery
     public function forUser(User $user)
     {
         return Operation::visibleToUser($user)
-            ->orderByDesc('starts_at',  'asc')
+            ->orderBy('starts_at', 'asc')
             ->get();
     }
 
     public function forSquadron(int $squadronId)
     {
         return Operation::where('squadron_id', $squadronId)
-            ->orderByDesc('starts_at')
+            ->orderBy('starts_at', 'asc')
             ->get();
     }
 }

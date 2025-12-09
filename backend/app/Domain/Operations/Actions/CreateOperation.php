@@ -5,18 +5,37 @@ namespace App\Domain\Operations\Actions;
 use App\Models\Operation;
 use App\Models\Squadron;
 use Illuminate\Support\Facades\Auth;
+use App\Domain\Operations\Events\OperationPublished; // <-- ADD THIS if using events
 
 class CreateOperation
 {
     public function execute(array $data, Squadron $squadron): Operation
     {
-       
+        // Determine status
+        $status = in_array($data['status'] ?? null, ['draft', 'published'])
+            ? $data['status']
+            : 'draft';
 
-        return Operation::create([
+        $operation = Operation::create([
             ...$data,
             'squadron_id' => $squadron->id,
-            'created_by'  => Auth::id(),      
-            'status'      => 'draft',
+            'created_by'  => Auth::id(),
+            'status'      => $status,
         ]);
+
+        // 🔥 FIRE PUBLISH CODE IF NEEDED
+        if ($status === 'published') {
+            // If you're using Laravel Events:
+            event(new OperationPublished($operation));
+
+            // OR if you're hitting the bot directly:
+            // Http::post(env('BOT_WEBHOOK_URL'), [
+            //     'operation_id' => $operation->id,
+            //     'title' => $operation->title,
+            //     ...
+            // ]);
+        }
+
+        return $operation;
     }
 }

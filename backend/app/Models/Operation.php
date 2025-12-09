@@ -121,15 +121,8 @@ class Operation extends Model
 
         return $this->save();
     }
-    public function scopeVisibleToUser($query, User $user)
+   public function scopeVisibleToUser($query, User $user)
     {
-    // Example version — replace with your access logic
-        return $query
-            ->where(function ($query) use ($user) {
-                $query->where('visibility', 'open')
-                    ->orWhere('squadron_id', $user->squadron_id ?? null)
-                    ->orWhere('created_by', $user->id);
-            });
+    return $query->where('status', 'published');
     }
-
 }

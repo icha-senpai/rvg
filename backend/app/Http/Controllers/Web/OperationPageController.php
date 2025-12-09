@@ -6,21 +6,30 @@ use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\Operation;
+use App\Models\OperationParticipant;
 use App\Models\Squadron;
+
+// Services & Presenters
 use App\Domain\Operations\Services\OperationService;
+use App\Domain\Operations\Services\ParticipantService;
 use App\Domain\Operations\Presenters\OperationPresenter;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Domain\Operations\Queries\OperationQuery;
+
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class OperationPageController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected OperationService $service,
-        protected OperationQuery $query
+        protected OperationService    $service,
+        protected OperationQuery      $query,
+        protected ParticipantService  $participants
     ) {}
 
+    /* ============================================================
+     | INDEX (ALL OPS)
+     * ============================================================ */
     public function index()
     {
         $operations = Operation::orderByDesc('starts_at')
@@ -33,18 +42,41 @@ class OperationPageController extends Controller
         ]);
     }
 
+    /* ============================================================
+     | SHOW SINGLE OPERATION
+     * ============================================================ */
     public function show(Operation $operation)
     {
         $this->authorize('view', $operation);
 
+        // Load full graph for display
         $operation = $this->service->loadGraph($operation);
+        $user = auth()->user();
+
+        $participants = $operation->participants;
+
+        // Group participants by slot
+        $participantsBySlot = $participants->groupBy(function ($p) {
+            return $p->slot ?: 'unassigned';
+        });
+
+        $unassigned = $participants->filter(fn ($p) => !$p->slot)->values();
+
+        $currentParticipant = $participants->firstWhere('user_id', $user->id);
 
         return Inertia::render('Operations/MissionShow', [
-            'operation' => OperationPresenter::make($operation)->full(),
-            'authUser'  => auth()->user(),
+            'operation'              => OperationPresenter::make($operation)->full(),
+            'authUser'               => $user,
+            'participants'           => $participants,
+            'participantsBySlot'     => $participantsBySlot,
+            'unassignedParticipants' => $unassigned,
+            'currentParticipant'     => $currentParticipant,
         ]);
     }
 
+    /* ============================================================
+     | CREATE
+     * ============================================================ */
     public function create($squadronId)
     {
         return Inertia::render('Operations/MissionEditor', [
@@ -59,10 +91,12 @@ class OperationPageController extends Controller
 
         $operation = $this->service->create($request->all(), $squadron);
 
-        return redirect()
-            ->route('operations.show', $operation->id);
+        return Inertia::location(route('operations.show', $operation->id));
     }
 
+    /* ============================================================
+     | EDIT / UPDATE
+     * ============================================================ */
     public function edit(Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -83,6 +117,10 @@ class OperationPageController extends Controller
             ->route('operations.show', $updated->id)
             ->with('success', 'Operation updated.');
     }
+
+    /* ============================================================
+     | MEMBER INDEX (visible ops)
+     * ============================================================ */
     public function memberIndex(Request $request)
     {
         $operations = $this->query->forUser($request->user());
@@ -91,6 +129,10 @@ class OperationPageController extends Controller
             'operations' => $operations,
         ]);
     }
+
+    /* ============================================================
+     | PUBLISH
+     * ============================================================ */
     public function publish(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -104,12 +146,66 @@ class OperationPageController extends Controller
             ->with('success', 'Operation published successfully.');
     }
 
+    /* ============================================================
+     | DELETE
+     * ============================================================ */
     public function destroy(Operation $operation)
     {
+        $this->authorize('delete', $operation);
+
         $operation->delete();
 
         return back()->with('success', 'Operation deleted.');
     }
 
-}
+    /* ============================================================
+     | PARTICIPANT ACTIONS (JOIN / LEAVE / UPDATE SLOT)
+     * ============================================================ */
 
+    public function join(Request $request, Operation $operation)
+    {
+        $this->authorize('view', $operation);
+
+        $data = $request->validate([
+            'slot'              => 'nullable|string|max:255',
+            'notes'             => 'nullable|string|max:500',
+            'operation_role_id' => 'nullable|exists:operation_roles,id',
+        ]);
+
+        $this->participants->join($operation, $request->user(), $data);
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('reload', true);
+    }
+
+    public function leave(Request $request, Operation $operation)
+    {
+        $this->authorize('view', $operation);
+
+        $this->participants->leave($operation, $request->user());
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('reload', true);
+    }
+
+    public function updateSlot(
+        Request $request,
+        Operation $operation,
+        OperationParticipant $participant
+    ) {
+        $this->authorize('manageMembers', $operation);
+
+        $data = $request->validate([
+            'slot'              => 'nullable|string|max:255',
+            'operation_role_id' => 'nullable|exists:operation_roles,id',
+        ]);
+
+        $this->participants->updateSlot($operation, $participant, $data);
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('reload', true);
+    }
+}

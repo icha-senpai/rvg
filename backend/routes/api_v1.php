@@ -75,7 +75,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 |
 */
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum',])->group(function () {
 
     // Rank 1+
     Route::middleware(['rank:1'])->group(function () {
@@ -158,8 +158,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/operations/{operation}/status', [OperationController::class, 'updateStatus']);
 
     // Operation Participants
-    Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join']);
-    Route::post('/operations/{operation}/leave', [OperationParticipantController::class, 'leave']);
-    Route::put('/operations/{operation}/participants/{participant}/slot', [OperationParticipantController::class, 'updateSlot']);
+    Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join'])
+        ->name('api.operations.join');
+
+    Route::post('/operations/{operation}/leave', [OperationParticipantController::class, 'leave'])
+        ->name('api.operations.leave');
+
+    Route::put('/operations/{operation}/participants/{participant}/slot', [OperationParticipantController::class, 'updateSlot'])
+        ->name('api.operations.updateSlot');
     Route::put('/operations/{operation}/participants/{participant}/stats', [OperationParticipantController::class, 'updateStats']);
 });

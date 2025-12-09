@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class OperationParticipant extends Model
 {
-    use SoftDeletes;
+    
 
     protected $fillable = [
         'operation_id',

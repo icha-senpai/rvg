@@ -76,7 +76,17 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/operations/{operation}', 
         [OperationPageController::class, 'destroy'])
         ->name('operations.destroy');
-});
+    Route::post('/operations/{operation}/join', [OperationPageController::class, 'join'])
+        ->name('operations.join');
+
+    Route::post('/operations/{operation}/leave', [OperationPageController::class, 'leave'])
+        ->name('operations.leave');
+
+    Route::post('/operations/{operation}/participants/{participant}/slot', [OperationPageController::class, 'updateSlot'])
+        ->name('operations.participants.slot');
+
+
+    });
 
 
 /*

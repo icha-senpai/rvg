@@ -65,47 +65,38 @@ class AccessService
     {
         return $this->context($user)->isDirectorLike();
     }
+
     /* ============================================================
      |  OPERATIONS — DDD PERMISSION RULES
      * ============================================================
      */
 
-    public function canCreateOperation(User $user, ?Squadron $squadron = null): bool
+    /**
+     * "Can this user see the operations list at all?"
+     */
+    public function canViewAnyOperation(User $user): bool
     {
-        // Directors and Tech Directors override everything
-        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+        // Director / Tech Director always can
+        if ($this->isDirectorLike($user)) {
             return true;
         }
 
-        // Global RBAC: any user with host or create permissions
-        if ($this->can($user, 'operation.create')
-            || $this->can($user, 'operation.host.small')
-            || $this->can($user, 'operation.host.medium')
-            || $this->can($user, 'operation.host.large')
-            || $this->can($user, 'operation.host.org')) {
-            return true;
-        }
-
-        // Squadron-specific creation rules
-        if ($squadron) {
-            // Squadron Leader can always create for their squadron
-            if ($user->isSquadronLeader($squadron)) {
-                return true;
-            }
-
-            // Lieutenant can create small squadron ops only
-            if ($user->isSquadronLieutenant($squadron)) {
-                return true;
-            }
-        }
-
-        return false;
+        // Anyone with operation.view can see the list
+        return $this->can($user, 'operation.view');
     }
 
+    /**
+     * View a specific operation.
+     */
     public function canViewOperation(User $user, Operation $operation): bool
     {
         // Directors override
-        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global view permission
+        if ($this->can($user, 'operation.view')) {
             return true;
         }
 
@@ -114,7 +105,7 @@ class AccessService
             return true;
         }
 
-        // Squadron-limited operations
+        // Squadron-limited operations: must belong to that squadron
         if ($operation->squadron_id) {
             return $user->squadronMemberships()
                 ->active()
@@ -122,14 +113,59 @@ class AccessService
                 ->exists();
         }
 
-        // Default view allowed
-        return true;
+        // Default: deny
+        return false;
     }
 
+    /**
+     * Create an operation, optionally scoped to a squadron.
+     */
+    public function canCreateOperation(User $user, ?Squadron $squadron = null): bool
+    {
+        // Directors and Tech Directors override everything
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global RBAC: any user with create or host permissions
+        $hostingPerms = PermissionRegistry::group('operation.hosting');
+
+        if ($this->can($user, 'operation.create')
+            || $this->any($user, $hostingPerms)
+        ) {
+            return true;
+        }
+
+        // Squadron-specific creation rules
+        if ($squadron) {
+            $ctx = $this->context($user);
+
+            // Squadron Leader can always create for their squadron
+            if ($ctx->isSquadronLeader($squadron)) {
+                return true;
+            }
+
+            // Lieutenant can create small squadron ops only
+            if ($ctx->isSquadronLieutenant($squadron)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Update an existing operation.
+     */
     public function canUpdateOperation(User $user, Operation $operation): bool
     {
         // Director override
-        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global manage permission
+        if ($this->can($user, 'operation.manage')) {
             return true;
         }
 
@@ -142,18 +178,76 @@ class AccessService
         if ($operation->squadron_id) {
             $squadron = Squadron::find($operation->squadron_id);
 
-            if ($squadron && $user->isSquadronLeader($squadron)) {
+            if ($squadron && $this->context($user)->isSquadronLeader($squadron)) {
                 return true;
             }
         }
 
-        // Global manage permission
-        return $this->can($user, 'operation.manage')
-            || $this->can($user, 'operation.members.manage');
+        return false;
     }
 
+    /**
+     * Delete an operation: same power as update.
+     */
     public function canDeleteOperation(User $user, Operation $operation): bool
     {
         return $this->canUpdateOperation($user, $operation);
+    }
+
+    /**
+     * Manage members (add/remove participants, move them between slots/roles).
+     */
+    public function canManageOperationMembers(User $user, Operation $operation): bool
+    {
+        // Director / Tech Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global "operation.members.manage" permission
+        if ($this->can($user, 'operation.members.manage')) {
+            return true;
+        }
+
+        // Squadron leader for this squadron can manage members
+        if ($operation->squadron_id) {
+            $squadron = Squadron::find($operation->squadron_id);
+
+            if ($squadron && $this->context($user)->isSquadronLeader($squadron)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Adjust operation stats (post-op analytics, performance, etc).
+     */
+    public function canAdjustOperationStats(User $user, Operation $operation): bool
+    {
+        // Director-like
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Either analytics.operation OR full operation.manage
+        if ($this->can($user, 'analytics.operation')
+            || $this->can($user, 'operation.manage')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * High-level "can manage this operation" umbrella.
+     * Used for admin UIs / dangerous actions.
+     */
+    public function canManageOperation(User $user, Operation $operation): bool
+    {
+        return $this->canUpdateOperation($user, $operation)
+            || $this->canManageOperationMembers($user, $operation)
+            || $this->canAdjustOperationStats($user, $operation);
     }
 }

@@ -20,6 +20,7 @@ const props = defineProps({
   squadronId: { type: Number, required: true },
   mission: { type: Object, default: null },
 });
+const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // ----------------------
 // MODE
@@ -79,6 +80,30 @@ async function submit(mode) {
   form.status = isPublishing ? 'published' : 'draft';
 
   // ----------------------
+  // VALIDATION: REQUIRE FULL DATE + TIME
+  // ----------------------
+  function isDateTimeComplete(dt) {
+    if (!dt) return false;
+    // Must match YYYY-MM-DDTHH:MM (datetime-local format)
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt);
+  }
+
+  if (!isDateTimeComplete(form.starts_at)) {
+    alert("Start time must include both date AND time.");
+    return;
+  }
+
+  if (form.ends_at && !isDateTimeComplete(form.ends_at)) {
+    alert("End time must include both date AND time.");
+    return;
+  }
+
+  if (form.rsvp_deadline && !isDateTimeComplete(form.rsvp_deadline)) {
+    alert("RSVP deadline must include both date AND time.");
+    return;
+  }
+
+  // ----------------------
   // EDIT MODE
   // ----------------------
   if (isEdit.value) {
@@ -106,6 +131,7 @@ async function submit(mode) {
   // CREATE MODE
   // ----------------------
   try {
+    console.log("SENDING STATUS:", form.status);
     const response = await form.post(
       route('operations.store', { squadron: props.squadronId }, Ziggy),
       { preserveScroll: true }
@@ -115,14 +141,18 @@ async function submit(mode) {
       response?.props?.operation?.id ??
       form?.id ??
       response?.operation?.id;
-
-    if (isPublishing) {
-      try {
-        await axios.post(route('operations.publish', newId, Ziggy));
-      } catch (err) {
-        console.error("Publish error (create):", err);
-      }
+    // FINAL guaranteed fallback — extract ID from URL
+    if (!newId && response?.url) {
+      const match = response.url.match(/operations\/(\d+)/);
+      if (match) newId = match[1];
     }
+    console.log("RESOLVED NEW ID:", newId);
+
+    if (!newId) {
+      console.error("Could not determine operation ID after creation.");
+      return;
+    }
+
 
     window.location.href = route('operations.show', newId, Ziggy);
 
