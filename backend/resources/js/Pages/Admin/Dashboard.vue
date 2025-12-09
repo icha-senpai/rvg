@@ -1,5 +1,5 @@
 <template>
-  <div class="hz-container hz-stack">
+  <HorizonContainer class="hz-stack">
 
     <!-- HEADER -->
     <div class="hz-stack-sm">
@@ -48,12 +48,12 @@
       <RolesPanel :roles="roles" />
     </div>
 
-  </div>
+  </HorizonContainer>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-
+import HorizonContainer from '@/Components/HorizonContainer.vue';
 import UsersPanel from './Partials/UsersPanel.vue';
 import SquadronsPanel from './Partials/SquadronsPanel.vue';
 import RolesPanel from './Partials/RolesPanel.vue';

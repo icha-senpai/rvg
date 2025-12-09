@@ -117,12 +117,12 @@
           <div class="hz-title-md text-horizon-white">Standard Panel</div>
           <p class="hz-caption hz-text-muted">Clean, readable, stable.</p>
         </HorizonPanel>
-
+        
         <div class="hz-card hz-shadow-soft hz-overlay-light p-6 rounded-2xl">
           <div class="hz-title-md text-horizon-white">Luminous Card</div>
           <p class="hz-caption hz-text-muted">Soft glow for key sections.</p>
         </div>
-
+       
         <div class="hz-card hz-shadow-deep p-6 rounded-2xl">
           <div class="hz-title-md text-horizon-white">Deep Card</div>
           <p class="hz-caption hz-text-muted">Extra depth for emphasis.</p>
@@ -260,6 +260,7 @@
 <script setup>
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
+import HorizonAlert from '@/Components/HorizonAlert.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
 import HorizonStat from '@/Components/HorizonStat.vue';

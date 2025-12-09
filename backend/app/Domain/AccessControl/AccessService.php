@@ -250,4 +250,109 @@ class AccessService
             || $this->canManageOperationMembers($user, $operation)
             || $this->canAdjustOperationStats($user, $operation);
     }
+
+    /* ============================================================
+     |  SQUADRONS — DDD PERMISSION RULES
+     * ============================================================ */
+
+    /**
+     * Can the user see squadrons at all?
+     */
+    public function canViewAnySquadron(User $user): bool
+    {
+        // Director / Tech Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        return $this->can($user, 'squadron.view');
+    }
+
+    /**
+     * View a specific squadron.
+     */
+    public function canViewSquadron(User $user, Squadron $squadron): bool
+    {
+        // Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global permission
+        if ($this->can($user, 'squadron.view')) {
+            return true;
+        }
+
+        // Active member of the squadron
+        return $user->squadronMemberships()
+            ->active()
+            ->where('squadron_id', $squadron->id)
+            ->exists();
+    }
+
+    /**
+     * Create a new squadron.
+     */
+    public function canCreateSquadron(User $user): bool
+    {
+        // Director / Tech Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Explicit create permission
+        if ($this->can($user, 'squadron.create')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Update an existing squadron.
+     */
+    public function canUpdateSquadron(User $user, Squadron $squadron): bool
+    {
+        // Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Global manage permission
+        if ($this->can($user, 'squadron.manage')) {
+            return true;
+        }
+
+        // Squadron Leader can update their squadron
+        if ($this->context($user)->isSquadronLeader($squadron)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Delete a squadron.
+     */
+    public function canDeleteSquadron(User $user, Squadron $squadron): bool
+    {
+        // Director override
+        if ($this->isDirectorLike($user)) {
+            return true;
+        }
+
+        // Explicit delete permission (dangerous on purpose)
+        if ($this->can($user, 'squadron.delete')) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+
+
+
 }

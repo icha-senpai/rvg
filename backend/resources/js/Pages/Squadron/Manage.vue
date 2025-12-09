@@ -135,6 +135,7 @@ import { router } from '@inertiajs/vue3';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
   squadron: Object,

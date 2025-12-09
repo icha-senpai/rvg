@@ -74,7 +74,7 @@ class AdminController extends Controller
     {
         $this->authorize('access-admin-panel');
 
-        $search = $request->input('search');
+        $search = trim($request->input('search'));
 
         $users = User::query()
             ->select(
@@ -90,11 +90,16 @@ class AdminController extends Controller
                 'loa_note'
             )
             ->with(['roles:id,name,slug'])
-            ->when($search, function ($query, $search) {
+            ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('discord_name', 'LIKE', "%{$search}%")
-                        ->orWhere('rsi_handle', 'LIKE', "%{$search}%")
-                        ->orWhere('id', $search);
+                    // Text search (case-insensitive, Postgres-safe)
+                    $q->where('discord_name', 'ILIKE', "%{$search}%")
+                      ->orWhere('rsi_handle', 'ILIKE', "%{$search}%");
+
+                    // ID search (numeric only)
+                    if (is_numeric($search)) {
+                        $q->orWhere('id', (int) $search);
+                    }
                 });
             })
             ->orderBy('id')
@@ -113,6 +118,7 @@ class AdminController extends Controller
             ],
         ]);
     }
+
 
     /**
      * UPDATE USER FIELDS

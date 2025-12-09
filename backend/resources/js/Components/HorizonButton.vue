@@ -33,6 +33,7 @@ const variantMap = {
   Size mapping → Horizon size classes
 */
 const sizeMap = {
+  xs: 'hz-btn-xs',
   sm: 'hz-btn-sm',
   md: '',
   lg: 'hz-btn-lg',

@@ -216,7 +216,7 @@
 /* --------------------------------------------------------------------------
    TYPOGRAPHY UTILITIES
 -------------------------------------------------------------------------- */
-
+.hz-title-xxl { font-size: var(--text-title-xxl); font-weight: 600; }
 .hz-title-xl { font-size: var(--text-title-xl); font-weight: 600; }
 .hz-title-lg { font-size: var(--text-title-lg); font-weight: 600; }
 .hz-title-md { font-size: var(--text-title-md); font-weight: 600; }

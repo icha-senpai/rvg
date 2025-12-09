@@ -84,26 +84,28 @@
           </div>
 
           <div>
-            <label class="hz-caption block mb-1">Status</label>
-            <select v-model="form.status" class="hz-input w-full">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="disbanded">Disbanded</option>
-            </select>
+          <HorizonSelect
+            v-model="form.status"
+            :options="[
+              { label: 'Active', value: 'active' },
+              { label: 'Inactive', value: 'inactive' },
+              { label: 'Disbanded', value: 'disbanded' }
+            ]"
+            label="Status"
+            class="w-full"
+          />
           </div>
 
           <div>
-            <label class="hz-caption block mb-1">Leader</label>
-            <select v-model="form.leader_id" class="hz-input w-full">
-              <option value="">None</option>
-              <option
-                v-for="u in users"
-                :key="u.id"
-                :value="u.id"
-              >
-                {{ u.discord_name }}
-              </option>
-            </select>
+            <HorizonSelect
+              v-model="form.leader_id"
+              :options="[
+                { label: 'None', value: null },
+                ...users.map(u => ({ label: u.rsi_handle, value: u.id }))
+              ]"
+              label="Leader"
+              class="w-full"
+            />
           </div>
         </div>
 
@@ -129,10 +131,17 @@ import { router } from '@inertiajs/vue3';
 
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonSelect from '@/Components/HorizonSelect.vue';
 
 const props = defineProps({
-  squadrons: Array,
-  users: Array, // needed for leader dropdown
+  squadrons: {
+    type: Array,
+    required: true,
+  },
+  users: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 /* MODAL STATE */

@@ -39,7 +39,7 @@
           <select v-model="form.leader_id" class="hz-input w-full">
             <option value="">None</option>
             <option v-for="u in users" :key="u.id" :value="u.id">
-              {{ u.discord_name }} (ID {{ u.id }})
+              {{ u.rsi_handle }} (ID {{ u.id }})
             </option>
           </select>
         </div>

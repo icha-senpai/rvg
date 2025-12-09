@@ -53,6 +53,13 @@
 <script setup>
 import { router } from '@inertiajs/vue3'
 
+import HorizonContainer from '@/Components/HorizonContainer.vue';
+import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonInput from '@/Components/HorizonInput.vue';
+import HorizonPanel from '@/Components/HorizonPanel.vue';
+import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import HorizonSelect from '@/Components/HorizonSelect.vue';
+
 const props = defineProps({
     squadrons: Array,
     eligibleLeaders: Array,
