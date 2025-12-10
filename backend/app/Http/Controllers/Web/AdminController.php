@@ -22,7 +22,7 @@ class AdminController extends Controller
     {
         $this->authorize('access-admin-panel');
 
-        $search = $request->input('search');
+        $search = trim($request->input('search'));
 
         $users = User::query()
             ->select(
@@ -38,11 +38,16 @@ class AdminController extends Controller
                 'loa_note'
             )
             ->with(['roles:id,name,slug'])
-            ->when($search, function ($query, $search) {
+            ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('discord_name', 'LIKE', "%{$search}%")
-                        ->orWhere('rsi_handle', 'LIKE', "%{$search}%")
-                        ->orWhere('id', $search);
+                    // Case-insensitive text search (Postgres)
+                    $q->where('discord_name', 'ILIKE', "%{$search}%")
+                      ->orWhere('rsi_handle', 'ILIKE', "%{$search}%");
+
+                    // Numeric-only ID search
+                    if (is_numeric($search)) {
+                        $q->orWhere('id', (int) $search);
+                    }
                 });
             })
             ->orderBy('id')
@@ -68,59 +73,6 @@ class AdminController extends Controller
     }
 
     /**
-     * LEGACY USERS PAGE
-     */
-    public function usersIndex(Request $request)
-    {
-        $this->authorize('access-admin-panel');
-
-        $search = trim($request->input('search'));
-
-        $users = User::query()
-            ->select(
-                'id',
-                'rsi_handle',
-                'discord_name',
-                'rank',
-                'rank_level',
-                'global_status',
-                'bio',
-                'timezone',
-                'availability_status',
-                'loa_note'
-            )
-            ->with(['roles:id,name,slug'])
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    // Text search (case-insensitive, Postgres-safe)
-                    $q->where('discord_name', 'ILIKE', "%{$search}%")
-                      ->orWhere('rsi_handle', 'ILIKE', "%{$search}%");
-
-                    // ID search (numeric only)
-                    if (is_numeric($search)) {
-                        $q->orWhere('id', (int) $search);
-                    }
-                });
-            })
-            ->orderBy('id')
-            ->paginate(50)
-            ->withQueryString();
-
-        $roles = Role::select('id', 'name', 'slug')
-            ->orderBy('name')
-            ->get();
-
-        return Inertia::render('Admin/UsersIndex', [
-            'users'   => $users,
-            'roles'   => $roles,
-            'filters' => [
-                'search' => $search,
-            ],
-        ]);
-    }
-
-
-    /**
      * UPDATE USER FIELDS
      */
     public function updateUser(Request $request)
@@ -128,21 +80,21 @@ class AdminController extends Controller
         $this->authorize('access-admin-panel');
 
         $data = $request->validate([
-            'id'                   => ['required', 'exists:users,id'],
-            'rank'                 => ['nullable', 'string', 'max:255'],
-            'rank_level'           => ['nullable', 'integer', 'min:1'],
-            'global_status'        => ['nullable', 'string', 'max:255'],
-            'bio'                  => ['nullable', 'string'],
-            'timezone'             => ['nullable', 'string', 'max:255'],
-            'availability_status'  => ['nullable', 'string', 'max:255'],
-            'loa_note'             => ['nullable', 'string'],
+            'id'                  => ['required', 'exists:users,id'],
+            'rank'                => ['nullable', 'string', 'max:255'],
+            'rank_level'          => ['nullable', 'integer', 'min:1'],
+            'global_status'       => ['nullable', 'string', 'max:255'],
+            'bio'                 => ['nullable', 'string'],
+            'timezone'            => ['nullable', 'string', 'max:255'],
+            'availability_status' => ['nullable', 'string', 'max:255'],
+            'loa_note'            => ['nullable', 'string'],
         ]);
 
         $user = User::findOrFail($data['id']);
         $user->fill($data)->save();
 
         return redirect()
-            ->route('admin.users.index')
+            ->route('admin.dashboard')
             ->with('success', 'User updated.');
     }
 
@@ -164,7 +116,7 @@ class AdminController extends Controller
             ->sync($data['role_ids'] ?? []);
 
         return redirect()
-            ->route('admin.users.index')
+            ->route('admin.dashboard')
             ->with('success', 'Roles updated successfully.');
     }
 

@@ -12,6 +12,8 @@ use App\Models\Permission;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Domain\AccessControl\Traits\HasRolesAndPermissions;
+use Illuminate\Support\Facades\Cache;
+
 
 class User extends Authenticatable
 {
@@ -197,8 +199,9 @@ class User extends Authenticatable
 
     protected static function booted()
     {
-        static::saved(fn() => Cache::forget("user_roles_{$this->id}"));
-        static::saved(fn() => Cache::forget("user_permissions_{$this->id}"));
+        static::saved(function (User $user) {
+            Cache::forget("user_roles_{$user->id}");
+            Cache::forget("user_permissions_{$user->id}");
+        });
     }
-
 }

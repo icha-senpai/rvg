@@ -103,7 +103,7 @@
     <!-- HEADER -->
     <div class="hz-row-between">
       <div class="hz-title-lg">
-        Edit User · {{ editingUser.discord_name || 'Unknown' }}
+        Edit User · {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
       </div>
 
       <button class="hz-btn hz-btn-ghost hz-btn-sm" @click="closeUserEditor">
@@ -208,35 +208,47 @@ const props = defineProps({
 const users = props.users;
 const search = ref(props.filters?.search ?? '');
 
+/* ============================================================
+   COMPUTED
+============================================================ */
 const totalUsers = computed(() => users?.total ?? 0);
 const currentPage = computed(() => users?.current_page ?? 1);
 const lastPage = computed(() => users?.last_page ?? 1);
 const prevUrl = computed(() => users?.prev_page_url || null);
 const nextUrl = computed(() => users?.next_page_url || null);
 
-/* SEARCH */
+/* ============================================================
+   SEARCH
+============================================================ */
 function applySearch() {
-  router.visit(route('admin.users.index'), {
-    method: 'get',
+  router.visit(route('admin.dashboard'), {
     data: { search: search.value },
-    preserveScroll: true,
+    preserveState: true,
+    replace: true,
   });
 }
 
 function clearSearch() {
   search.value = '';
-  router.visit(route('admin.users.index'), {
-    method: 'get',
-    preserveScroll: true,
+  router.visit(route('admin.dashboard'), {
+    data: {},
+    preserveState: true,
+    replace: true,
   });
 }
 
-/* PAGINATION */
+/* ============================================================
+   PAGINATION
+============================================================ */
 function goTo(url) {
-  if (url) router.visit(url, { preserveScroll: true });
+  if (url) {
+    router.visit(url, { preserveScroll: true });
+  }
 }
 
-/* MODAL & FORM */
+/* ============================================================
+   MODAL & FORM
+============================================================ */
 const editingUser = ref(null);
 
 const form = ref({
@@ -270,19 +282,32 @@ function closeUserEditor() {
   editingUser.value = null;
 }
 
+/* ============================================================
+   SAVE ACTIONS
+============================================================ */
 function saveUser() {
   router.post(route('admin.users.update'), form.value, {
     preserveScroll: true,
-    onSuccess: () => closeUserEditor(),
+    onSuccess: () => {
+      closeUserEditor();
+      router.visit(window.location.href, { preserveScroll: true });
+    },
   });
 }
 
 function saveUserRoles() {
-  router.post(route('admin.users.updateRoles'), {
-    id: form.value.id,
-    role_ids: form.value.role_ids,
-  }, {
-    preserveScroll: true,
-  });
+  router.post(
+    route('admin.users.updateRoles'),
+    {
+      id: form.value.id,
+      role_ids: form.value.role_ids,
+    },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        router.visit(window.location.href, { preserveScroll: true });
+      },
+    }
+  );
 }
 </script>

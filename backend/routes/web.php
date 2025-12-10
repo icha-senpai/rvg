@@ -156,8 +156,10 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         | USER MANAGEMENT
         |-----------------------
         */
-        Route::get('/users', [AdminController::class, 'usersIndex'])
-            ->name('admin.users.index');
+        Route::get('/admin/users', function () {
+            return redirect()->route('admin.dashboard');
+        });
+
 
         Route::post('/users/update', [AdminController::class, 'updateUser'])
             ->name('admin.users.update');
