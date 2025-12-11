@@ -208,7 +208,7 @@ async function destroyOperation() {
     </div>
 
     <!-- Main Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-[2fr,1.2fr] gap-10">
+    <div class="mx-auto max-w-5xl space-y-10">
       <div class="text-s text-horizon-offwhite mt-2 opacity-80">
         ⏱️ Detected timezone: <strong>{{ timezone }}</strong><br>
         If this is incorrect, adjust your OS timezone for accurate scheduling.

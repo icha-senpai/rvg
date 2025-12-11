@@ -37,7 +37,7 @@
 
     /* Text */
     --color-text-primary: #FFFFFF;
-    --color-text-secondary: #94A3B8;
+    --color-text-secondary: #B6C2D3;
     --color-text-muted: #6B7280;
     --color-text-link: #2A78C8;
 
@@ -216,12 +216,12 @@
 /* --------------------------------------------------------------------------
    TYPOGRAPHY UTILITIES
 -------------------------------------------------------------------------- */
-.hz-title-xxl { font-size: var(--text-title-xxl); font-weight: 600; }
-.hz-title-xl { font-size: var(--text-title-xl); font-weight: 600; }
-.hz-title-lg { font-size: var(--text-title-lg); font-weight: 600; }
-.hz-title-md { font-size: var(--text-title-md); font-weight: 600; }
-.hz-body { font-size: var(--text-body); }
-.hz-soft { font-size: var(--text-soft); color: var(--color-text-secondary); }
+.hz-title-xxl { font-size: var(--text-title-xxl); font-weight: 600; color: var(--color-horizon-offwhite); }
+.hz-title-xl { font-size: var(--text-title-xl); font-weight: 600; color: var(--color-horizon-offwhite); }
+.hz-title-lg { font-size: var(--text-title-lg); font-weight: 600; color: var(--color-horizon-offwhite); }
+.hz-title-md { font-size: var(--text-title-md); font-weight: 600; color: var(--color-horizon-offwhite); }
+.hz-body { font-size: var(--text-body); color: var(--color-horizon-offwhite); }
+.hz-soft { font-size: var(--text-soft); color: var(--color-horizon-offwhite); }
 .hz-tiny { font-size: var(--text-tiny); color: var(--color-text-muted); }
 
 /* --------------------------------------------------------------------------
@@ -255,7 +255,7 @@
 
   .hz-btn-secondary {
     background: var(--color-bg-elevated);
-    color: var(--color-text-secondary);
+    color: var(--color-horizon-white);
     border: 1px solid var(--color-bg-hover);
   }
 
@@ -266,7 +266,7 @@
   .hz-btn-ghost {
     background: transparent;
     border: 1px solid var(--color-horizon-blue);
-    color: var(--color-horizon-blue);
+    color: var(--color-horizon-white);
   }
 
   .hz-btn-ghost:hover {
@@ -274,9 +274,9 @@
   }
 
   .hz-btn-danger {
-    background: #b91c1c;
-    border: 1px solid #7f1d1d;
-    color: #ffffff;
+    background: var(--color-horizon-blue);
+    border: 1px solid var(--color-horizon-blue-dark);
+    color: var(--color-horizon-white);
   }
 
   .hz-btn-danger:hover {
@@ -532,7 +532,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-horizon-blue);
+    color: var(--color-text-secondary);
   }
 
   .hz-subheader {

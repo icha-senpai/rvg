@@ -1,16 +1,10 @@
 <template>
   <HorizonContainer>
 
-    <!-- HUD Status Bar -->
-    <div class="hz-container-wide mb-20">
-      <HUDStatusBar
-        label="Operations"
-        :value="`${activeCount}/${totalCount} active`"
-      />
-    </div>
+
 
     <!-- MAIN PAGE (single column, screenshot style) -->
-    <section class="space-y-14">
+    <section class="space-y-7">
 
       <!-- Header + Create button -->
       <div class="flex items-center justify-between gap-4">
@@ -30,7 +24,7 @@
       </div>
 
       <!-- FILTER PANEL (centered, slim like screenshot) -->
-      <HorizonPanel class="p-3 rounded-xl hz-overlay-light space-y-4 max-w-4xl mx-auto">
+      <HorizonPanel class="p-3 rounded-xl space-y-2 max-w-2xl mx-auto">
         
         <!-- FILTER BUTTONS -->
         <div class="flex flex-wrap gap-2">
@@ -47,7 +41,7 @@
 
         <!-- SEARCH -->
         <div class="flex">
-          <div class="ml-auto w-full sm:w-64">
+          <div class="m-auto w-full sm:w-lg">
             <HorizonInput
               v-model="search"
               label="Search"
@@ -77,15 +71,6 @@
 
             <div class="flex gap-2">
               
-              <!-- VIEW -->
-              <HorizonButton
-                size="sm"
-                variant="primary"
-                @click="$inertia.visit(route('operations.show', op.id))"
-              >
-                View
-              </HorizonButton>
-
               <!-- EDIT -->
               <HorizonButton
                 v-if="canEdit(op)"
@@ -95,6 +80,17 @@
               >
                 Edit
               </HorizonButton>
+              
+              <!-- VIEW -->
+              <HorizonButton
+                size="sm"
+                variant="primary"
+                @click="$inertia.visit(route('operations.show', op.id))"
+              >
+                View
+              </HorizonButton>
+
+              <!-- DELETE -->
               <HorizonButton
                 variant="danger"
                 size="sm"

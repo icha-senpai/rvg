@@ -202,7 +202,7 @@ async function updateSlot() {
             </div>
 
             <div v-if="operation.rsvp_deadline" class="hz-stack-xs">
-              <div class="hz-section-label">RSVP Deadline</div>
+              <div class="hz-section-label">Sign up Deadline</div>
               <div class="hz-body-strong">
                 {{ asText(operation.rsvp_deadline) }}
               </div>

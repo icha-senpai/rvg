@@ -1,6 +1,7 @@
 <template>
-  <HorizonPanel 
-    class="p-6 rounded-xl hz-overlay-light cursor-pointer"
+<div class="max-w-6xl mx-auto">
+  <HorizonPanel
+    class="p-6 rounded-xl cursor-pointer"
     @click="open = !open"
   >
     <!-- TITLE ROW -->
@@ -39,7 +40,12 @@
           </div>
         </div>
 
-
+        <div>
+          <div class="hz-section-label">Sign up Deadline</div>
+          <div class="hz-title-sm text-horizon-offwhite">
+            {{ asText(operation.rsvp_deadline) }}
+          </div>
+        </div>
 
       </div>
 
@@ -51,7 +57,7 @@
       </div>
 
       <HorizonButton
-        variant="outline"
+        variant="primary"
         size="sm"
         class="mt-4"
         @click.stop="$inertia.visit(route('operations.show', operation.id))"
@@ -61,6 +67,7 @@
 
     </div>
   </HorizonPanel>
+</div>
 </template>
 
 <script setup>
@@ -80,6 +87,11 @@ function truncate(text, length) {
 }
 
 function formatDate(value) {
+  if (!value) return 'TBD';
+  return new Date(value).toLocaleString();
+}
+
+function asText(value) {
   if (!value) return 'TBD';
   return new Date(value).toLocaleString();
 }
