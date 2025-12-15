@@ -193,4 +193,25 @@ class MembershipService
 
         return $member->fresh();
     }
+    /**
+     * Demote a lieutenant back to member.
+     */
+    public function demoteLieutenant(Squadron $squadron, User $user): SquadronMember
+    {
+        $member = SquadronMember::where('user_id', $user->id)
+            ->where('squadron_id', $squadron->id)
+            ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->firstOrFail();
+            if ($member->role !== SquadronMember::ROLE_LIEUTENANT) {
+            throw ValidationException::withMessages([
+                'role' => 'User is not a lieutenant.',
+            ]);
+        }
+        $member->update([
+            'role' => SquadronMember::ROLE_MEMBER,
+        ]);
+
+        return $member->fresh();
+    }
+
 }

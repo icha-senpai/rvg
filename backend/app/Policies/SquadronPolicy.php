@@ -46,4 +46,9 @@ class SquadronPolicy
     {
         return $this->access->canPromoteLieutenant($user, $squadron);
     }
+
+    public function demoteLieutenant(User $user, Squadron $squadron): bool
+    {
+        return $this->access->canDemoteLieutenant($user, $squadron);
+    }
 }

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Squadron;
 use App\Models\Operation;
+use App\Models\SquadronMember;
 
 class AccessService
 {
@@ -350,9 +351,57 @@ class AccessService
     }
 
 
+    public function canManageSquadronMembers(User $user, Squadron $squadron): bool
+    {
+        // Directors and Tech Directors override everything
+        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+            return true;
+        }
 
+        // Squadron leader
+        if ($squadron->leader_id === $user->id) {
+            return true;
+        }
 
+        // Lieutenant of this squadron
+        return $squadron->members()
+            ->where('user_id', $user->id)
+            ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->exists();
+    }
 
+    public function canPromoteLieutenant(User $user, Squadron $squadron): bool
+    {
+    // Directors override everything
+    if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+        return true;
+    }
 
+    // Only squadron leader can promote
+    if ($squadron->leader_id !== $user->id) {
+        return false;
+    }
+
+    // Enforce max 2 lieutenants
+    $lieutenantCount = $squadron->members()
+        ->where('role', SquadronMember::ROLE_LIEUTENANT)
+        ->count();
+
+    return $lieutenantCount < 2;
+    }
+
+    /**
+     * Check if a user can demote a lieutenant.
+     */
+    public function canDemoteLieutenant(User $user, Squadron $squadron): bool
+    {
+        // Directors override
+        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+            return true;
+        }
+
+        // Squadron leader only
+        return $squadron->leader_id === $user->id;
+    }
 
 }

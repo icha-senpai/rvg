@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\SquadronLeaderController;
 use App\Http\Controllers\Web\SquadronPromotionController;
 use App\Http\Controllers\Web\SquadronManageController;
+use App\Http\Controllers\Web\SquadronPageController;
 
 // ADMIN SUBCONTROLLERS
 use App\Http\Controllers\Admin\SquadronRankController;
@@ -102,6 +103,11 @@ Route::post('/squadrons/{squadron}/promote-lieutenant',
     [SquadronPromotionController::class, 'promoteLieutenant']
 )->name('squadrons.promoteLieutenant');
 
+
+Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'show'])
+    ->whereNumber('squadron')
+    ->middleware('auth')
+    ->name('squadrons.show');
 
 /*
 |--------------------------------------------------------------------------

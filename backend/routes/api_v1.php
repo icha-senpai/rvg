@@ -148,6 +148,8 @@ Route::middleware(['auth:sanctum',])->group(function () {
     Route::post('/squadrons/{squadron}/members', [SquadronMemberController::class, 'store']);
     Route::put('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'update']);
     Route::delete('/squadrons/{squadron}/members/{member}', [SquadronMemberController::class, 'destroy']);
+    Route::post('/squadrons/{squadron}/members/{user}/promote-lieutenant', [SquadronMemberController::class, 'promoteLieutenant']);
+    Route::post('/squadrons/{squadron}/members/{user}/demote-lieutenant', [SquadronMemberController::class, 'demoteLieutenant']);
 
     // Operations API
     Route::get('/operations', [OperationController::class, 'index']);

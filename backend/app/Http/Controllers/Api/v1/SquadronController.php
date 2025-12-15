@@ -36,12 +36,54 @@ class SquadronController extends Controller
     {
         $this->authorize('view', $squadron);
 
-        return response()->json(
-            SquadronPresenter::make(
-                $this->squadrons->show($squadron)
-            )
-        );
+        $user = auth()->user();
+
+        // Load full graph
+        $squadron = $this->squadrons->show($squadron);
+
+        // Viewer membership (user can only be in one squadron anyway)
+        $viewerMembership = null;
+        if ($user) {
+            $viewerMembership = $squadron->members
+                ->firstWhere('user_id', $user->id);
+        }
+
+        return response()->json([
+            'squadron' => \App\Domain\Squadrons\Presenters\SquadronPresenter::make($squadron),
+
+            'members' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::collection(
+                $squadron->members
+            ),
+
+            'viewer_membership' => $viewerMembership
+                ? SquadronMemberPresenter::make($viewerMembership)
+                : null,
+
+            'permissions' => [
+                'can_manage_members' => $user
+                    ? $user->can('manageMembers', $squadron)
+                    : false,
+
+                'can_promote_lieutenant' => $user
+                    ? $user->can('promoteLieutenant', $squadron)
+                    : false,
+
+                // derived UI permissions
+                'can_apply' => $user
+                    && !$viewerMembership
+                    && $squadron->recruiting,
+
+                'can_leave' => $user
+                    && $viewerMembership
+                    && $viewerMembership->membership_status === \App\Models\SquadronMember::STATUS_ACTIVE,
+
+                'can_wait' => $user
+                    && $viewerMembership
+                    && $viewerMembership->membership_status === \App\Models\SquadronMember::STATUS_PENDING,
+            ],
+        ]);
     }
+
 
     /** POST /api/v1/squadrons */
     public function store(SquadronStoreRequest $request)

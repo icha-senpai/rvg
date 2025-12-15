@@ -37,6 +37,7 @@ class SquadronPresenter
                     'id'          => $squadron->leader->id,
                     'name'        => $squadron->leader->name,
                     'display_name'=> $squadron->leader->display_name ?? $squadron->leader->name,
+                    'rsi_handle'  => $squadron->leader->rsi_handle,
                     'rank'        => $squadron->leader->rank,
                     'rank_level'  => $squadron->leader->rank_level,
                     'avatar'      => $squadron->leader->discord_avatar,

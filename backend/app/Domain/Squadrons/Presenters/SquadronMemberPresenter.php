@@ -18,7 +18,7 @@ class SquadronMemberPresenter
             'squadron_id'       => $member->squadron_id,
 
             // Membership state
-            'status'            => $member->membership_status,
+            'membership_status'            => $member->membership_status,
             'role'              => $member->role ?? 'member',
             'is_leader'         => $member->isLeader(),
             'is_lieutenant'     => $member->isLieutenant(),
@@ -35,6 +35,7 @@ class SquadronMemberPresenter
                     'id'            => $member->user->id,
                     'name'          => $member->user->name,
                     'display_name'  => $member->user->display_name ?? $member->user->name,
+                    'rsi_handle'    => $member->user->rsi_handle,
                     'rank'          => $member->user->rank,
                     'rank_level'    => $member->user->rank_level,
                     'avatar'        => $member->user->discord_avatar,

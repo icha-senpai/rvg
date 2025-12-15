@@ -10,6 +10,7 @@ use App\Http\Requests\SquadronMemberUpdateStatusRequest;
 use App\Domain\Squadrons\MembershipService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class SquadronMemberController extends Controller
 {
@@ -31,7 +32,12 @@ class SquadronMemberController extends Controller
             ], 409);
         }
 
-        return response()->json($member, 201);
+        return response()->json(
+            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
+                $member->load('user')
+            ),
+            201
+        );
     }
 
     public function update(
@@ -47,7 +53,12 @@ class SquadronMemberController extends Controller
             $request->membership_status
         );
 
-        return response()->json($updated);
+        return response()->json(
+            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
+                $member->load('user')
+            ),
+            201
+        );
     }
 
     public function destroy(Squadron $squadron, SquadronMember $member)
@@ -71,7 +82,12 @@ class SquadronMemberController extends Controller
             ], 409);
         }
 
-        return response()->json($member, 201);
+        return response()->json(
+            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
+                $member->load('user')
+            ),
+            201
+        );
     }
 
     public function leave(Squadron $squadron)
@@ -88,4 +104,28 @@ class SquadronMemberController extends Controller
 
         return response()->json(['message' => 'Left squadron successfully']);
     }
+    public function promoteLieutenant(
+        Squadron $squadron,
+        User $user
+    ) {
+        $this->authorize('promoteLieutenant', $squadron);
+
+        app(\App\Domain\Squadrons\MembershipService::class)
+            ->promoteLieutenant($squadron, $user);
+
+        return response()->json([
+            'success' => true,
+        ]);
+    }
+    public function demoteLieutenant(Squadron $squadron, User $user)
+    {
+        $this->authorize('demoteLieutenant', $squadron);
+
+        $this->membership->demoteLieutenant($squadron, $user);
+
+        return response()->noContent();
+    }
+
+
+
 }
