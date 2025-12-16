@@ -22,7 +22,9 @@ class SquadronController extends Controller
     /** GET /api/v1/squadrons */
     public function index()
     {
-        $this->authorize('viewAny', Squadron::class);
+        if (auth()->check()) {
+            $this->authorize('viewAny', Squadron::class);
+        }
 
         return response()->json(
             SquadronPresenter::collection(

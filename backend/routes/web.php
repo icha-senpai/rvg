@@ -116,9 +116,9 @@ Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'show'])
 */
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/squadrons/{squadron}/manage', 
-        [SquadronManageController::class, 'index']
-    )->name('squadrons.manage');
+    Route::get('/squadrons', 
+        [SquadronPageController::class, 'index']
+    )->name('squadrons.index');
 
     Route::post('/squadrons/{squadron}/members/update', 
         [SquadronManageController::class, 'updateMember']

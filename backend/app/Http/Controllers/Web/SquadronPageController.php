@@ -17,4 +17,9 @@ class SquadronPageController extends Controller
             'squadronId' => $squadron->id,
         ]);
     }
+
+    public function index()
+    {
+        return Inertia::render('Squadrons/Index');
+    }
 }

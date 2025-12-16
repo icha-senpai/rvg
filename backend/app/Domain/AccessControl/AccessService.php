@@ -261,12 +261,7 @@ class AccessService
      */
     public function canViewAnySquadron(User $user): bool
     {
-        // Director / Tech Director override
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        return $this->can($user, 'squadron.view');
+        return true;
     }
 
     /**
