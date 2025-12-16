@@ -28,7 +28,7 @@ const emit = defineEmits([
   'reject-member',
   'promote-lt',
   'remove-member',
-  'updated', // 🔹 NEW
+  'updated',
 ])
 
 /* -------------------------------------------------
@@ -74,7 +74,6 @@ async function fetchSquadron() {
     viewerMembership.value = data.viewer_membership
     permissions.value = data.permissions
 
-    // sync edit form
     editForm.value.motto = data.squadron?.motto ?? ''
     editForm.value.description = data.squadron?.description ?? ''
   } catch (error) {
@@ -102,9 +101,7 @@ async function saveSettings() {
     isEditing.value = false
     await fetchSquadron()
 
-    // 🔥 inform parent so card updates immediately
     emit('updated', squadron.value)
-
   } catch (error) {
     alert(
       error.response?.data?.message ??
@@ -142,19 +139,25 @@ watch(
 
     <template v-if="squadron">
       <!-- Header -->
-      <div class="hz-row-between">
-        <SquadronPanelHeader
-          :squadron="squadron"
-          @close="emit('close')"
-        />
+      <div class="hz-row-between items-start">
+        <SquadronPanelHeader :squadron="squadron" />
 
-        <button
-          v-if="canEdit && !isEditing"
-          class="hz-btn hz-btn-ghost hz-btn-sm"
-          @click="isEditing = true"
-        >
-          Edit
-        </button>
+        <div class="hz-row gap-2">
+          <button
+            v-if="canEdit && !isEditing"
+            class="hz-btn hz-btn-ghost hz-btn-sm"
+            @click="isEditing = true"
+          >
+            Edit
+          </button>
+
+          <button
+            class="hz-btn hz-btn-ghost hz-btn-sm"
+            @click="emit('close')"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       <!-- Overview / Edit -->
