@@ -67,6 +67,7 @@ trait HasRolesAndPermissions
     {
         return $squadron->members()
             ->where('user_id', $this->id)
+            ->where('membership_status', 'active')
             ->where('role', 'lieutenant')
             ->exists();
     }

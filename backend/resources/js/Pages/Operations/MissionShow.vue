@@ -161,10 +161,10 @@ async function updateSlot() {
 
 
 <template>
-  <HorizonContainer>
+  <HorizonContainer class="space-y-10">
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-12">
+    <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
 
       <div class="flex items-center gap-4">
         <HorizonButton
@@ -193,10 +193,10 @@ async function updateSlot() {
     </div>
 
     <!-- MAIN GRID -->
-    <div class="mt-10 mb-20 grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
+    <div class="mb-20 mx-auto max-w-5xl space-y-10">
 
       <!-- LEFT COLUMN -->
-      <section class="flex flex-col gap-8">
+      <section class="space-y-6">
 
         <!-- META PANEL -->
         <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
@@ -370,7 +370,7 @@ async function updateSlot() {
       </section>
 
       <!-- RIGHT SIDEBAR -->
-      <aside class="flex flex-col gap-8 sticky top-10 h-fit">
+      <section class="space-y-6">
 
         <!-- USER STATUS -->
         <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
@@ -473,7 +473,7 @@ async function updateSlot() {
 
        
 
-      </aside>
+      </section>
 
     </div>
   </HorizonContainer>

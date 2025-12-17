@@ -1,10 +1,10 @@
 <template>
-  <HorizonContainer>
+  <HorizonContainer class="space-y-10">
 
 
 
     <!-- MAIN PAGE (single column, screenshot style) -->
-    <section class="space-y-7">
+    <section class="mx-auto max-w-5xl space-y-7">
 
       <!-- Header + Create button -->
       <div class="flex items-center justify-between gap-4">
@@ -45,7 +45,7 @@
             <HorizonInput
               v-model="search"
               label="Search"
-              placeholder="Title, squadron..."
+              placeholder="Title, description..."
             />
           </div>
         </div>
@@ -53,7 +53,7 @@
       </HorizonPanel>
 
       <!-- OPERATION GRID -->
-      <MissionGrid v-if="filteredOperations.length > 0" class="pt-2">
+      <MissionGrid v-if="filteredOperations.length > 0" class="pt-2 lg:grid-cols-2!">
         <MissionCard
           v-for="op in filteredOperations"
           :key="op.id"
@@ -85,7 +85,7 @@
               
               <!-- EDIT -->
               <HorizonButton
-                v-if="canEdit(op)"
+                v-if="canManageOperation(op)"
                 size="sm"
                 variant="primary"
                 @click="$inertia.visit(route('operations.edit', op.id))"
@@ -104,6 +104,7 @@
 
               <!-- DELETE -->
               <HorizonButton
+                v-if="canManageOperation(op)"
                 variant="danger"
                 size="sm"
                 @click="destroy(op.id)"
@@ -239,7 +240,13 @@ const isSquadronLieutenant = computed(() =>
   user.value?.squadrons?.some(s => s.pivot?.role === 'lieutenant')
 );
 
+const isDirectorLike = computed(() => {
+  const roles = user.value?.roles ?? [];
+  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
+});
+
 const canCreateOperation = computed(() => {
+  if (isDirectorLike.value) return true;
   if (can.value['operation.create']) return true;
   if (can.value['operation.host.small']) return true;
   if (can.value['operation.host.medium']) return true;
@@ -250,12 +257,25 @@ const canCreateOperation = computed(() => {
   return false;
 });
 
-// EDIT permission
-function canEdit(op) {
-  if (can.value['operation.update']) return true;
-  if (op.created_by === user.value?.id) return true;
-  if (isSquadronLeader.value) return true;
-  return false;
+function canManageOperation(op) {
+  if (isDirectorLike.value) return true;
+
+  const squadronId = op?.squadron?.id;
+  if (!squadronId) return false;
+
+  const squadronLeaderId = op?.squadron?.leader?.id;
+  if (squadronLeaderId && squadronLeaderId === user.value?.id) {
+    return true;
+  }
+
+  const membership = user.value?.squadrons?.find(s => s.id === squadronId);
+  if (!membership) return false;
+
+  const membershipStatus = membership.pivot?.membership_status;
+  if (membershipStatus && membershipStatus !== 'active') return false;
+
+  const role = membership.pivot?.role;
+  return role === 'leader' || role === 'lieutenant';
 }
 
 function destroy(operationId) {

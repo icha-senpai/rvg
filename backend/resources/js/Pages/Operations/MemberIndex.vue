@@ -1,6 +1,8 @@
 <template>
   <HorizonContainer class="space-y-10">
 
+    <div class="mx-auto max-w-5xl space-y-6">
+
     <!-- HEADER -->
     <HorizonSectionHeader
       label="Operations"
@@ -41,6 +43,8 @@
       >
         Next
       </HorizonButton>
+    </div>
+
     </div>
 
   </HorizonContainer>

@@ -165,23 +165,31 @@ class AccessService
             return true;
         }
 
-        // Global manage permission
-        if ($this->can($user, 'operation.manage')) {
+        // Only squadron leader/lieutenant for this operation's squadron
+        if (!$operation->squadron_id) {
+            return false;
+        }
+
+        $squadron = Squadron::find($operation->squadron_id);
+        if (!$squadron) {
+            return false;
+        }
+
+        $ctx = $this->context($user);
+
+        // Creator can edit their own op (only if they are leader/lieutenant of that squadron)
+        if ($operation->created_by === $user->id
+            && ($ctx->isSquadronLeader($squadron) || $ctx->isSquadronLieutenant($squadron))
+        ) {
             return true;
         }
 
-        // Creator can edit their own op
-        if ($operation->created_by === $user->id) {
+        if ($ctx->isSquadronLeader($squadron)) {
             return true;
         }
 
-        // Squadron leader can edit ops for their squadron
-        if ($operation->squadron_id) {
-            $squadron = Squadron::find($operation->squadron_id);
-
-            if ($squadron && $this->context($user)->isSquadronLeader($squadron)) {
-                return true;
-            }
+        if ($ctx->isSquadronLieutenant($squadron)) {
+            return true;
         }
 
         return false;

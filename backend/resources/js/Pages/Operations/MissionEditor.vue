@@ -210,7 +210,7 @@ async function destroyOperation() {
   <HorizonContainer class="space-y-10">
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
       <div class="hz-stack-sm">
         <div class="hz-section-label">
           {{ isEdit ? 'Update Operation' : 'New Operation' }}
