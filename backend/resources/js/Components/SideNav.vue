@@ -93,7 +93,7 @@ const navItems = computed(() => {
             style="background: var(--color-horizon-blue-light);"
           ></div>
           <div class="hz-title-md text-horizon-white">
-            Horizon
+            Horizon Interstellar
           </div>
         </div>
 
