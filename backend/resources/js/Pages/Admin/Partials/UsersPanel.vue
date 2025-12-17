@@ -14,13 +14,13 @@
           placeholder="Search by name, RSI handle, or ID..."
         />
 
-        <button class="hz-btn hz-btn-primary" @click="applySearch">
+        <HorizonButton variant="primary" size="sm" @click="applySearch">
           Search
-        </button>
+        </HorizonButton>
 
-        <button class="hz-btn hz-btn-secondary" @click="clearSearch">
+        <HorizonButton variant="primary" size="sm" @click="clearSearch">
           Clear
-        </button>
+        </HorizonButton>
       </div>
     </div>
 
@@ -59,37 +59,40 @@
               </span>
             </div>
           </div>
-
-          <button
-            class="hz-btn hz-btn-secondary hz-btn-sm"
+          <HorizonButton
+            size="sm"
+            variant="primary"
             @click="openUserEditor(u)"
           >
             Edit
-          </button>
+          </HorizonButton>
+
         </div>
       </div>
 
       <!-- PAGINATION -->
       <div class="hz-row-between hz-stack-sm">
-        <button
-          class="hz-btn hz-btn-secondary"
+        <HorizonButton
+          variant="primary"
+          size="sm"
           :disabled="!prevUrl"
           @click="goTo(prevUrl)"
         >
           Previous
-        </button>
+        </HorizonButton>
 
         <div class="hz-text-soft">
           Page {{ currentPage }} / {{ lastPage }}
         </div>
 
-        <button
-          class="hz-btn hz-btn-secondary"
+        <HorizonButton
+          variant="primary"
+          size="sm"
           :disabled="!nextUrl"
           @click="goTo(nextUrl)"
         >
           Next
-        </button>
+        </HorizonButton>
       </div>
     </div>
 
@@ -106,9 +109,9 @@
         Edit User · {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
       </div>
 
-      <button class="hz-btn hz-btn-ghost hz-btn-sm" @click="closeUserEditor">
+      <HorizonButton variant="primary" size="sm" @click="closeUserEditor">
         ✕
-      </button>
+      </HorizonButton>
     </div>
 
     <!-- FORM -->
@@ -168,24 +171,25 @@
           </div>
         </div>
 
-        <button
-          class="hz-btn hz-btn-secondary hz-btn-sm"
+        <HorizonButton
+          variant="secondary"
+          size="sm"
           @click="saveUserRoles"
         >
           Save Roles
-        </button>
+        </HorizonButton>
       </div>
     </div>
 
     <!-- ACTION ROW -->
     <div class="hz-row-between pt-2">
-      <button class="hz-btn hz-btn-ghost" @click="closeUserEditor">
+      <HorizonButton variant="primary" size="sm" @click="closeUserEditor">
         Cancel
-      </button>
+      </HorizonButton>
 
-      <button class="hz-btn hz-btn-primary" @click="saveUser">
+      <HorizonButton variant="primary" size="sm" @click="saveUser">
         Save Changes
-      </button>
+      </HorizonButton>
     </div>
 
   </div>
@@ -198,6 +202,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
   users: Object,

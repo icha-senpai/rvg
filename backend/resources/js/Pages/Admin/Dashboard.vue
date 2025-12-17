@@ -10,29 +10,29 @@
 
     <!-- TAB BAR -->
     <div class="hz-row hz-text-soft" style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);">
-      <button
-        class="hz-btn hz-btn-ghost"
-        :class="{ 'hz-btn-primary': activeTab === 'users' }"
+      <HorizonButton
+        size="sm"
+        :variant="activeTab === 'users' ? 'primary' : 'ghost'"
         @click="activeTab = 'users'"
       >
         Users
-      </button>
+      </HorizonButton>
 
-      <button
-        class="hz-btn hz-btn-ghost"
-        :class="{ 'hz-btn-primary': activeTab === 'squadrons' }"
+      <HorizonButton
+        size="sm"
+        :variant="activeTab === 'squadrons' ? 'primary' : 'ghost'"
         @click="activeTab = 'squadrons'"
       >
         Squadrons
-      </button>
+      </HorizonButton>
 
-      <button
-        class="hz-btn hz-btn-ghost"
-        :class="{ 'hz-btn-primary': activeTab === 'roles' }"
+      <HorizonButton
+        size="sm"
+        :variant="activeTab === 'roles' ? 'primary' : 'ghost'"
         @click="activeTab = 'roles'"
       >
         Roles
-      </button>
+      </HorizonButton>
     </div>
 
     <!-- CONTENT PANELS -->
@@ -57,6 +57,7 @@ import HorizonContainer from '@/Components/HorizonContainer.vue';
 import UsersPanel from './Partials/UsersPanel.vue';
 import SquadronsPanel from './Partials/SquadronsPanel.vue';
 import RolesPanel from './Partials/RolesPanel.vue';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
   users: Object,

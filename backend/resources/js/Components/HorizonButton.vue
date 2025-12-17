@@ -25,6 +25,8 @@ defineProps({
 const variantMap = {
   primary: 'hz-btn-primary',
   secondary: 'hz-btn-secondary',
+  outline: 'hz-btn-ghost',
+  neutral: 'hz-btn-secondary',
   ghost: 'hz-btn-ghost',
   danger: 'hz-btn-danger',
 };

@@ -1,4 +1,5 @@
 <script setup>
+import HorizonButton from '@/Components/HorizonButton.vue';
 const props = defineProps({
   viewerMembership: Object,
   permissions: Object,
@@ -27,23 +28,25 @@ const emit = defineEmits(['apply', 'leave'])
   </div>
 </div>
     <div class="hz-row mt-2">
-      <button
+      <HorizonButton
         v-if="permissions?.can_apply"
-        class="hz-btn hz-btn-primary hz-btn-sm"
+        variant="primary"
+        size="sm"
         :disabled="isLoading || activeAction === 'apply'"
         @click="emit('apply')"
       >
         Apply
-      </button>
+      </HorizonButton>
 
-      <button
+      <HorizonButton
         v-if="permissions?.can_leave"
-        class="hz-btn hz-btn-secondary hz-btn-sm"
+        variant="secondary"
+        size="sm"
         :disabled="isLoading || activeAction === 'leave'"
         @click="emit('leave')"
       >
         Leave
-      </button>
+      </HorizonButton>
     </div>
   </div>
 </template>

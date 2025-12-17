@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 // --- URL token from Discord OAuth callback ---
 const params = new URLSearchParams(window.location.search);
@@ -158,12 +159,13 @@ const verifyRsi = async () => {
                     Click below to log in with Discord. You’ll return here afterward.
                 </p>
 
-                <a
-                    href="/auth/discord"
-                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition text-sm font-medium"
+                <HorizonButton
+                    variant="primary"
+                    size="sm"
+                    @click="window.location.href = '/auth/discord'"
                 >
                     Verify with Discord
-                </a>
+                </HorizonButton>
             </div>
 
             <!-- STEP 2: RSI — only if not yet verified -->
@@ -175,14 +177,16 @@ const verifyRsi = async () => {
                 </p>
 
                 <!-- Generate code -->
-                <button
+                <HorizonButton
+                    class="mb-3"
+                    variant="primary"
+                    size="sm"
                     @click="getCode"
                     :disabled="loadingCode"
-                    class="mb-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
                 >
                     <span v-if="!loadingCode">Generate Code</span>
                     <span v-else>Generating...</span>
-                </button>
+                </HorizonButton>
 
                 <!-- Show code -->
                 <div v-if="verificationCode" class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm">
@@ -209,14 +213,16 @@ const verifyRsi = async () => {
                 </div>
 
                 <!-- Verify -->
-                <button
+                <HorizonButton
+                    class="w-full"
+                    variant="primary"
+                    size="sm"
                     @click="verifyRsi"
                     :disabled="verifying"
-                    class="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
                 >
                     <span v-if="!verifying">Verify RSI</span>
                     <span v-else>Verifying...</span>
-                </button>
+                </HorizonButton>
             </div>
 
             <!-- (Optional) If rsiVerified AND discordVerified → instant redirect happens above -->

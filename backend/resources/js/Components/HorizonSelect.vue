@@ -9,9 +9,11 @@
     </label>
 
     <!-- TRIGGER BUTTON -->
-    <button
+    <HorizonButton
       type="button"
-      class="hz-select-button w-full flex justify-between items-center
+      variant="ghost"
+      size="md"
+      class="hz-select-button w-full flex justify-between items-center font-normal
              bg-[var(--color-horizon-blue-20)] border border-[var(--color-bg-hover)]
              rounded-lg px-3 py-2 text-[var(--color-text-primary)]
              hover:border-[var(--color-horizon-blue)] transition
@@ -31,7 +33,7 @@
       >
         <path d="M7 10l5 5 5-5z" />
       </svg>
-    </button>
+    </HorizonButton>
 
     <!-- DROPDOWN MENU -->
     <transition name="fade-scale">
@@ -58,7 +60,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-
+import HorizonButton from '@/Components/HorizonButton.vue';
 const props = defineProps({
   modelValue: [String, Number, null],
   options: { type: Array, required: true },

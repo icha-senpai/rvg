@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
-
+import HorizonButton from '@/Components/HorizonButton.vue';
 /* -------------------------------------------------
    Props from Inertia
 ------------------------------------------------- */
@@ -31,12 +31,13 @@ function closePanel() {
 
 <template>
   <div class="hz-container hz-stack">
-    <button
-      class="hz-btn hz-btn-primary hz-btn-sm"
+    <HorizonButton
+      variant="primary"
+      size="sm"
       @click="openPanel"
     >
       View Squadron
-    </button>
+    </HorizonButton>
 
     <SquadronExpandedPanel
       v-if="isExpanded"

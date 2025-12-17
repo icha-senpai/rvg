@@ -36,7 +36,7 @@
         </div>
 
         <div class="flex gap-2">
-          <HorizonButton size="sm" variant="outline" @click="openEditModal(sq)">
+          <HorizonButton size="sm" variant="primary" @click="openEditModal(sq)">
             Edit
           </HorizonButton>
 
@@ -63,12 +63,13 @@
           <div class="hz-title-lg">
             {{ isEditing ? 'Edit Squadron' : 'Create Squadron' }}
           </div>
-          <button
-            class="hz-caption text-horizon-muted hover:text-horizon-white"
+          <HorizonButton
+            variant="ghost"
+            size="xs"
             @click="closeModal"
           >
             ✕
-          </button>
+          </HorizonButton>
         </div>
 
         <!-- FORM -->
@@ -103,14 +104,16 @@
             </span>
             <span v-else>None</span>
 
-            <button
+            <HorizonButton
               v-if="form.leader_id"
-              class="ml-3 hz-btn hz-btn-ghost"
+              class="ml-3"
+              size="xs"
+              variant="ghost"
               type="button"
               @click="form.leader_id = null"
             >
               Unassign
-            </button>
+            </HorizonButton>
           </div>
 
           <div>
@@ -131,7 +134,7 @@
 
         <!-- ACTION BUTTONS -->
         <div class="flex justify-end gap-3 mt-4">
-          <HorizonButton variant="ghost" size="sm" @click="closeModal">
+          <HorizonButton variant="primary" size="sm" @click="closeModal">
             Cancel
           </HorizonButton>
 

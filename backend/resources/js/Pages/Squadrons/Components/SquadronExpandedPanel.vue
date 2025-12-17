@@ -6,7 +6,7 @@ import SquadronPanelHeader from './SquadronPanelHeader.vue'
 import SquadronOverviewSection from './SquadronOverviewSection.vue'
 import SquadronViewerStatus from './SquadronViewerStatus.vue'
 import SquadronRoster from './SquadronRoster.vue'
-
+import HorizonButton from '@/Components/HorizonButton.vue';
 /* -------------------------------------------------
    Props
 ------------------------------------------------- */
@@ -143,20 +143,22 @@ watch(
         <SquadronPanelHeader :squadron="squadron" />
 
         <div class="hz-row gap-2">
-          <button
+          <HorizonButton
             v-if="canEdit && !isEditing"
-            class="hz-btn hz-btn-ghost hz-btn-sm"
+            variant="ghost"
+            size="sm"
             @click="isEditing = true"
           >
             Edit
-          </button>
+          </HorizonButton>
 
-          <button
-            class="hz-btn hz-btn-ghost hz-btn-sm"
+          <HorizonButton
+            variant="ghost"
+            size="sm"
             @click="emit('close')"
           >
             Close
-          </button>
+          </HorizonButton>
         </div>
       </div>
 
@@ -183,12 +185,12 @@ watch(
         />
 
         <div class="hz-row gap-2">
-          <button class="hz-btn hz-btn-primary" @click="saveSettings">
+          <HorizonButton variant="primary" size="sm" @click="saveSettings">
             Save
-          </button>
-          <button class="hz-btn hz-btn-ghost" @click="cancelEdit">
+          </HorizonButton>
+          <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
             Cancel
-          </button>
+          </HorizonButton>
         </div>
       </div>
 

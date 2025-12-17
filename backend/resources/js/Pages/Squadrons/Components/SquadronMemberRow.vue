@@ -19,42 +19,47 @@
     <div class="hz-row gap-2">
       <!-- Accept/Reject buttons for pending members (only show if user has permission) -->
       <template v-if="member.membership_status === 'pending' && permissions?.can_manage_members">
-        <button
-          class="hz-btn hz-btn-primary hz-btn-xs"
+        <HorizonButton
+          variant="primary"
+          size="xs"
           @click="$emit('accept', member)"
         >
           Accept
-        </button>
-        <button
-          class="hz-btn hz-btn-secondary hz-btn-xs"
+        </HorizonButton>
+        <HorizonButton
+          variant="secondary"
+          size="xs"
           @click="$emit('reject', member)"
         >
           Reject
-        </button>
+        </HorizonButton>
       </template>
 
       <!-- Remove button (for active members or for admins) -->
-      <button
+      <HorizonButton
         v-if="permissions?.can_manage_members && member.membership_status !== 'pending'"
-        class="hz-btn hz-btn-ghost hz-btn-xs"
+        variant="ghost"
+        size="xs"
         @click="$emit('remove', member)"
       >
         Remove
-      </button>
-      <button
+      </HorizonButton>
+      <HorizonButton
         v-if="permissions.can_promote_lieutenant && member.role === 'member'"
-        class="hz-btn hz-btn-ghost hz-btn-xs"
+        variant="ghost"
+        size="xs"
         @click="$emit('promote-lt', member.user)"
       >
         Promote to Lieutenant
-      </button>
-      <button
+      </HorizonButton>
+      <HorizonButton
         v-if="permissions.can_promote_lieutenant && member.is_lieutenant"
-        class="hz-btn hz-btn-ghost hz-btn-xs"
+        variant="ghost"
+        size="xs"
         @click="$emit('demote-lt', member)"
       >
         Demote
-      </button>
+      </HorizonButton>
 
 
     </div>
@@ -62,6 +67,8 @@
 </template>
 
 <script setup>
+import HorizonButton from '@/Components/HorizonButton.vue';
+
 const props = defineProps({
   member: Object,
   permissions: Object,

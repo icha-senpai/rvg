@@ -26,7 +26,7 @@
         </div>
 
         <div class="flex gap-2">
-          <HorizonButton size="sm" variant="outline" @click="openEdit(role)">
+          <HorizonButton size="sm" variant="primary" @click="openEdit(role)">
             Edit
           </HorizonButton>
 
@@ -53,12 +53,13 @@
             {{ isEditing ? 'Edit Role' : 'Create Role' }}
           </div>
 
-          <button
-            class="hz-caption text-horizon-muted hover:text-horizon-white"
+          <HorizonButton
+            variant="ghost"
+            size="xs"
             @click="closeModal"
           >
             ✕
-          </button>
+          </HorizonButton>
         </div>
 
         <div class="space-y-4">
@@ -74,7 +75,7 @@
         </div>
 
         <div class="flex justify-end gap-3 mt-4">
-          <HorizonButton variant="ghost" size="sm" @click="closeModal">
+          <HorizonButton variant="primary" size="sm" @click="closeModal">
             Cancel
           </HorizonButton>
 
