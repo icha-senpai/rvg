@@ -10,8 +10,11 @@
         {{ operation.title }}
       </h3>
 
-      <div class="hz-caption text-horizon-offwhite">
-        {{ formatDate(operation.starts_at) }}
+      <div class="hz-caption text-horizon-offwhite text-right">
+        <div>{{ formatDate(operation.starts_at) }}</div>
+        <div class="text-horizon-offwhite text-xs opacity-70">
+          {{ formatLocal(operation.starts_at) }} (local)
+        </div>
       </div>
     </div>
 
@@ -43,14 +46,25 @@
         <div>
           <div class="hz-section-label">Start Time</div>
           <div class="hz-title-sm text-horizon-offwhite">
-            {{ formatDate(operation.starts_at) }}
+            <div>{{ formatDate(operation.starts_at) }}</div>
+            <div class="hz-caption text-horizon-offwhite opacity-70">
+              {{ formatLocal(operation.starts_at) }} (local)
+            </div>
           </div>
         </div>
 
         <div>
           <div class="hz-section-label">Sign up Deadline</div>
           <div class="hz-title-sm text-horizon-offwhite">
-            {{ asText(operation.rsvp_deadline) }}
+            <div v-if="operation.rsvp_deadline">
+              <div>{{ asText(operation.rsvp_deadline) }}</div>
+              <div class="hz-caption text-horizon-offwhite opacity-70">
+                {{ formatLocal(operation.rsvp_deadline) }} (local)
+              </div>
+            </div>
+            <div v-else>
+              TBD
+            </div>
           </div>
         </div>
 
@@ -94,12 +108,35 @@ function truncate(text, length) {
 }
 
 function formatDate(value) {
-  if (!value) return 'TBD';
-  return new Date(value).toLocaleString();
+  return formatUTC(value);
 }
 
 function asText(value) {
-  if (!value) return 'TBD';
-  return new Date(value).toLocaleString();
+  return formatUTC(value);
+}
+
+function formatUTC(dt) {
+  if (!dt) return 'TBD';
+
+  const clean = String(dt).replace('Z', '').replace('+00:00', '');
+  const date = clean.slice(0, 10);
+  const time = clean.slice(11, 16);
+
+  return `${date} ${time} UTC`;
+}
+
+function formatLocal(dt) {
+  if (!dt) return 'TBD';
+
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return String(dt);
+
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 </script>

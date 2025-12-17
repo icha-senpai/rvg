@@ -51,7 +51,7 @@ import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
-import OperationAccordion from '@/Components/Operations/OperationAccordion.vue';
+import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
@@ -85,7 +85,7 @@ function goToPage(pageNumber) {
   );
 }
 
-// Earliest start time first
+// Most recent start time first
 const sortedOperations = computed(() => {
   return [...(operationsList.value ?? [])].sort((a, b) => {
     const aDate = parseDate(a.starts_at);
@@ -95,7 +95,7 @@ const sortedOperations = computed(() => {
     if (!aDate) return 1; 
     if (!bDate) return -1;
 
-    return aDate.getTime() - bDate.getTime();
+    return bDate.getTime() - aDate.getTime();
   });
 });
 console.log("Raw starts_at:", operationsList.value.map(o => o.starts_at));

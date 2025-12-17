@@ -9,7 +9,6 @@ import { Ziggy } from '../../ziggy';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
-import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSection from '@/Components/HorizonSection.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
 
@@ -20,6 +19,7 @@ const props = defineProps({
   squadronId: { type: Number, required: true },
   mission: { type: Object, default: null },
 });
+
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // ----------------------
@@ -28,26 +28,48 @@ const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const isEdit = computed(() => props.mission !== null);
 
 // ----------------------
-// DATETIME — NO CONVERSION
-// Clean UTC string -> datetime-local compatible string
+// UTC HELPERS
 // ----------------------
-function cleanUTC(iso) {
-  if (!iso) return '';
-  return iso.replace('Z', '').slice(0, 16);
+function splitUTC(iso) {
+  if (!iso) return { date: '', time: '' };
+  const clean = iso.replace('Z', '');
+  return {
+    date: clean.slice(0, 10),
+    time: clean.slice(11, 16),
+  };
+}
+
+function buildDateTime(date, time) {
+  if (!date || !time) return null;
+
+  const normalizedTime = time.length === 5 ? `${time}:00` : time;
+
+  return `${date} ${normalizedTime}`;
 }
 
 // ----------------------
 // FORM
 // ----------------------
+const start = splitUTC(props.mission?.starts_at);
+const end = splitUTC(props.mission?.ends_at);
+const rsvp = splitUTC(props.mission?.rsvp_deadline);
+
 const form = useForm({
   title: props.mission?.title ?? '',
   operation_kind: props.mission?.operation_kind ?? 'mission',
   type: props.mission?.type ?? '',
-  
-  // PURE UTC, NO CONVERSION
-  starts_at: props.mission?.starts_at ? cleanUTC(props.mission.starts_at) : '',
-  ends_at: props.mission?.ends_at ? cleanUTC(props.mission.ends_at) : '',
-  rsvp_deadline: props.mission?.rsvp_deadline ? cleanUTC(props.mission.rsvp_deadline) : '',
+
+  // DATE + TIME (SPLIT)
+  start_date: start.date,
+  start_time: start.time,
+  end_date: end.date,
+  end_time: end.time,
+  rsvp_date: rsvp.date,
+  rsvp_time: rsvp.time,
+
+  starts_at: buildDateTime(start.date, start.time),
+  ends_at: buildDateTime(end.date, end.time),
+  rsvp_deadline: buildDateTime(rsvp.date, rsvp.time),
 
   description: props.mission?.description ?? '',
   notes: props.mission?.notes ?? '',
@@ -80,26 +102,29 @@ async function submit(mode) {
   form.status = isPublishing ? 'published' : 'draft';
 
   // ----------------------
-  // VALIDATION: REQUIRE FULL DATE + TIME
+  // BUILD DATETIMES
   // ----------------------
-  function isDateTimeComplete(dt) {
-    if (!dt) return false;
-    // Must match YYYY-MM-DDTHH:MM (datetime-local format)
-    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt);
-  }
+  form.starts_at = buildDateTime(form.start_date, form.start_time);
+  form.ends_at = buildDateTime(form.end_date, form.end_time);
+  form.rsvp_deadline = buildDateTime(form.rsvp_date, form.rsvp_time);
 
-  if (!isDateTimeComplete(form.starts_at)) {
-    alert("Start time must include both date AND time.");
+  // ----------------------
+  // VALIDATION
+  // ----------------------
+  const re = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/;
+
+  if (!re.test(form.starts_at)) {
+    alert('Start date and time are required.');
     return;
   }
 
-  if (form.ends_at && !isDateTimeComplete(form.ends_at)) {
-    alert("End time must include both date AND time.");
+  if (form.ends_at && !re.test(form.ends_at)) {
+    alert('End time must include date and time.');
     return;
   }
 
-  if (form.rsvp_deadline && !isDateTimeComplete(form.rsvp_deadline)) {
-    alert("RSVP deadline must include both date AND time.");
+  if (form.rsvp_deadline && !re.test(form.rsvp_deadline)) {
+    alert('RSVP deadline must include date and time.');
     return;
   }
 
@@ -116,7 +141,7 @@ async function submit(mode) {
             try {
               await axios.post(route('operations.publish', props.mission.id, Ziggy));
             } catch (err) {
-              console.error("Publish error:", err);
+              console.error('Publish error:', err);
             }
           }
 
@@ -131,33 +156,29 @@ async function submit(mode) {
   // CREATE MODE
   // ----------------------
   try {
-    console.log("SENDING STATUS:", form.status);
     const response = await form.post(
       route('operations.store', { squadron: props.squadronId }, Ziggy),
       { preserveScroll: true }
     );
 
-    const newId =
+    let newId =
       response?.props?.operation?.id ??
-      form?.id ??
       response?.operation?.id;
-    // FINAL guaranteed fallback — extract ID from URL
+
     if (!newId && response?.url) {
       const match = response.url.match(/operations\/(\d+)/);
       if (match) newId = match[1];
     }
-    console.log("RESOLVED NEW ID:", newId);
 
     if (!newId) {
-      console.error("Could not determine operation ID after creation.");
+      console.error('Could not resolve operation ID.');
       return;
     }
-
 
     window.location.href = route('operations.show', newId, Ziggy);
 
   } catch (err) {
-    console.error("CREATE ERROR:", err);
+    console.error('CREATE ERROR:', err);
   }
 }
 
@@ -166,7 +187,7 @@ async function submit(mode) {
 // ----------------------
 async function destroyOperation() {
   if (!props.mission) return;
-  if (!confirm("Delete this operation? This cannot be undone.")) return;
+  if (!confirm('Delete this operation? This cannot be undone.')) return;
 
   await form.delete(
     route('operations.destroy', props.mission.id, Ziggy),
@@ -179,6 +200,7 @@ async function destroyOperation() {
   );
 }
 </script>
+
 
 
 
@@ -237,15 +259,41 @@ async function destroyOperation() {
         <HorizonSection title="Scheduling">
           <div class="grid md:grid-cols-2 gap-4">
             <HorizonInput
-              label="Starts at"
-              type="datetime-local"
-              v-model="form.starts_at"
+              label="Start Date"
+              type="date"
+              v-model="form.start_date"
             />
 
             <HorizonInput
-              label="Ends at (optional)"
-              type="datetime-local"
-              v-model="form.ends_at"
+              label="Start Time"
+              type="time"
+              v-model="form.start_time"
+            />
+
+            <HorizonInput
+              label="End Date (optional)"
+              type="date"
+              v-model="form.end_date"
+            />
+
+            <HorizonInput
+              label="End Time (optional)"
+              type="time"
+              v-model="form.end_time"
+            />
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <HorizonInput
+              label="Sign Up Deadline – Date"
+              type="date"
+              v-model="form.rsvp_date"
+            />
+
+            <HorizonInput
+              label="Sign Up Deadline – Time"
+              type="time"
+              v-model="form.rsvp_time"
             />
           </div>
         </HorizonSection>
@@ -301,11 +349,7 @@ async function destroyOperation() {
               ]"
             />
 
-            <HorizonInput
-              label="Sign Up Deadline"
-              type="datetime-local"
-              v-model="form.rsvp_deadline"
-            />
+
 
           </div>
         </HorizonSection>
