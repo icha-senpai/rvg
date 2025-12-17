@@ -54,8 +54,48 @@ class AdminController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $squadrons = Squadron::select('id', 'name', 'slug', 'status')
-            ->orderBy('name')
+        $squadrons = Squadron::query()
+            ->leftJoin('squadron_members as leader_member', function ($join) {
+                $join->on('leader_member.squadron_id', '=', 'squadrons.id')
+                    ->where('leader_member.role', '=', SquadronMember::ROLE_LEADER)
+                    ->where('leader_member.membership_status', '=', SquadronMember::STATUS_ACTIVE);
+            })
+            ->leftJoin('users as leader_user', 'leader_user.id', '=', 'leader_member.user_id')
+            ->orderBy('squadrons.name')
+            ->get([
+                'squadrons.id',
+                'squadrons.name',
+                'squadrons.slug',
+                'squadrons.status',
+
+                'leader_user.id as leader_id',
+                'leader_user.discord_name as leader_discord_name',
+                'leader_user.rsi_handle as leader_rsi_handle',
+                'leader_user.rank as leader_rank',
+                'leader_user.rank_level as leader_rank_level',
+            ])
+            ->map(function ($row) {
+                return [
+                    'id' => $row->id,
+                    'name' => $row->name,
+                    'slug' => $row->slug,
+                    'status' => $row->status,
+                    'leader_id' => $row->leader_id,
+                    'leader' => $row->leader_id ? [
+                        'id' => $row->leader_id,
+                        'discord_name' => $row->leader_discord_name,
+                        'rsi_handle' => $row->leader_rsi_handle,
+                        'rank' => $row->leader_rank,
+                        'rank_level' => $row->leader_rank_level,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        $eligibleLeaders = User::where('rank_level', '>=', 3)
+            ->select('id', 'discord_name', 'rsi_handle', 'rank', 'rank_level')
+            ->orderByDesc('rank_level')
+            ->orderBy('discord_name')
             ->get();
 
         $roles = Role::select('id', 'name', 'slug')
@@ -66,6 +106,7 @@ class AdminController extends Controller
             'users'     => $users,
             'squadrons' => $squadrons,
             'roles'     => $roles,
+            'eligibleLeaders' => $eligibleLeaders,
             'filters'   => [
                 'search' => $search,
             ],
@@ -146,7 +187,6 @@ class AdminController extends Controller
             ],
         ]);
 
-        // DO NOT try to save leader_id on squadrons table
         $squadron = Squadron::create([
             'name'   => $data['name'],
             'slug'   => $data['slug'],
@@ -155,6 +195,8 @@ class AdminController extends Controller
 
         // Assign leader via squadron_members
         if (!empty($data['leader_id'])) {
+            $squadron->update(['leader_id' => $data['leader_id']]);
+
             SquadronMember::updateOrCreate(
                 [
                     'user_id'     => $data['leader_id'],
@@ -201,18 +243,28 @@ class AdminController extends Controller
         ]);
 
         $squadron = Squadron::findOrFail($data['id']);
+        $previousLeaderId = $squadron->leader_id;
+        $newLeaderId = $data['leader_id'] ?? null;
 
         // Only update fields that actually exist on squadrons table
         $squadron->update([
             'name'   => $data['name'],
             'slug'   => $data['slug'],
             'status' => $data['status'],
+            'leader_id' => $newLeaderId,
         ]);
 
-        // Clear old leaders for this squadron
-        SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', 'leader')
-            ->update(['role' => null]);
+        if ($previousLeaderId !== $newLeaderId) {
+            SquadronMember::where('squadron_id', $squadron->id)
+                ->where('role', SquadronMember::ROLE_LEADER)
+                ->delete();
+
+            if ($previousLeaderId) {
+                SquadronMember::where('squadron_id', $squadron->id)
+                    ->where('user_id', $previousLeaderId)
+                    ->delete();
+            }
+        }
 
         // Assign new leader if provided
         if (!empty($data['leader_id'])) {

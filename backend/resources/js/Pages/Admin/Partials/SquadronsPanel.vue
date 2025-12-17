@@ -96,12 +96,32 @@
           />
           </div>
 
+          <div v-if="isEditing" class="hz-caption text-horizon-muted">
+            Current leader:
+            <span v-if="editingSquadron?.leader">
+              {{ editingSquadron.leader.discord_name }}
+            </span>
+            <span v-else>None</span>
+
+            <button
+              v-if="form.leader_id"
+              class="ml-3 hz-btn hz-btn-ghost"
+              type="button"
+              @click="form.leader_id = null"
+            >
+              Unassign
+            </button>
+          </div>
+
           <div>
             <HorizonSelect
               v-model="form.leader_id"
               :options="[
                 { label: 'None', value: null },
-                ...users.map(u => ({ label: u.rsi_handle, value: u.id }))
+                ...eligibleLeaders.map(u => ({
+                  label: `${u.rank ?? 'Rank'} (${u.rank_level}) • ${u.rsi_handle ?? u.discord_name ?? 'Unknown'}`,
+                  value: u.id,
+                }))
               ]"
               label="Leader"
               class="w-full"
@@ -138,7 +158,7 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  users: {
+  eligibleLeaders: {
     type: Array,
     default: () => [],
   },
@@ -148,12 +168,14 @@ const props = defineProps({
 const modalOpen = ref(false);
 const isEditing = ref(false);
 
+const editingSquadron = ref(null);
+
 const form = ref({
   id: null,
   name: '',
   slug: '',
   status: 'active',
-  leader_id: '',
+  leader_id: null,
 });
 
 /* OPEN CREATE */
@@ -161,12 +183,14 @@ function openCreateModal() {
   isEditing.value = false;
   modalOpen.value = true;
 
+  editingSquadron.value = null;
+
   form.value = {
     id: null,
     name: '',
     slug: '',
     status: 'active',
-    leader_id: '',
+    leader_id: null,
   };
 }
 
@@ -175,12 +199,14 @@ function openEditModal(sq) {
   isEditing.value = true;
   modalOpen.value = true;
 
+  editingSquadron.value = sq;
+
   form.value = {
     id: sq.id,
     name: sq.name,
     slug: sq.slug,
     status: sq.status,
-    leader_id: sq.leader ? sq.leader.id : '',
+    leader_id: sq.leader_id ?? null,
   };
 }
 
@@ -188,6 +214,7 @@ function openEditModal(sq) {
 /* CLOSE */
 function closeModal() {
   modalOpen.value = false;
+  editingSquadron.value = null;
 }
 
 /* SAVE */

@@ -63,13 +63,25 @@
           :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
           :status="op.status"
         >
-          <div class="mt-6 flex items-center justify-between">
+          <div class="mt-6 flex items-start justify-between gap-4">
 
-            <div class="hz-caption text-horizon-offwhite">
-              Strictness: {{ op.operation_strictness ?? 'default' }} • Visibility: {{ op.visibility ?? 'open' }}
+            <div class="hz-stack-2xs flex-1 min-w-0">
+              <div class="hz-caption text-horizon-offwhite wrap-break-word">
+                <span class="opacity-70">SQD:</span>
+                {{ op.squadron?.name ?? 'TBD' }}
+              </div>
+
+              <div class="hz-caption text-horizon-offwhite wrap-break-word">
+                <span class="opacity-70">CRE:</span>
+                {{ op.creator?.rsi_handle ?? 'TBD' }}
+              </div>
+
+              <div class="hz-caption text-horizon-offwhite">
+                Strict: {{ op.operation_strictness ?? 'default' }} • VIS: {{ op.visibility ?? 'open' }}
+              </div>
             </div>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 shrink-0">
               
               <!-- EDIT -->
               <HorizonButton
@@ -104,9 +116,36 @@
         </MissionCard>
       </MissionGrid>
 
+      <div
+        v-if="operationsPaginator && operationsPaginator.last_page > 1"
+        class="pt-8 flex items-center justify-between"
+      >
+        <HorizonButton
+          size="sm"
+          variant="ghost"
+          :disabled="!operationsPaginator.prev_page_url"
+          @click="goToPage(operationsPaginator.current_page - 1)"
+        >
+          Prev
+        </HorizonButton>
+
+        <div class="hz-caption hz-text-muted">
+          Page {{ operationsPaginator.current_page }} of {{ operationsPaginator.last_page }}
+        </div>
+
+        <HorizonButton
+          size="sm"
+          variant="ghost"
+          :disabled="!operationsPaginator.next_page_url"
+          @click="goToPage(operationsPaginator.current_page + 1)"
+        >
+          Next
+        </HorizonButton>
+      </div>
+
       <!-- EMPTY STATE -->
       <HorizonPanel
-        v-else
+        v-if="filteredOperations.length === 0"
         class="text-center py-20 space-y-6 hz-holo-light hz-lift"
       >
         <div class="hz-title-lg text-horizon-white">
@@ -147,8 +186,33 @@ import HorizonSelect from '@/Components/HorizonSelect.vue';
 
 const page = usePage();
 const props = defineProps({
-  operations: Array,
+  operations: {
+    type: [Array, Object],
+    required: true,
+  },
 });
+
+const operationsPaginator = computed(() => {
+  return Array.isArray(props.operations) ? null : props.operations;
+});
+
+const operationsList = computed(() => {
+  if (Array.isArray(props.operations)) {
+    return props.operations ?? [];
+  }
+
+  return props.operations?.data ?? [];
+});
+
+function goToPage(pageNumber) {
+  if (!pageNumber || pageNumber < 1) return;
+
+  router.get(
+    route('operations.index', {}, Ziggy),
+    { page: pageNumber },
+    { preserveScroll: true, preserveState: true }
+  );
+}
 
 /* ----------------------------------------
    USER + PERMISSIONS
@@ -223,7 +287,7 @@ const statusFilter = ref('all');
 const search = ref('');
 
 const filteredOperations = computed(() => {
-  return props.operations.filter(op => {
+  return operationsList.value.filter(op => {
     const matchesStatus =
       statusFilter.value === 'all' || op.status === statusFilter.value;
 
@@ -240,22 +304,24 @@ const filteredOperations = computed(() => {
 /* ----------------------------------------
    STATS
 ---------------------------------------- */
-
-const totalCount = computed(() => props.operations.length);
 const activeCount = computed(() =>
-  props.operations.filter(op =>
+  operationsList.value.filter(op =>
     ['published', 'in_progress'].includes(op.status)
   ).length
 );
 const draftCount = computed(() =>
-  props.operations.filter(op => op.status === 'draft').length
+  operationsList.value.filter(op => op.status === 'draft').length
 );
 const completedCount = computed(() =>
-  props.operations.filter(op => op.status === 'completed').length
+  operationsList.value.filter(op => op.status === 'completed').length
 );
 const plannedCount = computed(() =>
-  props.operations.filter(op => op.status === 'published').length
+  operationsList.value.filter(op => op.status === 'published').length
 );
+
+const operationsTotalCount = computed(() => {
+  return operationsPaginator.value?.total ?? operationsList.value.length;
+});
 
 const statusFilterLabel = computed(
   () => statusFilters.find(s => s.value === statusFilter.value)?.label ?? 'All'

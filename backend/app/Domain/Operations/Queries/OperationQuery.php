@@ -7,11 +7,12 @@ use App\Models\User;
 
 class OperationQuery
 {
-    public function forUser(User $user)
+    public function forUser(User $user, int $perPage = 12)
     {
         return Operation::visibleToUser($user)
+            ->with(['squadron', 'creator'])
             ->orderBy('starts_at', 'asc')
-            ->get();
+            ->paginate($perPage);
     }
 
     public function forSquadron(int $squadronId)

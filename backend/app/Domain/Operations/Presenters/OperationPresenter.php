@@ -12,11 +12,11 @@ class OperationPresenter
 
     public function __construct(Operation $operation, ?User $viewer = null)
     {
-        $this->operation = $operation->load([
+        $this->operation = $operation;
+        $this->operation->loadMissing([
             'squadron',
+            'squadron.leader',
             'creator',
-            'participants.user',
-            'roles.participants.user',
         ]);
 
         $this->viewer = $viewer;
@@ -37,14 +37,23 @@ class OperationPresenter
             'title'       => $this->operation->title,
             'description' => $this->truncate($this->operation->description, 140),
             'starts_at'   => $this->operation->starts_at?->toIso8601String(),
+            'ends_at'     => $this->operation->ends_at?->toIso8601String(),
             'visibility'  => $this->operation->visibility,
             'difficulty'  => $this->operation->difficulty,
             'operation_strictness' => $this->operation->operation_strictness,
             'status'      => $this->operation->status,
+            'created_by'  => $this->operation->created_by,
+
+            'creator' => $this->operation->creator
+                ? $this->operation->creator->only(['id', 'rsi_handle'])
+                : null,
 
             'squadron' => [
                 'id'   => $this->operation->squadron?->id,
                 'name' => $this->operation->squadron?->name,
+                'leader' => $this->operation->squadron?->leader
+                    ? $this->operation->squadron->leader->only(['id', 'rsi_handle'])
+                    : null,
             ],
         ];
     }
@@ -54,6 +63,11 @@ class OperationPresenter
     // ------------------------------------------------------
     public function full(): array
     {
+        $this->operation->loadMissing([
+            'participants.user',
+            'roles.participants.user',
+        ]);
+
         return [
             'id'             => $this->operation->id,
             'title'          => $this->operation->title,
@@ -80,6 +94,7 @@ class OperationPresenter
 
             'squadron' => [
                 'id'   => $this->operation->squadron?->id,
+                'name' => $this->operation->squadron?->name,
                 'rsi_handle' => $this->operation->squadron?->rsi_handle,
             ],
 

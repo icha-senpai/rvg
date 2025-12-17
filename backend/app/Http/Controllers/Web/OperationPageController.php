@@ -16,6 +16,7 @@ use App\Domain\Operations\Presenters\OperationPresenter;
 use App\Domain\Operations\Queries\OperationQuery;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Log;
 
 class OperationPageController extends Controller
 {
@@ -30,12 +31,17 @@ class OperationPageController extends Controller
     /* ============================================================
      | INDEX (ALL OPS)
      * ============================================================ */
-    public function index()
+    public function index(Request $request)
     {
         $operations = Operation::orderByDesc('starts_at')
-            ->with(['squadron', 'creator'])
-            ->get()
-            ->map(fn ($op) => OperationPresenter::make($op)->summary());
+            ->with(['squadron.leader', 'creator'])
+            ->paginate(12)
+            ->withQueryString();
+
+        $operations->setCollection(
+            $operations->getCollection()
+                ->map(fn ($op) => OperationPresenter::make($op)->summary())
+        );
 
         return Inertia::render('Operations/MissionsIndex', [
             'operations' => $operations,
@@ -45,13 +51,13 @@ class OperationPageController extends Controller
     /* ============================================================
      | SHOW SINGLE OPERATION
      * ============================================================ */
-    public function show(Operation $operation)
+    public function show(Request $request, Operation $operation)
     {
         $this->authorize('view', $operation);
 
         // Load full graph for display
         $operation = $this->service->loadGraph($operation);
-        $user = auth()->user();
+        $user = $request->user();
 
         $participants = $operation->participants;
 
@@ -123,7 +129,14 @@ class OperationPageController extends Controller
      * ============================================================ */
     public function memberIndex(Request $request)
     {
-        $operations = $this->query->forUser($request->user());
+        $user = $request->user();
+
+        if (!$user) {
+            return redirect()->route('operations.index');
+        }
+
+        $operations = $this->query->forUser($user)
+            ->withQueryString();
 
         return Inertia::render('Operations/MemberIndex', [
             'operations' => $operations,
@@ -137,7 +150,7 @@ class OperationPageController extends Controller
     {
         $this->authorize('update', $operation);
 
-        \Log::info("🟢 publish() endpoint hit for operation {$operation->id}");
+        Log::info("🟢 publish() endpoint hit for operation {$operation->id}");
 
         $updated = $this->service->transition($operation, 'published');
 

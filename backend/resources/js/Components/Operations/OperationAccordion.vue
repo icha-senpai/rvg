@@ -30,6 +30,13 @@
         </p>
       </div>
 
+      <div class="hz-caption text-horizon-offwhite">
+        <span class="opacity-70">Squadron:</span>
+        {{ operation.squadron?.name ?? 'TBD' }}
+        <span class="opacity-70">• Creator:</span>
+        {{ operation.creator?.rsi_handle ?? 'TBD' }}
+      </div>
+
       <div class="grid grid-cols-2 gap-6">
 
         <!-- START -->

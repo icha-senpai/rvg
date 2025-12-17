@@ -41,7 +41,7 @@
     </div>
 
     <div v-if="activeTab === 'squadrons'" class="hz-animate-fade">
-      <SquadronsPanel :squadrons="squadrons" />
+      <SquadronsPanel :squadrons="squadrons" :eligible-leaders="eligibleLeaders" />
     </div>
 
     <div v-if="activeTab === 'roles'" class="hz-animate-fade">
