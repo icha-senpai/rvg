@@ -1,5 +1,6 @@
 <template>
-  <HorizonContainer class="hz-stack">
+  <HorizonContainer class="space-y-10">
+    <div class="mx-auto max-w-5xl hz-stack">
 
     <!-- HEADER -->
     <div class="hz-stack-sm">
@@ -48,6 +49,7 @@
       <RolesPanel :roles="roles" />
     </div>
 
+    </div>
   </HorizonContainer>
 </template>
 

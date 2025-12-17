@@ -63,10 +63,10 @@ onMounted(fetchSquadrons)
 </script>
 
 <template>
-  <HorizonContainer class="space-y-12">
-    <div class="hz-container hz-stack">
+  <HorizonContainer class="space-y-10">
+    <div class="mx-auto max-w-5xl hz-stack">
 
-      <div class="hz-title-lg">Squadrons</div>
+      <div class="hz-title-lg">All Squadrons</div>
 
       <div v-if="isLoading" class="hz-soft">
         Loading squadrons…

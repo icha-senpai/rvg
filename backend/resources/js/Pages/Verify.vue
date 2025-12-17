@@ -6,9 +6,17 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 // --- URL token from Discord OAuth callback ---
 const params = new URLSearchParams(window.location.search);
 const tokenFromUrl = params.get('token');
+const refreshTokenFromUrl = params.get('refresh_token');
 
 if (tokenFromUrl) {
     localStorage.setItem('access_token', tokenFromUrl);
+}
+
+if (refreshTokenFromUrl) {
+    localStorage.setItem('refresh_token', refreshTokenFromUrl);
+}
+
+if (tokenFromUrl || refreshTokenFromUrl) {
     window.history.replaceState({}, '', '/verify');
 }
 
@@ -159,13 +167,12 @@ const verifyRsi = async () => {
                     Click below to log in with Discord. You’ll return here afterward.
                 </p>
 
-                <HorizonButton
-                    variant="primary"
-                    size="sm"
-                    @click="window.location.href = '/auth/discord'"
+                <a
+                    href="/auth/discord"
+                    class="hz-btn hz-btn-primary hz-btn-sm"
                 >
                     Verify with Discord
-                </HorizonButton>
+                </a>
             </div>
 
             <!-- STEP 2: RSI — only if not yet verified -->

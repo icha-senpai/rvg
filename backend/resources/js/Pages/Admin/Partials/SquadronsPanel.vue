@@ -1,4 +1,5 @@
 <template>
+  <div class="mx-auto max-w-5xl">
   <HorizonPanel class="p-6 space-y-6">
 
     <!-- HEADER -->
@@ -146,6 +147,7 @@
       </div>
     </div>
   </HorizonPanel>
+  </div>
 </template>
 
 <script setup>

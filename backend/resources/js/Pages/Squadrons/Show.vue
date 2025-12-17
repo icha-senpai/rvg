@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonContainer from '@/Components/HorizonContainer.vue';
 /* -------------------------------------------------
    Props from Inertia
 ------------------------------------------------- */
@@ -30,7 +31,9 @@ function closePanel() {
 </script>
 
 <template>
-  <div class="hz-container hz-stack">
+  <HorizonContainer class="space-y-10">
+  <div class="mx-auto max-w-5xl hz-stack">
+    <div class="hz-title-lg"> Your Squadron</div>
     <HorizonButton
       variant="primary"
       size="sm"
@@ -45,4 +48,5 @@ function closePanel() {
       @close="closePanel"
     />
   </div>
+  </HorizonContainer>
 </template>

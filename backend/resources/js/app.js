@@ -25,6 +25,7 @@ import MissionCard from '@/Components/MissionCard.vue';
 import ProgressPill from '@/Components/ProgressPill.vue';
 import RoleSlotCard from '@/Components/RoleSlotCard.vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
+import AppShell from '@/Components/AppShell.vue';
 
 
 
@@ -36,13 +37,23 @@ createInertiaApp({
         resolvePageComponent(
             `./Pages/${name}.vue`,
             import.meta.glob('./Pages/**/*.vue')
-        ),
+        ).then((module) => {
+            const page = module?.default ?? module;
+
+            if (name === 'Verify') {
+                page.layout = null;
+            } else if (page.layout === undefined) {
+                page.layout = AppShell;
+            }
+
+            return page;
+        }),
 
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
 
         app.use(plugin);
-        app.config.globalProperties.route = (name, params, absolute) =>
+        app.config.globalProperties.route = (name, params, absolute = false) =>
             route(name, params, absolute, Ziggy);
         /* ============================================================
            REGISTER GLOBAL HORIZON COMPONENTS
@@ -73,9 +84,65 @@ createInertiaApp({
 axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('access_token');
 
-    if (token) {
+    if (token && !config.headers?.Authorization) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
 });
+
+axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const status = error?.response?.status;
+        const originalRequest = error?.config;
+
+        if (!originalRequest || status !== 401) {
+            return Promise.reject(error);
+        }
+
+        const url = String(originalRequest?.url ?? '');
+
+        if (!url.startsWith('/api/v1/') || url.startsWith('/api/v1/auth/refresh')) {
+            return Promise.reject(error);
+        }
+
+        if (originalRequest._retry) {
+            return Promise.reject(error);
+        }
+
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (!refreshToken) {
+            return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+
+        try {
+            const refreshResponse = await axios.post(
+                '/api/v1/auth/refresh',
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${refreshToken}`,
+                    },
+                }
+            );
+
+            const newAccessToken = refreshResponse?.data?.access_token;
+
+            if (!newAccessToken) {
+                return Promise.reject(error);
+            }
+
+            localStorage.setItem('access_token', newAccessToken);
+            originalRequest.headers = originalRequest.headers ?? {};
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+            return axios(originalRequest);
+        } catch (refreshError) {
+            return Promise.reject(refreshError);
+        }
+    }
+);

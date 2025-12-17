@@ -45,7 +45,10 @@ class DiscordAuthController extends Controller
             // Issue API tokens for your JS app
             $tokens = $this->tokens->createTokensFor($user);
 
-            return redirect('/verify?token=' . $tokens['access_token']);
+            return redirect('/verify?' . http_build_query([
+                'token' => $tokens['access_token'],
+                'refresh_token' => $tokens['refresh_token'],
+            ]));
 
         } catch (\Exception $e) {
 

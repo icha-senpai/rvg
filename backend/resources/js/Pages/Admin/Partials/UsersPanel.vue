@@ -1,5 +1,5 @@
 <template>
-  <div class="hz-stack">
+  <div class="mx-auto max-w-5xl hz-stack">
 
     <!-- SEARCH PANEL -->
     <div class="hz-panel hz-stack">
