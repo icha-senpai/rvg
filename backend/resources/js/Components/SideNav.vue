@@ -40,6 +40,12 @@ const navItems = computed(() => {
       isActive: url === '/',
     },
     {
+      key: 'databank',
+      label: 'Databank',
+      href: 'https://docs.horizoninterstellar.com/collection/horizon-databank-ehz6KYHyv1',
+      isActive: false,
+    },
+    {
       key: 'operations_member',
       label: 'All Operations',
       routeName: 'operations.member',
@@ -100,27 +106,40 @@ const navItems = computed(() => {
         <div class="px-2 hz-section-label">Navigation</div>
 
         <nav class="flex flex-col gap-1">
-          <Link
-            v-for="item in navItems"
-            :key="item.key"
-            :href="route(item.routeName, item.params)"
-            class="px-3 py-2 rounded-xl text-sm font-semibold transition"
-            :class="
-              item.isActive
-                ? 'bg-bg-hover text-horizon-white'
-                : 'text-text-secondary hover:bg-bg-hover hover:text-horizon-white'
-            "
-          >
-            <div class="flex items-center justify-between gap-3">
-              <span class="truncate">{{ item.label }}</span>
-              <span
-                v-if="item.key === 'my_squadron'"
-                class="text-[10px] leading-none px-2 py-1 rounded-full bg-(--color-horizon-blue-10) text-text-secondary"
-              >
-                {{ mySquadron?.name ?? 'Active' }}
-              </span>
-            </div>
-          </Link>
+          <template v-for="item in navItems" :key="item.key">
+            <Link
+              v-if="!item.href"
+              :href="route(item.routeName, item.params)"
+              class="px-3 py-2 rounded-xl text-sm font-semibold transition"
+              :class="
+                item.isActive
+                  ? 'bg-bg-hover text-horizon-white'
+                  : 'text-text-secondary hover:bg-bg-hover hover:text-horizon-white'
+              "
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate">{{ item.label }}</span>
+                <span
+                  v-if="item.key === 'my_squadron'"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-(--color-horizon-blue-10) text-text-secondary"
+                >
+                  {{ mySquadron?.name ?? 'Active' }}
+                </span>
+              </div>
+            </Link>
+
+            <a
+              v-else
+              :href="item.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate">{{ item.label }}</span>
+              </div>
+            </a>
+          </template>
         </nav>
 
         <div
