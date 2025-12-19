@@ -17,7 +17,7 @@ use App\Http\Controllers\Api\v1\RsiHandleController;
 use App\Http\Controllers\Api\v1\TokenController;
 use App\Http\Controllers\Api\v1\OperationController;
 use App\Http\Controllers\Api\v1\OperationParticipantController;
-use App\Http\Controllers\Api\V1\DiscordIdentityController;
+use App\Http\Controllers\Api\v1\DiscordIdentityController;
 
 /*
 |--------------------------------------------------------------------------

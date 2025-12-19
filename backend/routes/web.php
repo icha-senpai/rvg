@@ -15,7 +15,7 @@ use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Admin\SquadronRankController;
 
 // AUTH CONTROLLERS
-use App\Http\Controllers\Api\V1\DiscordAuthController;
+use App\Http\Controllers\Api\v1\DiscordAuthController;
 
 
 /*
