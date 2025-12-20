@@ -16,6 +16,10 @@ class RankMiddleware
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
+        if ($user->hasRole('director') || $user->hasRole('tech_director')) {
+            return $next($request);
+        }
+
         $userRank = (int) $user->rank_level;
         $requiredRank = (int) $requiredRank;
 

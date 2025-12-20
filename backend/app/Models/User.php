@@ -43,7 +43,7 @@ class User extends Authenticatable
 
     public function hasPermission(string $permissionSlug): bool
     {
-        if ($this->isDirector()) {
+        if ($this->hasRole('director') || $this->hasRole('tech_director')) {
             return true;
         }
 

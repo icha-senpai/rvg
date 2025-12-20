@@ -10,6 +10,7 @@ use App\Models\SquadronMember;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
@@ -152,9 +153,11 @@ class AdminController extends Controller
             'role_ids.*' => ['exists:roles,id'],
         ]);
 
-        User::findOrFail($data['id'])
-            ->roles()
-            ->sync($data['role_ids'] ?? []);
+        $user = User::findOrFail($data['id']);
+        $user->roles()->sync($data['role_ids'] ?? []);
+
+        Cache::forget("user_roles_{$user->id}");
+        Cache::forget("user_permissions_{$user->id}");
 
         return redirect()
             ->route('admin.dashboard')
