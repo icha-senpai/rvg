@@ -51,6 +51,7 @@ Route::get('/operations', [OperationPageController::class, 'index'])
     ->name('operations.index');
     
 Route::get('/operations/member', [OperationPageController::class, 'memberIndex' ])
+    ->middleware(['auth', 'rsi.verified'])
     ->name('operations.member');
 
 Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
@@ -59,7 +60,7 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
 
 
 // Create operation (requires auth)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
         ->name('operations.edit');
 
@@ -106,7 +107,7 @@ Route::post('/squadrons/{squadron}/promote-lieutenant',
 
 Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'show'])
     ->whereNumber('squadron')
-    ->middleware('auth')
+    ->middleware(['auth', 'rsi.verified'])
     ->name('squadrons.show');
 
 /*
@@ -114,7 +115,7 @@ Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'show'])
 | SQUADRON MANAGEMENT PANEL (Requires auth)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'rsi.verified'])->group(function () {
 
     Route::get('/squadrons', 
         [SquadronPageController::class, 'index']

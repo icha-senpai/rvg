@@ -33,6 +33,11 @@ class ForceDiscordAuth
             return redirect()->to('/auth/discord');
         }
 
+        $user = $request->user();
+        if ($user && !$user->rsi_verified_at) {
+            return redirect()->to('/verify');
+        }
+
         return $next($request);
     }
 }

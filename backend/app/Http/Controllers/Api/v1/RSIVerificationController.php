@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Models\User;
 use App\Services\DiscordLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -231,6 +232,8 @@ class RSIVerificationController extends Controller
                 $user->verification_expires_at = null;
                 $user->save();
 
+                $this->notifyDiscordBotOfVerification($user);
+
                 // Log successful verification
                 DiscordLogger::rsiVerification('verification_success', [
                     'user_id' => $user->id,
@@ -301,7 +304,7 @@ class RSIVerificationController extends Controller
      */
     protected function notifyDiscordBotOfVerification(User $user): void
     {
-        $botUrl = env('DISCORD_BOT_URL'); // e.g. http://127.0.0.1:3001
+        $botUrl = config('services.bot.url');
 
         if (!$botUrl || !$user->discord_id) {
             return;
@@ -309,8 +312,10 @@ class RSIVerificationController extends Controller
 
         try {
             Http::withHeaders([
-                'X-BOT-TOKEN' => config('services.discord.bot_token'),
-            ])->post($botUrl . '/sync-nickname', [
+                'X-Bot-Secret' => config('services.bot.secret'),
+            ])
+                ->asJson()
+                ->post($botUrl . '/verified', [
                 'discord_id' => $user->discord_id,
             ]);
         } catch (\Throwable $e) {

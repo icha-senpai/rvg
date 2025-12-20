@@ -16,6 +16,10 @@ class EnsureRsiVerified
 
         // Not logged in
         if (! $user) {
+            if (! $request->expectsJson()) {
+                return redirect()->to('/verify');
+            }
+
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);
@@ -23,6 +27,10 @@ class EnsureRsiVerified
 
         // Check RSI verification status
         if (! $user->rsi_verified_at) {
+            if (! $request->expectsJson()) {
+                return redirect()->to('/verify');
+            }
+
             return response()->json([
                 'message' => 'RSI verification required.',
                 'status'  => 'rsi_unverified',
