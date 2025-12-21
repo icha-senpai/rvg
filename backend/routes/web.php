@@ -201,6 +201,15 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/squadrons/members/remove', [AdminController::class, 'removeSquadronMember'])
             ->name('admin.squadrons.members.remove');
 
+        Route::post('/roles/store', [AdminController::class, 'storeRole'])
+            ->name('admin.roles.store');
+
+        Route::post('/roles/update', [AdminController::class, 'updateRole'])
+            ->name('admin.roles.update');
+
+        Route::post('/roles/delete', [AdminController::class, 'deleteRole'])
+            ->name('admin.roles.delete');
+
         /*
         |-----------------------
         | RANK PROMOTIONS (Admin)

@@ -8,6 +8,7 @@ use App\Models\Squadron;
 use App\Models\Role;
 use App\Models\SquadronMember;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Cache;
@@ -374,6 +375,70 @@ class AdminController extends Controller
         return redirect()
             ->route('admin.squadrons.index')
             ->with('success', 'Member removed.');
+    }
+
+    public function storeRole(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('roles', 'slug')],
+        ]);
+
+        Role::create([
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Role created.');
+    }
+
+    public function updateRole(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:roles,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'slug')->ignore($request->input('id')),
+            ],
+        ]);
+
+        $role = Role::findOrFail($data['id']);
+        $role->update([
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Role updated.');
+    }
+
+    public function deleteRole(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:roles,id'],
+        ]);
+
+        $role = Role::findOrFail($data['id']);
+
+        $role->users()->detach();
+        $role->permissions()->detach();
+        $role->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Role deleted.');
     }
 
     /**
