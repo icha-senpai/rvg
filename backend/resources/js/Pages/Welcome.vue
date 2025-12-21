@@ -14,13 +14,18 @@
       <h2 class="hz-title-xl text-horizon-white hz-glyph tracking-wide">
         Horizon Interstellar
       </h2>
-
+      <br>
       <p class="hz-body text-text-secondary max-w-[48rem] mx-auto">
-        A full demonstration of the Horizon Tailwind v4 design language:
-        alloy geometry, deep shadow systems, neon accents, HUD layers,
-        typography, panels, holography, cards, buttons, stats, and more.
+        HORIZON was founded in 2955 with the goal of providing entertaining events and operations for every kind of player, regardless of activity level, playtime, or nationality.
+        HORIZON acts as a community hub for anyone who wants to get the most out of their Star Citizen experience.
+        Join our daily operations and events, hosted by our highly experienced officers.
+        Our leadership team has many years of practice in creating fun, engaging content at every level of complexity and scale.
+        From relaxed 4 player sessions to massive operations with 100+ participants, HORIZON has the experience, structure, and organization to make it happen.
       </p>
-
+      <br>
+      <p class="hz-body text-text-secondary max-w-[48rem] mx-auto">
+        This site is currently in active development. Things are subject to change without warning.
+      </p>
     </section>
 
 
@@ -28,14 +33,6 @@
 </template>
 
 <script setup>
-import HorizonButton from '@/Components/HorizonButton.vue';
-import HorizonInput from '@/Components/HorizonInput.vue';
-import HorizonAlert from '@/Components/HorizonAlert.vue';
-import HorizonPanel from '@/Components/HorizonPanel.vue';
-import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
-import HorizonStat from '@/Components/HorizonStat.vue';
-import HUDStatusBar from '@/Components/HUDStatusBar.vue';
-import CommandWidget from '@/Components/CommandWidget.vue';
-import MiniMapPanel from '@/Components/MiniMapPanel.vue';
-import SquadronBadge from '@/Components/SquadronBadge.vue';
+
 </script>
+
