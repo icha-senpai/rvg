@@ -17,7 +17,7 @@ const props = defineProps({
 });
 
 const operation = props.operation;
-const currentParticipant = props.currentParticipant ?? null;
+const currentParticipant = computed(() => props.currentParticipant ?? null);
 
 /* ============================================================
    FORMATTER
@@ -73,12 +73,17 @@ const joinForm = reactive({
   notes: "",
 });
 
+const slotOptions = computed(() => {
+  const slots = (operation.slots || []).map((slot) => ({ label: slot, value: slot }));
+  return [{ label: 'Unassigned', value: '' }, ...slots];
+});
+
 watch(
-  () => currentParticipant,
-  () => {
-    if (currentParticipant) {
-      joinForm.slot = currentParticipant.slot ?? "";
-      joinForm.notes = currentParticipant.notes ?? "";
+  currentParticipant,
+  (p) => {
+    if (p) {
+      joinForm.slot = p.slot ?? "";
+      joinForm.notes = p.notes ?? "";
     }
   },
   { immediate: true }
@@ -134,14 +139,14 @@ async function leave() {
    UPDATE SLOT (WEB)
 ============================================================ */
 async function updateSlot() {
-  if (!currentParticipant) return;
+  if (!currentParticipant.value) return;
 
   joinProcessing.value = true;
 
   router.post(
     route("operations.participants.slot", {
       operation: operation.id,
-      participant: currentParticipant.id,
+      participant: currentParticipant.value.id,
     }),
     {
       slot: joinForm.slot,
@@ -384,6 +389,12 @@ async function updateSlot() {
               ({{ currentParticipant.attendance_status }}).
             </p>
 
+            <HorizonSelect
+              label="Slot"
+              v-model="joinForm.slot"
+              :options="slotOptions"
+            />
+
             <div class="flex gap-3">
               <HorizonButton
                 variant="primary"
@@ -414,7 +425,7 @@ async function updateSlot() {
               <HorizonSelect
                 label="Slot (optional)"
                 v-model="joinForm.slot"
-                :options="operation.slots.map(slot => ({ label: slot, value: slot }))"
+                :options="slotOptions"
               />
 
 

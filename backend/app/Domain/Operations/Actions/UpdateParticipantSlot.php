@@ -12,10 +12,19 @@ class UpdateParticipantSlot
         OperationParticipant $participant,
         array $data
     ): OperationParticipant {
-        $participant->update([
-            'operation_role_id' => $data['operation_role_id'] ?? $participant->operation_role_id,
-            'slot'              => $data['slot'] ?? $participant->slot,
-        ]);
+        $payload = [];
+
+        if (array_key_exists('operation_role_id', $data)) {
+            $payload['operation_role_id'] = $data['operation_role_id'];
+        }
+
+        if (array_key_exists('slot', $data)) {
+            $payload['slot'] = $data['slot'];
+        }
+
+        if ($payload !== []) {
+            $participant->update($payload);
+        }
 
         return $participant->fresh();
     }

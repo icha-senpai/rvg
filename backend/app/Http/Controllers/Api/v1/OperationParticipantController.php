@@ -8,6 +8,7 @@ use App\Models\OperationParticipant;
 use App\Models\OperationRole;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 
 class OperationParticipantController extends Controller
 {
@@ -25,7 +26,7 @@ class OperationParticipantController extends Controller
 
         // Prevent duplicate join
         if ($operation->participants()
-            ->where('user_id', auth()->id())
+            ->where('user_id', Auth::id())
             ->exists()
         ) {
             return response()->json(['error' => 'Already joined this operation'], 422);
@@ -48,7 +49,7 @@ class OperationParticipantController extends Controller
         }
 
         $participant = $operation->participants()->create([
-            'user_id'           => auth()->id(),
+            'user_id'           => Auth::id(),
             'operation_role_id' => $roleId,
             'slot'              => $validated['slot'] ?? null,
             'attendance_status' => 'signed_up',
@@ -61,7 +62,7 @@ class OperationParticipantController extends Controller
 
     public function leave(Operation $operation)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $participant = $operation->participants()
             ->where('user_id', $user->id)
@@ -78,7 +79,13 @@ class OperationParticipantController extends Controller
 
     public function updateSlot(Request $request, Operation $operation, OperationParticipant $participant)
     {
-        $this->authorize('manageMembers', $operation);
+        if ($participant->operation_id !== $operation->id) {
+            abort(404);
+        }
+
+        if ($participant->user_id !== Auth::id()) {
+            $this->authorize('manageMembers', $operation);
+        }
 
         $participant->update(
             $request->validate([

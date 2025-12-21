@@ -185,6 +185,10 @@ class OperationPageController extends Controller
             'operation_role_id' => 'nullable|exists:operation_roles,id',
         ]);
 
+        if (array_key_exists('slot', $data) && $data['slot'] === '') {
+            $data['slot'] = null;
+        }
+
         $this->participants->join($operation, $request->user(), $data);
 
         return redirect()
@@ -208,12 +212,22 @@ class OperationPageController extends Controller
         Operation $operation,
         OperationParticipant $participant
     ) {
-        $this->authorize('manageMembers', $operation);
+        if ($participant->operation_id !== $operation->id) {
+            abort(404);
+        }
+
+        if ($participant->user_id !== $request->user()->id) {
+            $this->authorize('manageMembers', $operation);
+        }
 
         $data = $request->validate([
             'slot'              => 'nullable|string|max:255',
             'operation_role_id' => 'nullable|exists:operation_roles,id',
         ]);
+
+        if (array_key_exists('slot', $data) && $data['slot'] === '') {
+            $data['slot'] = null;
+        }
 
         $this->participants->updateSlot($operation, $participant, $data);
 
