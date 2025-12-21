@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Models\Operation;
 use App\Models\OperationParticipant;
 use App\Models\Squadron;
+use App\Http\Requests\Operations\OperationStoreRequest;
+use App\Http\Requests\Operations\OperationUpdateRequest;
 
 // Services & Presenters
 use App\Domain\Operations\Services\OperationService;
@@ -91,11 +93,11 @@ class OperationPageController extends Controller
         ]);
     }
 
-    public function store(Request $request, Squadron $squadron)
+    public function store(OperationStoreRequest $request, Squadron $squadron)
     {
         $this->authorize('create', [Operation::class, $squadron]);
 
-        $operation = $this->service->create($request->all(), $squadron);
+        $operation = $this->service->create($request->validated(), $squadron);
 
         return Inertia::location(route('operations.show', $operation->id));
     }
@@ -113,11 +115,11 @@ class OperationPageController extends Controller
         ]);
     }
 
-    public function update(Request $request, Operation $operation)
+    public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->update($operation, $request->all());
+        $updated = $this->service->update($operation, $request->validated());
 
         return redirect()
             ->route('operations.show', $updated->id)

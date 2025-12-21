@@ -16,7 +16,7 @@ const props = defineProps({
 /* -------------------------------------------------
    Page state
 ------------------------------------------------- */
-const isExpanded = ref(false)
+const isExpanded = ref(true)
 
 /* -------------------------------------------------
    Panel controls
@@ -26,7 +26,7 @@ function openPanel() {
 }
 
 function closePanel() {
-  isExpanded.value = false
+  isExpanded.value = true
 }
 </script>
 
@@ -35,6 +35,7 @@ function closePanel() {
   <div class="mx-auto max-w-5xl hz-stack">
     <div class="hz-title-lg"> Your Squadron</div>
     <HorizonButton
+      v-if="!isExpanded"
       variant="primary"
       size="sm"
       @click="openPanel"
@@ -45,6 +46,7 @@ function closePanel() {
     <SquadronExpandedPanel
       v-if="isExpanded"
       :squadronId="props.squadronId"
+      :show-close-button="false"
       @close="closePanel"
     />
   </div>

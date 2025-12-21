@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { route } from 'ziggy-js';
@@ -26,6 +26,19 @@ const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 // MODE
 // ----------------------
 const isEdit = computed(() => props.mission !== null);
+
+const slotWarningOpen = ref(false);
+const slotWarningMessage = ref('');
+
+function openSlotWarning(message) {
+  slotWarningMessage.value = message;
+  slotWarningOpen.value = true;
+}
+
+function closeSlotWarning() {
+  slotWarningOpen.value = false;
+  slotWarningMessage.value = '';
+}
 
 // ----------------------
 // UTC HELPERS
@@ -126,6 +139,23 @@ async function submit(mode) {
   if (form.rsvp_deadline && !re.test(form.rsvp_deadline)) {
     alert('RSVP deadline must include date and time.');
     return;
+  }
+
+  if (Array.isArray(form.slots) && form.slots.length) {
+    const trimmedSlots = form.slots.map(slot => (typeof slot === 'string' ? slot.trim() : slot));
+    const invalidIndexes = trimmedSlots
+      .map((slot, index) => ({ slot, index }))
+      .filter(({ slot }) => typeof slot !== 'string' || slot.length === 0)
+      .map(({ index }) => index + 1);
+
+    if (invalidIndexes.length) {
+      openSlotWarning(
+        `Role slots can’t be empty. Please fill or remove slot(s): ${invalidIndexes.join(', ')}`
+      );
+      return;
+    }
+
+    form.slots = trimmedSlots;
   }
 
   // ----------------------
@@ -238,18 +268,18 @@ async function destroyOperation() {
       <!-- LEFT SIDE -->
       <div class="space-y-6">
 
-        <!-- Mission Details -->
-        <HorizonSection title="Mission Details">
+        <!-- Operation Details -->
+        <HorizonSection title="Operation Details">
           <div class="hz-stack">
             <HorizonInput
               v-model="form.title"
               label="Title"
-              placeholder="Convoy Escort – Stanton Corridor"
+              placeholder="Convoy Escort - Stanton Corridor"
             />
 
             <HorizonInput
-              label="Subtype (optional)"
-              placeholder="Escort / Recon / Patrol"
+              label="Operation Type (optional)"
+              placeholder="Escort / Recon / Patrol / Meeting / Other"
               v-model="form.type"
             />
           </div>
@@ -285,13 +315,13 @@ async function destroyOperation() {
 
           <div class="grid md:grid-cols-2 gap-4">
             <HorizonInput
-              label="Sign Up Deadline – Date"
+              label="Sign Up Deadline - Date"
               type="date"
               v-model="form.rsvp_date"
             />
 
             <HorizonInput
-              label="Sign Up Deadline – Time"
+              label="Sign Up Deadline - Time"
               type="time"
               v-model="form.rsvp_time"
             />
@@ -299,28 +329,29 @@ async function destroyOperation() {
         </HorizonSection>
 
         <!-- Description -->
-        <HorizonSection title="Description">
+        <HorizonSection title="Operation Briefing">
           <textarea
             v-model="form.description"
             rows="6"
             class="hz-textarea w-full"
-            placeholder="Mission overview..."
+            placeholder="Operation overview...High level details, this is for the discord embed, etc."
           ></textarea>
         </HorizonSection>
 
         <!-- Notes -->
-        <HorizonSection title="Notes">
+        <HorizonSection title="Operation Extended Briefing">
           <textarea
             v-model="form.notes"
             rows="6"
             class="hz-textarea w-full"
+            placeholder="Expanded detail not for discord"
           ></textarea>
         </HorizonSection>
 
       </div>
 
 
-      <!-- RIGHT SIDE -->
+     
       <div class="space-y-6">
 
         <!-- Meta -->
@@ -338,7 +369,7 @@ async function destroyOperation() {
 
 
             <HorizonSelect
-              label="Strictness"
+              label="Comms Strictness"
               v-model="form.operation_strictness"
               :options="[
                 { label: 'Default', value: '' },
@@ -354,19 +385,19 @@ async function destroyOperation() {
           </div>
         </HorizonSection>
 
-        <!-- Media -->
+        <!-- Media 
         <HorizonSection title="Media">
           <HorizonInput label="Icon" v-model="form.icon" />
           <HorizonInput label="Image URL" placeholder="https://" v-model="form.image_url" />
-        </HorizonSection>
+        </HorizonSection> -->
 
-        <!-- Slots -->
-        <HorizonSection title="Slots">
+        <!-- Roles -->
+        <HorizonSection title="Roles">
           <div class="flex justify-between items-center mb-3">
-            <div class="hz-section-label">Role Slots</div>
+            <div class="hz-section-label">Roles</div>
 
             <HorizonButton size="sm" variant="ghost" @click="addSlot">
-              Add Slot
+              Add Role
             </HorizonButton>
           </div>
 
@@ -392,7 +423,7 @@ async function destroyOperation() {
           </div>
 
           <p v-else class="hz-caption hz-text-muted">
-            No slots defined. Operation allows freeform participation.
+            No roles defined. Operation allows freeform participation.
           </p>
         </HorizonSection>
 
@@ -418,6 +449,30 @@ async function destroyOperation() {
           </HorizonButton>
         </div>
 
+      </div>
+    </div>
+
+    <div
+      v-if="slotWarningOpen"
+      class="hz-overlay flex items-center justify-center"
+      @click.self="closeSlotWarning"
+    >
+      <div class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop">
+        <div class="hz-row-between">
+          <div class="hz-title-lg">Missing Role Slot</div>
+          <HorizonButton variant="primary" size="sm" @click="closeSlotWarning">
+            ✕
+          </HorizonButton>
+        </div>
+
+        <div class="hz-text-soft">{{ slotWarningMessage }}</div>
+
+        <div class="hz-row-between pt-2">
+          <div></div>
+          <HorizonButton variant="primary" size="sm" @click="closeSlotWarning">
+            OK
+          </HorizonButton>
+        </div>
       </div>
     </div>
 

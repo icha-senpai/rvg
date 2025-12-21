@@ -15,6 +15,10 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  showCloseButton: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 /* -------------------------------------------------
@@ -153,6 +157,7 @@ watch(
           </HorizonButton>
 
           <HorizonButton
+            v-if="props.showCloseButton"
             variant="ghost"
             size="sm"
             @click="emit('close')"

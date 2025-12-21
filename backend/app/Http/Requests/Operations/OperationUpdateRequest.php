@@ -22,9 +22,9 @@ class OperationUpdateRequest extends FormRequest
             'operation_kind'       => 'sometimes|in:event,mission',
             'type'                 => 'sometimes|string|max:255|nullable',
 
-            'visibility'           => 'sometimes|in:open,squadron,private',
-            'difficulty'           => 'sometimes|in:low,medium,high',
-            'operation_strictness' => 'sometimes|in:casual,normal,strict,roleplay',
+            'visibility'           => 'sometimes|nullable|in:open,squadron,private',
+            'difficulty'           => 'sometimes|nullable|in:low,medium,high',
+            'operation_strictness' => 'sometimes|nullable|in:casual,normal,strict,roleplay',
 
             'icon'                 => 'sometimes|string|max:20|nullable',
             'image_url'            => 'sometimes|url|max:2048|nullable',
@@ -32,6 +32,7 @@ class OperationUpdateRequest extends FormRequest
             'notes'                => 'sometimes|string|max:2000|nullable',
 
             'slots'                => 'sometimes|array|nullable',
+            'slots.*'              => 'required|string|max:255|regex:/\S/',
 
             'status'               => 'sometimes|in:draft,published,in_progress,completed,canceled',
         ];

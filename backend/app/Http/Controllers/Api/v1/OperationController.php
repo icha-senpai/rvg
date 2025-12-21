@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Requests\Operations\OperationStoreRequest;
+use App\Http\Requests\Operations\OperationUpdateRequest;
 use App\Models\Operation;
 use App\Models\Squadron;
-use App\Domain\Services\Operations\OperationService;
-use App\Domain\Services\Operations\Presenters\OperationPresenter;
+use App\Domain\Operations\Services\OperationService;
+use App\Domain\Operations\Presenters\OperationPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class OperationController extends Controller
@@ -41,11 +43,11 @@ class OperationController extends Controller
         );
     }
 
-    public function store(Request $request, Squadron $squadron)
+    public function store(OperationStoreRequest $request, Squadron $squadron)
     {
         $this->authorize('create', [Operation::class, $squadron]);
 
-        $operation = $this->service->create($request->all(), $squadron);
+        $operation = $this->service->create($request->validated(), $squadron);
 
         return response()->json(
             OperationPresenter::make($operation)->full(),
@@ -53,11 +55,11 @@ class OperationController extends Controller
         );
     }
 
-    public function update(Request $request, Operation $operation)
+    public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->update($operation, $request->all());
+        $updated = $this->service->update($operation, $request->validated());
 
         return response()->json(
             OperationPresenter::make($updated)->full()

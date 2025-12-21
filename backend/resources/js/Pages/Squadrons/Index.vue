@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonButton from '@/Components/HorizonButton.vue'
 
 const squadrons = ref([])
 const isLoading = ref(false)
@@ -10,6 +11,13 @@ const errorMessage = ref(null)
 
 const isExpanded = ref(false)
 const activeSquadronId = ref(null)
+
+function handleKeydown(event) {
+  if (event.key !== 'Escape') return
+  if (!isExpanded.value) return
+
+  closePanel()
+}
 
 /* -------------------------------------------------
    Fetch all squadrons
@@ -59,7 +67,14 @@ function handleSquadronUpdated(updated) {
   }
 }
 
-onMounted(fetchSquadrons)
+onMounted(() => {
+  fetchSquadrons()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
@@ -90,12 +105,30 @@ onMounted(fetchSquadrons)
         </div>
       </div>
 
-      <SquadronExpandedPanel
+      <div
         v-if="isExpanded && activeSquadronId"
-        :squadronId="activeSquadronId"
-        @close="closePanel"
-        @updated="handleSquadronUpdated"
-      />
+        class="hz-overlay flex items-center justify-center p-4"
+        @click.self="closePanel"
+      >
+        <div class="w-full max-w-5xl max-h-[85vh] overflow-y-auto hz-overlay-light rounded-2xl p-4 sm:p-6 hz-stack">
+          <div class="flex justify-end">
+            <HorizonButton
+              variant="ghost"
+              size="xs"
+              @click="closePanel"
+            >
+              ✕
+            </HorizonButton>
+          </div>
+
+          <SquadronExpandedPanel
+            :squadronId="activeSquadronId"
+            :show-close-button="false"
+            @close="closePanel"
+            @updated="handleSquadronUpdated"
+          />
+        </div>
+      </div>
     </div>
   </HorizonContainer>
 </template>

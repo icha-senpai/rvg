@@ -45,18 +45,19 @@
     <!-- MODAL -->
     <div
       v-if="modalOpen"
-      class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+      class="hz-overlay flex items-center justify-center"
+      @click.self="closeModal"
     >
-      <div class="w-full max-w-xl max-h-[80vh] overflow-y-auto p-6 hz-overlay-light rounded-2xl space-y-4">
+      <div class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop">
 
-        <div class="flex justify-between items-center mb-1">
+        <div class="hz-row-between">
           <div class="hz-title-lg">
             {{ isEditing ? 'Edit Role' : 'Create Role' }}
           </div>
 
           <HorizonButton
-            variant="ghost"
-            size="xs"
+            variant="primary"
+            size="sm"
             @click="closeModal"
           >
             ✕
@@ -93,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 
@@ -107,6 +108,13 @@ const props = defineProps({
 /* MODAL STATE */
 const modalOpen = ref(false);
 const isEditing = ref(false);
+
+function handleKeydown(event) {
+  if (event.key !== 'Escape') return;
+  if (!modalOpen.value) return;
+
+  closeModal();
+}
 
 const form = ref({
   id: null,
@@ -142,6 +150,14 @@ function openEdit(role) {
 function closeModal() {
   modalOpen.value = false;
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 
 /* SAVE */
 function saveRole() {

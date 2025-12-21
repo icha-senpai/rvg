@@ -55,18 +55,19 @@
     <!-- CREATE / EDIT MODAL -->
     <div
       v-if="modalOpen"
-      class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+      class="hz-overlay flex items-center justify-center"
+      @click.self="closeModal"
     >
-      <div class="w-full max-w-xl max-h-[80vh] overflow-y-auto hz-overlay-light rounded-2xl p-6 space-y-4">
+      <div class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop">
 
         <!-- TITLE BAR -->
-        <div class="flex justify-between items-center mb-2">
+        <div class="hz-row-between">
           <div class="hz-title-lg">
             {{ isEditing ? 'Edit Squadron' : 'Create Squadron' }}
           </div>
           <HorizonButton
-            variant="ghost"
-            size="xs"
+            variant="primary"
+            size="sm"
             @click="closeModal"
           >
             ✕
@@ -151,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 import HorizonPanel from '@/Components/HorizonPanel.vue';
@@ -174,6 +175,13 @@ const modalOpen = ref(false);
 const isEditing = ref(false);
 
 const editingSquadron = ref(null);
+
+function handleKeydown(event) {
+  if (event.key !== 'Escape') return;
+  if (!modalOpen.value) return;
+
+  closeModal();
+}
 
 const form = ref({
   id: null,
@@ -221,6 +229,14 @@ function closeModal() {
   modalOpen.value = false;
   editingSquadron.value = null;
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 
 /* SAVE */
 function saveSquadron() {

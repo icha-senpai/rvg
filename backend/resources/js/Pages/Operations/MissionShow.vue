@@ -75,7 +75,7 @@ const joinForm = reactive({
 
 const slotOptions = computed(() => {
   const slots = (operation.slots || []).map((slot) => ({ label: slot, value: slot }));
-  return [{ label: 'Unassigned', value: '' }, ...slots];
+  return [{ label: 'No Role', value: '' }, ...slots];
 });
 
 watch(
@@ -172,6 +172,7 @@ async function updateSlot() {
     <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
 
       <div class="flex items-center gap-4">
+        <!-- 
         <HorizonButton
           variant="ghost"
           size="sm"
@@ -179,6 +180,7 @@ async function updateSlot() {
         >
           ⟵ Back
         </HorizonButton>
+        -->
 
         <div class="hz-stack-sm">
           <div class="hz-section-label">
@@ -200,7 +202,7 @@ async function updateSlot() {
     <!-- MAIN GRID -->
     <div class="mb-20 mx-auto max-w-5xl space-y-10">
 
-      <!-- LEFT COLUMN -->
+     
       <section class="space-y-6">
 
         <!-- META PANEL -->
@@ -222,7 +224,7 @@ async function updateSlot() {
             </div>
 
             <div class="hz-stack-xs">
-              <div class="hz-section-label">Window</div>
+              <div class="hz-section-label">Time Window</div>
               <div class="hz-body-strong">
                 <div>
                   {{ formatUTC(operation.starts_at) }}
@@ -239,9 +241,9 @@ async function updateSlot() {
                     {{ formatLocal(operation.ends_at) }} (local)
                   </div>
                 </div>
-                <div v-else class="mt-2">
+                <!--div v-else class="mt-2">
                   TBD
-                </div>
+                </div-->
               </div>
             </div>
 
@@ -255,7 +257,7 @@ async function updateSlot() {
 
 
             <div class="hz-stack-xs">
-              <div class="hz-section-label">Strictness</div>
+              <div class="hz-section-label">Comms Strictness</div>
               <div class="hz-body-strong">
                 {{ operation.operation_strictness ?? 'normal' }}
               </div>
@@ -274,7 +276,7 @@ async function updateSlot() {
             </div>
 
             <div v-if="operation.type" class="hz-stack-xs">
-              <div class="hz-section-label">Type</div>
+              <div class="hz-section-label">Operation Type</div>
               <div class="hz-body-strong">
                 {{ operation.type }}
               </div>
@@ -288,7 +290,7 @@ async function updateSlot() {
           v-if="operation.description"
           class="rounded-xl shadow-lg hz-overlay-light"
         >
-          <div class="hz-section-label mb-2">Briefing</div>
+          <div class="hz-section-label mb-2">Operaton Briefing</div>
           <p class="hz-body">{{ operation.description }}</p>
         </HorizonPanel>
 
@@ -297,16 +299,16 @@ async function updateSlot() {
           v-if="operation.notes"
           class="rounded-xl shadow-lg hz-overlay-light"
         >
-          <div class="hz-section-label mb-2">Notes</div>
+          <div class="hz-section-label mb-2">Operation Extended Briefing</div>
           <p class="hz-body">{{ operation.notes }}</p>
         </HorizonPanel>
 
-        <!-- SLOTS -->
+        <!-- ROLES -->
         <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
 
-          <div class="hz-section-label mb-3">Slots</div>
+          <div class="hz-section-label mb-3">Roles</div>
 
-          <!-- Slots exist -->
+          <!-- Roles exist -->
           <div
             v-if="(operation.slots || []).length"
             class="flex flex-col gap-4"
@@ -348,14 +350,14 @@ async function updateSlot() {
 
           </div>
 
-          <!-- No slots -->
+          <!-- No roles -->
           <div v-else class="hz-caption hz-text-muted">
-            No slots defined. Participants join as “Unassigned”.
+            No roles defined. Participants join as “No Role”.
           </div>
 
           <!-- Unassigned -->
           <div v-if="unassignedParticipants.length" class="mt-6">
-            <div class="hz-section-label mb-1">Unassigned</div>
+            <div class="hz-section-label mb-1">No Role</div>
 
             <ul class="hz-caption hz-stack-2xs">
               <li
@@ -374,7 +376,7 @@ async function updateSlot() {
 
       </section>
 
-      <!-- RIGHT SIDEBAR -->
+     
       <section class="space-y-6">
 
         <!-- USER STATUS -->
@@ -385,12 +387,12 @@ async function updateSlot() {
           <template v-if="currentParticipant">
             <p class="hz-body mb-3">
               You are signed up as
-              <strong>{{ currentParticipant.slot ?? 'Unassigned' }}</strong>
+              <strong>{{ currentParticipant.slot ?? 'No Role' }}</strong>
               ({{ currentParticipant.attendance_status }}).
             </p>
 
             <HorizonSelect
-              label="Slot"
+              label="Role"
               v-model="joinForm.slot"
               :options="slotOptions"
             />
@@ -401,7 +403,7 @@ async function updateSlot() {
                 class="flex-1"
                 @click="updateSlot"
               >
-                Update Slot
+                Update Role
               </HorizonButton>
 
               <HorizonButton
@@ -417,19 +419,18 @@ async function updateSlot() {
           <!-- Not joined -->
           <template v-else>
             <p class="hz-body mb-4">
-              Join this {{ operation.operation_kind }} with an optional slot &
-              note.
+              Join this {{ operation.operation_kind }} with an optional role.
             </p>
 
             <div class="hz-stack">
               <HorizonSelect
-                label="Slot (optional)"
+                label="Role (optional)"
                 v-model="joinForm.slot"
                 :options="slotOptions"
               />
 
 
-              <!-- Notes -->
+              <!-- Notes 
               <div class="hz-stack-xs">
                 <label class="hz-section-label">Notes (optional)</label>
                 <textarea
@@ -438,7 +439,7 @@ async function updateSlot() {
                   class="hz-textarea w-full"
                   placeholder="Ship, role preference, or context..."
                 ></textarea>
-              </div>
+              </div> -->
 
               <HorizonButton
                 variant="primary"
@@ -472,7 +473,7 @@ async function updateSlot() {
                 {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
 
                 <span class="opacity-60">
-                  ({{ p.slot ?? 'Unassigned' }})
+                  ({{ p.slot ?? 'No Role' }})
                 </span>
               </span>
               <span class="opacity-60">

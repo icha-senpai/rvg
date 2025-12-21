@@ -31,7 +31,10 @@ class OperationStoreRequest extends FormRequest
             'rsvp_deadline'        => 'nullable|date|before:starts_at',
             'notes'                => 'nullable|string|max:2000',
 
+            'status'               => 'nullable|in:draft,published',
+
             'slots'                => 'nullable|array',
+            'slots.*'              => 'required|string|max:255|regex:/\S/',
         ];
     }
 }

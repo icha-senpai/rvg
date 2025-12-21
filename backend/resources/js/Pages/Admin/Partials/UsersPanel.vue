@@ -97,7 +97,11 @@
     </div>
 
     <!-- MODAL -->
-<div v-if="editingUser" class="hz-overlay flex items-center justify-center">
+<div
+  v-if="editingUser"
+  class="hz-overlay flex items-center justify-center"
+  @click.self="closeUserEditor"
+>
 
   <div 
     class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop"
@@ -200,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
@@ -256,6 +260,13 @@ function goTo(url) {
 ============================================================ */
 const editingUser = ref(null);
 
+function handleKeydown(event) {
+  if (event.key !== 'Escape') return;
+  if (!editingUser.value) return;
+
+  closeUserEditor();
+}
+
 const form = ref({
   id: null,
   rank: '',
@@ -286,6 +297,14 @@ function openUserEditor(user) {
 function closeUserEditor() {
   editingUser.value = null;
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 
 /* ============================================================
    SAVE ACTIONS
