@@ -128,13 +128,43 @@ class AccessService
             return true;
         }
 
+        if (!$squadron) {
+            if ((int) ($user->rank_level ?? 0) >= 3) {
+                return true;
+            }
+
+            return $this->hasAnyRole($user, [
+                'commander_staff',
+                'wing_commander',
+                'admiral',
+                'grand_admiral',
+            ]);
+        }
+
+        if ((int) ($user->rank_level ?? 0) >= 3
+            || $this->hasAnyRole($user, [
+                'commander_staff',
+                'wing_commander',
+                'admiral',
+                'grand_admiral',
+            ])
+        ) {
+            return $user->squadronMemberships()
+                ->active()
+                ->where('squadron_id', $squadron->id)
+                ->exists();
+        }
+
         // Global RBAC: any user with create or host permissions
         $hostingPerms = PermissionRegistry::group('operation.hosting');
 
         if ($this->can($user, 'operation.create')
             || $this->any($user, $hostingPerms)
         ) {
-            return true;
+            return $user->squadronMemberships()
+                ->active()
+                ->where('squadron_id', $squadron->id)
+                ->exists();
         }
 
         // Squadron-specific creation rules

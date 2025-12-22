@@ -55,12 +55,19 @@ Route::get('/operations/member', [OperationPageController::class, 'memberIndex' 
     ->name('operations.member');
 
 Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
+    ->whereNumber('operation')
     ->name('operations.show');
 
 
 
 // Create operation (requires auth)
 Route::middleware(['auth', 'rsi.verified'])->group(function () {
+    Route::get('/operations/create', [OperationPageController::class, 'createGlobal'])
+        ->name('operations.createGlobal');
+
+    Route::post('/operations', [OperationPageController::class, 'storeGlobal'])
+        ->name('operations.storeGlobal');
+
     Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
         ->name('operations.edit');
 

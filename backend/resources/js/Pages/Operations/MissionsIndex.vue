@@ -14,10 +14,14 @@
         />
 
         <HorizonButton
-          v-if="canCreateOperation && userSquadronId"
+          v-if="canCreateOperation"
           variant="primary"
           size="md"
-          @click="$inertia.visit(route('operations.create', { squadron: userSquadronId }))"
+          @click="
+            userSquadronId
+              ? $inertia.visit(route('operations.create', { squadron: userSquadronId }))
+              : $inertia.visit(route('operations.createGlobal', {}, Ziggy))
+          "
         >
           Create Operation
         </HorizonButton>
@@ -243,6 +247,14 @@ const isDirectorLike = computed(() => {
 
 const canCreateOperation = computed(() => {
   if (isDirectorLike.value) return true;
+  if ((user.value?.rank_level ?? 0) >= 3) return true;
+
+  const roles = user.value?.roles ?? [];
+  const highCommandRoleSlugs = ['commander_staff', 'wing_commander', 'admiral', 'grand_admiral'];
+  if (roles.some(r => highCommandRoleSlugs.includes(r?.slug))) return true;
+
+  if (!userSquadronId.value) return false;
+
   if (can.value['operation.create']) return true;
   if (can.value['operation.host.small']) return true;
   if (can.value['operation.host.medium']) return true;

@@ -5,6 +5,8 @@ namespace App\Domain\Squadrons;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
+use App\Models\Role;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class MembershipService
@@ -191,6 +193,18 @@ class MembershipService
             'membership_status' => SquadronMember::STATUS_ACTIVE,
         ]);
 
+        $lieutenantRoleId = Role::where('slug', 'lieutenant')->value('id');
+        if ($lieutenantRoleId) {
+            $user->roles()->syncWithoutDetaching([$lieutenantRoleId]);
+        }
+
+        if ((int) ($user->rank_level ?? 0) < 2) {
+            $user->setRank('lieutenant');
+        }
+
+        Cache::forget("user_roles_{$user->id}");
+        Cache::forget("user_permissions_{$user->id}");
+
         return $member->fresh();
     }
     /**
@@ -210,6 +224,23 @@ class MembershipService
         $member->update([
             'role' => SquadronMember::ROLE_MEMBER,
         ]);
+
+        $lieutenantRoleId = Role::where('slug', 'lieutenant')->value('id');
+        if ($lieutenantRoleId) {
+            $user->roles()->detach($lieutenantRoleId);
+        }
+
+        $memberRoleId = Role::where('slug', 'member')->value('id');
+        if ($memberRoleId) {
+            $user->roles()->syncWithoutDetaching([$memberRoleId]);
+        }
+
+        if ((int) ($user->rank_level ?? 0) === 2 && $user->rank === 'lieutenant') {
+            $user->setRank('member');
+        }
+
+        Cache::forget("user_roles_{$user->id}");
+        Cache::forget("user_permissions_{$user->id}");
 
         return $member->fresh();
     }

@@ -85,8 +85,29 @@ class OperationPageController extends Controller
     /* ============================================================
      | CREATE
      * ============================================================ */
+    public function createGlobal()
+    {
+        $this->authorize('create', Operation::class);
+
+        return Inertia::render('Operations/MissionEditor', [
+            'mission'    => null,
+            'squadronId' => null,
+        ]);
+    }
+
+    public function storeGlobal(OperationStoreRequest $request)
+    {
+        $this->authorize('create', Operation::class);
+
+        $operation = $this->service->create($request->validated(), null);
+
+        return Inertia::location(route('operations.show', $operation->id));
+    }
+
     public function create($squadronId)
     {
+        $this->authorize('create', [Operation::class, Squadron::findOrFail((int) $squadronId)]);
+
         return Inertia::render('Operations/MissionEditor', [
             'mission'    => null,
             'squadronId' => (int) $squadronId,

@@ -154,6 +154,7 @@ Route::middleware(['auth:sanctum',])->group(function () {
     // Operations API
     Route::get('/operations', [OperationController::class, 'index']);
     Route::get('/operations/{operation}', [OperationController::class, 'show']);
+    Route::post('/operations', [OperationController::class, 'storeGlobal']);
     Route::post('/squadrons/{squadron}/operations', [OperationController::class, 'store']);
     Route::put('/operations/{operation}', [OperationController::class, 'update']);
     Route::delete('/operations/{operation}', [OperationController::class, 'destroy']);

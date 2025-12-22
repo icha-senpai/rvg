@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\User;
+use App\Models\Role;
 use App\Services\DiscordLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Response;
 
 class RSIVerificationController extends Controller
@@ -231,6 +233,13 @@ class RSIVerificationController extends Controller
                 $user->verification_code = null;
                 $user->verification_expires_at = null;
                 $user->save();
+
+                $memberRoleId = Role::where('slug', 'member')->value('id');
+                if ($memberRoleId) {
+                    $user->roles()->syncWithoutDetaching([$memberRoleId]);
+                    Cache::forget("user_roles_{$user->id}");
+                    Cache::forget("user_permissions_{$user->id}");
+                }
 
                 $this->notifyDiscordBotOfVerification($user);
 

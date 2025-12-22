@@ -20,7 +20,7 @@ class OperationService
     /**
      * Create a new operation via Action.
      */
-    public function create(array $data, Squadron $squadron): Operation
+    public function create(array $data, ?Squadron $squadron = null): Operation
     {
         $data = $this->applyDefaults($data);
 

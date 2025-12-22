@@ -7,6 +7,27 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import axios from 'axios';
 import { route } from 'ziggy-js';
 import { Ziggy } from '@/ziggy'; // This file will exist once you publish
+
+function notifyUnauthenticated() {
+    try {
+        const now = Date.now();
+
+        if (window.__hz_lastUnauthenticatedAt && now - window.__hz_lastUnauthenticatedAt < 3000) {
+            return;
+        }
+
+        window.__hz_lastUnauthenticatedAt = now;
+        window.dispatchEvent(
+            new CustomEvent('hz:unauthenticated', {
+                detail: {
+                    verifyUrl: 'https://horizoninterstellar.com/verify',
+                },
+            })
+        );
+    } catch (e) {
+        // ignore
+    }
+}
 /* ============================================================
    HORIZON COMPONENT IMPORTS (GLOBAL REGISTRATION)
    ============================================================ */
@@ -97,7 +118,7 @@ axios.interceptors.response.use(
         const status = error?.response?.status;
         const originalRequest = error?.config;
 
-        if (!originalRequest || status !== 401) {
+        if (!originalRequest || (status !== 401 && status !== 419)) {
             return Promise.reject(error);
         }
 
@@ -108,12 +129,14 @@ axios.interceptors.response.use(
         }
 
         if (originalRequest._retry) {
+            notifyUnauthenticated();
             return Promise.reject(error);
         }
 
         const refreshToken = localStorage.getItem('refresh_token');
 
         if (!refreshToken) {
+            notifyUnauthenticated();
             return Promise.reject(error);
         }
 
@@ -133,6 +156,7 @@ axios.interceptors.response.use(
             const newAccessToken = refreshResponse?.data?.access_token;
 
             if (!newAccessToken) {
+                notifyUnauthenticated();
                 return Promise.reject(error);
             }
 
@@ -142,6 +166,7 @@ axios.interceptors.response.use(
 
             return axios(originalRequest);
         } catch (refreshError) {
+            notifyUnauthenticated();
             return Promise.reject(refreshError);
         }
     }

@@ -16,7 +16,7 @@ import HorizonSelect from '@/Components/HorizonSelect.vue';
 // PROPS
 // ----------------------
 const props = defineProps({
-  squadronId: { type: Number, required: true },
+  squadronId: { type: Number, required: false, default: null },
   mission: { type: Object, default: null },
 });
 
@@ -193,10 +193,11 @@ async function submit(mode) {
   // CREATE MODE
   // ----------------------
   try {
-    const response = await form.post(
-      route('operations.store', { squadron: props.squadronId }, Ziggy),
-      { preserveScroll: true }
-    );
+    const storeUrl = props.squadronId
+      ? route('operations.store', { squadron: props.squadronId }, Ziggy)
+      : route('operations.storeGlobal', {}, Ziggy);
+
+    const response = await form.post(storeUrl, { preserveScroll: true });
 
     let newId =
       response?.props?.operation?.id ??

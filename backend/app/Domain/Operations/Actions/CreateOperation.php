@@ -9,7 +9,7 @@ use App\Domain\Operations\Events\OperationPublished; // <-- ADD THIS if using ev
 
 class CreateOperation
 {
-    public function execute(array $data, Squadron $squadron): Operation
+    public function execute(array $data, ?Squadron $squadron = null): Operation
     {
         // Determine status
         $status = in_array($data['status'] ?? null, ['draft', 'published'])
@@ -18,7 +18,7 @@ class CreateOperation
 
         $operation = Operation::create([
             ...$data,
-            'squadron_id' => $squadron->id,
+            'squadron_id' => $squadron?->id,
             'created_by'  => Auth::id(),
             'status'      => $status,
         ]);

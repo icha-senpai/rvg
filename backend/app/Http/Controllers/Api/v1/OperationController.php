@@ -55,6 +55,18 @@ class OperationController extends Controller
         );
     }
 
+    public function storeGlobal(OperationStoreRequest $request)
+    {
+        $this->authorize('create', Operation::class);
+
+        $operation = $this->service->create($request->validated(), null);
+
+        return response()->json(
+            OperationPresenter::make($operation)->full(),
+            201
+        );
+    }
+
     public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);

@@ -46,6 +46,20 @@ const permissions = ref({})
 const isLoading = ref(false)
 const activeAction = ref(null)
 const errorMessage = ref(null)
+const errorStatus = ref(null)
+
+const verifyUrl = 'https://horizoninterstellar.com/verify'
+
+const isUnauthenticatedError = computed(() => {
+  if (errorStatus.value === 401 || errorStatus.value === 419) return true
+
+  const message = String(errorMessage.value ?? '').toLowerCase()
+  return message.includes('unauthenticated')
+})
+
+function goToVerify() {
+  window.location.href = verifyUrl
+}
 
 /* -------------------------------------------------
    Edit state
@@ -67,6 +81,7 @@ const canEdit = computed(() =>
 async function fetchSquadron() {
   isLoading.value = true
   errorMessage.value = null
+  errorStatus.value = null
 
   try {
     const { data } = await axios.get(
@@ -81,6 +96,7 @@ async function fetchSquadron() {
     editForm.value.motto = data.squadron?.motto ?? ''
     editForm.value.description = data.squadron?.description ?? ''
   } catch (error) {
+    errorStatus.value = error.response?.status ?? null
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -120,6 +136,173 @@ function cancelEdit() {
   editForm.value.description = squadron.value?.description ?? ''
 }
 
+async function applyToSquadron() {
+  if (!squadron.value) return
+
+  activeAction.value = 'apply'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.post(`/api/v1/squadrons/${squadron.value.id}/join`)
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to apply to squadron.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function leaveSquadron() {
+  if (!squadron.value) return
+
+  activeAction.value = 'leave'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.post(`/api/v1/squadrons/${squadron.value.id}/leave`)
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to leave squadron.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function acceptMember(member) {
+  if (!squadron.value || !member?.id) return
+
+  activeAction.value = 'accept-member'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.put(
+      `/api/v1/squadrons/${squadron.value.id}/members/${member.id}`,
+      {
+        membership_status: 'active',
+      }
+    )
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to accept member.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function rejectMember(member) {
+  if (!squadron.value || !member?.id) return
+
+  activeAction.value = 'reject-member'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.put(
+      `/api/v1/squadrons/${squadron.value.id}/members/${member.id}`,
+      {
+        membership_status: 'banned',
+      }
+    )
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to reject member.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function removeMember(member) {
+  if (!squadron.value || !member?.id) return
+
+  activeAction.value = 'remove-member'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.delete(`/api/v1/squadrons/${squadron.value.id}/members/${member.id}`)
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to remove member.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function promoteLieutenant(targetUser) {
+  if (!squadron.value) return
+
+  const userId = targetUser?.id ?? targetUser?.user_id
+  if (!userId) return
+
+  activeAction.value = 'promote-lt'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.post(
+      `/api/v1/squadrons/${squadron.value.id}/members/${userId}/promote-lieutenant`
+    )
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to promote member.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
+async function demoteLieutenant(memberOrUser) {
+  if (!squadron.value) return
+
+  const userId = memberOrUser?.user_id ?? memberOrUser?.user?.id ?? memberOrUser?.id
+  if (!userId) return
+
+  activeAction.value = 'demote-lt'
+  errorMessage.value = null
+  errorStatus.value = null
+
+  try {
+    await axios.post(
+      `/api/v1/squadrons/${squadron.value.id}/members/${userId}/demote-lieutenant`
+    )
+    await fetchSquadron()
+  } catch (error) {
+    errorStatus.value = error.response?.status ?? null
+    errorMessage.value =
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to demote member.'
+  } finally {
+    activeAction.value = null
+  }
+}
+
 /* -------------------------------------------------
    Lifecycle
 ------------------------------------------------- */
@@ -138,7 +321,29 @@ watch(
     </div>
 
     <div v-if="errorMessage" class="hz-alert hz-alert-danger">
-      {{ errorMessage }}
+      <template v-if="isUnauthenticatedError">
+        <div class="hz-alert-title">Verification Required</div>
+        <div class="hz-alert-body">
+          You need to verify your account to do squadron actions.
+          <a
+            :href="verifyUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline"
+          >
+            Verify here
+          </a>
+        </div>
+        <div class="hz-row mt-2">
+          <HorizonButton variant="primary" size="sm" @click="goToVerify">
+            Go to Verification
+          </HorizonButton>
+        </div>
+      </template>
+
+      <template v-else>
+        {{ errorMessage }}
+      </template>
     </div>
 
     <template v-if="squadron">
@@ -205,8 +410,9 @@ watch(
         :permissions="permissions"
         :squadron="squadron"
         :isLoading="isLoading"
-        @apply="emit('apply')"
-        @leave="emit('leave')"
+        :activeAction="activeAction"
+        @apply="applyToSquadron"
+        @leave="leaveSquadron"
       />
 
       <!-- Roster -->
@@ -214,10 +420,11 @@ watch(
         :members="members"
         :permissions="permissions"
         :activeAction="activeAction"
-        @accept-member="emit('accept-member', $event)"
-        @reject-member="emit('reject-member', $event)"
-        @promote-lt="emit('promote-lt', $event)"
-        @remove-member="emit('remove-member', $event)"
+        @accept-member="acceptMember"
+        @reject-member="rejectMember"
+        @promote-lt="promoteLieutenant"
+        @demote-lt="demoteLieutenant"
+        @remove-member="removeMember"
       />
     </template>
   </div>
