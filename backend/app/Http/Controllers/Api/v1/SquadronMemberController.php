@@ -9,6 +9,7 @@ use App\Http\Requests\SquadronMemberAddRequest;
 use App\Http\Requests\SquadronMemberUpdateStatusRequest;
 use App\Domain\Squadrons\MembershipService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
 
@@ -110,18 +111,44 @@ class SquadronMemberController extends Controller
     ) {
         $this->authorize('promoteLieutenant', $squadron);
 
-        app(\App\Domain\Squadrons\MembershipService::class)
-            ->promoteLieutenant($squadron, $user);
+        try {
+            $member = $this->membership->promoteLieutenant($squadron, $user);
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User is not a member of this squadron.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Cannot promote member.',
+            ], 409);
+        }
 
         return response()->json([
             'success' => true,
+            'member' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
+                $member->load('user')
+            ),
         ]);
     }
     public function demoteLieutenant(Squadron $squadron, User $user)
     {
         $this->authorize('demoteLieutenant', $squadron);
 
-        $this->membership->demoteLieutenant($squadron, $user);
+        try {
+            $this->membership->demoteLieutenant($squadron, $user);
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User is not a lieutenant in this squadron.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Cannot demote member.',
+            ], 409);
+        }
 
         return response()->noContent();
     }
