@@ -58,32 +58,76 @@ const props = defineProps({
    FORMATTERS
    ============================ */
 
-/* PURE UTC FORMAT — NO TIMEZONE CONVERSION */
+
 function formatUTC(dt) {
-  if (!dt) return 'N/A';
+  const d = toDate(dt);
+  if (!d) return 'N/A';
 
-  // Remove timezone suffix + milliseconds
-  const clean = dt.replace('Z', '').replace('+00:00', '');
+  const date = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(d);
 
-  const date = clean.slice(0, 10);  // YYYY-MM-DD
-  const time = clean.slice(11, 16); // HH:MM
+  const time = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  }).format(d);
 
   return `${date} ${time} UTC`;
 }
 
 /* LOCAL FORMAT — FOR DISPLAY ONLY (SAFE) */
 function formatLocal(dt) {
-  if (!dt) return 'N/A';
+  const d = toDate(dt);
+  if (!d) return 'N/A';
 
-  const d = new Date(dt); // Only for display, never used in editor
-
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
+  const date = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
     day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+
+  const timeParts = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
-    minute: '2-digit'
-  });
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(d);
+
+  const hour = timeParts.find(p => p.type === 'hour')?.value;
+  const minute = timeParts.find(p => p.type === 'minute')?.value;
+  const dayPeriod = (timeParts.find(p => p.type === 'dayPeriod')?.value ?? '').toLowerCase();
+
+  const time = hour && minute && dayPeriod
+    ? `${hour}:${minute} ${dayPeriod}`
+    : new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).format(d);
+
+  return `${date} ${time}`;
+}
+
+function toDate(value) {
+  if (!value) return null;
+
+  let v = String(value).trim();
+  v = v.replace(' ', 'T');
+
+  v = v.replace(/\.(\d{3})\d+Z$/i, '.$1Z');
+  v = v.replace(/\.(\d{3})\d+$/i, '.$1');
+
+  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(v);
+  if (!hasTimezone) v = `${v}Z`;
+
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 /* COMPUTED VALUES */

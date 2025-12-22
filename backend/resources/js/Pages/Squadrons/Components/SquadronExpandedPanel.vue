@@ -254,7 +254,7 @@ async function removeMember(member) {
 async function promoteLieutenant(targetUser) {
   if (!squadron.value) return
 
-  const userId = targetUser?.id ?? targetUser?.user_id
+  const userId = targetUser?.user_id ?? targetUser?.user?.id ?? targetUser?.id
   if (!userId) return
 
   activeAction.value = 'promote-lt'
