@@ -31,8 +31,8 @@ const emit = defineEmits([
       :permissions="permissions"
       @accept="emit('accept-member', member)"
       @reject="emit('reject-member', member)"
-      @promote-lt="emit('promote-lt', member)"
-      @demote-lt="emit('demote-lt', member)"
+      @promote-lt="emit('promote-lt', $event)"
+      @demote-lt="emit('demote-lt', $event)"
       @remove="emit('remove-member', member)"
     />
   </div>
