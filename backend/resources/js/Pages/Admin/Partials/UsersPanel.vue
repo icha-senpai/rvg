@@ -204,8 +204,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
@@ -214,37 +215,63 @@ const props = defineProps({
   filters: Object,
 });
 
-const users = props.users;
+const users = computed(() => props.users);
 const search = ref(props.filters?.search ?? '');
+
+let searchDebounceId = null;
+
+function runSearch(value) {
+  const trimmed = String(value ?? '').trim();
+
+  router.visit(route('admin.dashboard'), {
+    data: trimmed ? { search: trimmed } : {},
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+    only: ['users', 'filters'],
+  });
+}
 
 /* ============================================================
    COMPUTED
 ============================================================ */
-const totalUsers = computed(() => users?.total ?? 0);
-const currentPage = computed(() => users?.current_page ?? 1);
-const lastPage = computed(() => users?.last_page ?? 1);
-const prevUrl = computed(() => users?.prev_page_url || null);
-const nextUrl = computed(() => users?.next_page_url || null);
+const totalUsers = computed(() => users.value?.total ?? 0);
+const currentPage = computed(() => users.value?.current_page ?? 1);
+const lastPage = computed(() => users.value?.last_page ?? 1);
+const prevUrl = computed(() => users.value?.prev_page_url || null);
+const nextUrl = computed(() => users.value?.next_page_url || null);
 
 /* ============================================================
    SEARCH
 ============================================================ */
 function applySearch() {
-  router.visit(route('admin.dashboard'), {
-    data: { search: search.value },
-    preserveState: true,
-    replace: true,
-  });
+  if (searchDebounceId) {
+    clearTimeout(searchDebounceId);
+    searchDebounceId = null;
+  }
+
+  runSearch(search.value);
 }
 
 function clearSearch() {
+  if (searchDebounceId) {
+    clearTimeout(searchDebounceId);
+    searchDebounceId = null;
+  }
+
   search.value = '';
-  router.visit(route('admin.dashboard'), {
-    data: {},
-    preserveState: true,
-    replace: true,
-  });
+  runSearch('');
 }
+
+watch(search, (value) => {
+  if (searchDebounceId) {
+    clearTimeout(searchDebounceId);
+  }
+
+  searchDebounceId = setTimeout(() => {
+    runSearch(value);
+  }, 250);
+});
 
 /* ============================================================
    PAGINATION
@@ -303,6 +330,11 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (searchDebounceId) {
+    clearTimeout(searchDebounceId);
+    searchDebounceId = null;
+  }
+
   window.removeEventListener('keydown', handleKeydown);
 });
 

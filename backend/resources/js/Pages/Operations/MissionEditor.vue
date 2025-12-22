@@ -111,8 +111,15 @@ function removeSlot(index) {
 // SUBMIT HANDLER
 // ----------------------
 async function submit(mode) {
+  const currentStatus = props.mission?.status ?? 'draft';
   const isPublishing = mode === 'published';
-  form.status = isPublishing ? 'published' : 'draft';
+  const shouldPublishTransition = isPublishing && (!isEdit.value || currentStatus === 'draft');
+
+  if (!isEdit.value) {
+    form.status = isPublishing ? 'published' : 'draft';
+  } else {
+    form.status = currentStatus;
+  }
 
   // ----------------------
   // BUILD DATETIMES
@@ -167,7 +174,7 @@ async function submit(mode) {
       {
         preserveScroll: true,
         async onSuccess() {
-          if (isPublishing) {
+          if (shouldPublishTransition && currentStatus === 'draft') {
             try {
               await axios.post(route('operations.publish', props.mission.id, Ziggy));
             } catch (err) {
@@ -261,7 +268,7 @@ async function destroyOperation() {
 
     <!-- Main Layout -->
     <div class="mx-auto max-w-5xl space-y-10">
-      <div class="text-s text-horizon-offwhite mt-2 opacity-80">
+      <div class="text-sm text-horizon-offwhite mt-2 opacity-80">
         ⏱️ Detected timezone: <strong>{{ timezone }}</strong><br>
         If this is incorrect, adjust your OS timezone for accurate scheduling.
       </div>

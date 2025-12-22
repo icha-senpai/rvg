@@ -17,7 +17,7 @@ class OperationUpdateRequest extends FormRequest
             'title'                => 'sometimes|string|max:255',
             'description'          => 'sometimes|string|nullable',
             'starts_at'            => 'sometimes|date',
-            'ends_at'              => 'sometimes|date|after:starts_at',
+            'ends_at'              => 'sometimes|nullable|date|after:starts_at',
 
             'operation_kind'       => 'sometimes|in:event,mission',
             'type'                 => 'sometimes|string|max:255|nullable',

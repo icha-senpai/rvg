@@ -16,7 +16,7 @@ const emit = defineEmits(['apply', 'leave'])
     <div class="hz-section-label">Your Status</div>
 
     <p class="hz-soft">
-      Status component placeholder
+      {{ viewerMembership?.membership_status }}
     </p>
     <div
       v-if="viewerMembership && viewerMembership.membership_status === 'pending'"

@@ -24,7 +24,8 @@ class AdminController extends Controller
     {
         $this->authorize('access-admin-panel');
 
-        $search = trim($request->input('search'));
+        $search = trim((string) $request->input('search', ''));
+        $searchNeedle = $search !== '' ? '%'.mb_strtolower($search).'%' : null;
 
         $users = User::query()
             ->select(
@@ -40,13 +41,11 @@ class AdminController extends Controller
                 'loa_note'
             )
             ->with(['roles:id,name,slug'])
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    // Case-insensitive text search (Postgres)
-                    $q->where('discord_name', 'ILIKE', "%{$search}%")
-                      ->orWhere('rsi_handle', 'ILIKE', "%{$search}%");
+            ->when($searchNeedle, function ($query) use ($search, $searchNeedle) {
+                $query->where(function ($q) use ($search, $searchNeedle) {
+                    $q->whereRaw('LOWER(discord_name) LIKE ?', [$searchNeedle])
+                      ->orWhereRaw('LOWER(rsi_handle) LIKE ?', [$searchNeedle]);
 
-                    // Numeric-only ID search
                     if (is_numeric($search)) {
                         $q->orWhere('id', (int) $search);
                     }

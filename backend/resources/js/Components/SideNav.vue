@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -85,9 +85,129 @@ const navItems = computed(() => {
     },
   ].filter(item => item.show !== false);
 });
+
+const mobileOpen = ref(false);
+
+function openMobileNav() {
+  mobileOpen.value = true;
+}
+
+function closeMobileNav() {
+  mobileOpen.value = false;
+}
+
+watch(
+  () => page.url,
+  () => {
+    closeMobileNav();
+  }
+);
+
+function handleKeydown(event) {
+  if (event.key !== 'Escape') return;
+  if (!mobileOpen.value) return;
+
+  closeMobileNav();
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
+  <button
+    v-if="user && !mobileOpen"
+    type="button"
+    class="md:hidden fixed top-3 left-3 z-50 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-elevated border border-bg-hover text-horizon-white"
+    @click="openMobileNav"
+  >
+    <span class="text-sm font-semibold">Menu</span>
+  </button>
+
+  <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-40">
+    <div class="absolute inset-0 bg-black/60" @click="closeMobileNav"></div>
+
+    <aside class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
+      <div class="h-full flex flex-col p-4 gap-4">
+        <div class="flex items-center justify-between gap-3 px-2 py-2">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-2.5 h-2.5 rounded-full"
+              style="background: var(--color-horizon-blue-light);"
+            ></div>
+            <div class="hz-title-md text-horizon-white">
+              Horizon Interstellar
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
+            @click="closeMobileNav"
+          >
+            Close
+          </button>
+        </div>
+
+        <div class="px-2 hz-section-label">Navigation</div>
+
+        <nav class="flex flex-col gap-1">
+          <template v-for="item in navItems" :key="item.key">
+            <Link
+              v-if="!item.href"
+              :href="route(item.routeName, item.params)"
+              class="px-3 py-2 rounded-xl text-sm font-semibold transition"
+              :class="
+                item.isActive
+                  ? 'bg-bg-hover text-horizon-white'
+                  : 'text-text-secondary hover:bg-bg-hover hover:text-horizon-white'
+              "
+              @click="closeMobileNav"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate">{{ item.label }}</span>
+                <span
+                  v-if="item.key === 'my_squadron'"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-10 text-text-secondary"
+                >
+                  {{ mySquadron?.name ?? 'Active' }}
+                </span>
+              </div>
+            </Link>
+
+            <a
+              v-else
+              :href="item.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
+              @click="closeMobileNav"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate">{{ item.label }}</span>
+              </div>
+            </a>
+          </template>
+        </nav>
+
+        <div class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover">
+          <div class="text-xs text-text-secondary">Signed in as</div>
+          <div class="text-sm font-semibold truncate text-horizon-white">
+            {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
+          </div>
+          <div class="text-xs text-(--color-text-muted)">
+            Rank {{ rankLevel }}
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
   <aside v-if="user" class="hidden md:block h-screen w-64 shrink-0 sticky top-0">
     <div
       class="h-full bg-bg-elevated border-r border-bg-hover"
@@ -121,7 +241,7 @@ const navItems = computed(() => {
                 <span class="truncate">{{ item.label }}</span>
                 <span
                   v-if="item.key === 'my_squadron'"
-                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-(--color-horizon-blue-10) text-text-secondary"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-10 text-text-secondary"
                 >
                   {{ mySquadron?.name ?? 'Active' }}
                 </span>

@@ -206,7 +206,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- META PANEL -->
-        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
+        <HorizonPanel class="rounded-xl shadow-lg ">
           <div class="grid md:grid-cols-2 gap-6">
 
             <div class="hz-stack-xs">
@@ -288,23 +288,23 @@ async function updateSlot() {
         <!-- BRIEFING -->
         <HorizonPanel
           v-if="operation.description"
-          class="rounded-xl shadow-lg hz-overlay-light"
+          class="rounded-xl shadow-lg "
         >
           <div class="hz-section-label mb-2">Operaton Briefing</div>
-          <p class="hz-body">{{ operation.description }}</p>
+          <p class="hz-body whitespace-pre-line">{{ operation.description }}</p>
         </HorizonPanel>
 
         <!-- NOTES -->
         <HorizonPanel
           v-if="operation.notes"
-          class="rounded-xl shadow-lg hz-overlay-light"
+          class="rounded-xl shadow-lg"
         >
           <div class="hz-section-label mb-2">Operation Extended Briefing</div>
-          <p class="hz-body">{{ operation.notes }}</p>
+          <p class="hz-body whitespace-pre-line">{{ operation.notes }}</p>
         </HorizonPanel>
 
         <!-- ROLES -->
-        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
+        <HorizonPanel class="rounded-xl shadow-lg">
 
           <div class="hz-section-label mb-3">Roles</div>
 
@@ -380,7 +380,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- USER STATUS -->
-        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
+        <HorizonPanel class="rounded-xl shadow-lg">
           <div class="hz-section-label mb-3">Your Status</div>
 
           <!-- Already joined -->
@@ -456,7 +456,7 @@ async function updateSlot() {
         </HorizonPanel>
 
         <!-- PARTICIPANTS -->
-        <HorizonPanel class="rounded-xl shadow-lg hz-overlay-light">
+        <HorizonPanel class="rounded-xl shadow-lg">
           <div class="hz-section-label mb-3">Participants</div>
 
           <p class="hz-body mb-3">

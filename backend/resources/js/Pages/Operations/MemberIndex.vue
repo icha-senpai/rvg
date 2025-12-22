@@ -9,6 +9,10 @@
       title="Your Available Operations"
     />
 
+    <div class="hz-caption hz-text-muted">
+      Today: {{ todayLabel }}
+    </div>
+
     <!-- LIST -->
     <div class="space-y-4">
       <OperationAccordion
@@ -26,7 +30,7 @@
         size="sm"
         variant="ghost"
         :disabled="!operationsPaginator.prev_page_url"
-        @click="goToPage(operationsPaginator.current_page - 1)"
+        @click="goToUrl(operationsPaginator.prev_page_url)"
       >
         Prev
       </HorizonButton>
@@ -39,7 +43,7 @@
         size="sm"
         variant="ghost"
         :disabled="!operationsPaginator.next_page_url"
-        @click="goToPage(operationsPaginator.current_page + 1)"
+        @click="goToUrl(operationsPaginator.next_page_url)"
       >
         Next
       </HorizonButton>
@@ -59,6 +63,15 @@ import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+
+const todayLabel = computed(() => {
+  return new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+});
 
 const props = defineProps({
   operations: {
@@ -87,6 +100,12 @@ function goToPage(pageNumber) {
     { page: pageNumber },
     { preserveScroll: true, preserveState: true }
   );
+}
+
+function goToUrl(url) {
+  if (!url) return;
+
+  router.get(url, {}, { preserveScroll: true, preserveState: true });
 }
 
 // Most recent start time first

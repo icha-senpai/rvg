@@ -28,7 +28,7 @@
 
       <div class="space-y-1">
         <div class="hz-section-label">Description</div>
-        <p class="hz-caption leading-relaxed">
+        <p class="hz-caption leading-relaxed whitespace-pre-line">
           {{ operation.description }}
         </p>
       </div>

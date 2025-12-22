@@ -125,7 +125,7 @@
           size="sm"
           variant="ghost"
           :disabled="!operationsPaginator.prev_page_url"
-          @click="goToPage(operationsPaginator.current_page - 1)"
+          @click="goToUrl(operationsPaginator.prev_page_url)"
         >
           Prev
         </HorizonButton>
@@ -138,7 +138,7 @@
           size="sm"
           variant="ghost"
           :disabled="!operationsPaginator.next_page_url"
-          @click="goToPage(operationsPaginator.current_page + 1)"
+          @click="goToUrl(operationsPaginator.next_page_url)"
         >
           Next
         </HorizonButton>
@@ -201,14 +201,10 @@ const operationsList = computed(() => {
   return props.operations?.data ?? [];
 });
 
-function goToPage(pageNumber) {
-  if (!pageNumber || pageNumber < 1) return;
+function goToUrl(url) {
+  if (!url) return;
 
-  router.get(
-    route('operations.index', {}, Ziggy),
-    { page: pageNumber },
-    { preserveScroll: true, preserveState: true }
-  );
+  router.get(url, {}, { preserveScroll: true, preserveState: true });
 }
 
 /* ----------------------------------------
