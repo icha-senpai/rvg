@@ -467,7 +467,7 @@ async function destroyOperation() {
     >
       <div class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop">
         <div class="hz-row-between">
-          <div class="hz-title-lg">Missing Role Slot</div>
+          <div class="hz-title-lg">Missing Role</div>
           <HorizonButton variant="primary" size="sm" @click="closeSlotWarning">
             ✕
           </HorizonButton>

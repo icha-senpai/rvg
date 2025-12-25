@@ -63,7 +63,7 @@
               </div>
             </div>
             <div v-else>
-              TBD
+              No sign up deadline set
             </div>
           </div>
         </div>

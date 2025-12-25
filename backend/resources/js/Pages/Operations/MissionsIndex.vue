@@ -27,7 +27,7 @@
         </HorizonButton>
       </div>
 
-      <!-- FILTER PANEL (centered, slim like screenshot) -->
+      <!-- FILTER PANEL -->
       <HorizonPanel class="p-3 rounded-xl space-y-2 max-w-2xl mx-auto">
         
         <!-- FILTER BUTTONS -->
