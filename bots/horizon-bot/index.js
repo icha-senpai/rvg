@@ -1,5 +1,5 @@
 require('dotenv').config();
-console.log("DISCORD_BOT_SECRET:", process.env.DISCORD_BOT_SECRET);
+
 
 const express = require('express');
 const app = express(); // MUST EXIST BEFORE app.use()
