@@ -101,6 +101,15 @@ class OperationPageController extends Controller
 
         $operation = $this->service->create($request->validated(), null);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($operation)->full(),
+                ],
+            ], 201);
+        }
+
         return Inertia::location(route('operations.show', $operation->id));
     }
 
@@ -120,6 +129,15 @@ class OperationPageController extends Controller
 
         $operation = $this->service->create($request->validated(), $squadron);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($operation)->full(),
+                ],
+            ], 201);
+        }
+
         return Inertia::location(route('operations.show', $operation->id));
     }
 
@@ -136,11 +154,33 @@ class OperationPageController extends Controller
         ]);
     }
 
+    public function editData(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        return response()->json([
+            'status' => 'ok',
+            'payload' => [
+                'mission' => OperationPresenter::make($operation)->form(),
+                'squadronId' => $operation->squadron_id,
+            ],
+        ]);
+    }
+
     public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
         $updated = $this->service->update($operation, $request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('operations.show', $updated->id)
@@ -177,12 +217,21 @@ class OperationPageController extends Controller
 
         $updated = $this->service->transition($operation, 'published');
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
+
         return redirect()
             ->route('operations.show', $operation->id)
             ->with('success', 'Operation published successfully.');
     }
 
-    public function showData(Operation $operation)
+    public function showData(Request $request, Operation $operation)
     {
         $operation->load([
             'squadron',
@@ -201,7 +250,7 @@ class OperationPageController extends Controller
             ->values();
 
         $currentParticipant = $participants
-            ->firstWhere('user_id', auth()->id());
+            ->firstWhere('user_id', $request->user()?->getAuthIdentifier());
 
         return response()->json([
             'operation' => $operation,

@@ -176,12 +176,30 @@
       </template>
 
       <!-- BODY -->
+      <div
+        v-if="editHydrating"
+        class="p-10 text-center"
+      >
+        <div class="hz-caption hz-text-muted">
+          Loading editor…
+        </div>
+      </div>
+
+      <div
+        v-else-if="editHydrationError"
+        class="p-10 text-center text-red-400"
+      >
+        {{ editHydrationError }}
+      </div>
+
       <MissionEditorForm
+        v-else
+        :embedded="true"
         :mission="editingMission"
         :squadron-id="editorSquadronId"
         @cancel="closeDrawer"
         @deleted="closeDrawer"
-        @saved="closeDrawer"
+        @saved="handleDrawerSaved"
       />
     </OperationDrawer>
 
@@ -193,10 +211,10 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ viewingOperation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+            {{ (modalHeaderOperation?.operation_kind ?? 'mission') === 'mission' ? 'Mission' : 'Event' }}
           </div>
           <div class="hz-title-md text-horizon-white">
-            {{ viewingOperation.title }}
+            {{ modalHeaderOperation?.title ?? '' }}
           </div>
         </div>
       </template>
@@ -264,6 +282,8 @@ const props = defineProps({
 const drawerOpen = ref(false)
 const editingMission = ref(null)
 const editorSquadronId = ref(null)
+const editHydrating = ref(false)
+const editHydrationError = ref(null)
 
 /* ----------------------
    VIEW MODAL STATE
@@ -272,6 +292,10 @@ const viewingOperation = ref(null)
 const viewData = ref(null)
 const viewLoading = ref(false)
 const viewError = ref(null)
+
+const modalHeaderOperation = computed(() => {
+  return viewData.value?.operation ?? viewingOperation.value
+})
 
 const operationsPaginator = computed(() => {
   return Array.isArray(props.operations) ? null : props.operations;
@@ -294,19 +318,50 @@ function goToUrl(url) {
 function openCreateDrawer() {
   editingMission.value = null
   editorSquadronId.value = userSquadronId.value
+  editHydrating.value = false
+  editHydrationError.value = null
   drawerOpen.value = true
 }
 
-function openEditDrawer(op) {
+async function openEditDrawer(op) {
   editingMission.value = op
   editorSquadronId.value = op.squadron?.id ?? null
+  editHydrating.value = true
+  editHydrationError.value = null
   drawerOpen.value = true
+
+  try {
+    const { data } = await axios.get(
+      route('operations.editData', op.id, Ziggy)
+    )
+
+    editingMission.value = data?.payload?.mission ?? null
+    editorSquadronId.value = data?.payload?.squadronId ?? null
+  } catch (err) {
+    console.error(err)
+    editHydrationError.value = 'Failed to load editor data.'
+  } finally {
+    editHydrating.value = false
+  }
 }
 
 function closeDrawer() {
   drawerOpen.value = false
   editingMission.value = null
   editorSquadronId.value = null
+  editHydrating.value = false
+  editHydrationError.value = null
+}
+
+function handleDrawerSaved(payload) {
+  const operationId = payload?.id
+  closeDrawer()
+
+  if (!operationId) return
+
+  setTimeout(() => {
+    openViewModal({ id: operationId })
+  }, 160)
 }
 
 /* ----------------------
@@ -320,10 +375,11 @@ async function openViewModal(op) {
 
   try {
     const { data } = await axios.get(
-      route('operations.showData', op.id)
+      route('operations.showData', op.id, Ziggy)
     )
 
     viewData.value = data
+    viewingOperation.value = data?.operation ?? viewingOperation.value
   } catch (err) {
     console.error(err)
     viewError.value = 'Failed to load operation data.'

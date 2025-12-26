@@ -27,6 +27,7 @@ const emit = defineEmits([
 const props = defineProps({
   squadronId: { type: Number, required: false, default: null },
   mission: { type: Object, default: null },
+  embedded: { type: Boolean, default: false },
 })
 
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -168,6 +169,71 @@ async function submit(mode) {
     form.slots = trimmedSlots
   }
 
+  if (props.embedded) {
+    form.processing = true
+    form.clearErrors()
+
+    try {
+      const headers = {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+
+      if (isEdit.value) {
+        await axios.put(
+          route('operations.update', props.mission.id, Ziggy),
+          form.data(),
+          headers
+        )
+
+        if (shouldPublishTransition && currentStatus === 'draft') {
+          await axios.post(
+            route('operations.publish', props.mission.id, Ziggy),
+            {},
+            headers
+          )
+        }
+
+        emit('saved', {
+          id: props.mission.id,
+          mode: 'edit',
+        })
+
+        return
+      }
+
+      const storeUrl = props.squadronId
+        ? route('operations.store', { squadron: props.squadronId }, Ziggy)
+        : route('operations.storeGlobal', {}, Ziggy)
+
+      const { data } = await axios.post(storeUrl, form.data(), headers)
+      const newId = data?.payload?.operation?.id
+
+      if (!newId) {
+        console.error('Could not resolve operation ID.')
+        return
+      }
+
+      emit('saved', {
+        id: newId,
+        mode: 'create',
+      })
+    } catch (err) {
+      const errors = err?.response?.data?.errors
+      if (err?.response?.status === 422 && errors) {
+        form.setError(errors)
+        return
+      }
+
+      console.error('EMBEDDED SAVE ERROR:', err)
+    } finally {
+      form.processing = false
+    }
+
+    return
+  }
+
   // ----------------------
   // EDIT MODE
   // ----------------------
@@ -265,7 +331,7 @@ async function destroyOperation() {
 
       <HorizonButton
         variant="ghost"
-        @click="$inertia.visit(route('operations.index'))"
+        @click="embedded ? emit('cancel') : $inertia.visit(route('operations.index'))"
       >
         Cancel
       </HorizonButton>

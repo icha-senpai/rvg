@@ -58,8 +58,7 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')
     ->name('operations.show');
 
-Route::get('/operations/{operation}/show-data', [OperationPageController::class, 'showData'])
-    ->name('operations.showData');
+
 
 // Create operation (requires auth)
 Route::middleware(['auth', 'rsi.verified'])->group(function () {
@@ -71,6 +70,12 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 
     Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
         ->name('operations.edit');
+
+    Route::get('/operations/{operation}/show-data', [OperationPageController::class, 'showData'])
+        ->name('operations.showData');
+
+    Route::get('/operations/{operation}/edit-data', [OperationPageController::class, 'editData'])
+        ->name('operations.editData');
 
     Route::post('/squadrons/{squadron}/operations', [OperationPageController::class, 'store'])
         ->name('operations.store');
@@ -94,7 +99,6 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 
     Route::post('/operations/{operation}/participants/{participant}/slot', [OperationPageController::class, 'updateSlot'])
         ->name('operations.participants.slot');
-
 
     });
 
