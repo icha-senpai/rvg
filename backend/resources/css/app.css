@@ -222,6 +222,46 @@
 /* --------------------------------------------------------------------------
    ANIMATIONS
 -------------------------------------------------------------------------- */
+@keyframes hz-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes hz-drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes hz-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hz-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
 
 @keyframes hz-fade-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -231,6 +271,22 @@
 @keyframes hz-pop {
   0% { transform: scale(0.96); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+.hz-animate-drawer-in {
+  animation: hz-drawer-in var(--motion-normal) var(--ease-smooth);
+}
+
+.hz-animate-drawer-out {
+  animation: hz-drawer-out var(--motion-normal) var(--ease-smooth);
+}
+
+.hz-animate-modal-in {
+  animation: hz-modal-in var(--motion-normal) var(--ease-smooth);
+}
+
+.hz-animate-modal-out {
+  animation: hz-modal-out var(--motion-normal) var(--ease-smooth);
 }
 
 .hz-animate-fade {

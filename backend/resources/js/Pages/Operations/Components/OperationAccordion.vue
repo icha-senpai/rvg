@@ -81,7 +81,7 @@
         variant="primary"
         size="sm"
         class="mt-4"
-        @click.stop="$inertia.visit(route('operations.show', operation.id))"
+        @click.stop="emit('view', operation)"
       >
         View Full Operation
       </HorizonButton>
@@ -96,6 +96,7 @@ import { ref } from 'vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
+const emit = defineEmits(['view'])
 const props = defineProps({
   operation: Object,
 });

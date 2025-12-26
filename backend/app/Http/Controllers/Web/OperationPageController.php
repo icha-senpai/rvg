@@ -182,6 +182,36 @@ class OperationPageController extends Controller
             ->with('success', 'Operation published successfully.');
     }
 
+    public function showData(Operation $operation)
+    {
+        $operation->load([
+            'squadron',
+            'creator',
+            'participants.user',
+        ]);
+
+        $participants = $operation->participants;
+
+        $participantsBySlot = $participants
+            ->whereNotNull('slot')
+            ->groupBy('slot');
+
+        $unassignedParticipants = $participants
+            ->whereNull('slot')
+            ->values();
+
+        $currentParticipant = $participants
+            ->firstWhere('user_id', auth()->id());
+
+        return response()->json([
+            'operation' => $operation,
+            'participants' => $participants,
+            'participantsBySlot' => $participantsBySlot,
+            'unassignedParticipants' => $unassignedParticipants,
+            'currentParticipant' => $currentParticipant,
+        ]);
+    }
+
     /* ============================================================
      | DELETE
      * ============================================================ */

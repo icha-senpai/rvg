@@ -58,7 +58,8 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')
     ->name('operations.show');
 
-
+Route::get('/operations/{operation}/show-data', [OperationPageController::class, 'showData'])
+    ->name('operations.showData');
 
 // Create operation (requires auth)
 Route::middleware(['auth', 'rsi.verified'])->group(function () {

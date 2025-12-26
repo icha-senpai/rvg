@@ -3,66 +3,112 @@
 
     <div class="mx-auto max-w-5xl space-y-6">
 
-    <!-- HEADER -->
-    <HorizonSectionHeader
-      label="Operations"
-      title="Your Available Operations"
-    />
-
-    <div class="hz-caption hz-text-muted">
-      Today: {{ todayLabel }}
-    </div>
-
-    <!-- LIST -->
-    <div class="space-y-4">
-      <OperationAccordion
-        v-for="op in sortedOperations"
-        :key="op.id"
-        :operation="op"
+      <!-- HEADER -->
+      <HorizonSectionHeader
+        label="Operations"
+        title="Your Available Operations"
       />
-    </div>
-
-    <div
-      v-if="operationsPaginator && operationsPaginator.last_page > 1"
-      class="pt-8 flex items-center justify-between"
-    >
-      <HorizonButton
-        size="sm"
-        variant="ghost"
-        :disabled="!operationsPaginator.prev_page_url"
-        @click="goToUrl(operationsPaginator.prev_page_url)"
-      >
-        Prev
-      </HorizonButton>
 
       <div class="hz-caption hz-text-muted">
-        Page {{ operationsPaginator.current_page }} of {{ operationsPaginator.last_page }}
+        Today: {{ todayLabel }}
       </div>
 
-      <HorizonButton
-        size="sm"
-        variant="ghost"
-        :disabled="!operationsPaginator.next_page_url"
-        @click="goToUrl(operationsPaginator.next_page_url)"
+      <!-- LIST -->
+      <div class="space-y-4">
+        <OperationAccordion
+          v-for="op in sortedOperations"
+          :key="op.id"
+          :operation="op"
+          @view="openViewModal"
+        />
+      </div>
+
+      <div
+        v-if="operationsPaginator && operationsPaginator.last_page > 1"
+        class="pt-8 flex items-center justify-between"
       >
-        Next
-      </HorizonButton>
-    </div>
+        <HorizonButton
+          size="sm"
+          variant="ghost"
+          :disabled="!operationsPaginator.prev_page_url"
+          @click="goToUrl(operationsPaginator.prev_page_url)"
+        >
+          Prev
+        </HorizonButton>
+
+        <div class="hz-caption hz-text-muted">
+          Page {{ operationsPaginator.current_page }} of {{ operationsPaginator.last_page }}
+        </div>
+
+        <HorizonButton
+          size="sm"
+          variant="ghost"
+          :disabled="!operationsPaginator.next_page_url"
+          @click="goToUrl(operationsPaginator.next_page_url)"
+        >
+          Next
+        </HorizonButton>
+      </div>
 
     </div>
+
+    <OperationModal
+      v-if="viewingOperation"
+      @close="closeViewModal"
+    >
+      <template #header>
+        <div class="hz-stack-xs">
+          <div class="hz-section-label">
+            {{ viewingOperation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+          </div>
+          <div class="hz-title-md text-horizon-white">
+            {{ viewingOperation.title }}
+          </div>
+        </div>
+      </template>
+
+      <div v-if="viewLoading" class="p-10 text-center">
+        <div class="hz-caption hz-text-muted">
+          Loading operation details…
+        </div>
+      </div>
+
+      <div v-else-if="viewError" class="p-10 text-center text-red-400">
+        {{ viewError }}
+      </div>
+
+      <MissionShowPanel
+        v-else
+        :operation="viewData.operation"
+        :participants="viewData.participants"
+        :participants-by-slot="viewData.participantsBySlot"
+        :unassigned-participants="viewData.unassignedParticipants"
+        :current-participant="viewData.currentParticipant"
+        @refresh="reloadViewData"
+      />
+    </OperationModal>
+
 
   </HorizonContainer>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
+import axios from 'axios'
 import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
+import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
+
+const viewingOperation = ref(null)
+const viewData = ref(null)
+const viewLoading = ref(false)
+const viewError = ref(null)
 
 const todayLabel = computed(() => {
   return new Date().toLocaleDateString(undefined, {
@@ -136,6 +182,49 @@ function parseDate(value) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+async function openViewModal(op) {
+  viewingOperation.value = op
+  viewLoading.value = true
+  viewError.value = null
+  viewData.value = null
+
+  try {
+    const { data } = await axios.get(
+      route('operations.showData', op.id)
+    )
+    viewData.value = data
+  } catch (e) {
+    console.error(e)
+    viewError.value = 'Failed to load operation.'
+  } finally {
+    viewLoading.value = false
+  }
+}
+
+function closeViewModal() {
+  viewingOperation.value = null
+  viewData.value = null
+  viewError.value = null
+}
+
+async function reloadViewData() {
+  if (!viewingOperation.value) return
+
+  viewLoading.value = true
+  viewError.value = null
+
+  try {
+    const { data } = await axios.get(
+      route('operations.showData', viewingOperation.value.id)
+    )
+    viewData.value = data
+  } catch (err) {
+    console.error(err)
+    viewError.value = 'Failed to refresh operation data.'
+  } finally {
+    viewLoading.value = false
+  }
+}
 
 </script>
 

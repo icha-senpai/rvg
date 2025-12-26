@@ -1,8 +1,6 @@
 <template>
   <HorizonContainer class="space-y-10">
 
-
-
     <!-- MAIN PAGE (single column, screenshot style) -->
     <section class="mx-auto max-w-5xl space-y-7">
 
@@ -17,11 +15,7 @@
           v-if="canCreateOperation"
           variant="primary"
           size="md"
-          @click="
-            userSquadronId
-              ? $inertia.visit(route('operations.create', { squadron: userSquadronId }))
-              : $inertia.visit(route('operations.createGlobal', {}, Ziggy))
-          "
+          @click="openCreateDrawer"
         >
           Create Operation
         </HorizonButton>
@@ -29,7 +23,7 @@
 
       <!-- FILTER PANEL -->
       <HorizonPanel class="p-3 rounded-xl space-y-2 max-w-2xl mx-auto">
-        
+
         <!-- FILTER BUTTONS -->
         <div class="flex flex-wrap gap-2">
           <HorizonButton
@@ -86,22 +80,22 @@
             </div>
 
             <div class="flex gap-2 shrink-0">
-              
+
               <!-- EDIT -->
               <HorizonButton
                 v-if="canManageOperation(op)"
                 size="sm"
                 variant="primary"
-                @click="$inertia.visit(route('operations.edit', op.id))"
+                @click="openEditDrawer(op)"
               >
                 Edit
               </HorizonButton>
-              
+
               <!-- VIEW -->
               <HorizonButton
                 size="sm"
                 variant="primary"
-                @click="$inertia.visit(route('operations.show', op.id))"
+                @click="openViewModal(op)"
               >
                 View
               </HorizonButton>
@@ -165,14 +159,85 @@
 
     </section>
 
+    <OperationDrawer
+      v-if="drawerOpen"
+      @close="closeDrawer"
+    >
+      <!-- HEADER -->
+      <template #header>
+        <div class="hz-stack-xs">
+          <div class="hz-section-label">
+            {{ editingMission ? 'Edit Operation' : 'New Operation' }}
+          </div>
+          <div class="hz-title-md text-horizon-white">
+            {{ editingMission ? editingMission.title : 'Create Operation' }}
+          </div>
+        </div>
+      </template>
+
+      <!-- BODY -->
+      <MissionEditorForm
+        :mission="editingMission"
+        :squadron-id="editorSquadronId"
+        @cancel="closeDrawer"
+        @deleted="closeDrawer"
+        @saved="closeDrawer"
+      />
+    </OperationDrawer>
+
+    <!-- MISSION VIEW MODAL -->
+    <OperationModal
+      v-if="viewingOperation"
+      @close="closeViewModal"
+    >
+      <template #header>
+        <div class="hz-stack-xs">
+          <div class="hz-section-label">
+            {{ viewingOperation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+          </div>
+          <div class="hz-title-md text-horizon-white">
+            {{ viewingOperation.title }}
+          </div>
+        </div>
+      </template>
+
+      <!-- LOADING -->
+      <div v-if="viewLoading" class="p-10 text-center">
+        <div class="hz-caption hz-text-muted">
+          Loading operation details…
+        </div>
+      </div>
+
+      <!-- ERROR -->
+      <div v-else-if="viewError" class="p-10 text-center text-red-400">
+        {{ viewError }}
+      </div>
+
+      <!-- CONTENT (guarded so we don't render until data exists) -->
+      <div v-else-if="!viewData" class="p-10 text-center">
+        <div class="hz-caption hz-text-muted">
+          Preparing…
+        </div>
+      </div>
+
+      <MissionShowPanel
+        v-else
+        :operation="viewData.operation"
+        :participants="viewData.participants"
+        :participants-by-slot="viewData.participantsBySlot"
+        :unassigned-participants="viewData.unassignedParticipants"
+        :current-participant="viewData.currentParticipant"
+        @refresh="openViewModal(viewingOperation)"
+      />
+    </OperationModal>
+
   </HorizonContainer>
 </template>
-
-
 
 <script setup>
 import { computed, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import axios from 'axios'
 import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
 
@@ -183,7 +248,10 @@ import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
 import MissionGrid from '@/Components/MissionGrid.vue';
 import MissionCard from '@/Components/MissionCard.vue';
-
+import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
+import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
+import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
+import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 
 const page = usePage();
 const props = defineProps({
@@ -192,6 +260,18 @@ const props = defineProps({
     required: true,
   },
 });
+
+const drawerOpen = ref(false)
+const editingMission = ref(null)
+const editorSquadronId = ref(null)
+
+/* ----------------------
+   VIEW MODAL STATE
+---------------------- */
+const viewingOperation = ref(null)
+const viewData = ref(null)
+const viewLoading = ref(false)
+const viewError = ref(null)
 
 const operationsPaginator = computed(() => {
   return Array.isArray(props.operations) ? null : props.operations;
@@ -209,6 +289,53 @@ function goToUrl(url) {
   if (!url) return;
 
   router.get(url, {}, { preserveScroll: true, preserveState: true });
+}
+
+function openCreateDrawer() {
+  editingMission.value = null
+  editorSquadronId.value = userSquadronId.value
+  drawerOpen.value = true
+}
+
+function openEditDrawer(op) {
+  editingMission.value = op
+  editorSquadronId.value = op.squadron?.id ?? null
+  drawerOpen.value = true
+}
+
+function closeDrawer() {
+  drawerOpen.value = false
+  editingMission.value = null
+  editorSquadronId.value = null
+}
+
+/* ----------------------
+   LAZY LOAD VIEW MODAL
+---------------------- */
+async function openViewModal(op) {
+  viewingOperation.value = op
+  viewLoading.value = true
+  viewError.value = null
+  viewData.value = null
+
+  try {
+    const { data } = await axios.get(
+      route('operations.showData', op.id)
+    )
+
+    viewData.value = data
+  } catch (err) {
+    console.error(err)
+    viewError.value = 'Failed to load operation data.'
+  } finally {
+    viewLoading.value = false
+  }
+}
+
+function closeViewModal() {
+  viewingOperation.value = null
+  viewData.value = null
+  viewError.value = null
 }
 
 /* ----------------------------------------
