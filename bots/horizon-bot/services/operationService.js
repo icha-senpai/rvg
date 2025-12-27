@@ -3,6 +3,7 @@ const { EmbedBuilder } = require('discord.js');
 module.exports = {
     async announceOperation(client, op) {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
+        const roleIdToPing = process.env.OP_ANNOUNCE_ROLE_ID;
 
         // ------------------------------
         // VALIDATE CHANNEL
@@ -40,26 +41,26 @@ module.exports = {
         // ------------------------------
         const embed = new EmbedBuilder()
             .setColor(0x00a3ff)
-            .setTitle(`🚀 Operation Published: ${op.title}`)
+            .setTitle(`${op.title}`)
             .setDescription(desc)
             .addFields(
                 {
-                    name: '🕒 Starts At',
+                    name: 'Starts At',
                     value: op.starts_at_discord || "N/A",
-                    inline: true,
+                    inline: false,
                 },
                 {
-                    name: '🔧 Strictness',
+                    name: 'Strictness',
                     value: op.operation_strictness || 'default',
-                    inline: true,
+                    inline: false,
                 },
                 {
-                    name: '👁 Visibility',
+                    name: 'Visibility',
                     value: op.visibility || 'open',
-                    inline: true,
+                    inline: false,
                 },
                 {
-                    name: '🗂 Squadron',
+                    name: 'Squadron',
                     value: op.squadron_name || 'N/A',
                     inline: false,
                 }
@@ -71,7 +72,15 @@ module.exports = {
         // SEND TO DISCORD
         // ------------------------------
         try {
-            await channel.send({ embeds: [embed] });
+            const content = roleIdToPing
+                ? `A new operation has been posted <@&${roleIdToPing}>`
+                : 'A new operation has been posted';
+
+            await channel.send({
+                content,
+                embeds: [embed],
+                allowedMentions: roleIdToPing ? { roles: [roleIdToPing] } : undefined,
+            });
             console.log(`📢 Operation announced: ${op.title} (#${op.id})`);
         } catch (err) {
             console.error('❌ Failed to send operation embed:', err);
