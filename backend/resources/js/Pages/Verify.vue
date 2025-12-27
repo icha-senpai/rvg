@@ -164,7 +164,7 @@ const verifyRsi = async () => {
             <div v-if="!discordVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 1 · Verify with Discord</h2>
                 <p class="text-sm text-gray-300 mb-4">
-                    Click below to log in with Discord. You’ll return here afterward.
+                    Click below to log in with Discord. You'll return here afterward.
                 </p>
 
                 <a
@@ -179,8 +179,9 @@ const verifyRsi = async () => {
             <div v-else-if="!rsiVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 2 · RSI Verification</h2>
                 <p class="text-sm text-gray-300 mb-4">
-                    1) Generate your code and paste it into your RSI bio.<br>
-                    2) Enter your RSI handle and click "Verify RSI".
+                    1) Make sure Horizon is set as your main org!!<br>
+                    2) Generate your code and paste it into your RSI bio.<br>
+                    3) Enter your RSI handle and click "Verify RSI".
                 </p>
 
                 <!-- Generate code -->
@@ -209,7 +210,7 @@ const verifyRsi = async () => {
                     <input
                         v-model="rsiHandle"
                         type="text"
-                        placeholder="ichaa"
+                        placeholder=""
                         :class="[
                             'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2',
                             error.details?.field === 'rsi_handle'
