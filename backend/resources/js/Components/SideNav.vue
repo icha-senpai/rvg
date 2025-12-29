@@ -213,12 +213,12 @@ onBeforeUnmount(() => {
         </nav>
 
         <div class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover">
-          <div class="text-xs text-text-secondary">Signed in as</div>
+          <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">
             {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
           </div>
-          <div class="text-xs text-(--color-text-muted)">
-            Rank {{ rankLevel }}
+          <div class="text-xs text-text-secondary">
+            Rank {{ rankName }}
           </div>
         </div>
       </div>
@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
         <div
           class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover"
         >
-          <div class="text-xs text-text-secondary">User Status</div>
+          <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">
             {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
           </div>

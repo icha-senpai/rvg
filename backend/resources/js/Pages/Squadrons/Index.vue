@@ -91,7 +91,7 @@ onBeforeUnmount(() => {
         {{ errorMessage }}
       </div>
 
-      <div class="hz-grid-3">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
