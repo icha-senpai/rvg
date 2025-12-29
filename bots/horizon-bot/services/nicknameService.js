@@ -10,7 +10,9 @@ module.exports = {
                 return;
             }
 
-            if (!status.user?.is_verified || !status.user?.rsi_handle) {
+            const isVerified = !!(status.user?.is_verified || status.user?.rsi_verified_at);
+
+            if (!isVerified || !status.user?.rsi_handle) {
                 return;
             }
 

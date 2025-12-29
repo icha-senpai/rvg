@@ -46,10 +46,13 @@ class BotVerificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'user' => $user->makeVisible([
-                'rsi_handle',
-                'discord_id',
-            ]),
+            'user' => [
+                'id'              => $user->id,
+                'discord_id'      => $user->discord_id,
+                'rsi_handle'      => $user->rsi_handle,
+                'is_verified'     => (bool) $user->rsi_verified_at,
+                'rsi_verified_at' => $user->rsi_verified_at,
+            ],
         ]);
     }
 
