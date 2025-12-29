@@ -7,7 +7,10 @@
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="icon" type="image/png" href="{{ asset('images/Uz21HiAAAAAElFTkSuQmCC.png') }}">
-        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
         <!-- Scripts -->
         @routes
         @vite(['resources/js/app.js'])

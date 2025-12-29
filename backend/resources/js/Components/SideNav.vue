@@ -7,6 +7,23 @@ const page = usePage();
 const user = computed(() => page.props?.auth?.user ?? null);
 const roles = computed(() => user.value?.roles ?? []);
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0));
+const rankName = computed(() => {
+  const existingRankName = user.value?.rank_name;
+  if (existingRankName) {
+    return existingRankName;
+  }
+
+  return (
+    {
+      1: 'Member',
+      2: 'Lieutenant',
+      3: 'Commander',
+      4: 'Wing Commander',
+      5: 'Admiral',
+      6: 'Grand Admiral',
+    }[rankLevel.value] ?? 'Unknown'
+  );
+});
 
 const isDirectorLike = computed(() => {
   return roles.value.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
@@ -137,7 +154,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center justify-between gap-3 px-2 py-2">
           <div class="flex items-center gap-3">
             <div
-              class="w-2.5 h-2.5 rounded-full"
+              class="hidden w-2.5 h-2.5 rounded-full"
               style="background: var(--color-horizon-blue-light);"
             ></div>
             <div class="hz-title-md text-horizon-white">
@@ -215,7 +232,7 @@ onBeforeUnmount(() => {
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="flex items-center gap-3 px-2 py-2">
           <div
-            class="w-2.5 h-2.5 rounded-full"
+            class="hidden w-2.5 h-2.5 rounded-full"
             style="background: var(--color-horizon-blue-light);"
           ></div>
           <div class="hz-title-md text-horizon-white">
@@ -265,12 +282,12 @@ onBeforeUnmount(() => {
         <div
           class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover"
         >
-          <div class="text-xs text-text-secondary">Signed in as</div>
+          <div class="text-xs text-text-secondary">User Status</div>
           <div class="text-sm font-semibold truncate text-horizon-white">
             {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
           </div>
-          <div class="text-xs text-(--color-text-muted)">
-            Rank {{ rankLevel }}
+          <div class="text-xs text-text-secondary">
+            Rank {{ rankName }}
           </div>
         </div>
       </div>
