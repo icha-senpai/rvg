@@ -1,24 +1,27 @@
 const { checkVerificationStatus } = require('../utils/api');
-const { REST, Routes } = require('discord.js');
 
 module.exports = {
     async enforce(client, discordId) {
         try {
             const status = await checkVerificationStatus(discordId);
 
-            if (!status?.user?.is_verified || !status.user?.rsi_handle) {
-                console.log(`[Nickname] ${discordId}: not verified, skipping`);
+            // 👇 204 or unknown user → clean no-op
+            if (!status) {
+                return;
+            }
+
+            if (!status.user?.is_verified || !status.user?.rsi_handle) {
                 return;
             }
 
             const rsi = status.user.rsi_handle;
+
             const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
             const member = await guild.members.fetch(discordId);
 
             const current = member.nickname || member.user.username;
 
             if (current === rsi) {
-                console.log(`[Nickname] ${discordId} already correct (${rsi})`);
                 return;
             }
 
@@ -26,7 +29,11 @@ module.exports = {
             console.log(`[Nickname] Updated ${discordId} → ${rsi}`);
 
         } catch (err) {
-            console.error(`[Nickname] Failed for ${discordId}:`, err.message);
+            // Only log REAL failures
+            console.error(
+                `[Nickname] Failed for ${discordId}:`,
+                err.response?.status || err.message
+            );
         }
     }
 };

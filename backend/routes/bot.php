@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\v1\BotVerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('bot')
-    ->middleware(['api', 'throttle:60,1'])
+    ->middleware(['api', 'throttle:1000,1'])
     ->group(function () {
 
         Route::post('/verify', [BotVerificationController::class, 'verify'])

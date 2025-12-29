@@ -99,7 +99,9 @@ const logWatcher = require('./services/logWatcher');
 // --------------------
 const nicknameCron = require('./services/nicknameCron');
 
-
+client.once(Events.ClientReady, async () => {
+    await nicknameCron.runNow(client);
+});
 // --------------------
 // BOT READY
 // --------------------
