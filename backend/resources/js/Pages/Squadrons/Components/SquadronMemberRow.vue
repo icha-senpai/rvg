@@ -45,7 +45,7 @@
         Remove
       </HorizonButton>
       <HorizonButton
-        v-if="permissions.can_promote_lieutenant && member.role === 'member'"
+        v-if="permissions.can_promote_lieutenant && canPromoteLieutenant && member.role === 'member'"
         variant="ghost"
         size="xs"
         @click="$emit('promote-lt', member.user)"
@@ -72,6 +72,7 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 const props = defineProps({
   member: Object,
   permissions: Object,
+  canPromoteLieutenant: Boolean,
   isBusy: Boolean,
 })
 

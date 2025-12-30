@@ -234,7 +234,7 @@ async function updateSlot() {
     <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
       <div class="hz-stack-sm">
         <div class="hz-section-label">
-          {{ operation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+          {{ operation.operation_kind === 'mission' ? 'Operation' : 'Operation' }}
         </div>
 
         <h1 class="hz-title-lg text-horizon-white">

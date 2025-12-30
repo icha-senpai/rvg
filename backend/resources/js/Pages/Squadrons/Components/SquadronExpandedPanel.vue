@@ -75,6 +75,12 @@ const canEdit = computed(() =>
   permissions.value?.can_manage_members === true
 )
 
+const lieutenantCount = computed(() =>
+  (members.value ?? []).filter(member => member?.is_lieutenant === true).length
+)
+
+const canPromoteLieutenant = computed(() => lieutenantCount.value < 2)
+
 /* -------------------------------------------------
    Fetch squadron
 ------------------------------------------------- */
@@ -212,12 +218,7 @@ async function rejectMember(member) {
   errorStatus.value = null
 
   try {
-    await axios.put(
-      `/api/v1/squadrons/${squadron.value.id}/members/${member.id}`,
-      {
-        membership_status: 'banned',
-      }
-    )
+    await axios.delete(`/api/v1/squadrons/${squadron.value.id}/members/${member.id}`)
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
@@ -419,6 +420,7 @@ watch(
       <SquadronRoster
         :members="members"
         :permissions="permissions"
+        :canPromoteLieutenant="canPromoteLieutenant"
         :activeAction="activeAction"
         @accept-member="acceptMember"
         @reject-member="rejectMember"

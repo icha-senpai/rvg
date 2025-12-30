@@ -325,7 +325,7 @@ async function destroyOperation() {
         </div>
 
         <h1 class="hz-title-lg text-horizon-white">
-          {{ isEdit ? 'Edit Mission/Event' : 'Create Mission/Event' }}
+          {{ isEdit ? 'Edit Operation' : 'Create Operation' }}
         </h1>
       </div>
 
@@ -340,8 +340,9 @@ async function destroyOperation() {
     <!-- Main Layout -->
     <div class="mx-auto max-w-5xl space-y-10">
       <div class="text-sm text-horizon-offwhite mt-2 opacity-80">
-        ⏱️ Detected timezone: <strong>{{ timezone }}</strong><br>
-        If this is incorrect, adjust your OS timezone for accurate scheduling.
+        Detected timezone: <strong>{{ timezone }}</strong><br>
+        If this is incorrect, adjust your OS timezone for accurate scheduling.<br>
+        The editor uses UTC for all calculations. It automatically converts to your local timezone for display.
       </div>
       <!-- LEFT SIDE -->
       <div class="space-y-6">

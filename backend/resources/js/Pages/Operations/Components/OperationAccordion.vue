@@ -71,7 +71,7 @@
       </div>
 
       <div class="hz-caption">
-        Strictness: {{ operation.operation_strictness ?? 'N/A' }}
+        Comms Strictness: {{ operation.operation_strictness ?? 'N/A' }}
         <br />
         Visibility: {{ operation.visibility ?? 'open' }}
 

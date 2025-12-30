@@ -59,7 +59,7 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ viewingOperation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+            {{ viewingOperation.operation_kind === 'mission' ? 'Operation' : 'Operation' }}
           </div>
           <div class="hz-title-md text-horizon-white">
             {{ viewingOperation.title }}

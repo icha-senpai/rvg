@@ -4,6 +4,7 @@ import SquadronMemberRow from './SquadronMemberRow.vue'
 const props = defineProps({
   members: Array,
   permissions: Object,
+  canPromoteLieutenant: Boolean,
   activeAction: String,
 })
 
@@ -29,6 +30,7 @@ const emit = defineEmits([
       :key="member.id"
       :member="member"
       :permissions="permissions"
+      :canPromoteLieutenant="canPromoteLieutenant"
       @accept="emit('accept-member', member)"
       @reject="emit('reject-member', member)"
       @promote-lt="emit('promote-lt', $event)"

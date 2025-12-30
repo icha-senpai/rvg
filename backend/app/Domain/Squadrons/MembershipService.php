@@ -216,19 +216,23 @@ class MembershipService
             ->where('squadron_id', $squadron->id)
             ->where('role', SquadronMember::ROLE_LIEUTENANT)
             ->firstOrFail();
-            if ($member->role !== SquadronMember::ROLE_LIEUTENANT) {
+
+        if ($member->role !== SquadronMember::ROLE_LIEUTENANT) {
             throw ValidationException::withMessages([
                 'role' => 'User is not a lieutenant.',
             ]);
         }
+
         $member->update([
             'role' => SquadronMember::ROLE_MEMBER,
         ]);
 
-        $lieutenantRoleId = Role::where('slug', 'lieutenant')->value('id');
-        if ($lieutenantRoleId) {
-            $user->roles()->detach($lieutenantRoleId);
+        $lieutenantRoleIds = Role::where('slug', 'lieutenant')->pluck('id')->all();
+        if (!empty($lieutenantRoleIds)) {
+            $user->roles()->detach($lieutenantRoleIds);
         }
+
+        $user->unsetRelation('roles');
 
         $memberRoleId = Role::where('slug', 'member')->value('id');
         if ($memberRoleId) {
