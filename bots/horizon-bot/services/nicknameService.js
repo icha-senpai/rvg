@@ -1,5 +1,12 @@
 const { checkVerificationStatus } = require('../utils/api');
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
 module.exports = {
     async enforce(client, discordId) {
         try {
@@ -28,7 +35,7 @@ module.exports = {
             }
 
             await member.setNickname(rsi, 'RSI nickname sync');
-            console.log(`[Nickname] Updated ${discordId} → ${rsi}`);
+            log(`[Nickname] Updated ${discordId} → ${rsi}`);
 
         } catch (err) {
             // Only log REAL failures

@@ -1,9 +1,16 @@
 const nicknameService = require('./nicknameService');
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runNicknameSync(client) {
-    console.log('[Cron] Running nickname sync (manual or scheduled)…');
+    log('[Cron] Running nickname sync (manual or scheduled)…');
 
     try {
         const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
@@ -19,7 +26,7 @@ async function runNicknameSync(client) {
             await sleep(250); // throttle
         }
 
-        console.log('[Cron] Nickname sync complete');
+        log('[Cron] Nickname sync complete');
     } catch (err) {
         console.error('[Cron] Sync failed:', err.message);
     }
@@ -29,5 +36,5 @@ module.exports = {
     start(client) {
         setInterval(() => runNicknameSync(client), 30 * 60 * 1000);
     },
-    runNow: runNicknameSync, // 👈 manual trigger
+    runNow: runNicknameSync, // manual trigger
 };

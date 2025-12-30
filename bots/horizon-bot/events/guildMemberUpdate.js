@@ -4,6 +4,13 @@ const welcomeService = require('../services/welcomeService');
 
 const GUEST_ROLE_ID = '1454412918828306483';
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+  if (LOGS_ENABLED) {
+    console.log(...args);
+  }
+};
+
 module.exports = {
   name: Events.GuildMemberUpdate,
   async execute(oldMember, newMember) {
@@ -11,7 +18,7 @@ module.exports = {
     // Nickname enforcement
     // ----------------------------
     if (oldMember.nickname !== newMember.nickname) {
-      console.log(`[EVENT] Nickname changed → enforcing for ${newMember.id}`);
+      log(`[EVENT] Nickname changed → enforcing for ${newMember.id}`);
 
       try {
         await nicknameService.enforce(newMember.client, newMember.id);
@@ -30,7 +37,7 @@ module.exports = {
     const hasGuest = newMember.roles.cache.has(GUEST_ROLE_ID);
 
     if (!hadGuest && hasGuest) {
-      console.log(`[ARRIVAL] Guest role assigned → ${newMember.id}`);
+      log(`[ARRIVAL] Guest role assigned → ${newMember.id}`);
 
       try {
         await welcomeService.sendWelcome(newMember);

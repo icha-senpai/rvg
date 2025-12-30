@@ -1,32 +1,36 @@
-console.log("🔥 webhookOperations.js LOADED");
-
 const express = require('express');
 const router = express.Router();
 const operationService = require('./operationService');
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
+log("🔥 webhookOperations.js LOADED");
+
 router.post('/op-published', async (req, res) => {
-    console.log("🔥 BODY TYPE:", typeof req.body);
-    console.log("🔥 RAW BODY VALUE:", req.body);
-
-    console.log("=== WEBHOOK DEBUG ===");
-    console.log("📥 Incoming payload:", req.body);
-
-
     const received = req.headers['x-bot-secret'];
     const expected = process.env.DISCORD_BOT_SECRET;
 
-    console.log("Headers:", req.headers);
-    console.log("Received secret:", received);
-    console.log("Expected secret:", expected);
-
     if (received !== expected) {
-        console.log("SECRET MISMATCH");
+        log('[OpWebhook] Forbidden', {
+            path: req.originalUrl ?? req.url,
+            receivedPresent: Boolean(received),
+            receivedLength: typeof received === 'string' ? received.length : null,
+        });
         return res.status(403).json({ message: 'Forbidden' });
     }
 
-    console.log("SECRET MATCHED ✔");
-
     const op = req.body;
+
+    log('[OpWebhook] Received op-published', {
+        path: req.originalUrl ?? req.url,
+        bodyType: typeof op,
+        bodyKeys: op && typeof op === 'object' ? Object.keys(op) : null,
+    });
 
     if (!op || !op.id || !op.title) {
         return res.status(400).json({ message: 'Invalid operation payload' });

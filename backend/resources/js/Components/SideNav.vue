@@ -57,8 +57,8 @@ const navItems = computed(() => {
       isActive: url === '/',
     },
     {
-      key: 'databank',
-      label: 'Databank',
+      key: 'archive',
+      label: 'Horizon Archive',
       href: 'https://docs.horizoninterstellar.com/collection/horizon-databank-ehz6KYHyv1',
       isActive: false,
     },

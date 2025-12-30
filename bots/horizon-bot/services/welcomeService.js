@@ -6,6 +6,7 @@ const {
 
 module.exports = {
   async sendWelcome(member) {
+    return;
     const channelId = '1454412966907613227';
     const channel = member.guild.channels.cache.get(channelId);
     if (!channel) return;

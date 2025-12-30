@@ -3,11 +3,35 @@ require('dotenv').config();
 
 const express = require('express');
 const app = express(); // MUST EXIST BEFORE app.use()
+
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
 app.use(express.json());
-app.use((req, res, next) => {
-    console.log("🔥 GLOBAL REQUEST HEADERS:", req.method, req.url, req.headers);
-    next();
-});
+
+if (LOGS_ENABLED) {
+    app.use((req, res, next) => {
+        const ip =
+            req.headers['cf-connecting-ip'] ||
+            req.headers['x-forwarded-for'] ||
+            req.ip;
+
+        log('[Webhook]', {
+            method: req.method,
+            url: req.originalUrl ?? req.url,
+            ip,
+            userAgent: req.headers['user-agent'],
+            contentType: req.headers['content-type'],
+            contentLength: req.headers['content-length'],
+            hasBotSecret: Boolean(req.headers['x-bot-secret']),
+        });
+        next();
+    });
+}
 
 // --------------------
 // LOAD WEBHOOK ROUTES
@@ -15,7 +39,7 @@ app.use((req, res, next) => {
 const webhookRoutes = require('./services/webhook');        // nickname sync webhook
 const webhookOpRoutes = require('./services/webhookOperations'); // operation published webhook
 
-console.log("Loaded webhookOpRoutes:", webhookOpRoutes);
+log("Loaded webhookOpRoutes:", webhookOpRoutes);
 
 // Mount all /bot routes AFTER app is created
 app.use('/bot', webhookRoutes);
@@ -60,7 +84,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
     try {
-        console.log('Updating slash commands...');
+        log('Updating slash commands...');
         await rest.put(
             Routes.applicationGuildCommands(
                 process.env.DISCORD_CLIENT_ID,
@@ -68,7 +92,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
             ),
             { body: commands }
         );
-        console.log('Slash commands updated.');
+        log('Slash commands updated.');
     } catch (error) {
         console.error(error);
     }
@@ -106,7 +130,7 @@ client.once(Events.ClientReady, async () => {
 // BOT READY
 // --------------------
 client.once(Events.ClientReady, () => {
-    console.log(`🚀 Logged in as ${client.user.tag}!`);
+    log(`🚀 Logged in as ${client.user.tag}!`);
     logWatcher.start(client);
     nicknameCron.start(client);
 });
@@ -121,5 +145,5 @@ client.login(process.env.DISCORD_TOKEN);
 // --------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`🌐 Webhook server running at http://localhost:${PORT}`);
+    log(`🌐 Webhook server running at http://localhost:${PORT}`);
 });

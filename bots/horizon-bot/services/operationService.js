@@ -1,5 +1,12 @@
 const { EmbedBuilder } = require('discord.js');
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
 module.exports = {
     async announceOperation(client, op) {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
@@ -81,7 +88,7 @@ module.exports = {
                 embeds: [embed],
                 allowedMentions: roleIdToPing ? { roles: [roleIdToPing] } : undefined,
             });
-            console.log(`📢 Operation announced: ${op.title} (#${op.id})`);
+            log(`📢 Operation announced: ${op.title} (#${op.id})`);
         } catch (err) {
             console.error('❌ Failed to send operation embed:', err);
         }

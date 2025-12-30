@@ -3,9 +3,16 @@ const path = require('path');
 
 const LOG_FILE = process.env.LARAVEL_LOG_PATH;
 
+const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
+const log = (...args) => {
+    if (LOGS_ENABLED) {
+        console.log(...args);
+    }
+};
+
 module.exports = {
     start(client) {
-        console.log('🛰️ Log watcher initializing...');
+        log('🛰️ Log watcher initializing...');
 
         // If the file doesn't exist yet — create it so fs.watch won't explode
         ensureLogFileExists(LOG_FILE);
@@ -24,14 +31,14 @@ function ensureLogFileExists(filepath) {
 
     if (!fs.existsSync(filepath)) {
         fs.writeFileSync(filepath, ""); // create empty file
-        console.log("📄 Created missing laravel.log");
+        log("📄 Created missing laravel.log");
     }
 }
 
 function watchLogFile(client) {
     let fileSize = fs.statSync(LOG_FILE).size;
 
-    console.log(`📡 Watching log file: ${LOG_FILE}`);
+    log(`📡 Watching log file: ${LOG_FILE}`);
 
     // Try-catch so Windows doesn't hard-crash
     try {
