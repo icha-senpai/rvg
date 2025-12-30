@@ -10,14 +10,11 @@ module.exports = {
     const channel = member.guild.channels.cache.get(channelId);
     if (!channel) return;
 
-    const content = `<@${member.id}>
+    const content = `Welcome to **HORIZON**, *${member.displayName}*!
 
-**Welcome to the HORIZON Interstellar Discord!**
+You have arrived at our **Arrival Platform**. Before receiving full access to our Discord, we must verify your account and membership with HORIZON. Please proceed to **[HORIZON INTERSTELLAR VERIFICATION ](https://horizoninterstellar.com/)** and complete the verification process.
 
-You’ve reached the **Arrival Platform**, your journey begins here! To continue beyond this point and unlock full server access, account and membership verification is required. Select the **Verify** button and complete the process through our official members hub.
-
-If verification does not complete successfully, or if you are joining us in a **Diplomatic capacity** or have any kind of question, please click **Need Help?** and create a support ticket. One of our officers will get to you as soon as possible.
-`;
+If you have any questions, experiencing any issues verifying your account **or if you are a <@&1454412916148404362>**, please head to https://discord.com/channels/113412259320954880/1454412972842811473`;
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
