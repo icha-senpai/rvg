@@ -10,7 +10,9 @@ module.exports = {
     const channel = member.guild.channels.cache.get(channelId);
     if (!channel) return;
 
-    const content = `Welcome to **HORIZON**, *${member.displayName}*!
+    const content = `<@${member.id}>
+
+Welcome to **HORIZON**, *${member.displayName}*!
 
 You have arrived at our **Arrival Platform**. Before receiving full access to our Discord, we must verify your account and membership with HORIZON. Please proceed to **[HORIZON INTERSTELLAR VERIFICATION ](https://horizoninterstellar.com/)** and complete the verification process.
 
