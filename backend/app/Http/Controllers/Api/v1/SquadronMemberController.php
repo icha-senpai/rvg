@@ -11,6 +11,7 @@ use App\Domain\Squadrons\MembershipService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
 class SquadronMemberController extends Controller
@@ -64,7 +65,23 @@ class SquadronMemberController extends Controller
 
     public function destroy(Squadron $squadron, SquadronMember $member)
     {
+        $user = Auth::user();
+
         $this->authorize('manageMembers', $squadron);
+
+        if (
+            $user instanceof User
+            && $user->isSquadronLieutenant($squadron)
+            && (
+                $member->user_id === $squadron->leader_id
+                || $member->role === SquadronMember::ROLE_LEADER
+            )
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lieutenants cannot remove the squadron leader.',
+            ], 403);
+        }
 
         $this->membership->adminRemoveMember($squadron, $member);
 
@@ -73,7 +90,7 @@ class SquadronMemberController extends Controller
 
     public function join(Squadron $squadron)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         try {
             $member = $this->membership->userJoin($squadron, $user);
@@ -93,7 +110,7 @@ class SquadronMemberController extends Controller
 
     public function leave(Squadron $squadron)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         try {
             $this->membership->userLeave($squadron, $user);
