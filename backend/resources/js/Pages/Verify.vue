@@ -7,16 +7,32 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 const params = new URLSearchParams(window.location.search);
 const tokenFromUrl = params.get('token');
 const refreshTokenFromUrl = params.get('refresh_token');
+const errorFromUrl = params.get('error');
 
-if (tokenFromUrl) {
+let initialErrorMessage = null;
+
+if (errorFromUrl === 'not_in_guild') {
+    initialErrorMessage = 'Access denied. You must be in the org Discord before you can continue.';
+} else if (errorFromUrl === 'oauth') {
+    initialErrorMessage = 'Discord login failed. Please try again.';
+} else if (errorFromUrl) {
+    initialErrorMessage = 'Discord verification failed. Please try again.';
+}
+
+if (errorFromUrl) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+}
+
+if (!errorFromUrl && tokenFromUrl) {
     localStorage.setItem('access_token', tokenFromUrl);
 }
 
-if (refreshTokenFromUrl) {
+if (!errorFromUrl && refreshTokenFromUrl) {
     localStorage.setItem('refresh_token', refreshTokenFromUrl);
 }
 
-if (tokenFromUrl || refreshTokenFromUrl) {
+if (tokenFromUrl || refreshTokenFromUrl || errorFromUrl) {
     window.history.replaceState({}, '', '/verify');
 }
 
@@ -32,6 +48,10 @@ const verificationCode = ref('');
 const error = ref({ message: null, details: {} });
 const loadingCode = ref(false);
 const verifying = ref(false);
+
+if (initialErrorMessage) {
+    error.value = { message: initialErrorMessage, details: {} };
+}
 
 // Auth header helper
 const authHeaders = () => ({

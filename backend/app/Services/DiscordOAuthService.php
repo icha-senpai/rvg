@@ -38,12 +38,12 @@ class DiscordOAuthService
 
     public function checkGuildMembership(?string $discordId): bool
     {
-    // No Discord ID? No guild.
+        // No Discord ID? No guild.
         if (!$discordId) {
             return false;
         }
 
-    // Global toggle – can ship system before bot is live.
+        // Global toggle – can ship system before bot is live.
         if (!config('services.discord.guild_check')) {
             return true;
         }
@@ -65,10 +65,32 @@ class DiscordOAuthService
             $response = $client->get("/guilds/{$guildId}/members/{$discordId}", [
                 'headers' => [
                     'Authorization' => "Bot {$botToken}",
+                    'Accept'        => 'application/json',
+                    'User-Agent'    => 'Horizon Interstellar Guild Check (https://horizoninterstellar)',
                 ],
             ]);
 
-            return $response->getStatusCode() === 200;
+            if ($response->getStatusCode() !== 200) {
+                return false;
+            }
+
+            $payload = json_decode((string) $response->getBody(), true);
+
+            if (!is_array($payload) || $payload === [] || !array_key_exists('joined_at', $payload)) {
+                Log::warning('Discord guild membership check returned an unexpected payload', [
+                    'discord_id' => $discordId,
+                    'status'     => $response->getStatusCode(),
+                    'content_type' => $response->getHeaderLine('Content-Type'),
+                ]);
+
+                return false;
+            }
+
+            if (is_array($payload) && array_key_exists('pending', $payload) && $payload['pending'] === true) {
+                return false;
+            }
+
+            return true;
         } catch (\Throwable $e) {
             Log::error('Discord guild membership check failed', [
                 'discord_id' => $discordId,
@@ -118,6 +140,7 @@ class DiscordOAuthService
 
         return [$user, $code];
     }
+
     public function isMemberOfGuild(string $discordId, string $guildId): bool
     {
         if (!config('services.discord.guild_check')) {
@@ -140,10 +163,33 @@ class DiscordOAuthService
             $response = $client->get("/guilds/{$guildId}/members/{$discordId}", [
                 'headers' => [
                     'Authorization' => "Bot {$botToken}",
+                    'Accept'        => 'application/json',
+                    'User-Agent'    => 'Horizon Interstellar Guild Check (https://horizoninterstellar)',
                 ],
             ]);
 
-            return $response->getStatusCode() === 200;
+            if ($response->getStatusCode() !== 200) {
+                return false;
+            }
+
+            $payload = json_decode((string) $response->getBody(), true);
+
+            if (!is_array($payload) || $payload === [] || !array_key_exists('joined_at', $payload)) {
+                Log::warning('Discord guild membership check returned an unexpected payload', [
+                    'discord_id' => $discordId,
+                    'guild_id'   => $guildId,
+                    'status'     => $response->getStatusCode(),
+                    'content_type' => $response->getHeaderLine('Content-Type'),
+                ]);
+
+                return false;
+            }
+
+            if (is_array($payload) && array_key_exists('pending', $payload) && $payload['pending'] === true) {
+                return false;
+            }
+
+            return true;
         } catch (\Throwable $e) {
             Log::error('Discord guild membership check failed', [
                 'discord_id' => $discordId,
@@ -155,4 +201,3 @@ class DiscordOAuthService
         }
     }
 }
-
