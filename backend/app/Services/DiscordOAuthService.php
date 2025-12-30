@@ -57,12 +57,12 @@ class DiscordOAuthService
         }
 
         $client = new Client([
-            'base_uri' => 'https://discord.com/api/v10',
+            'base_uri' => 'https://discord.com/api/v10/',
             'timeout'  => 5,
         ]);
 
         try {
-            $response = $client->get("/guilds/{$guildId}/members/{$discordId}", [
+            $response = $client->get("guilds/{$guildId}/members/{$discordId}", [
                 'headers' => [
                     'Authorization' => "Bot {$botToken}",
                     'Accept'        => 'application/json',
@@ -155,12 +155,12 @@ class DiscordOAuthService
         }
 
         $client = new Client([
-            'base_uri' => 'https://discord.com/api/v10',
+            'base_uri' => 'https://discord.com/api/v10/',
             'timeout'  => 5,
         ]);
 
         try {
-            $response = $client->get("/guilds/{$guildId}/members/{$discordId}", [
+            $response = $client->get("guilds/{$guildId}/members/{$discordId}", [
                 'headers' => [
                     'Authorization' => "Bot {$botToken}",
                     'Accept'        => 'application/json',
