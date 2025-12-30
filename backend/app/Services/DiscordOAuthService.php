@@ -59,6 +59,7 @@ class DiscordOAuthService
         $client = new Client([
             'base_uri' => 'https://discord.com/api/v10/',
             'timeout'  => 5,
+            'http_errors' => false,
         ]);
 
         try {
@@ -157,6 +158,7 @@ class DiscordOAuthService
         $client = new Client([
             'base_uri' => 'https://discord.com/api/v10/',
             'timeout'  => 5,
+            'http_errors' => false,
         ]);
 
         try {
