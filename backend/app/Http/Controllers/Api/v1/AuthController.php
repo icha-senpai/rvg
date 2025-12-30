@@ -60,7 +60,25 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Account not active.',
+                'payload' => null,
+            ], 403);
+        }
+
+        $discord = app(\App\Services\DiscordOAuthService::class);
+
+        if (!$discord->checkGuildMembership($user->discord_id)) {
+            $this->logAuthEvent('login.rejected_not_in_guild', $user->id, [
+                'ip' => $ip,
+                'discord_id' => $user->discord_id,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Access denied. You must be in the org Discord to log in.',
+                'state' => 'NOT_IN_GUILD',
+                'payload' => null,
             ], 403);
         }
 
@@ -72,10 +90,16 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Login successful.',
             'user'    => $user,
             'token'   => $token,
             'token_type' => 'Bearer',
+            'payload' => [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
         ]);
     }
 
@@ -84,7 +108,7 @@ class AuthController extends Controller
     {
         $data = $request->validated();
         $ip = $request->ip();
-        $user = auth()->user();
+        $user = $request->user();
 
         if (!$user) {
             $this->logAuthEvent('discord.verify.unauthenticated', null, ['ip' => $ip]);
@@ -145,7 +169,7 @@ class AuthController extends Controller
     {
         $data = $request->validated();
         $ip = $request->ip();
-        $user = auth()->user();
+        $user = $request->user();
 
         if (!$user) {
             $this->logAuthEvent('rsi.verify.unauthenticated', null, ['ip' => $ip]);
@@ -283,7 +307,14 @@ class AuthController extends Controller
     // -----------------------------------------------------
 
         $discord = app(\App\Services\DiscordOAuthService::class);
-        $guildId = env('DISCORD_REQUIRED_GUILD');
+        $guildId = config('services.discord.guild_id');
+
+        if (!$guildId) {
+            return response()->json([
+                'message' => 'Access token refresh unavailable (missing Discord guild id).',
+                'state'   => 'MISSING_GUILD_ID'
+            ], 500);
+        }
 
         $stillInGuild = $discord->isMemberOfGuild($user->discord_id, $guildId);
 

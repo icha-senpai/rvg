@@ -29,6 +29,16 @@ class DiscordAuthController extends Controller
         try {
             $discordUser = $this->discord->getUser(stateless: true);
 
+            if (!$this->discord->checkGuildMembership($discordUser->getId())) {
+                DiscordLogger::auth('login_rejected_not_in_guild', [
+                    'discord_id' => $discordUser->getId(),
+                    'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
+                return redirect('/verify?error=not_in_guild');
+            }
+
             $user = $this->discord->syncBasicUser($discordUser);
 
             // Create a Laravel session for web routes (Inertia)

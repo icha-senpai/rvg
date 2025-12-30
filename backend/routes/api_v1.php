@@ -35,8 +35,22 @@ Route::get('/ping', function () {
         'msg' => 'Organization Platform is online Commander'
     ]);
 });
-Route::post('/auth/login', [AuthController::class, 'login'])
-    ->middleware('throttle:5,1');
+Route::post('/auth/login', function (Request $request) {
+    $redirect = url('/verify?error=discord_only');
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Discord authentication required.',
+            'state' => 'DISCORD_ONLY',
+            'payload' => [
+                'redirect' => $redirect,
+            ],
+        ], 403);
+    }
+
+    return redirect('/verify?error=discord_only');
+})->middleware('throttle:5,1');
 
 Route::post('/auth/verify-discord', [AuthController::class, 'verifyDiscord'])
     ->middleware('throttle:10,1');
