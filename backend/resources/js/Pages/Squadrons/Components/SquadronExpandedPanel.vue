@@ -103,6 +103,12 @@ async function fetchSquadron() {
     editForm.value.description = data.squadron?.description ?? ''
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -154,6 +160,12 @@ async function applyToSquadron() {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -175,6 +187,12 @@ async function leaveSquadron() {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -201,6 +219,12 @@ async function acceptMember(member) {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -222,6 +246,12 @@ async function rejectMember(member) {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -243,6 +273,12 @@ async function removeMember(member) {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -269,6 +305,12 @@ async function promoteLieutenant(targetUser) {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??
@@ -295,6 +337,12 @@ async function demoteLieutenant(memberOrUser) {
     await fetchSquadron()
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       error.message ??

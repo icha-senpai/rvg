@@ -194,6 +194,13 @@ async function openViewModal(op) {
     )
     viewData.value = data
   } catch (e) {
+    const status = e?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      closeViewModal()
+      return
+    }
+
     console.error(e)
     viewError.value = 'Failed to load operation.'
   } finally {
@@ -219,6 +226,13 @@ async function reloadViewData() {
     )
     viewData.value = data
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      closeViewModal()
+      return
+    }
+
     console.error(err)
     viewError.value = 'Failed to refresh operation data.'
   } finally {

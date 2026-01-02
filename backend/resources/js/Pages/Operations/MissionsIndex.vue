@@ -338,6 +338,13 @@ async function openEditDrawer(op) {
     editingMission.value = data?.payload?.mission ?? null
     editorSquadronId.value = data?.payload?.squadronId ?? null
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      closeDrawer()
+      return
+    }
+
     console.error(err)
     editHydrationError.value = 'Failed to load editor data.'
   } finally {
@@ -381,6 +388,13 @@ async function openViewModal(op) {
     viewData.value = data
     viewingOperation.value = data?.operation ?? viewingOperation.value
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      closeViewModal()
+      return
+    }
+
     console.error(err)
     viewError.value = 'Failed to load operation data.'
   } finally {

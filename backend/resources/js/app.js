@@ -124,7 +124,12 @@ axios.interceptors.response.use(
 
         const url = String(originalRequest?.url ?? '');
 
-        if (!url.startsWith('/api/v1/') || url.startsWith('/api/v1/auth/refresh')) {
+        if (url.startsWith('/api/v1/auth/refresh')) {
+            return Promise.reject(error);
+        }
+
+        if (!url.startsWith('/api/v1/')) {
+            notifyUnauthenticated();
             return Promise.reject(error);
         }
 

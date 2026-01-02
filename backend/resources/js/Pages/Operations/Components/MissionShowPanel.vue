@@ -173,6 +173,12 @@ async function join() {
     // Tell parent: re-fetch showData so modal updates.
     emit('refresh')
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      return
+    }
+
     console.error(err)
     alert('Failed to join operation.')
   } finally {
@@ -193,6 +199,12 @@ async function leave() {
 
     emit('refresh')
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      return
+    }
+
     console.error(err)
     alert('Failed to leave operation.')
   } finally {
@@ -219,6 +231,12 @@ async function updateSlot() {
 
     emit('refresh')
   } catch (err) {
+    const status = err?.response?.status ?? null
+
+    if (status === 401 || status === 419) {
+      return
+    }
+
     console.error(err)
     alert('Failed to update role.')
   } finally {

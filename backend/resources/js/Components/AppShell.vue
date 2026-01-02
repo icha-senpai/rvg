@@ -58,7 +58,7 @@ onBeforeUnmount(() => {
 
     <SideNav />
 
-    <main class="flex-1 min-w-0">
+    <main :class="['flex-1 min-w-0', showVerifyCta ? 'pt-36' : '']">
       <slot />
     </main>
   </div>

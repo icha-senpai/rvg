@@ -8,6 +8,7 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 const squadrons = ref([])
 const isLoading = ref(false)
 const errorMessage = ref(null)
+const errorStatus = ref(null)
 
 const isExpanded = ref(false)
 const activeSquadronId = ref(null)
@@ -25,11 +26,19 @@ function handleKeydown(event) {
 async function fetchSquadrons() {
   isLoading.value = true
   errorMessage.value = null
+  errorStatus.value = null
 
   try {
     const { data } = await axios.get('/api/v1/squadrons')
     squadrons.value = data
   } catch (error) {
+    errorStatus.value = error?.response?.status ?? null
+
+    if (errorStatus.value === 401 || errorStatus.value === 419) {
+      errorMessage.value = null
+      return
+    }
+
     errorMessage.value =
       error.response?.data?.message ??
       'Failed to load squadrons.'
