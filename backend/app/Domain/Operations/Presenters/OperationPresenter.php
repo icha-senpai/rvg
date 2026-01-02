@@ -151,6 +151,7 @@ class OperationPresenter
             'image_url'      => $this->operation->image_url,
             'rsvp_deadline'  => optional($this->operation->rsvp_deadline)->toIso8601String(),
             'notes'          => $this->operation->notes,
+            'status'         => $this->operation->status,
             'slots'          => $this->operation->slots,
         ];
     }
