@@ -12,6 +12,17 @@ module.exports = {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
         const roleIdToPing = process.env.OP_ANNOUNCE_ROLE_ID;
 
+        let operationUrl = null;
+        if (process.env.API_BASE_URL && op?.id) {
+            try {
+                const apiBaseUrl = new URL(process.env.API_BASE_URL);
+                const baseUrl = apiBaseUrl.origin;
+                operationUrl = `${baseUrl}/operations/${op.id}`;
+            } catch (e) {
+                operationUrl = null;
+            }
+        }
+
         // ------------------------------
         // VALIDATE CHANNEL
         // ------------------------------
@@ -48,8 +59,12 @@ module.exports = {
         // ------------------------------
         const embed = new EmbedBuilder()
             .setColor(0x00a3ff)
-            .setTitle(`${op.title}`)
-            .setDescription(desc)
+            .setTitle(null)
+            .setDescription(
+                `${operationUrl ? `# [${op.title}](${operationUrl})\n` : `# ${op.title}\n`}` +
+                `━━━━━━━━━━━━━━━━━━\n\n` +
+                `${desc}`
+            )
             .addFields(
                 {
                     name: 'Starts At',
