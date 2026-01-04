@@ -17,7 +17,26 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware): void {
 
-        // 1. ALIASES
+        /*
+        |--------------------------------------------------------------------------
+        | Guest Redirection (Laravel 11+ replacement for Authenticate.php)
+        |--------------------------------------------------------------------------
+        | - Browsers are redirected to /verify (Discord auth entry)
+        | - API / JSON requests receive a clean 401 instead of a redirect
+        */
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            return '/verify';
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Middleware Aliases
+        |--------------------------------------------------------------------------
+        */
         $middleware->alias([
             'rank'               => \App\Http\Middleware\RankMiddleware::class,
             'auth:sanctum'       => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -26,17 +45,30 @@ return Application::configure(basePath: dirname(__DIR__))
             'Authority'          => \App\Domain\AccessControl\Facades\Authority::class,
         ]);
 
-        // 2. WEB GROUP — just attach both middlewares normally
+        /*
+        |--------------------------------------------------------------------------
+        | Web Middleware Group
+        |--------------------------------------------------------------------------
+        | - Inertia request handling
+        | - Forced Discord authentication for all web routes
+        */
         $middleware->web(append: [
             HandleInertiaRequests::class,
             ForceDiscordAuth::class,
         ]);
 
-        // 3. API GROUP
+        /*
+        |--------------------------------------------------------------------------
+        | API Middleware Group
+        |--------------------------------------------------------------------------
+        | - Intentionally minimal for now
+        | - Auth failures handled via exception renderers below
+        */
         $middleware->api(append: [
-            // nothing yet
+            // (empty by design)
         ]);
     })
+
     ->withProviders([
         \App\Providers\AccessControlServiceProvider::class,
         \App\Providers\DomainEventServiceProvider::class,
@@ -44,16 +76,21 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions): void {
 
-        // Sanctum + Auth exception uniform JSON handler
+        /*
+        |--------------------------------------------------------------------------
+        | Authentication / Sanctum Exception Normalization
+        |--------------------------------------------------------------------------
+        | Ensures APIs and bots always receive JSON 401 responses
+        */
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         });
 
         $exceptions->renderable(function (\Laravel\Sanctum\Exceptions\MissingAbilityException $e, $request) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         });
     })
