@@ -99,4 +99,5 @@ LocalSettings.php
 config.php
 public/storage/
 extensions/*/vendor/
-
+.windsurf/
+.windsurf/*
