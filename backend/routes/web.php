@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 // WEB CONTROLLERS
@@ -26,6 +27,14 @@ use App\Http\Controllers\Api\v1\DiscordAuthController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 Route::get('/verify', fn() => Inertia::render('Verify'))->name('verify');
+
+Route::get('/login', function () {
+    if (Auth::check()) {
+        return redirect()->to('/');
+    }
+
+    return redirect()->to('/auth/discord');
+})->name('login');
 
 
 /*
