@@ -134,32 +134,17 @@ async function downloadIcs(url) {
   if (!acquireIcsDownloadLock()) return;
   downloadingIcs = true;
 
-  try {
-    const res = await fetch(url, { credentials: 'same-origin' });
-    if (!res.ok) throw new Error('Failed to download .ics');
+  const a = document.createElement('a');
+  a.href = url;
+  a.rel = 'noopener noreferrer';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-
-    const base = (operation?.title || `operation-${operation?.id || 'event'}`)
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = `${base || 'operation'}.ics`;
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(objectUrl);
-  } catch (e) {
-    console.error(e);
-  } finally {
+  setTimeout(() => {
     downloadingIcs = false;
-  }
+  }, 1200);
 }
 
 watch(calendarChoice, (v) => {
