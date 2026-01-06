@@ -82,9 +82,9 @@ const icsUrl = computed(() => {
     return route('operations.calendar', id);
   } catch (e) {
     if (typeof window !== 'undefined' && window?.location?.origin) {
-      return `${window.location.origin}/operations/${id}/calendar.ics`;
+      return `${window.location.origin}/operations/${id}/calendar`;
     }
-    return `/operations/${id}/calendar.ics`;
+    return `/operations/${id}/calendar`;
   }
 });
 

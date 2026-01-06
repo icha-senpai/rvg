@@ -67,9 +67,12 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')
     ->name('operations.show');
 
-Route::get('/operations/{operation}/calendar.ics', [OperationPageController::class, 'calendar'])
+Route::get('/operations/{operation}/calendar', [OperationPageController::class, 'calendar'])
     ->whereNumber('operation')
     ->name('operations.calendar');
+
+Route::get('/operations/{operation}/calendar.ics', [OperationPageController::class, 'calendar'])
+    ->whereNumber('operation');
 
 
 
