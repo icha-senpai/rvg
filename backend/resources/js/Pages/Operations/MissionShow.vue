@@ -105,10 +105,25 @@ const outlookWebUrl = computed(() => {
   return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`;
 });
 
+function acquireExternalOpenLock(kind) {
+  const id = operation?.id;
+  if (!id) return true;
+
+  const now = Date.now();
+  const key = `operation-${id}-${kind}`;
+  const locks = (window.__externalOpenLocks ||= {});
+
+  if (locks[key] && now - locks[key] < 1500) {
+    return false;
+  }
+
+  locks[key] = now;
+  return true;
+}
+
 function openUrl(url) {
   if (!url) return;
-  const w = window.open(url, '_blank', 'noopener,noreferrer');
-  if (!w) window.location.href = url;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function acquireIcsDownloadLock() {
@@ -151,8 +166,8 @@ watch(calendarChoice, (v) => {
   if (!v) return;
 
   if (v === 'ics') downloadIcs(icsUrl.value);
-  if (v === 'google') openUrl(googleCalendarUrl.value);
-  if (v === 'outlook') openUrl(outlookWebUrl.value);
+  if (v === 'google' && acquireExternalOpenLock('google')) openUrl(googleCalendarUrl.value);
+  if (v === 'outlook' && acquireExternalOpenLock('outlook')) openUrl(outlookWebUrl.value);
 
   calendarChoice.value = '';
 });
