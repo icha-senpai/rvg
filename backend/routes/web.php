@@ -67,6 +67,10 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')
     ->name('operations.show');
 
+Route::get('/operations/{operation}/calendar.ics', [OperationPageController::class, 'calendar'])
+    ->whereNumber('operation')
+    ->name('operations.calendar');
+
 
 
 // Create operation (requires auth)
@@ -97,6 +101,15 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::post('/operations/{operation}/publish', 
         [OperationPageController::class, 'publish'])
         ->name('operations.publish');
+    Route::post('/operations/{operation}/start', 
+        [OperationPageController::class, 'start'])
+        ->name('operations.start');
+    Route::post('/operations/{operation}/complete', 
+        [OperationPageController::class, 'complete'])
+        ->name('operations.complete');
+    Route::post('/operations/{operation}/cancel', 
+        [OperationPageController::class, 'cancel'])
+        ->name('operations.cancel');
     Route::delete('/operations/{operation}', 
         [OperationPageController::class, 'destroy'])
         ->name('operations.destroy');

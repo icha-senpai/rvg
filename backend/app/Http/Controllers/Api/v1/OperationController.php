@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\Operations\OperationStoreRequest;
 use App\Http\Requests\Operations\OperationUpdateRequest;
+use App\Http\Requests\Operations\OperationStatusUpdateRequest;
 use App\Models\Operation;
 use App\Models\Squadron;
 use App\Domain\Operations\Services\OperationService;
@@ -90,14 +91,57 @@ class OperationController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, Operation $operation)
+    public function updateStatus(OperationStatusUpdateRequest $request, Operation $operation)
     {
-        $this->authorize('manage', $operation);
+        $this->authorize('update', $operation);
+
+        $data = $request->validated();
 
         $updated = $this->service->transition(
             $operation,
-            $request->input('status'),
-            $request->input('reason')
+            $data['status'],
+            $data['reason'] ?? null
+        );
+
+        return response()->json(
+            OperationPresenter::make($updated)->full()
+        );
+    }
+
+    public function start(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $updated = $this->service->transition($operation, 'in_progress');
+
+        return response()->json(
+            OperationPresenter::make($updated)->full()
+        );
+    }
+
+    public function complete(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $updated = $this->service->transition($operation, 'completed');
+
+        return response()->json(
+            OperationPresenter::make($updated)->full()
+        );
+    }
+
+    public function cancel(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $data = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $updated = $this->service->transition(
+            $operation,
+            'canceled',
+            $data['reason'] ?? null
         );
 
         return response()->json(

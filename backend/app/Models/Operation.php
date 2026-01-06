@@ -121,8 +121,8 @@ class Operation extends Model
 
         return $this->save();
     }
-   public function scopeVisibleToUser($query, User $user)
+    public function scopeVisibleToUser($query, User $user)
     {
-    return $query->where('status', 'published');
+        return $query->whereIn('status', ['published', 'in_progress']);
     }
 }

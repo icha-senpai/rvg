@@ -82,6 +82,96 @@ class OperationPageController extends Controller
         ]);
     }
 
+    public function calendar(Request $request, Operation $operation)
+    {
+        if ($request->user()) {
+            $this->authorize('view', $operation);
+        } else {
+            if ($operation->visibility !== 'open') {
+                abort(403);
+            }
+        }
+
+        $operation->loadMissing(['squadron', 'creator']);
+
+        $startsAt = $operation->starts_at?->copy()->utc();
+        if (!$startsAt) {
+            abort(404);
+        }
+
+        $endsAt = $operation->ends_at?->copy()->utc() ?? $startsAt->copy()->addHour();
+
+        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $uid = "operation-{$operation->id}@{$host}";
+
+        $summary = $this->escapeIcsText($operation->title ?: "Operation #{$operation->id}");
+
+        $descriptionParts = array_values(array_filter([
+            $operation->description,
+            $operation->notes,
+            route('operations.show', $operation->id),
+        ]));
+        $description = $this->escapeIcsText(implode("\n\n", $descriptionParts));
+
+        $dtstamp = now()->utc()->format('Ymd\\THis\\Z');
+        $dtstart = $startsAt->format('Ymd\\THis\\Z');
+        $dtend = $endsAt->format('Ymd\\THis\\Z');
+
+        $created = $operation->created_at?->copy()->utc()->format('Ymd\\THis\\Z');
+        $lastModified = $operation->updated_at?->copy()->utc()->format('Ymd\\THis\\Z');
+
+        $status = $operation->isCanceled() ? 'CANCELLED' : 'CONFIRMED';
+
+        $lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//RVG//Operations//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            "UID:{$uid}",
+            "DTSTAMP:{$dtstamp}",
+            "DTSTART:{$dtstart}",
+            "DTEND:{$dtend}",
+            "SUMMARY:{$summary}",
+            "DESCRIPTION:{$description}",
+            'CLASS:PUBLIC',
+            "STATUS:{$status}",
+        ];
+
+        if ($created) {
+            $lines[] = "CREATED:{$created}";
+        }
+
+        if ($lastModified) {
+            $lines[] = "LAST-MODIFIED:{$lastModified}";
+        }
+
+        $lines[] = 'END:VEVENT';
+        $lines[] = 'END:VCALENDAR';
+
+        $folded = [];
+        foreach ($lines as $line) {
+            foreach ($this->foldIcsLine($line) as $l) {
+                $folded[] = $l;
+            }
+        }
+
+        $ics = implode("\r\n", $folded) . "\r\n";
+
+        $base = preg_replace('/[^A-Za-z0-9_-]+/', '-', strtolower($operation->title ?: "operation-{$operation->id}"));
+        $base = trim($base, '-');
+        if ($base === '') {
+            $base = "operation-{$operation->id}";
+        }
+        $filename = $base . '.ics';
+
+        return response($ics, 200)
+            ->header('Content-Type', 'text/calendar; charset=utf-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->header('X-Content-Type-Options', 'nosniff');
+    }
+
     /* ============================================================
      | CREATE
      * ============================================================ */
@@ -231,6 +321,70 @@ class OperationPageController extends Controller
             ->with('success', 'Operation published successfully.');
     }
 
+    public function start(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $updated = $this->service->transition($operation, 'in_progress');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('success', 'Operation started.');
+    }
+
+    public function complete(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $updated = $this->service->transition($operation, 'completed');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('success', 'Operation completed.');
+    }
+
+    public function cancel(Request $request, Operation $operation)
+    {
+        $this->authorize('update', $operation);
+
+        $data = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $updated = $this->service->transition($operation, 'canceled', $data['reason'] ?? null);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
+
+        return redirect()
+            ->route('operations.show', $operation->id)
+            ->with('success', 'Operation canceled.');
+    }
+
     public function showData(Request $request, Operation $operation)
     {
         $operation->load([
@@ -271,6 +425,37 @@ class OperationPageController extends Controller
         $operation->delete();
 
         return back()->with('success', 'Operation deleted.');
+    }
+
+    protected function escapeIcsText(?string $value): string
+    {
+        $value = $value ?? '';
+        $value = str_replace("\r\n", "\n", $value);
+        $value = str_replace("\r", "\n", $value);
+        $value = str_replace("\\", "\\\\", $value);
+        $value = str_replace(";", "\\;", $value);
+        $value = str_replace(",", "\\,", $value);
+        $value = str_replace("\n", "\\n", $value);
+        return $value;
+    }
+
+    protected function foldIcsLine(string $line): array
+    {
+        $max = 75;
+        if (strlen($line) <= $max) {
+            return [$line];
+        }
+
+        $out = [];
+        $out[] = substr($line, 0, $max);
+        $rest = substr($line, $max);
+
+        while ($rest !== '') {
+            $out[] = ' ' . substr($rest, 0, $max - 1);
+            $rest = substr($rest, $max - 1);
+        }
+
+        return $out;
     }
 
     /* ============================================================

@@ -173,6 +173,9 @@ Route::middleware(['auth:sanctum',])->group(function () {
     Route::put('/operations/{operation}', [OperationController::class, 'update']);
     Route::delete('/operations/{operation}', [OperationController::class, 'destroy']);
     Route::patch('/operations/{operation}/status', [OperationController::class, 'updateStatus']);
+    Route::post('/operations/{operation}/start', [OperationController::class, 'start']);
+    Route::post('/operations/{operation}/complete', [OperationController::class, 'complete']);
+    Route::post('/operations/{operation}/cancel', [OperationController::class, 'cancel']);
 
     // Operation Participants
     Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join'])

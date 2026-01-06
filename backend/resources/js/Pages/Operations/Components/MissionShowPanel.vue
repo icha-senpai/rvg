@@ -10,6 +10,8 @@ import axios from 'axios'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../../ziggy'
 
+import { usePage } from '@inertiajs/vue3'
+
 // ----------------------
 // EMITS
 // ----------------------
@@ -28,6 +30,159 @@ const props = defineProps({
 
 const operation = props.operation
 const currentParticipant = computed(() => props.currentParticipant ?? null)
+
+const page = usePage()
+const user = computed(() => page.props.auth?.user ?? null)
+
+const canManageOperation = computed(() => {
+  const op = operation
+  if (!user.value) return false
+
+  const roles = user.value?.roles ?? []
+  const isDirectorLike = roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+  if (isDirectorLike) return true
+
+  const squadronId = op?.squadron?.id
+  if (!squadronId) return false
+
+  const membership = user.value?.squadrons?.find(s => s.id === squadronId)
+  if (!membership) return false
+
+  const membershipStatus = membership.pivot?.membership_status
+  if (membershipStatus && membershipStatus !== 'active') return false
+
+  const role = membership.pivot?.role
+  return role === 'leader' || role === 'lieutenant'
+})
+
+const calendarChoice = ref('')
+const calendarOptions = [
+  { label: 'Add to Calendar', value: '' },
+  { label: 'Apple / Outlook / Proton (.ics)', value: 'ics' },
+  { label: 'Google Calendar', value: 'google' },
+  { label: 'Outlook Web', value: 'outlook' },
+]
+
+const canAddToCalendar = computed(() => !!operation?.starts_at)
+
+function toCalendarUtcStamp(d) {
+  if (!d) return null
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/i, 'Z')
+}
+
+const calendarBody = computed(() => {
+  const parts = [
+    operation?.description,
+    operation?.notes,
+    operation?.id ? route('operations.show', operation.id, Ziggy) : null,
+  ].filter(Boolean)
+  return parts.join('\n\n')
+})
+
+const startDate = computed(() => toDate(operation?.starts_at))
+const endDate = computed(() => {
+  const end = toDate(operation?.ends_at)
+  if (end) return end
+  if (startDate.value) return new Date(startDate.value.getTime() + 60 * 60 * 1000)
+  return null
+})
+
+const icsUrl = computed(() => {
+  if (!operation?.id) return null
+  return route('operations.calendar', operation.id, Ziggy)
+})
+
+const googleCalendarUrl = computed(() => {
+  if (!startDate.value || !endDate.value) return null
+  const dates = `${toCalendarUtcStamp(startDate.value)}/${toCalendarUtcStamp(endDate.value)}`
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: operation?.title ?? `Operation #${operation?.id ?? ''}`,
+    details: calendarBody.value,
+    dates,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+})
+
+const outlookWebUrl = computed(() => {
+  if (!startDate.value || !endDate.value) return null
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: operation?.title ?? `Operation #${operation?.id ?? ''}`,
+    body: calendarBody.value,
+    startdt: startDate.value.toISOString(),
+    enddt: endDate.value.toISOString(),
+  })
+  return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`
+})
+
+function openUrl(url) {
+  if (!url) return
+  const w = window.open(url, '_blank', 'noopener,noreferrer')
+  if (!w) window.location.href = url
+}
+
+function acquireIcsDownloadLock() {
+  const id = operation?.id
+  if (!id) return true
+
+  const now = Date.now()
+  const key = `operation-${id}`
+  const locks = (window.__icsDownloadLocks ||= {})
+
+  if (locks[key] && now - locks[key] < 1500) {
+    return false
+  }
+
+  locks[key] = now
+  return true
+}
+
+let downloadingIcs = false
+async function downloadIcs(url) {
+  if (!url) return
+  if (downloadingIcs) return
+  if (!acquireIcsDownloadLock()) return
+  downloadingIcs = true
+
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' })
+    if (!res.ok) throw new Error('Failed to download .ics')
+
+    const blob = await res.blob()
+    const objectUrl = URL.createObjectURL(blob)
+
+    const base = (operation?.title || `operation-${operation?.id || 'event'}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = `${base || 'operation'}.ics`
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(objectUrl)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    downloadingIcs = false
+  }
+}
+
+watch(calendarChoice, (v) => {
+  if (!v) return
+
+  if (v === 'ics') downloadIcs(icsUrl.value)
+  if (v === 'google') openUrl(googleCalendarUrl.value)
+  if (v === 'outlook') openUrl(outlookWebUrl.value)
+
+  calendarChoice.value = ''
+})
 
 /* ============================================================
    FORMATTER
@@ -151,6 +306,63 @@ watch(
 )
 
 const joinProcessing = ref(false)
+const transitionProcessing = ref(false)
+
+async function startOperation() {
+  if (transitionProcessing.value) return
+  if (!confirm('Start this operation?')) return
+
+  transitionProcessing.value = true
+
+  try {
+    await axios.post(route('operations.start', operation.id, Ziggy), {})
+    emit('refresh')
+  } catch (err) {
+    console.error(err)
+    alert('Failed to start operation.')
+  } finally {
+    transitionProcessing.value = false
+  }
+}
+
+async function completeOperation() {
+  if (transitionProcessing.value) return
+  if (!confirm('Mark this operation as completed?')) return
+
+  transitionProcessing.value = true
+
+  try {
+    await axios.post(route('operations.complete', operation.id, Ziggy), {})
+    emit('refresh')
+  } catch (err) {
+    console.error(err)
+    alert('Failed to complete operation.')
+  } finally {
+    transitionProcessing.value = false
+  }
+}
+
+async function cancelOperation() {
+  if (transitionProcessing.value) return
+
+  const reason = prompt('Cancellation reason (optional):')
+  if (reason === null) return
+  if (!confirm('Cancel this operation?')) return
+
+  transitionProcessing.value = true
+
+  try {
+    await axios.post(route('operations.cancel', operation.id, Ziggy), {
+      reason: reason || null,
+    })
+    emit('refresh')
+  } catch (err) {
+    console.error(err)
+    alert('Failed to cancel operation.')
+  } finally {
+    transitionProcessing.value = false
+  }
+}
 
 /* ============================================================
    JOIN / LEAVE / UPDATE SLOT (NO NAVIGATION)
@@ -260,10 +472,55 @@ async function updateSlot() {
         </h1>
       </div>
 
-      <ProgressPill :variant="statusVariant">
-        {{ operation.status }}
-      </ProgressPill>
+      <div class="flex items-center gap-3">
+        <ProgressPill :variant="statusVariant">
+          {{ operation.status }}
+        </ProgressPill>
+
+        <div v-if="canAddToCalendar" class="w-56">
+          <HorizonSelect
+            v-model="calendarChoice"
+            :options="calendarOptions"
+          />
+        </div>
+      </div>
     </div>
+
+    <HorizonPanel
+      v-if="canManageOperation"
+      class="rounded-xl shadow-lg"
+    >
+      <div class="hz-section-label mb-3">Operation Controls</div>
+
+      <div class="flex gap-3 flex-wrap">
+        <HorizonButton
+          v-if="operation.status === 'published'"
+          variant="primary"
+          @click="startOperation"
+          :disabled="transitionProcessing"
+        >
+          Start
+        </HorizonButton>
+
+        <HorizonButton
+          v-if="operation.status === 'in_progress'"
+          variant="primary"
+          @click="completeOperation"
+          :disabled="transitionProcessing"
+        >
+          End
+        </HorizonButton>
+
+        <HorizonButton
+          v-if="['published', 'in_progress'].includes(operation.status)"
+          variant="danger"
+          @click="cancelOperation"
+          :disabled="transitionProcessing"
+        >
+          Cancel
+        </HorizonButton>
+      </div>
+    </HorizonPanel>
 
     <!-- MAIN GRID -->
     <div class="mb-20 mx-auto max-w-5xl space-y-10">
