@@ -90,7 +90,7 @@ onBeforeUnmount(() => {
   <HorizonContainer class="space-y-10">
     <div class="mx-auto max-w-5xl hz-stack">
 
-      <div class="hz-title-lg">All Squadrons</div>
+      <div class="hz-title-lg">Squadrons Board</div>
 
       <div v-if="isLoading" class="hz-soft">
         Loading squadrons…

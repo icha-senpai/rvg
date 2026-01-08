@@ -64,14 +64,14 @@ const navItems = computed(() => {
     },
     {
       key: 'operations_member',
-      label: 'All Operations',
+      label: 'Operations Board',
       routeName: 'operations.member',
       params: undefined,
       isActive: url.startsWith('/operations/member'),
     },
     {
       key: 'operations_dashboard',
-      label: 'Operation Dashboard',
+      label: 'Operations Dashboard',
       routeName: 'operations.index',
       params: undefined,
       isActive: url === '/operations' || url.startsWith('/operations?'),
@@ -79,14 +79,14 @@ const navItems = computed(() => {
     },
     {
       key: 'squadrons_index',
-      label: 'All Squadrons',
+      label: 'Squadrons Board',
       routeName: 'squadrons.index',
       params: undefined,
       isActive: url === '/squadrons' || url.startsWith('/squadrons?'),
     },
     {
       key: 'my_squadron',
-      label: 'My Squadron',
+      label: '',
       routeName: 'squadrons.show',
       params: mySquadron.value ? mySquadron.value.id : undefined,
       isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.id}` : false,
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div class="px-2 hz-section-label">Navigation</div>
+        <div class="px-2 hz-section-label"></div>
 
         <nav class="flex flex-col gap-1">
           <template v-for="item in navItems" :key="item.key">
@@ -190,7 +190,7 @@ onBeforeUnmount(() => {
                 <span class="truncate">{{ item.label }}</span>
                 <span
                   v-if="item.key === 'my_squadron'"
-                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-10 text-text-secondary"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-20 text-horizon-white"
                 >
                   {{ mySquadron?.name ?? 'Active' }}
                 </span>
@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
           </template>
         </nav>
 
-        <div class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover">
+        <div class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-20 border border-horizon-blue-20">
           <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">
             {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div class="px-2 hz-section-label">Navigation</div>
+        <div class="px-2 hz-section-label"></div>
 
         <nav class="flex flex-col gap-1">
           <template v-for="item in navItems" :key="item.key">
@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
                 <span class="truncate">{{ item.label }}</span>
                 <span
                   v-if="item.key === 'my_squadron'"
-                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-10 text-text-secondary"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-20 text-horizon-white"
                 >
                   {{ mySquadron?.name ?? 'Active' }}
                 </span>
@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
         </nav>
 
         <div
-          class="mt-auto px-3 py-3 rounded-2xl bg-bg-surface border border-bg-hover"
+          class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-20 border border-horizon-blue-20"
         >
           <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">

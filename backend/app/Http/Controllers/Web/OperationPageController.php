@@ -35,7 +35,12 @@ class OperationPageController extends Controller
      * ============================================================ */
     public function index(Request $request)
     {
-        $operations = Operation::orderByDesc('starts_at')
+        $now = now();
+
+        $operations = Operation::query()
+            ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
+            ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
             ->with(['squadron.leader', 'creator'])
             ->paginate(12)
             ->withQueryString();

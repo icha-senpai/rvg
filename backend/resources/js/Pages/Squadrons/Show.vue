@@ -33,7 +33,7 @@ function closePanel() {
 <template>
   <HorizonContainer class="space-y-10">
   <div class="mx-auto max-w-5xl hz-stack">
-    <div class="hz-title-lg"> Your Squadron</div>
+    <div class="hz-title-lg"> My Squadron</div>
     <HorizonButton
       v-if="!isExpanded"
       variant="primary"

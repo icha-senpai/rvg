@@ -7,8 +7,8 @@
       <!-- Header + Create button -->
       <div class="flex items-center justify-between gap-4">
         <HorizonSectionHeader
-          label="Operations"
-          title="Operations Board"
+          label=""
+          title="Operations Dashboard"
         />
 
         <HorizonButton
@@ -49,6 +49,11 @@
         </div>
 
       </HorizonPanel>
+
+      <!-- Today label -->
+      <div class="hz-caption hz-text-muted">
+        Today: {{ todayLabel }}
+      </div>
 
       <!-- OPERATION GRID -->
       <MissionGrid v-if="filteredOperations.length > 0" class="pt-2 lg:grid-cols-2!">
@@ -277,6 +282,15 @@ const props = defineProps({
     type: [Array, Object],
     required: true,
   },
+});
+
+const todayLabel = computed(() => {
+  return new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 });
 
 const drawerOpen = ref(false)

@@ -4,9 +4,7 @@
 
     <!-- HEADER -->
     <div class="hz-stack-sm">
-      <div class="hz-section-label">Admin Control</div>
-      <div class="hz-title-xl">Unified Control Panel</div>
-      <div class="hz-text-soft">Manage users, squadrons, and system roles.</div>
+      <div class="hz-title-xl">Admin Dashboard</div>
     </div>
 
     <!-- TAB BAR -->

@@ -5,8 +5,8 @@
 
       <!-- HEADER -->
       <HorizonSectionHeader
-        label="Operations"
-        title="Your Available Operations"
+        label=""
+        title="Operations Board"
       />
 
       <div class="hz-caption hz-text-muted">
@@ -156,6 +156,8 @@ function goToUrl(url) {
 
 // Most recent start time first
 const sortedOperations = computed(() => {
+  const now = new Date();
+
   return [...(operationsList.value ?? [])].sort((a, b) => {
     const aDate = parseDate(a.starts_at);
     const bDate = parseDate(b.starts_at);
@@ -163,6 +165,16 @@ const sortedOperations = computed(() => {
     if (!aDate && !bDate) return 0;
     if (!aDate) return 1; 
     if (!bDate) return -1;
+
+    const aIsUpcoming = aDate.getTime() >= now.getTime();
+    const bIsUpcoming = bDate.getTime() >= now.getTime();
+
+    if (aIsUpcoming && !bIsUpcoming) return -1;
+    if (!aIsUpcoming && bIsUpcoming) return 1;
+
+    if (aIsUpcoming && bIsUpcoming) {
+      return aDate.getTime() - bDate.getTime();
+    }
 
     return bDate.getTime() - aDate.getTime();
   });
