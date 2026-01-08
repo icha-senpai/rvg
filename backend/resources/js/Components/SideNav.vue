@@ -86,7 +86,7 @@ const navItems = computed(() => {
     },
     {
       key: 'my_squadron',
-      label: '',
+      label: 'Squadron',
       routeName: 'squadrons.show',
       params: mySquadron.value ? mySquadron.value.id : undefined,
       isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.id}` : false,
