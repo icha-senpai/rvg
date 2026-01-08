@@ -518,7 +518,7 @@ const statusFilters = [
   { label: 'Canceled', value: 'canceled' },
 ];
 
-const statusFilter = ref('all');
+const statusFilter = ref('published');
 const search = ref('');
 
 const filteredOperations = computed(() => {
