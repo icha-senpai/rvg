@@ -1,16 +1,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import SideNav from '@/Components/SideNav.vue';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 const showVerifyCta = ref(false);
 const verifyUrl = 'https://horizoninterstellar.com/verify';
 
 function goToVerify() {
   window.location.href = verifyUrl;
-}
-
-function dismissVerifyCta() {
-  showVerifyCta.value = false;
 }
 
 function handleUnauthenticated() {
@@ -48,9 +45,6 @@ onBeforeUnmount(() => {
         <div class="hz-row mt-2 gap-2">
           <HorizonButton variant="primary" size="sm" @click="goToVerify">
             Go to Verification
-          </HorizonButton>
-          <HorizonButton variant="ghost" size="sm" @click="dismissVerifyCta">
-            Dismiss
           </HorizonButton>
         </div>
       </div>

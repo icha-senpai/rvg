@@ -49,8 +49,7 @@
           {{ branchLabel(operation.branch) }}
           <span class="opacity-70">•</span>
         </template>
-        <span class="opacity-70">Squadron:</span>
-        {{ operation.squadron?.name ?? 'TBD' }}
+
         <span class="opacity-70">• Creator:</span>
         {{ operation.creator?.rsi_handle ?? 'TBD' }}
       </div>

@@ -539,20 +539,6 @@ async function updateSlot() {
           <div class="grid md:grid-cols-2 gap-6">
 
             <div class="hz-stack-xs">
-              <div class="hz-section-label">Squadron</div>
-              <div class="hz-body-strong">
-                {{ operation.squadron?.name ?? 'TBD' }}
-              </div>
-            </div>
-
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Creator</div>
-              <div class="hz-body-strong">
-                {{ operation.creator?.rsi_handle ?? 'TBD' }}
-              </div>
-            </div>
-
-            <div class="hz-stack-xs">
               <div class="hz-section-label">Time Window</div>
               <div class="hz-body-strong">
                 <div>
@@ -573,6 +559,13 @@ async function updateSlot() {
                 <!--div v-else class="mt-2">
                   TBD
                 </div-->
+              </div>
+            </div>
+
+            <div class="hz-stack-xs">
+              <div class="hz-section-label">Creator</div>
+              <div class="hz-body-strong">
+                {{ operation.creator?.rsi_handle ?? 'TBD' }}
               </div>
             </div>
 

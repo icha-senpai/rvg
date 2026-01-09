@@ -550,21 +550,7 @@ async function updateSlot() {
         <!-- META PANEL -->
         <HorizonPanel class="rounded-xl shadow-lg">
           <div class="grid md:grid-cols-2 gap-6">
-
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Squadron</div>
-              <div class="hz-body-strong">
-                {{ operation.squadron?.name ?? 'TBD' }}
-              </div>
-            </div>
-
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Creator</div>
-              <div class="hz-body-strong">
-                {{ operation.creator?.rsi_handle ?? 'TBD' }}
-              </div>
-            </div>
-
+            
             <div class="hz-stack-xs">
               <div class="hz-section-label">Time Window</div>
               <div class="hz-body-strong">
@@ -583,6 +569,13 @@ async function updateSlot() {
                     {{ formatLocal(operation.ends_at) }} (local)
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div class="hz-stack-xs">
+              <div class="hz-section-label">Creator</div>
+              <div class="hz-body-strong">
+                {{ operation.creator?.rsi_handle ?? 'TBD' }}
               </div>
             </div>
 
