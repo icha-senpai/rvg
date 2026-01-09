@@ -16,6 +16,7 @@ class OperationStoreRequest extends FormRequest
         return [
             'title'                => 'required|string|max:255',
             'description'          => 'nullable|string',
+            'squadron_name'        => 'nullable|string|max:255',
             'starts_at'            => 'required|date',
             'ends_at'              => 'nullable|date|after:starts_at',
 

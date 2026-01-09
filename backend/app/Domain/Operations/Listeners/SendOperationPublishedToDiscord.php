@@ -30,7 +30,7 @@ class SendOperationPublishedToDiscord
                 'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
                 'operation_strictness' => $op->operation_strictness,
                 'visibility' => $op->visibility,
-                'squadron_name' => $op->squadron?->name,
+                'squadron_name' => $op->squadron_name ?: $op->squadron?->name,
             ]);
 
             Log::info("🌐 Bot webhook delivered. Status: {$response->status()}");

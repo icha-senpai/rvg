@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { route } from 'ziggy-js';
@@ -21,6 +21,48 @@ const props = defineProps({
 });
 
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const squadrons = ref([]);
+const squadronsLoading = ref(false);
+
+const selectedSquadronNames = ref(
+  typeof props.mission?.squadron_name === 'string' && props.mission.squadron_name.trim()
+    ? props.mission.squadron_name.split(',').map((s) => s.trim()).filter(Boolean)
+    : []
+);
+
+const squadronOptions = computed(() => {
+  return (squadrons.value ?? []).map((s) => ({
+    label: s.name,
+    value: s.name,
+  }));
+});
+
+async function fetchSquadrons() {
+  squadronsLoading.value = true;
+  try {
+    const { data } = await axios.get('/api/v1/squadrons');
+    squadrons.value = Array.isArray(data) ? data : [];
+
+    if (!selectedSquadronNames.value.length && props.squadronId) {
+      const match = squadrons.value.find((s) => s.id === props.squadronId);
+      if (match?.name) {
+        selectedSquadronNames.value = [match.name];
+      }
+    }
+  } catch (err) {
+    const status = err?.response?.status ?? null;
+    if (status !== 401 && status !== 419) {
+      console.error('Failed to load squadrons', err);
+    }
+  } finally {
+    squadronsLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  fetchSquadrons();
+});
 
 // ----------------------
 // MODE
@@ -98,6 +140,7 @@ const form = useForm({
   slots: props.mission?.slots ?? [],
   status: props.mission?.status ?? 'draft',
   squadron_id: props.squadronId,
+  squadron_name: props.mission?.squadron_name ?? '',
 });
 
 // ----------------------
@@ -115,6 +158,14 @@ function removeSlot(index) {
 // SUBMIT HANDLER
 // ----------------------
 async function submit(mode) {
+  const trimmedSquadrons = (selectedSquadronNames.value ?? [])
+    .map((s) => (typeof s === 'string' ? s.trim() : ''))
+    .filter(Boolean);
+
+  form.squadron_name = trimmedSquadrons.length
+    ? trimmedSquadrons.join(', ')
+    : null;
+
   const currentStatus = props.mission?.status ?? 'draft';
   const isPublishing = mode === 'published';
   const shouldPublishTransition = isPublishing && (!isEdit.value || currentStatus === 'draft');
@@ -377,6 +428,13 @@ async function destroyOperation() {
                 { label: 'Open', value: 'open' },
                 { label: 'Squadron Only', value: 'squadron' },
               ]"
+            />
+
+            <HorizonSelect
+              label="Squadrons"
+              v-model="selectedSquadronNames"
+              :options="squadronOptions"
+              :multiple="true"
             />
 
             <HorizonSelect

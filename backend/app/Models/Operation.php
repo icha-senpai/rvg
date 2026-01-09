@@ -11,6 +11,7 @@ class Operation extends Model
 
     protected $fillable = [
         'squadron_id',
+        'squadron_name',
         'created_by',
 
         'title',

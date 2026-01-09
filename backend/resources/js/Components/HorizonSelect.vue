@@ -49,7 +49,7 @@
           @click="choose(opt.value)"
           class="px-3 py-2 cursor-pointer hover:bg-[var(--color-horizon-blue-20)]
                  text-[var(--color-text-primary)]"
-          :class="{ 'bg-[var(--color-bg-elevated)]': model === opt.value }"
+          :class="{ 'bg-[var(--color-bg-elevated)]': isSelected(opt.value) }"
         >
           {{ opt.label }}
         </li>
@@ -62,9 +62,10 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 const props = defineProps({
-  modelValue: [String, Number, null],
+  modelValue: [String, Number, Array, null],
   options: { type: Array, required: true },
   label: { type: String, default: '' },
+  multiple: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -78,15 +79,43 @@ const model = computed({
 });
 
 const selectedLabel = computed(() => {
+  if (props.multiple) {
+    const selected = Array.isArray(model.value) ? model.value : [];
+    const labels = selected
+      .map((v) => props.options.find((o) => o.value === v)?.label)
+      .filter(Boolean);
+    return labels.length ? labels.join(', ') : 'Select...';
+  }
+
   const match = props.options.find((o) => o.value === model.value);
   return match ? match.label : 'Select...';
 });
+
+function isSelected(value) {
+  if (props.multiple) {
+    return Array.isArray(model.value) && model.value.includes(value);
+  }
+
+  return model.value === value;
+}
 
 function toggle() {
   open.value = !open.value;
 }
 
 function choose(value) {
+  if (props.multiple) {
+    const current = Array.isArray(model.value) ? [...model.value] : [];
+    const index = current.indexOf(value);
+    if (index === -1) {
+      current.push(value);
+    } else {
+      current.splice(index, 1);
+    }
+    model.value = current;
+    return;
+  }
+
   model.value = value;
   open.value = false;
 }

@@ -587,6 +587,13 @@ async function updateSlot() {
             </div>
 
             <div class="hz-stack-xs">
+              <div class="hz-section-label">Squadrons</div>
+              <div class="hz-body-strong">
+                {{ asText(operation.squadron_name || operation.squadron?.name) }}
+              </div>
+            </div>
+
+            <div class="hz-stack-xs">
               <div class="hz-section-label">Comms Strictness</div>
               <div class="hz-body-strong">
                 {{ operation.operation_strictness ?? 'normal' }}
