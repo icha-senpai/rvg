@@ -64,7 +64,7 @@ const navItems = computed(() => {
     },
     {
       key: 'operations_member',
-      label: 'Operations Board',
+      label: 'Operations',
       routeName: 'operations.member',
       params: undefined,
       isActive: url.startsWith('/operations/member'),
@@ -79,7 +79,7 @@ const navItems = computed(() => {
     },
     {
       key: 'squadrons_index',
-      label: 'Squadrons Board',
+      label: 'Squadrons',
       routeName: 'squadrons.index',
       params: undefined,
       isActive: url === '/squadrons' || url.startsWith('/squadrons?'),

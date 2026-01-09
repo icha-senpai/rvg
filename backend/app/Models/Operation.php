@@ -22,6 +22,7 @@ class Operation extends Model
         // Classification
         'visibility',
         'operation_kind',
+        'branch',
         'type',
 
         // Style
@@ -29,6 +30,9 @@ class Operation extends Model
         'operation_strictness',
         'icon',
         'image_url',
+
+        'start_location',
+        'operation_location',
 
         // Logistics
         'rsvp_deadline',

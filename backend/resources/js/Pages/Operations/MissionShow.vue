@@ -53,6 +53,17 @@ const calendarOptions = [
 
 const canAddToCalendar = computed(() => !!operation?.starts_at);
 
+function operationKindLabel(kind) {
+  switch (kind) {
+    case 'operation': return 'Operation';
+    case 'squadron_training': return 'Squadron Training';
+    case 'roleplay': return 'Roleplay';
+    case 'meeting': return 'Meeting';
+    case 'event': return 'Event';
+    default: return 'Operation';
+  }
+}
+
 function toCalendarUtcStamp(d) {
   if (!d) return null;
   return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/i, 'Z');
@@ -457,7 +468,7 @@ async function updateSlot() {
 
         <div class="hz-stack-sm">
           <div class="hz-section-label">
-            {{ operation.operation_kind === 'mission' ? 'Mission' : 'Event' }}
+            {{ operationKindLabel(operation.operation_kind) }}
           </div>
 
           <h1 class="hz-title-lg text-horizon-white">
@@ -619,6 +630,33 @@ async function updateSlot() {
         >
           <div class="hz-section-label mb-2">Operation Extended Briefing</div>
           <p class="hz-body whitespace-pre-line">{{ operation.notes }}</p>
+
+          <div class="mt-6">
+            <div class="hz-section-label mb-3">Meta Information</div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <div v-if="operation.start_location" class="hz-stack-xs">
+                <div class="hz-section-label">Start Location</div>
+                <div class="hz-body-strong">
+                  {{ operation.start_location }}
+                </div>
+              </div>
+
+              <div v-if="operation.operation_location" class="hz-stack-xs">
+                <div class="hz-section-label">Operation Location</div>
+                <div class="hz-body-strong">
+                  {{ operation.operation_location }}
+                </div>
+              </div>
+
+              <div v-if="operation.branch" class="hz-stack-xs">
+                <div class="hz-section-label">Branch</div>
+                <div class="hz-body-strong">
+                  {{ operation.branch }}
+                </div>
+              </div>
+            </div>
+          </div>
         </HorizonPanel>
 
         <!-- ROLES -->

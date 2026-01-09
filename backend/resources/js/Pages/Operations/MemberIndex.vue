@@ -6,7 +6,7 @@
       <!-- HEADER -->
       <HorizonSectionHeader
         label=""
-        title="Operations Board"
+        title="Operations"
       />
 
       <div class="hz-caption hz-text-muted">
@@ -59,7 +59,7 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ viewingOperation.operation_kind === 'mission' ? 'Operation' : 'Operation' }}
+            {{ 'Operation' }}
           </div>
           <div class="hz-title-md text-horizon-white">
             {{ viewingOperation.title }}

@@ -5,23 +5,33 @@
     @click="open = !open"
   >
     <!-- TITLE ROW -->
-    <div class="flex justify-between items-center">
-      <h3 class="hz-title-md text-horizon-white">
-        {{ operation.title }}
-      </h3>
-
-      <div class="hz-caption text-horizon-offwhite text-right">
-        <div>{{ formatDate(operation.starts_at) }}</div>
-        <div class="text-horizon-offwhite text-xs opacity-70">
-          {{ formatLocal(operation.starts_at) }} (local)
+    <div class="flex justify-between items-start gap-4">
+      <div class="min-w-0">
+        <div class="hz-section-label">
+          {{ operationKindLabel(operation.operation_kind) }}
         </div>
+        <h3 class="hz-title-md text-horizon-white">
+          {{ operation.title }}
+        </h3>
+      </div>
+
+      <div class="shrink-0 self-center text-horizon-offwhite opacity-70">
+        <svg
+          class="h-12 w-12 transition-transform duration-200"
+          :class="open ? 'rotate-180' : 'rotate-0'"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+        </svg>
       </div>
     </div>
 
     <!-- COLLAPSED PREVIEW -->
-    <p class="hz-text-soft mt-2" v-if="!open">
-      {{ truncate(operation.description, 140) }}
-    </p>
+    <div class="hz-caption text-horizon-offwhite mt-2" v-if="!open">
+      {{ collapsedMeta }}
+    </div>
 
     <!-- EXPANDED DETAILS -->
     <div v-if="open" class="mt-6 space-y-4">
@@ -34,6 +44,11 @@
       </div>
 
       <div class="hz-caption text-horizon-offwhite">
+        <template v-if="operation.branch">
+          <span class="opacity-70">Branch:</span>
+          {{ branchLabel(operation.branch) }}
+          <span class="opacity-70">•</span>
+        </template>
         <span class="opacity-70">Squadron:</span>
         {{ operation.squadron?.name ?? 'TBD' }}
         <span class="opacity-70">• Creator:</span>
@@ -92,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
@@ -103,9 +118,57 @@ const props = defineProps({
 
 const open = ref(false);
 
+const joinedCount = computed(() => {
+  const op = props.operation;
+  if (!op) return 0;
+  if (typeof op.participants_count === 'number') return op.participants_count;
+  if (Array.isArray(op.participants)) return op.participants.length;
+  return 0;
+});
+
+const creatorName = computed(() => {
+  return props.operation?.creator?.rsi_handle ?? 'TBD';
+});
+
+const collapsedMeta = computed(() => {
+  const op = props.operation;
+  if (!op) return '';
+
+  const parts = [];
+  if (op.branch) parts.push(branchLabel(op.branch));
+  parts.push(formatLocal(op.starts_at));
+  parts.push(`${joinedCount.value} joined`);
+  parts.push(creatorName.value);
+
+  return parts
+    .filter(p => p && String(p).trim() !== '')
+    .join(' • ');
+});
+
 function truncate(text, length) {
   if (!text) return '';
   return text.length > length ? text.slice(0, length) + '…' : text;
+}
+
+function operationKindLabel(kind) {
+  switch (kind) {
+    case 'operation': return 'Operation';
+    case 'squadron_training': return 'Squadron Training';
+    case 'roleplay': return 'Roleplay';
+    case 'meeting': return 'Meeting';
+    case 'event': return 'Event';
+    default: return 'Operation';
+  }
+}
+
+function branchLabel(branch) {
+  switch (branch) {
+    case 'industries': return 'Industries';
+    case 'defence': return 'Defence';
+    case 'frontiers': return 'Frontiers';
+    case 'lifelines': return 'Lifelines';
+    default: return branch ?? '';
+  }
 }
 
 function formatDate(value) {

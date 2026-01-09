@@ -69,8 +69,12 @@ const rsvp = splitUTC(props.mission?.rsvp_deadline);
 
 const form = useForm({
   title: props.mission?.title ?? '',
-  operation_kind: props.mission?.operation_kind ?? 'mission',
+  operation_kind: props.mission?.operation_kind ?? 'operation',
+  branch: props.mission?.branch ?? '',
   type: props.mission?.type ?? '',
+
+  start_location: props.mission?.start_location ?? '',
+  operation_location: props.mission?.operation_location ?? '',
 
   // DATE + TIME (SPLIT)
   start_date: start.date,
@@ -255,7 +259,7 @@ async function destroyOperation() {
         </div>
 
         <h1 class="hz-title-lg text-horizon-white">
-          {{ isEdit ? 'Edit Mission/Event' : 'Create Mission/Event' }}
+          {{ isEdit ? 'Edit Operation' : 'Create Operation' }}
         </h1>
       </div>
 
@@ -375,6 +379,29 @@ async function destroyOperation() {
               ]"
             />
 
+            <HorizonSelect
+              label="Operation Kind"
+              v-model="form.operation_kind"
+              :options="[
+                { label: 'Operation', value: 'operation' },
+                { label: 'Squadron Training', value: 'squadron_training' },
+                { label: 'Roleplay', value: 'roleplay' },
+                { label: 'Meeting', value: 'meeting' },
+                { label: 'Event', value: 'event' },
+              ]"
+            />
+
+            <HorizonSelect
+              label="Branch"
+              v-model="form.branch"
+              :options="[
+                { label: 'None', value: '' },
+                { label: 'Industries', value: 'industries' },
+                { label: 'Defence', value: 'defence' },
+                { label: 'Frontiers', value: 'frontiers' },
+                { label: 'Lifelines', value: 'lifelines' },
+              ]"
+            />
 
             <HorizonSelect
               label="Comms Strictness"
@@ -386,6 +413,18 @@ async function destroyOperation() {
                 { label: 'Strict', value: 'strict' },
                 { label: 'Roleplay', value: 'roleplay' }
               ]"
+            />
+
+            <HorizonInput
+              label="Start Location"
+              v-model="form.start_location"
+              placeholder="e.g. Everus Harbor"
+            />
+
+            <HorizonInput
+              label="Operation Location"
+              v-model="form.operation_location"
+              placeholder="e.g. Hurston / MicroTech / etc."
             />
 
 

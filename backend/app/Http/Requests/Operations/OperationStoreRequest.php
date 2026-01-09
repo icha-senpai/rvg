@@ -19,8 +19,12 @@ class OperationStoreRequest extends FormRequest
             'starts_at'            => 'required|date',
             'ends_at'              => 'nullable|date|after:starts_at',
 
-            'operation_kind'       => 'required|in:event,mission',
+            'operation_kind'       => 'required|in:operation,squadron_training,roleplay,meeting,event',
+            'branch'               => 'nullable|in:industries,defence,frontiers,lifelines',
             'type'                 => 'nullable|string|max:255',
+
+            'start_location'       => 'nullable|string|max:2000',
+            'operation_location'   => 'nullable|string|max:2000',
 
             'visibility'           => 'nullable|in:open,squadron,private',
             'difficulty'           => 'nullable|in:low,medium,high',

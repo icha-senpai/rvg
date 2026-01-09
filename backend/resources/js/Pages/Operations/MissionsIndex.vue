@@ -216,7 +216,7 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ (modalHeaderOperation?.operation_kind ?? 'mission') === 'mission' ? 'Operation' : 'Operation' }}
+            {{ (modalHeaderOperation?.operation_kind ?? 'operation') === 'operation' ? 'Operation' : 'Operation' }}
           </div>
           <div class="hz-title-md text-horizon-white">
             {{ modalHeaderOperation?.title ?? '' }}
