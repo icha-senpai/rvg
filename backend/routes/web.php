@@ -25,7 +25,14 @@ use App\Http\Controllers\Api\v1\DiscordAuthController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
+Route::get('/', function () {
+    if (Auth::check()) {
+        return Inertia::render('Welcome');
+    }
+
+    return response()->view('og-shell');
+})->name('home');
+
 Route::get('/verify', fn() => Inertia::render('Verify'))->name('verify');
 
 Route::get('/login', function () {
