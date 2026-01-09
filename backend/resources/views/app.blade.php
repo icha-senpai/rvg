@@ -4,7 +4,23 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+
+
+        <meta name="description" content="Private Star Citizen organization. Access restricted">
+        <meta property="og:site_name" content="Horizon Interstellar">
+        <meta property="og:title" content="Horizon Interstellar">
+        <meta property="og:description" content="Private Star Citizen organization. Access restricted.">
+        <meta property="og:image" content="{{ asset('images/og-card.png') }}">
+        <meta property="og:image:secure_url" content="{{ asset('images/og-card.png') }}">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://horizoninterstellar.com/?v=2">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="Horizon Interstellar">
+        <meta property="twitter:domain" content="horizoninterstellar.com">
+        <meta property="twitter:url" content="https://horizoninterstellar.com/?v=2">
+        <meta name="twitter:description" content="Private Star Citizen organization. Access restricted.">
+        <meta name="twitter:image" content="{{ asset('images/og-card.png') }}">
+        <title inertia>{{ config('app.name', 'Horizon Interstellar') }}</title>
 
         <link rel="icon" type="image/png" href="{{ asset('images/Uz21HiAAAAAElFTkSuQmCC.png') }}">
         <link rel="preconnect" href="https://fonts.googleapis.com">
