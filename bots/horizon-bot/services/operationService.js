@@ -8,7 +8,7 @@ const log = (...args) => {
 };
 
 module.exports = {
-    async announceOperation(client, op) {
+    async announceOperation(client, op, actionText = 'A new operation has been posted') {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
         const roleIdToPing = process.env.OP_ANNOUNCE_ROLE_ID;
 
@@ -95,8 +95,8 @@ module.exports = {
         // ------------------------------
         try {
             const content = roleIdToPing
-                ? `A new operation has been posted <@&${roleIdToPing}>`
-                : 'A new operation has been posted';
+                ? `${actionText} <@&${roleIdToPing}>`
+                : actionText;
 
             await channel.send({
                 content,
@@ -107,5 +107,9 @@ module.exports = {
         } catch (err) {
             console.error('❌ Failed to send operation embed:', err);
         }
+    },
+
+    async announceOperationUpdated(client, op) {
+        return this.announceOperation(client, op, 'An operation has been updated');
     },
 };
