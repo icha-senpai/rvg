@@ -43,13 +43,6 @@ async function fetchSquadrons() {
   try {
     const { data } = await axios.get('/api/v1/squadrons');
     squadrons.value = Array.isArray(data) ? data : [];
-
-    if (!selectedSquadronNames.value.length && props.squadronId) {
-      const match = squadrons.value.find((s) => s.id === props.squadronId);
-      if (match?.name) {
-        selectedSquadronNames.value = [match.name];
-      }
-    }
   } catch (err) {
     const status = err?.response?.status ?? null;
     if (status !== 401 && status !== 419) {

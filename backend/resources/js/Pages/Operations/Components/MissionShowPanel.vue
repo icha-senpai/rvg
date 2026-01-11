@@ -586,10 +586,10 @@ async function updateSlot() {
               </div>
             </div>
 
-            <div class="hz-stack-xs">
+            <div v-if="operation.squadron_name" class="hz-stack-xs">
               <div class="hz-section-label">Squadrons</div>
               <div class="hz-body-strong">
-                {{ asText(operation.squadron_name || operation.squadron?.name) }}
+                {{ operation.squadron_name }}
               </div>
             </div>
 

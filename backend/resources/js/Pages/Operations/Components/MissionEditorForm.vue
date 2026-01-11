@@ -49,9 +49,7 @@ watch(
         ? next.split(',').map(s => s.trim()).filter(Boolean)
         : []
 
-    if (typeof next === 'string') {
-      form.squadron_name = next
-    }
+    form.squadron_name = typeof next === 'string' ? next : ''
   }
 )
 
@@ -67,13 +65,6 @@ async function fetchSquadrons() {
   try {
     const { data } = await axios.get('/api/v1/squadrons')
     squadrons.value = Array.isArray(data) ? data : []
-
-    if (!selectedSquadronNames.value.length && props.squadronId) {
-      const match = squadrons.value.find(s => s.id === props.squadronId)
-      if (match?.name) {
-        selectedSquadronNames.value = [match.name]
-      }
-    }
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status !== 401 && status !== 419) {
