@@ -20,7 +20,7 @@ class OperationStoreRequest extends FormRequest
             'starts_at'            => 'required|date',
             'ends_at'              => 'nullable|date|after:starts_at',
 
-            'operation_kind'       => 'required|in:operation,squadron_training,roleplay,meeting,event',
+            'operation_kind'       => 'required|in:operation,squadron_training,wing_training,roleplay,meeting,event',
             'branch'               => 'nullable|in:industries,defence,frontiers,lifelines',
             'type'                 => 'nullable|string|max:255',
 

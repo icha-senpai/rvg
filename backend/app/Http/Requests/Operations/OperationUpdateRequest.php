@@ -20,7 +20,7 @@ class OperationUpdateRequest extends FormRequest
             'starts_at'            => 'sometimes|date',
             'ends_at'              => 'sometimes|nullable|date|after:starts_at',
 
-            'operation_kind'       => 'sometimes|in:operation,squadron_training,roleplay,meeting,event',
+            'operation_kind'       => 'sometimes|in:operation,squadron_training,wing_training,roleplay,meeting,event',
             'branch'               => 'sometimes|nullable|in:industries,defence,frontiers,lifelines',
             'type'                 => 'sometimes|string|max:255|nullable',
 

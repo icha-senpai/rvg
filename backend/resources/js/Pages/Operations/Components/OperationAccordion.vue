@@ -153,6 +153,7 @@ function operationKindLabel(kind) {
   switch (kind) {
     case 'operation': return 'Operation';
     case 'squadron_training': return 'Squadron Training';
+    case 'wing_training': return 'Wing Training';
     case 'roleplay': return 'Roleplay';
     case 'meeting': return 'Meeting';
     case 'event': return 'Event';

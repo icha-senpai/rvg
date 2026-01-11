@@ -45,6 +45,15 @@ module.exports = {
                 ? op.description
                 : '*No description provided.*';
 
+        const kind = typeof op?.operation_kind === 'string' ? op.operation_kind : '';
+        const titlePrefix =
+            kind === 'squadron_training'
+                ? 'Squadron Training'
+                : kind === 'wing_training'
+                    ? 'Wing Training'
+                    : '';
+        const displayTitle = titlePrefix ? `${titlePrefix}: ${op.title}` : op.title;
+
         // ------------------------------
         // FORMAT START TIME → DISCORD TIMESTAMP
         // ------------------------------
@@ -88,7 +97,7 @@ module.exports = {
             .setColor(0x00a3ff)
             .setTitle(null)
             .setDescription(
-                `${operationUrl ? `# [${op.title}](${operationUrl})\n` : `# ${op.title}\n`}` +
+                `${operationUrl ? `# [${displayTitle}](${operationUrl})\n` : `# ${displayTitle}\n`}` +
                 `━━━━━━━━━━━━━━━━━━\n\n` +
                 `${desc}`
             )

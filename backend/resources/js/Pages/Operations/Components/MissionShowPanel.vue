@@ -69,12 +69,27 @@ function operationKindLabel(kind) {
   switch (kind) {
     case 'operation': return 'Operation'
     case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
     case 'roleplay': return 'Roleplay'
     case 'meeting': return 'Meeting'
     case 'event': return 'Event'
     default: return 'Operation'
   }
 }
+
+function operationTitlePrefix(kind) {
+  switch (kind) {
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    default: return ''
+  }
+}
+
+const displayTitle = computed(() => {
+  const title = operation?.title ?? ''
+  const prefix = operationTitlePrefix(operation?.operation_kind)
+  return prefix ? `${prefix}: ${title}` : title
+})
 
 function toCalendarUtcStamp(d) {
   if (!d) return null
@@ -484,11 +499,11 @@ async function updateSlot() {
     <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
       <div class="hz-stack-sm">
         <div class="hz-section-label">
-          {{ 'Operation' }}
+          {{ operationKindLabel(operation.operation_kind) }}
         </div>
 
         <h1 class="hz-title-lg text-horizon-white">
-          {{ operation.title }}
+          {{ displayTitle }}
         </h1>
       </div>
 
@@ -586,12 +601,6 @@ async function updateSlot() {
               </div>
             </div>
 
-            <div v-if="operation.squadron_name" class="hz-stack-xs">
-              <div class="hz-section-label">Squadrons</div>
-              <div class="hz-body-strong">
-                {{ operation.squadron_name }}
-              </div>
-            </div>
 
             <div class="hz-stack-xs">
               <div class="hz-section-label">Comms Strictness</div>
@@ -665,6 +674,13 @@ async function updateSlot() {
                 <div class="hz-section-label">Branch</div>
                 <div class="hz-body-strong">
                   {{ operation.branch }}
+                </div>
+              </div>
+
+              <div v-if="operation.squadron_name" class="hz-stack-xs">
+                <div class="hz-section-label">Squadrons</div>
+                <div class="hz-body-strong">
+                  {{ operation.squadron_name }}
                 </div>
               </div>
             </div>

@@ -19,15 +19,23 @@ class SendOperationUpdatedToDiscord
                 'X-Bot-Secret' => config('services.bot.secret'),
             ])
             ->asJson()
-            ->post(config('services.bot.url') . '/op-updated', [
-                'id' => $op->id,
-                'title' => $op->title,
-                'description' => $op->description,
-                'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
-                'operation_strictness' => $op->operation_strictness,
-                'visibility' => $op->visibility,
-                'squadron_name' => $op->squadron_name ?: $op->squadron?->name,
-            ]);
+            ->post(config('services.bot.url') . '/op-updated', (function () use ($op) {
+                $payload = [
+                    'id' => $op->id,
+                    'title' => $op->title,
+                    'description' => $op->description,
+                    'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
+                    'operation_kind' => $op->operation_kind,
+                    'operation_strictness' => $op->operation_strictness,
+                    'visibility' => $op->visibility,
+                ];
+
+                if ($op->squadron_name) {
+                    $payload['squadron_name'] = $op->squadron_name;
+                }
+
+                return $payload;
+            })());
 
             Log::info("🌐 Bot update webhook delivered. Status: {$response->status()}");
         } catch (\Throwable $e) {

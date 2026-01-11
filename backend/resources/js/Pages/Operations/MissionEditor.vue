@@ -436,6 +436,7 @@ async function destroyOperation() {
               :options="[
                 { label: 'Operation', value: 'operation' },
                 { label: 'Squadron Training', value: 'squadron_training' },
+                { label: 'Wing Training', value: 'wing_training' },
                 { label: 'Roleplay', value: 'roleplay' },
                 { label: 'Meeting', value: 'meeting' },
                 { label: 'Event', value: 'event' },
