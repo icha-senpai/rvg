@@ -334,7 +334,7 @@ async function destroyOperation() {
             />
 
             <HorizonInput
-              label="Operation Type (optional)"
+              label="Gameplay Type"
               placeholder="Escort / Recon / Patrol / Meeting / Other"
               v-model="form.type"
             />
@@ -431,7 +431,7 @@ async function destroyOperation() {
             />
 
             <HorizonSelect
-              label="Operation Kind"
+              label="Operation Type"
               v-model="form.operation_kind"
               :options="[
                 { label: 'Operation', value: 'operation' },

@@ -622,7 +622,7 @@ async function updateSlot() {
             </div>
 
             <div v-if="operation.type" class="hz-stack-xs">
-              <div class="hz-section-label">Operation Type</div>
+              <div class="hz-section-label">Gameplay Type</div>
               <div class="hz-body-strong">
                 {{ operation.type }}
               </div>
