@@ -19,19 +19,24 @@ class SendOperationPublishedToDiscord
         ]);
 
         try {
-            $response = Http::withHeaders([
-                'X-Bot-Secret' => config('services.bot.secret'),
-            ])
-            ->asJson()   // <<< 🔥 REQUIRED: ensures JSON payload is correct
-            ->post(config('services.bot.url') . '/op-published', [
+            $payload = [
                 'id' => $op->id,
                 'title' => $op->title,
                 'description' => $op->description,
                 'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
                 'operation_strictness' => $op->operation_strictness,
                 'visibility' => $op->visibility,
-                'squadron_name' => $op->squadron_name ?: $op->squadron?->name,
-            ]);
+            ];
+
+            if ($op->squadron_name) {
+                $payload['squadron_name'] = $op->squadron_name;
+            }
+
+            $response = Http::withHeaders([
+                'X-Bot-Secret' => config('services.bot.secret'),
+            ])
+            ->asJson()   // <<< 🔥 REQUIRED: ensures JSON payload is correct
+            ->post(config('services.bot.url') . '/op-published', $payload);
 
             Log::info("🌐 Bot webhook delivered. Status: {$response->status()}");
         } catch (\Throwable $e) {

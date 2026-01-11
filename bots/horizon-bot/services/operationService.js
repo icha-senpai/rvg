@@ -57,6 +57,33 @@ module.exports = {
         // ------------------------------
         // BUILD EMBED
         // ------------------------------
+        const fields = [
+            {
+                name: 'Starts At',
+                value: op.starts_at_discord || "N/A",
+                inline: false,
+            },
+            {
+                name: 'Strictness',
+                value: op.operation_strictness || 'default',
+                inline: false,
+            },
+            {
+                name: 'Visibility',
+                value: op.visibility || 'open',
+                inline: false,
+            },
+        ];
+
+        const squadronName = typeof op.squadron_name === 'string' ? op.squadron_name.trim() : '';
+        if (squadronName) {
+            fields.push({
+                name: 'Squadron',
+                value: squadronName,
+                inline: false,
+            });
+        }
+
         const embed = new EmbedBuilder()
             .setColor(0x00a3ff)
             .setTitle(null)
@@ -65,28 +92,7 @@ module.exports = {
                 `━━━━━━━━━━━━━━━━━━\n\n` +
                 `${desc}`
             )
-            .addFields(
-                {
-                    name: 'Starts At',
-                    value: op.starts_at_discord || "N/A",
-                    inline: false,
-                },
-                {
-                    name: 'Strictness',
-                    value: op.operation_strictness || 'default',
-                    inline: false,
-                },
-                {
-                    name: 'Visibility',
-                    value: op.visibility || 'open',
-                    inline: false,
-                },
-                {
-                    name: 'Squadron',
-                    value: op.squadron_name || 'N/A',
-                    inline: false,
-                }
-            )
+            .addFields(fields)
             .setFooter({ text: `Operation ID: ${op.id}` })
             .setTimestamp();
 
