@@ -11,7 +11,7 @@
           {{ operationKindLabel(operation.operation_kind) }}
         </div>
         <h3 class="hz-title-md text-horizon-white">
-          {{ operation.title }}
+          {{ displayTitle }}
         </h3>
       </div>
 
@@ -113,6 +113,20 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 const emit = defineEmits(['view'])
 const props = defineProps({
   operation: Object,
+});
+
+function operationTitlePrefix(kind) {
+  switch (kind) {
+    case 'squadron_training': return 'Squadron Training';
+    case 'wing_training': return 'Wing Training';
+    default: return '';
+  }
+}
+
+const displayTitle = computed(() => {
+  const title = props.operation?.title ?? '';
+  const prefix = operationTitlePrefix(props.operation?.operation_kind);
+  return prefix ? `${prefix}: ${title}` : title;
 });
 
 const open = ref(false);

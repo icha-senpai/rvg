@@ -60,7 +60,7 @@
         <MissionCard
           v-for="op in filteredOperations"
           :key="op.id"
-          :title="op.title"
+          :title="operationDisplayTitle(op)"
           :description="op.description"
           :start="formatDate(op.starts_at)"
           :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
@@ -219,7 +219,7 @@
             {{ (modalHeaderOperation?.operation_kind ?? 'operation') === 'operation' ? 'Operation' : 'Operation' }}
           </div>
           <div class="hz-title-md text-horizon-white">
-            {{ modalHeaderOperation?.title ?? '' }}
+            {{ operationDisplayTitle(modalHeaderOperation) }}
           </div>
         </div>
       </template>
@@ -310,6 +310,20 @@ const viewError = ref(null)
 const modalHeaderOperation = computed(() => {
   return viewData.value?.operation ?? viewingOperation.value
 })
+
+function operationTitlePrefix(kind) {
+  switch (kind) {
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    default: return ''
+  }
+}
+
+function operationDisplayTitle(op) {
+  const title = op?.title ?? ''
+  const prefix = operationTitlePrefix(op?.operation_kind)
+  return prefix ? `${prefix}: ${title}` : title
+}
 
 const operationsPaginator = computed(() => {
   return Array.isArray(props.operations) ? null : props.operations;

@@ -59,10 +59,10 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ 'Operation' }}
+            {{ operationKindLabel(modalHeaderOperation?.operation_kind) }}
           </div>
           <div class="hz-title-md text-horizon-white">
-            {{ viewingOperation.title }}
+            {{ operationDisplayTitle(modalHeaderOperation) }}
           </div>
         </div>
       </template>
@@ -109,6 +109,36 @@ const viewingOperation = ref(null)
 const viewData = ref(null)
 const viewLoading = ref(false)
 const viewError = ref(null)
+
+const modalHeaderOperation = computed(() => {
+  return viewData.value?.operation ?? viewingOperation.value
+})
+
+function operationKindLabel(kind) {
+  switch (kind) {
+    case 'operation': return 'Operation'
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    case 'roleplay': return 'Roleplay'
+    case 'meeting': return 'Meeting'
+    case 'event': return 'Event'
+    default: return 'Operation'
+  }
+}
+
+function operationTitlePrefix(kind) {
+  switch (kind) {
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    default: return ''
+  }
+}
+
+function operationDisplayTitle(op) {
+  const title = op?.title ?? ''
+  const prefix = operationTitlePrefix(op?.operation_kind)
+  return prefix ? `${prefix}: ${title}` : title
+}
 
 const todayLabel = computed(() => {
   return new Date().toLocaleDateString(undefined, {

@@ -41,6 +41,7 @@ class OperationPresenter
             'ends_at'     => $this->operation->ends_at?->toIso8601String(),
             'visibility'  => $this->operation->visibility,
             'difficulty'  => $this->operation->difficulty,
+            'operation_kind' => $this->operation->operation_kind,
             'operation_strictness' => $this->operation->operation_strictness,
             'branch'      => $this->operation->branch,
             'status'      => $this->operation->status,
