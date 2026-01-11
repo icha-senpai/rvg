@@ -203,7 +203,7 @@
         :mission="editingMission"
         :squadron-id="editorSquadronId"
         @cancel="closeDrawer"
-        @deleted="closeDrawer"
+        @deleted="handleDrawerDeleted"
         @saved="handleDrawerSaved"
       />
     </OperationDrawer>
@@ -250,7 +250,7 @@
         :participants-by-slot="viewData.participantsBySlot"
         :unassigned-participants="viewData.unassignedParticipants"
         :current-participant="viewData.currentParticipant"
-        @refresh="openViewModal(viewingOperation)"
+        @refresh="handleViewRefreshed"
       />
     </OperationModal>
 
@@ -323,6 +323,23 @@ const operationsList = computed(() => {
   return props.operations?.data ?? [];
 });
 
+function refreshOperations() {
+  if (typeof router.reload === 'function') {
+    router.reload({
+      only: ['operations'],
+      preserveScroll: true,
+      preserveState: true,
+    })
+    return
+  }
+
+  router.get(route('operations.index', {}, Ziggy), {}, {
+    only: ['operations'],
+    preserveScroll: true,
+    preserveState: true,
+  })
+}
+
 function goToUrl(url) {
   if (!url) return;
 
@@ -378,11 +395,26 @@ function handleDrawerSaved(payload) {
   const operationId = payload?.id
   closeDrawer()
 
+  refreshOperations()
+
   if (!operationId) return
 
   setTimeout(() => {
     openViewModal({ id: operationId })
   }, 160)
+}
+
+function handleDrawerDeleted() {
+  closeDrawer()
+  refreshOperations()
+}
+
+function handleViewRefreshed() {
+  if (viewingOperation.value) {
+    openViewModal(viewingOperation.value)
+  }
+
+  refreshOperations()
 }
 
 /* ----------------------
