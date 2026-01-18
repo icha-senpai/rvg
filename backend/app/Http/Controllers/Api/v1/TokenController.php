@@ -33,6 +33,11 @@ class TokenController extends Controller
             return response()->json(['message' => 'Invalid refresh token'], 401);
         }
 
+        if ($pat->expires_at && $pat->expires_at->isPast()) {
+            $pat->delete();
+            return response()->json(['message' => 'Refresh token expired'], 401);
+        }
+
         $user = $pat->tokenable;
 
         if (!$user) {

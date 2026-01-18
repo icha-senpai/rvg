@@ -258,6 +258,7 @@ class AuthController extends Controller
     }
 
 
+    // NOTE: unused — TokenController handles refresh.
     public function refresh(Request $request)
     {
         $rawToken = $request->bearerToken();
@@ -339,7 +340,7 @@ class AuthController extends Controller
             ->delete();
 
         // Determine expiration based on rank
-        $isLeadership = ($user->rank >= 2);
+        $isLeadership = ($user->rank_level >= 2);
         $accessExpires = now()->addDay();
 
         // Issue new access token

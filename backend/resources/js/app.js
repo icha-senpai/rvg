@@ -8,8 +8,21 @@ import axios from 'axios';
 import { route } from 'ziggy-js';
 import { Ziggy } from '@/ziggy'; // This file will exist once you publish
 
-function notifyUnauthenticated() {
+function clearStoredTokens() {
     try {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+    } catch (e) {
+        // ignore
+    }
+}
+
+function notifyUnauthenticated({ clearTokens = false } = {}) {
+    try {
+        if (clearTokens) {
+            clearStoredTokens();
+        }
+
         const now = Date.now();
 
         if (window.__hz_lastUnauthenticatedAt && now - window.__hz_lastUnauthenticatedAt < 3000) {
@@ -125,6 +138,7 @@ axios.interceptors.response.use(
         const url = String(originalRequest?.url ?? '');
 
         if (url.startsWith('/api/v1/auth/refresh')) {
+            notifyUnauthenticated({ clearTokens: true });
             return Promise.reject(error);
         }
 
@@ -134,14 +148,14 @@ axios.interceptors.response.use(
         }
 
         if (originalRequest._retry) {
-            notifyUnauthenticated();
+            notifyUnauthenticated({ clearTokens: true });
             return Promise.reject(error);
         }
 
         const refreshToken = localStorage.getItem('refresh_token');
 
         if (!refreshToken) {
-            notifyUnauthenticated();
+            notifyUnauthenticated({ clearTokens: true });
             return Promise.reject(error);
         }
 
@@ -161,7 +175,7 @@ axios.interceptors.response.use(
             const newAccessToken = refreshResponse?.data?.access_token;
 
             if (!newAccessToken) {
-                notifyUnauthenticated();
+                notifyUnauthenticated({ clearTokens: true });
                 return Promise.reject(error);
             }
 
@@ -171,7 +185,7 @@ axios.interceptors.response.use(
 
             return axios(originalRequest);
         } catch (refreshError) {
-            notifyUnauthenticated();
+            notifyUnauthenticated({ clearTokens: true });
             return Promise.reject(refreshError);
         }
     }

@@ -13,7 +13,7 @@ class TokenService
     public function createTokensFor(User $user)
     {
         // Determine leadership lifetime
-        $isLeadership = $user->rank >= 2;
+        $isLeadership = $user->rank_level >= 2;
 
         $refreshExpiryDays = $isLeadership
             ? 7     // leadership
