@@ -60,6 +60,43 @@ const squadronOptions = computed(() => {
   }))
 })
 
+const startLocationOptions = [
+  { label: 'Stanton / Hurston / Lorville', value: 'Lorville' },
+  { label: 'Stanton / Hurston / Everus Harbor', value: 'Everus Harbor' },
+  { label: 'Stanton / Hurston / HUR-L1 Green Glade Station', value: 'HUR-L1 Green Glade Station' },
+  { label: 'Stanton / Hurston / HUR-L2 Faithful Dream Station', value: 'HUR-L2 Faithful Dream Station' },
+  { label: 'Stanton / Hurston / HUR-L3 Thundering Express Station', value: 'HUR-L3 Thundering Express Station' },
+  { label: 'Stanton / Hurston / HUR-L4 Melodic Fields Station', value: 'HUR-L4 Melodic Fields Station' },
+  { label: 'Stanton / Hurston / HUR-L5 High Course Station', value: 'HUR-L5 High Course Station' },
+  { label: 'Stanton / Arccorp / Area 18', value: 'Area 18' },
+  { label: 'Stanton / Arccorp / Baijini Point', value: 'Baijini Point' },
+  { label: 'Stanton / Arccorp / ARC-L1 Wide Forest Station', value: 'ARC-L1 Wide Forest Station' },
+  { label: 'Stanton / Arccorp / ARC-L2 Lively Pathway Station', value: 'ARC-L2 Lively Pathway Station' },
+  { label: 'Stanton / Arccorp / ARC-L3 Modern Express Station', value: 'ARC-L3 Modern Express Station' },
+  { label: 'Stanton / Arccorp / ARC-L4 Faint Glen Station', value: 'ARC-L4 Faint Glen Station' },
+  { label: 'Stanton / Arccorp / ARC-L5 Yellow Core Station', value: 'ARC-L5 Yellow Core Station' },
+  { label: 'Stanton / MicroTech / New Babbage', value: 'New Babbage' },
+  { label: 'Stanton / MicroTech / Port Tressler', value: 'Port Tressler' },
+  { label: 'Stanton / MicroTech / MIC-L1 Shallow Frontier Station', value: 'MIC-L1 Shallow Frontier Station' },
+  { label: 'Stanton / MicroTech / MIC-L2 Long Forest Station', value: 'MIC-L2 Long Forest Station' },
+  { label: 'Stanton / MicroTech / MIC-L3 Endless Odyssey Station', value: 'MIC-L3 Endless Odyssey Station' },
+  { label: 'Stanton / MicroTech / MIC-L4 Red Crossroads Station', value: 'MIC-L4 Red Crossroads Station' },
+  { label: 'Stanton / MicroTech / MIC-L5 Wide Expanse Station', value: 'MIC-L5 Wide Expanse Station' },
+  { label: 'Stanton / Crusader / Orison', value: 'Orison' },
+  { label: 'Stanton / Crusader / Seraphim Station', value: 'Seraphim Station' },
+  { label: 'Stanton / Crusader / CRU-L1 Ambitious Dream Station', value: 'CRU-L1 Ambitious Dream Station' },
+  { label: 'Stanton / Crusader / CRU-L2 Faithful Dawn Station', value: 'CRU-L2 Faithful Dawn Station' },
+  { label: 'Stanton / Crusader / CRU-L3 Wildwood Station', value: 'CRU-L3 Wildwood Station' },
+  { label: 'Stanton / Crusader / CRU-L4 Shallow Fields Station', value: 'CRU-L4 Shallow Fields Station' },
+  { label: 'Stanton / Crusader / CRU-L5 Beautiful Glen Station', value: 'CRU-L5 Beautiful Glen Station' },
+  { label: 'Stanton / Crusader / Grim HEX', value: 'Grim HEX' },
+  { label: 'Pyro / Pyro I / Ruin Station', value: 'Ruin Station' },
+  { label: 'Pyro / Pyro IV / Checkmate Station', value: 'Checkmate Station' },
+  { label: 'Pyro / Pyro V / Orbituary Station', value: 'Orbituary Station' },
+  { label: 'Pyro / Pyro VI / Rats Nest', value: 'Rats Nest' },
+  { label: 'Nyx / Delamar / Levski', value: 'Levski' },
+]
+
 async function fetchSquadrons() {
   squadronsLoading.value = true
   try {
@@ -549,10 +586,10 @@ async function destroyOperation() {
               ]"
             />
 
-            <HorizonInput
+            <HorizonSelect
               label="Start Location"
               v-model="form.start_location"
-              placeholder="e.g. Everus Harbor"
+              :options="startLocationOptions"
             />
 
             <HorizonInput
