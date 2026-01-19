@@ -41,7 +41,7 @@
         v-if="open"
         class="hz-select-menu absolute z-50 w-full mt-1
                bg-[var(--color-bg-surface)] border border-[var(--color-bg-hover)]
-               rounded-lg shadow-lg overflow-hidden"
+               rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto"
       >
         <li
           v-for="opt in options"
