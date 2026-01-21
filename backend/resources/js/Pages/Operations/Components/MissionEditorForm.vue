@@ -90,11 +90,18 @@ const startLocationOptions = [
   { label: 'Stanton / Crusader / CRU-L4 Shallow Fields Station', value: 'CRU-L4 Shallow Fields Station' },
   { label: 'Stanton / Crusader / CRU-L5 Beautiful Glen Station', value: 'CRU-L5 Beautiful Glen Station' },
   { label: 'Stanton / Crusader / Grim HEX', value: 'Grim HEX' },
+  { label: 'Stanton / Gateway / Nyx', value: 'Nyx Gateway' },
+  { label: 'Stanton / Gateway / Pyro', value: 'Pyro Gateway' },
+  { label: 'Stanton / Gateway / Terra', value: 'Terra Gateway' },
   { label: 'Pyro / Pyro I / Ruin Station', value: 'Ruin Station' },
   { label: 'Pyro / Pyro IV / Checkmate Station', value: 'Checkmate Station' },
   { label: 'Pyro / Pyro V / Orbituary Station', value: 'Orbituary Station' },
   { label: 'Pyro / Pyro VI / Rats Nest', value: 'Rats Nest' },
+  { label: 'Pyro / Gateway / Stanton ', value: 'Stanton Gateway' },
+  { label: 'Pyro / Gateway / Nyx ', value: 'Nyx Gateway' },
   { label: 'Nyx / Delamar / Levski', value: 'Levski' },
+  { label: 'Nyx / Gateway / Stanton', value: 'Stanton Gateway' },
+  { label: 'Nyx / Gateway / Pyro', value: 'Pyro Gateway' },
 ]
 
 async function fetchSquadrons() {
