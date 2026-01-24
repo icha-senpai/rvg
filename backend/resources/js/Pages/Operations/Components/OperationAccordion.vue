@@ -85,9 +85,9 @@
       </div>
 
       <div class="hz-caption">
-        Comms Strictness: {{ operation.operation_strictness ?? 'N/A' }}
+        Comms Strictness: {{ formatFirstLetter(operation.operation_strictness ?? 'normal') }}
         <br />
-        Visibility: {{ operation.visibility ?? 'open' }}
+        Visibility: {{ formatFirstLetter(operation.visibility ?? 'open') }}
 
       </div>
 
@@ -183,6 +183,13 @@ function branchLabel(branch) {
     case 'lifelines': return 'Lifelines';
     default: return branch ?? '';
   }
+}
+
+function formatFirstLetter(value) {
+  if (!value) return '';
+  const text = String(value).trim();
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function formatDate(value) {

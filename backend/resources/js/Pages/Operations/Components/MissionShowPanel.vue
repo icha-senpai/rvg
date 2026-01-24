@@ -226,6 +226,13 @@ function asText(v) {
   return v ? String(v) : 'TBD'
 }
 
+function formatFirstLetter(value) {
+  if (!value) return ''
+  const text = String(value).trim()
+  if (!text) return ''
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 function formatUTC(dt) {
   if (!dt) return 'TBD'
 
@@ -597,7 +604,7 @@ async function updateSlot() {
             <div class="hz-stack-xs">
               <div class="hz-section-label">Visibility</div>
               <div class="hz-body-strong">
-                {{ operation.visibility ?? 'open' }}
+                {{ formatFirstLetter(operation.visibility ?? 'open') }}
               </div>
             </div>
 
@@ -605,7 +612,7 @@ async function updateSlot() {
             <div class="hz-stack-xs">
               <div class="hz-section-label">Comms Strictness</div>
               <div class="hz-body-strong">
-                {{ operation.operation_strictness ?? 'normal' }}
+                {{ formatFirstLetter(operation.operation_strictness ?? 'normal') }}
               </div>
             </div>
 
@@ -673,7 +680,7 @@ async function updateSlot() {
               <div v-if="operation.branch" class="hz-stack-xs">
                 <div class="hz-section-label">Branch</div>
                 <div class="hz-body-strong">
-                  {{ operation.branch }}
+                  {{ formatFirstLetter(operation.branch) }}
                 </div>
               </div>
 
