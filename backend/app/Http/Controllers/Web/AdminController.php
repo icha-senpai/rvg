@@ -121,8 +121,21 @@ class AdminController extends Controller
     {
         $this->authorize('access-admin-panel');
 
+        $rsiHandle = trim((string) $request->input('rsi_handle', ''));
+        $request->merge([
+            'rsi_handle' => $rsiHandle !== '' ? $rsiHandle : null,
+        ]);
+
         $data = $request->validate([
             'id'                  => ['required', 'exists:users,id'],
+            'rsi_handle'           => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:50',
+                'regex:/^[a-zA-Z0-9-_]+$/',
+                Rule::unique('users', 'rsi_handle')->ignore($request->input('id')),
+            ],
             'rank'                => ['nullable', 'string', 'max:255'],
             'rank_level'          => ['nullable', 'integer', 'min:1'],
             'global_status'       => ['nullable', 'string', 'max:255'],

@@ -122,6 +122,11 @@
     <div class="hz-stack">
 
       <div>
+        <label class="hz-text-soft">RSI Handle</label>
+        <input v-model="form.rsi_handle" class="hz-input" />
+      </div>
+
+      <div>
         <label class="hz-text-soft">Rank</label>
         <input v-model="form.rank" class="hz-input" />
       </div>
@@ -296,6 +301,7 @@ function handleKeydown(event) {
 
 const form = ref({
   id: null,
+  rsi_handle: '',
   rank: '',
   rank_level: 1,
   global_status: '',
@@ -310,6 +316,7 @@ function openUserEditor(user) {
   editingUser.value = { ...user };
   form.value = {
     id: user.id,
+    rsi_handle: user.rsi_handle || '',
     rank: user.rank || '',
     rank_level: user.rank_level || 1,
     global_status: user.global_status || '',
