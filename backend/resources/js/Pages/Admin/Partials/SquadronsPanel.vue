@@ -16,7 +16,7 @@
       <div
         v-for="sq in squadrons"
         :key="sq.id"
-        class="p-4 hz-overlay-light rounded-xl flex justify-between items-center"
+        class="hz-card-soft hz-row-between"
       >
         <div class="space-y-1">
           <div class="hz-title">{{ sq.name }}</div>

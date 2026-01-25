@@ -16,7 +16,7 @@
       <div
         v-for="role in roles"
         :key="role.id"
-        class="p-4 hz-overlay-light rounded-xl flex justify-between items-center"
+        class="hz-card-soft hz-row-between"
       >
         <div>
           <div class="hz-title">{{ role.name }}</div>

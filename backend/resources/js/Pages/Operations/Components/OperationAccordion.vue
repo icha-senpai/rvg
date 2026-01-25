@@ -50,7 +50,7 @@
           <span class="opacity-70">•</span>
         </template>
 
-        <span class="opacity-70">• Creator:</span>
+        <span class="opacity-70"> Creator:</span>
         {{ operation.creator?.rsi_handle ?? 'TBD' }}
       </div>
 

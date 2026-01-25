@@ -44,19 +44,13 @@
             </div>
 
             <div class="hz-text-muted">
-              Status: {{ u.global_status || 'unset' }}
+              Verification Status: {{ u.global_status || 'unset' }}
             </div>
 
             <div class="hz-text-muted">
               Roles:
               <span v-if="!u.roles?.length">None</span>
-              <span
-                v-for="r in u.roles"
-                :key="r.id"
-                class="hz-text-soft"
-              >
-                {{ r.name }}
-              </span>
+              <span v-else class="hz-text-soft">{{ formatRoleList(u.roles) }}</span>
             </div>
           </div>
           <HorizonButton
@@ -167,7 +161,7 @@
 
         <div class="hz-card hz-stack-sm">
           <div
-            v-for="role in roles"
+            v-for="role in sortedRoles"
             :key="role.id"
             class="hz-row"
           >
@@ -245,6 +239,44 @@ const currentPage = computed(() => users.value?.current_page ?? 1);
 const lastPage = computed(() => users.value?.last_page ?? 1);
 const prevUrl = computed(() => users.value?.prev_page_url || null);
 const nextUrl = computed(() => users.value?.next_page_url || null);
+
+const roleSortOrder = [
+  'director',
+  'tech_director',
+  'grand_admiral',
+  'admiral',
+  'wing_commander',
+  'commander_squadron',
+  'commander_staff',
+  'lieutenant',
+  'member',
+  'tech_team',
+  'mission_commander',
+  'viewer',
+];
+
+const roleOrderIndex = new Map(roleSortOrder.map((slug, index) => [slug, index]));
+
+function compareRoles(a, b) {
+  const aKey = a?.slug ?? '';
+  const bKey = b?.slug ?? '';
+
+  const aOrder = roleOrderIndex.has(aKey) ? roleOrderIndex.get(aKey) : Number.POSITIVE_INFINITY;
+  const bOrder = roleOrderIndex.has(bKey) ? roleOrderIndex.get(bKey) : Number.POSITIVE_INFINITY;
+
+  if (aOrder !== bOrder) return aOrder - bOrder;
+
+  const aName = String(a?.name ?? '').toLowerCase();
+  const bName = String(b?.name ?? '').toLowerCase();
+  return aName.localeCompare(bName);
+}
+
+const sortedRoles = computed(() => [...(props.roles ?? [])].sort(compareRoles));
+
+function formatRoleList(userRoles) {
+  const sorted = [...(userRoles ?? [])].sort(compareRoles);
+  return sorted.map(r => r.name).join(', ');
+}
 
 /* ============================================================
    SEARCH

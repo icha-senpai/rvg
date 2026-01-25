@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
-          class="hz-card hz-stack cursor-pointer"
+          class="hz-card-soft hz-stack cursor-pointer"
           @click="openSquadron(squadron.id)"
         >
           <div class="hz-title-md">{{ squadron.name }}</div>
