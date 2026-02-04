@@ -14,7 +14,7 @@ The system is a two-part architecture:
   - Rank middleware (1–6)  
   - Mission endpoints  
   - User profiles  
-  - UEX data ingestion (future phase) 
+  - UEX data ingestion (future phase)  
   - Discord integration
 
 - **Frontend (laravel 12)**
@@ -31,6 +31,7 @@ This is the early skeleton phase, building the foundations before scaling.
 ## 📡 Current Features Implemented
 
 ### Authentication & Security
+
 - Discord → Backend token creation  
 - Sanctum API guard wired correctly  
 - Token issuance on verified login  
@@ -38,6 +39,7 @@ This is the early skeleton phase, building the foundations before scaling.
 - `/profile` endpoint for authenticated users  
 
 ### Verification System
+
 - Generate verification code  
 - Validate RSI handle  
 - Validate org membership  
@@ -45,38 +47,11 @@ This is the early skeleton phase, building the foundations before scaling.
 - Link Discord ID → User row in DB  
 
 ### Core Endpoints
+
 - `/ping` health check  
 - `/profile` (rank ≥ 1)  
 - `/users` listing (rank ≥ 3)  
 - Mission + event placeholders  
-
----
-
-## 🧭 Roadmap (4-Month Skeleton)
-
-### **Month 1 — Foundation & Expansion**
-- Stable API
-- Full user CRUD
-- WordPress bridge plugin scaffolding
-- Basic admin UI
-
-### **Month 2 — Officer Tools**
-- Mission system
-- Event system
-- User verification dashboard
-- Role/rank sync with Discord
-
-### **Month 3 — Data Systems**
-- UEX integration  
-- Ship loadouts  
-- Trading dashboards  
-- Fleet rosters
-
-### **Month 4 — Organization Suite**
-- Full officer panel
-- Org-wide dashboards
-- Clean UX pass
-- Beta release for RVG
 
 ---
 
@@ -85,15 +60,8 @@ This is the early skeleton phase, building the foundations before scaling.
 - PHP 8.4 (Laragon recommended)
 - Laravel 12+
 - Node 20+
-- WordPress 6.x
-- MySQL/PostgreSQL
+- PostgreSQL
 - Postman or Insomnia
-
----
-
-## 👥 Contributors
-- **Icha** — Lead architect & system designer  
-- **Helper Devs** — Supporting devs assisting with CRUD, small features, WordPress integration, and documentation  
 
 ---
 
@@ -104,49 +72,43 @@ composer install
 php artisan migrate
 npm install
 
-
-
 Follow CONTRIBUTING.md for branching and workflow.
-===================================================
-
-Coding Standards (Anti-Spaghetti Rules)
-===================================================
-
-
-# Coding Standards
-
-These rules keep the codebase clean, maintainable, and free of chaos-creature spaghetti.
 
 ---
+
+## Coding Standards
+
+### Anti-Spaghetti Rules
+
+These rules keep the codebase clean, maintainable, and free of chaos-creature spaghetti.
 
 ## 📘 General Principles
 
 1. **Readability beats cleverness.**
 2. **Consistency over creativity in core logic.**
-3. **Follow the framework conventions whenever possible.**
-4. **All work should be predictable for future contributors.**
-5. **If a solution feels like a hack, it probably is. Ask first.**
 
 ---
 
 ## 🐘 PHP / Laravel Standards
 
-### ✔ DO:
-- PSR-12 formatting  
-- 4-space indentation  
-- Type-hint everything  
-- Use `Request` validation classes  
-- Use resources for API responses  
-- Write clean controller methods (10–50 lines max)  
-- Extract heavy logic into services  
+### ✔ DO
 
-### ✘ DO NOT:
-- Put raw SQL in controllers  
-- Return arrays instead of structured responses  
-- Use facades randomly  
-- Dump-and-die in committed code (`dd()`, `dump()`)  
-- Leave commented-out code blocks  
-- Write 300-line controller methods  
+- PSR-12 formatting
+- 4-space indentation
+- Type-hint everything
+- Use `Request` validation classes
+- Use resources for API responses
+- Write clean controller methods (10–50 lines max)
+- Extract heavy logic into services
+
+### ✘ DO NOT
+
+- Put raw SQL in controllers
+- Return arrays instead of structured responses
+- Use facades randomly
+- Dump-and-die in committed code (`dd()`, `dump()`)
+- Leave commented-out code blocks
+- Write 300-line controller methods
 
 ---
 
@@ -159,7 +121,7 @@ These rules keep the codebase clean, maintainable, and free of chaos-creature sp
 
 ---
 
-## ⚡ JavaScript / WordPress Rules
+## ⚡ JavaScript
 
 - Use 2-space indentation  
 - Keep scripts modular  
@@ -191,4 +153,24 @@ These rules keep the codebase clean, maintainable, and free of chaos-creature sp
 - Ship small PRs  
 - Respect architecture decisions  
 - Ask questions early  
-- Keep things professional (no drama)  
+- Keep things professional (no drama)
+
+---
+
+## 🛡 Project Philosophy
+
+This system is long-term infrastructure, designed to be:
+
+- Modular
+- Predictable
+- Secure
+- Easy to build on
+- Easy to scale
+- Easy to maintain
+- Easy to understand
+- Easy to debug
+- Easy to test
+- Easy to deploy
+- Easy to update
+
+---
