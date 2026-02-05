@@ -22,7 +22,7 @@
       </div>
 
       <!-- FILTER PANEL -->
-      <HorizonPanel class="p-3 rounded-xl space-y-2 max-w-2xl mx-auto">
+      <HorizonPanel class="p-3 rounded-xl space-y-2 max-w-2xl mx-auto border-(--horizon-sunset-blue)">
 
         <!-- FILTER BUTTONS -->
         <div class="flex flex-wrap gap-2">
@@ -56,69 +56,73 @@
       </div>
 
       <!-- OPERATION GRID -->
-      <MissionGrid v-if="filteredOperations.length > 0" class="pt-2 lg:grid-cols-2!">
-        <MissionCard
-          v-for="op in filteredOperations"
-          :key="op.id"
-          :title="operationDisplayTitle(op)"
-          :description="op.description"
-          :start="formatDate(op.starts_at)"
-          :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
-          :status="op.status"
-        >
-          <div class="mt-6 flex items-start justify-between gap-4">
+      <div v-if="filteredOperations.length > 0" class="pt-2">
+        <div class="rounded-2xl border border-(--horizon-sunset-blue) p-4">
+          <MissionGrid class="lg:grid-cols-2!">
+            <MissionCard
+              v-for="op in filteredOperations"
+              :key="op.id"
+              :title="operationDisplayTitle(op)"
+              :description="op.description"
+              :start="formatDate(op.starts_at)"
+              :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
+              :status="op.status"
+            >
+              <div class="mt-6 flex items-start justify-between gap-4">
 
-            <div class="hz-stack-2xs flex-1 min-w-0">
-              <div class="hz-caption text-horizon-offwhite wrap-break-word">
-                <span class="opacity-70">SQD:</span>
-                {{ op.squadron?.name ?? 'TBD' }}
+                <div class="hz-stack-2xs flex-1 min-w-0">
+                  <div class="hz-caption text-horizon-offwhite">
+                    <span class="opacity-70">SQD:</span>
+                    {{ op.squadron?.name ?? 'TBD' }}
+                  </div>
+
+                  <div class="hz-caption text-horizon-offwhite">
+                    <span class="opacity-70">CRE:</span>
+                    {{ op.creator?.rsi_handle ?? 'TBD' }}
+                  </div>
+
+                  <div class="hz-caption text-horizon-offwhite">
+                    Strict: {{ op.operation_strictness ?? 'default' }} • VIS: {{ op.visibility ?? 'open' }}
+                  </div>
+                </div>
+
+                <div class="flex gap-2 shrink-0">
+
+                  <!-- EDIT -->
+                  <HorizonButton
+                    v-if="canManageOperation(op)"
+                    size="sm"
+                    variant="primary"
+                    @click="openEditDrawer(op)"
+                  >
+                    Edit
+                  </HorizonButton>
+
+                  <!-- VIEW -->
+                  <HorizonButton
+                    size="sm"
+                    variant="primary"
+                    @click="openViewModal(op)"
+                  >
+                    View
+                  </HorizonButton>
+
+                  <!-- DELETE -->
+                  <HorizonButton
+                    v-if="canManageOperation(op)"
+                    variant="danger"
+                    size="sm"
+                    @click="destroy(op.id)"
+                  >
+                    Delete
+                  </HorizonButton>
+                </div>
+
               </div>
-
-              <div class="hz-caption text-horizon-offwhite wrap-break-word">
-                <span class="opacity-70">CRE:</span>
-                {{ op.creator?.rsi_handle ?? 'TBD' }}
-              </div>
-
-              <div class="hz-caption text-horizon-offwhite">
-                Strict: {{ op.operation_strictness ?? 'default' }} • VIS: {{ op.visibility ?? 'open' }}
-              </div>
-            </div>
-
-            <div class="flex gap-2 shrink-0">
-
-              <!-- EDIT -->
-              <HorizonButton
-                v-if="canManageOperation(op)"
-                size="sm"
-                variant="primary"
-                @click="openEditDrawer(op)"
-              >
-                Edit
-              </HorizonButton>
-
-              <!-- VIEW -->
-              <HorizonButton
-                size="sm"
-                variant="primary"
-                @click="openViewModal(op)"
-              >
-                View
-              </HorizonButton>
-
-              <!-- DELETE -->
-              <HorizonButton
-                v-if="canManageOperation(op)"
-                variant="danger"
-                size="sm"
-                @click="destroy(op.id)"
-              >
-                Delete
-              </HorizonButton>
-            </div>
-
-          </div>
-        </MissionCard>
-      </MissionGrid>
+            </MissionCard>
+          </MissionGrid>
+        </div>
+      </div>
 
       <div
         v-if="operationsPaginator && operationsPaginator.last_page > 1"

@@ -14,7 +14,7 @@
       variant="ghost"
       size="md"
       class="hz-select-button w-full flex justify-between items-center font-normal
-             bg-[var(--color-horizon-blue-20)] border border-[var(--color-bg-hover)]
+             bg-horizon-blue-dark border border-[var(--color-bg-hover)]
              rounded-lg px-3 py-2 text-[var(--color-text-primary)]
              hover:border-[var(--color-horizon-blue)] transition
              focus:outline-none focus:ring-2 focus:ring-[var(--color-horizon-blue)]"

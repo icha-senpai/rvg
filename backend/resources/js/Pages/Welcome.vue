@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-bg-base text-text-primary p-10 hz-noise hz-vignette hz-stack-xl">
+  <HorizonContainer>
 
     <!-- ========================================================= -->
     <!-- HERO HEADER: Horizon Interstellar Command                  -->
@@ -8,7 +8,7 @@
 
       <!-- Neon background glow -->
       <div class="absolute inset-0 pointer-events-none opacity-[0.18]">
-        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[80%] h-[600px] rounded-full blur-[160px] bg-horizon-blue"></div>
+        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[80%] h-[600px] rounded-full blur-[160px] bg-[var(--horizon-sunset-blue)]"></div>
       </div>
 
       <h2 class="hz-title-xl text-horizon-white hz-glyph tracking-wide">
@@ -29,10 +29,11 @@
     </section>
 
 
-  </div>
+  </HorizonContainer>
 </template>
 
 <script setup>
+import HorizonContainer from '@/Components/HorizonContainer.vue';
 
 </script>
 

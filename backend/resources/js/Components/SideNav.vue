@@ -190,7 +190,7 @@ onBeforeUnmount(() => {
                 <span class="truncate">{{ item.label }}</span>
                 <span
                   v-if="item.key === 'my_squadron'"
-                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-20 text-horizon-white"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-dark text-horizon-white"
                 >
                   {{ mySquadron?.name ?? 'Active' }}
                 </span>
@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
           </template>
         </nav>
 
-        <div class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-20 border border-horizon-blue-20">
+        <div class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover">
           <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">
             {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
                 <span class="truncate">{{ item.label }}</span>
                 <span
                   v-if="item.key === 'my_squadron'"
-                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-20 text-horizon-white"
+                  class="text-[10px] leading-none px-2 py-1 rounded-full bg-horizon-blue-dark text-horizon-white"
                 >
                   {{ mySquadron?.name ?? 'Active' }}
                 </span>
@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
         </nav>
 
         <div
-          class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-20 border border-horizon-blue-20"
+          class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover"
         >
           <div class="text-xs text-text-secondary">User Info</div>
           <div class="text-sm font-semibold truncate text-horizon-white">

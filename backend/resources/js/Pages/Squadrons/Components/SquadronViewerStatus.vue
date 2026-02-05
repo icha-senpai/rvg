@@ -12,7 +12,7 @@ const emit = defineEmits(['apply', 'leave'])
 </script>
 
 <template>
-  <div class="hz-panel">
+  <div class="rounded-xl border border-bg-hover bg-bg-surface p-4">
     <div class="hz-section-label">Your Status</div>
 
     <p class="hz-soft">

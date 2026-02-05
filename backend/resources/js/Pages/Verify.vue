@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
 // --- URL token from Discord OAuth callback ---
@@ -155,8 +156,8 @@ const verifyRsi = async () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-black text-white px-4">
-        <div class="w-full max-w-xl p-6 rounded-2xl bg-gray-900 shadow-xl border border-white/10">
+    <HorizonContainer class="flex items-center justify-center">
+        <div class="w-full max-w-xl p-6 rounded-2xl bg-gray-900 shadow-xl border border-white/10 text-white">
 
             <h1 class="text-3xl font-bold mb-2">Horizon Interstellar Verification</h1>
             <p class="text-sm text-gray-400 mb-6">
@@ -255,5 +256,5 @@ const verifyRsi = async () => {
 
             <!-- (Optional) If rsiVerified AND discordVerified → instant redirect happens above -->
         </div>
-    </div>
+    </HorizonContainer>
 </template>
