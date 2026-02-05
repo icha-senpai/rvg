@@ -91,10 +91,15 @@ onMounted(() => {
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
-          class="hz-card-soft hz-stack cursor-pointer"
+          class="hz-card-soft hz-stack cursor-pointer !border !border-[color:var(--horizon-sunset-blue)]"
           @click="openSquadron(squadron.id)"
         >
           <div class="hz-title-md">{{ squadron.name }}</div>
+
+          <div class="hz-caption text-horizon-muted">
+            Leader: {{ squadron.leader?.display_name ?? squadron.leader?.rsi_handle ?? 'None' }}
+          </div>
+
           <div class="hz-text-soft">
             {{ squadron.motto ?? 'No motto provided.' }}
           </div>

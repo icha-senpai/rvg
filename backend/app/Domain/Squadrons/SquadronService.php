@@ -16,7 +16,8 @@ class SquadronService
      */
     public function listAll()
     {
-        return Squadron::withCount('members')
+        return Squadron::with('leader')
+            ->withCount('members')
             ->orderBy('name')
             ->get();
     }

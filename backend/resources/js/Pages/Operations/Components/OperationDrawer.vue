@@ -54,7 +54,7 @@ onUnmounted(() => {
     <!-- DRAWER -->
     <aside
       :class="[
-        'relative z-50 h-full w-full md:w-[70%] bg-[var(--color-bg-surface)] shadow-2xl flex flex-col',
+        'relative z-50 h-full w-full md:w-[70%] bg-[var(--color-bg-surface)] shadow-2xl flex flex-col !border !border-[color:var(--horizon-sunset-blue)]',
         closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in'
       ]"
     >

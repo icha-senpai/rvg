@@ -1,7 +1,7 @@
 <template>
 <div class="max-w-6xl mx-auto">
   <HorizonPanel
-    class="p-6 rounded-xl cursor-pointer"
+    class="p-6 rounded-xl cursor-pointer !border !border-[color:var(--horizon-sunset-blue)]"
     @click="open = !open"
   >
     <!-- TITLE ROW -->

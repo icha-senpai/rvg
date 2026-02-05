@@ -530,7 +530,7 @@ async function updateSlot() {
 
     <HorizonPanel
       v-if="canManageOperation"
-      class="rounded-xl shadow-lg"
+      class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
     >
       <div class="hz-section-label mb-3">Operation Controls</div>
 
@@ -570,7 +570,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- META PANEL -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="grid md:grid-cols-2 gap-6">
             
             <div class="hz-stack-xs">
@@ -641,7 +641,7 @@ async function updateSlot() {
         <!-- BRIEFING -->
         <HorizonPanel
           v-if="operation.description"
-          class="rounded-xl shadow-lg"
+          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-section-label mb-2">Operation Briefing</div>
           <p class="hz-body whitespace-pre-line">
@@ -652,7 +652,7 @@ async function updateSlot() {
         <!-- NOTES -->
         <HorizonPanel
           v-if="operation.notes"
-          class="rounded-xl shadow-lg"
+          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-section-label mb-2">Operation Extended Briefing</div>
           <p class="hz-body whitespace-pre-line">
@@ -695,7 +695,7 @@ async function updateSlot() {
         </HorizonPanel>
 
         <!-- ROLES -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="hz-section-label mb-3">Roles</div>
 
           <div
@@ -760,7 +760,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- USER STATUS -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="hz-section-label mb-3">Your Status</div>
 
           <template v-if="currentParticipant">
@@ -823,7 +823,7 @@ async function updateSlot() {
         </HorizonPanel>
 
         <!-- PARTICIPANTS -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="hz-section-label mb-3">Participants</div>
 
           <p class="hz-body mb-3">

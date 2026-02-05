@@ -18,6 +18,14 @@ class LeaveOperation
             ]);
         }
 
+        if (
+            in_array($operation->status, ['draft', 'published'], true)
+            && $operation->starts_at
+            && now()->lt($operation->starts_at)
+        ) {
+            $user->increment('operations_left_early_count');
+        }
+
         $participant->delete();
     }
 }

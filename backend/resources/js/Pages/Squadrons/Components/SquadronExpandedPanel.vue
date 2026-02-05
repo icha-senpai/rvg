@@ -527,7 +527,7 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden min-h-0 max-h-[85vh] !border !border-[color:var(--horizon-sunset-blue)]"
   >
     <header
       class="shrink-0 px-6 py-4 border-b border-white/10 flex items-start justify-between"
@@ -554,7 +554,7 @@ watch(
       </div>
     </header>
 
-    <section class="px-6 py-6 hz-stack">
+    <section class="flex-1 min-h-0 overflow-y-auto px-6 py-6 hz-stack">
       <div v-if="isLoading" class="hz-soft">
         Loading squadron…
       </div>
@@ -655,6 +655,7 @@ watch(
       :class="[
         'relative z-50 w-full max-w-5xl max-h-[90vh]',
         'bg-bg-surface',
+        '!border !border-[color:var(--horizon-sunset-blue)]',
         'rounded-2xl shadow-2xl',
         'flex flex-col overflow-hidden',
         closing ? 'hz-animate-modal-out' : 'hz-animate-modal-in'

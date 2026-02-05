@@ -43,7 +43,7 @@
             <HorizonInput
               v-model="search"
               label="Search"
-              placeholder="Title, description..."
+              placeholder="Title, description, ID, squadron, creator..."
             />
           </div>
         </div>
@@ -68,9 +68,14 @@
               :eta="op.ends_at ? formatDate(op.ends_at) : 'TBD'"
               :status="op.status"
             >
-              <div class="mt-6 flex items-start justify-between gap-4">
+              <div class="mt-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
 
                 <div class="hz-stack-2xs flex-1 min-w-0">
+                  <div class="hz-caption text-horizon-offwhite">
+                    <span class="opacity-70">ID:</span>
+                    #{{ op.id }}
+                  </div>
+
                   <div class="hz-caption text-horizon-offwhite">
                     <span class="opacity-70">SQD:</span>
                     {{ op.squadron?.name ?? 'TBD' }}
@@ -82,11 +87,11 @@
                   </div>
 
                   <div class="hz-caption text-horizon-offwhite">
-                    Strict: {{ op.operation_strictness ?? 'default' }} • VIS: {{ op.visibility ?? 'open' }}
+                    Comms: {{ formatEnumLabel(op.operation_strictness, 'default') }} • VIS: {{ formatEnumLabel(op.visibility, 'open') }}
                   </div>
                 </div>
 
-                <div class="flex gap-2 shrink-0">
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
 
                   <!-- EDIT -->
                   <HorizonButton
@@ -114,7 +119,7 @@
                     size="sm"
                     @click="destroy(op.id)"
                   >
-                    Delete
+                    Cancel
                   </HorizonButton>
                 </div>
 
@@ -262,7 +267,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios'
 import { route } from 'ziggy-js';
@@ -285,6 +290,10 @@ const props = defineProps({
   operations: {
     type: [Array, Object],
     required: true,
+  },
+  filters: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -341,17 +350,32 @@ const operationsList = computed(() => {
   return props.operations?.data ?? [];
 });
 
-function refreshOperations() {
-  if (typeof router.reload === 'function') {
-    router.reload({
-      only: ['operations'],
-      preserveScroll: true,
-      preserveState: true,
-    })
-    return
+function getCurrentQueryParams() {
+  const url = new URL(window.location.href)
+  const out = {}
+
+  for (const [key, value] of url.searchParams.entries()) {
+    out[key] = value
   }
 
-  router.get(route('operations.index', {}, Ziggy), {}, {
+  return out
+}
+
+function refreshOperations({ resetPage = false } = {}) {
+  const query = {
+    ...getCurrentQueryParams(),
+    status: statusFilter.value,
+    search: search.value,
+  }
+
+  if (resetPage) {
+    delete query.page
+  }
+
+  if (!query.search) delete query.search
+  if (!query.status) delete query.status
+
+  router.get(route('operations.index', {}, Ziggy), query, {
     only: ['operations'],
     preserveScroll: true,
     preserveState: true,
@@ -548,7 +572,7 @@ function canManageOperation(op) {
 }
 
 function destroy(operationId) {
-  if (!confirm('Delete this operation?')) return;
+  if (!confirm('Cancel this operation?')) return;
 
   router.delete(route('operations.destroy', operationId, Ziggy), {
     preserveScroll: true,
@@ -560,6 +584,7 @@ function destroy(operationId) {
 ---------------------------------------- */
 
 const statusFilters = [
+  { label: 'Active', value: 'active' },
   { label: 'All', value: 'all' },
   { label: 'Draft', value: 'draft' },
   { label: 'Published', value: 'published' },
@@ -568,23 +593,49 @@ const statusFilters = [
   { label: 'Canceled', value: 'canceled' },
 ];
 
-const statusFilter = ref('published');
-const search = ref('');
+const statusFilter = ref(props.filters?.status ?? 'active');
+const search = ref(props.filters?.search ?? '');
 
 const filteredOperations = computed(() => {
   return operationsList.value.filter(op => {
     const matchesStatus =
-      statusFilter.value === 'all' || op.status === statusFilter.value;
+      statusFilter.value === 'all'
+        ? true
+        : statusFilter.value === 'active'
+          ? ['published', 'in_progress'].includes(op.status)
+          : op.status === statusFilter.value;
 
     const q = search.value.toLowerCase();
     const matchesSearch =
       !q ||
+      String(op.id).toLowerCase().includes(q) ||
       op.title.toLowerCase().includes(q) ||
-      (op.description || '').toLowerCase().includes(q);
+      (op.description || '').toLowerCase().includes(q) ||
+      (op.squadron?.name ?? '').toLowerCase().includes(q) ||
+      (op.creator?.rsi_handle ?? '').toLowerCase().includes(q);
 
     return matchesStatus && matchesSearch;
   });
 });
+
+let filterRefreshTimeout = null
+function queueRefreshOperations() {
+  if (filterRefreshTimeout) {
+    clearTimeout(filterRefreshTimeout)
+  }
+
+  filterRefreshTimeout = setTimeout(() => {
+    refreshOperations({ resetPage: true })
+  }, 220)
+}
+
+watch(statusFilter, () => {
+  queueRefreshOperations()
+})
+
+watch(search, () => {
+  queueRefreshOperations()
+})
 
 /* ----------------------------------------
    STATS
@@ -613,6 +664,22 @@ const statusFilterLabel = computed(
 );
 
 // UTIL
+
+function formatEnumLabel(value, fallback) {
+  const raw = value ?? fallback
+  const normalized = String(raw)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!normalized) return ''
+
+  return normalized
+    .split(' ')
+    .map(w => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .join(' ')
+}
+
 function formatDate(value) {
   if (!value) return 'TBD';
   return String(value);

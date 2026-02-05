@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-5xl">
-  <HorizonPanel class="p-6 space-y-6">
+  <HorizonPanel class="p-6 space-y-6 !border !border-[color:var(--horizon-sunset-blue)]">
 
     <!-- HEADER -->
     <div class="flex justify-between items-center">
@@ -16,7 +16,7 @@
       <div
         v-for="sq in squadrons"
         :key="sq.id"
-        class="hz-card-soft hz-row-between"
+        class="hz-card-soft hz-row-between !border !border-[color:var(--horizon-sunset-blue)]"
       >
         <div class="space-y-1">
           <div class="hz-title">{{ sq.name }}</div>

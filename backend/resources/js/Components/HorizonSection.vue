@@ -1,5 +1,5 @@
 <template>
-  <div class="hz-panel p-5 rounded-xl">
+  <div class="hz-panel p-5 rounded-xl !border !border-[color:var(--horizon-sunset-blue)]">
     <div class="flex justify-between items-center cursor-pointer" @click="open = !open">
       <div class="hz-title-sm text-horizon-white">{{ title }}</div>
       <div class="hz-caption">{{ open ? 'Hide' : 'Show' }}</div>

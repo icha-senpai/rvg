@@ -16,6 +16,7 @@ const props = defineProps({
   <HorizonContainer class="space-y-10">
     <div class="mx-auto max-w-5xl hz-stack">
       <div class="hz-title-lg">Squadron</div>
+
       <SquadronExpandedPanel
         variant="embedded"
         :squadronId="props.squadronId"

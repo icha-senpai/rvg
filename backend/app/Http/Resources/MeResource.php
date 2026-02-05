@@ -37,6 +37,10 @@ class MeResource extends JsonResource
             'loa_note'            => $this->loa_note,
             'personal_tags'       => $this->personal_tags,
 
+            'operations_joined_count' => $this->operations_joined_count,
+            'operations_left_early_count' => $this->operations_left_early_count,
+            'operations_completed_count' => $this->operations_completed_count,
+
             // RBAC roles
             'roles' => $this->roles->map(fn ($role) => [
                 'slug' => $role->slug,

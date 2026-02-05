@@ -151,17 +151,15 @@ onBeforeUnmount(() => {
 
     <aside class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
       <div class="h-full flex flex-col p-4 gap-4">
-        <div class="flex items-center justify-between gap-3 px-2 py-2">
-          <div class="flex items-center gap-3">
-            <div
-              class="hidden w-2.5 h-2.5 rounded-full"
-              style="background: var(--color-horizon-blue-light);"
-            ></div>
-            <div class="hz-title-md text-horizon-white">
-              Horizon Interstellar
-            </div>
-          </div>
+        <div class="-mx-4 -mt-4 bg-black overflow-hidden">
+          <img
+            src="/images/og-card.png"
+            alt="Horizon Interstellar"
+            class="block w-full h-36 object-contain scale-150"
+          />
+        </div>
 
+        <div class="flex items-center justify-end px-2">
           <button
             type="button"
             class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
@@ -230,14 +228,12 @@ onBeforeUnmount(() => {
       class="h-full bg-bg-elevated border-r border-bg-hover"
     >
       <div class="h-full flex flex-col p-4 gap-4">
-        <div class="flex items-center gap-3 px-2 py-2">
-          <div
-            class="hidden w-2.5 h-2.5 rounded-full"
-            style="background: var(--color-horizon-blue-light);"
-          ></div>
-          <div class="hz-title-md text-horizon-white">
-            Horizon Interstellar
-          </div>
+        <div class="-mx-4 -mt-4 bg-black overflow-hidden">
+          <img
+            src="/images/og-card.png"
+            alt="Horizon Interstellar"
+            class="block w-full h-36 object-contain scale-150"
+          />
         </div>
 
         <div class="px-2 hz-section-label"></div>

@@ -37,11 +37,60 @@ class OperationPageController extends Controller
     {
         $now = now();
 
-        $operations = Operation::query()
+        $status = (string) $request->query('status', 'active');
+        $search = trim((string) $request->query('search', ''));
+
+        $allowedStatuses = [
+            'active',
+            'all',
+            'draft',
+            'published',
+            'in_progress',
+            'completed',
+            'canceled',
+        ];
+
+        if (! in_array($status, $allowedStatuses, true)) {
+            $status = 'active';
+        }
+
+        $query = Operation::query()
+            ->with(['squadron.leader', 'creator']);
+
+        if ($status === 'active') {
+            $query->whereIn('status', ['published', 'in_progress']);
+        } elseif ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $searchId = null;
+            if (preg_match('/^#?(\d+)$/', $search, $matches)) {
+                $searchId = (int) $matches[1];
+            }
+
+            $query->where(function ($q) use ($search, $searchId) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+
+                $q->orWhereHas('squadron', function ($squadronQuery) use ($search) {
+                    $squadronQuery->where('name', 'like', "%{$search}%");
+                });
+
+                $q->orWhereHas('creator', function ($creatorQuery) use ($search) {
+                    $creatorQuery->where('rsi_handle', 'like', "%{$search}%");
+                });
+
+                if ($searchId !== null) {
+                    $q->orWhere('id', $searchId);
+                }
+            });
+        }
+
+        $operations = $query
             ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
             ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
             ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
-            ->with(['squadron.leader', 'creator'])
             ->paginate(12)
             ->withQueryString();
 
@@ -52,6 +101,10 @@ class OperationPageController extends Controller
 
         return Inertia::render('Operations/MissionsIndex', [
             'operations' => $operations,
+            'filters' => [
+                'status' => $status,
+                'search' => $search,
+            ],
         ]);
     }
 
@@ -427,9 +480,9 @@ class OperationPageController extends Controller
     {
         $this->authorize('delete', $operation);
 
-        $operation->delete();
+        $this->service->cancel($operation);
 
-        return back()->with('success', 'Operation deleted.');
+        return back()->with('success', 'Operation canceled.');
     }
 
     protected function escapeIcsText(?string $value): string

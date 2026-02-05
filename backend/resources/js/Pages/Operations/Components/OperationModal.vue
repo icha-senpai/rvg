@@ -56,6 +56,7 @@ onUnmounted(() => {
       :class="[
         'relative z-50 w-full max-w-5xl max-h-[90vh]',
         'bg-[var(--color-bg-surface)]',
+        '!border !border-[color:var(--horizon-sunset-blue)]',
         'rounded-2xl shadow-2xl',
         'flex flex-col overflow-hidden',
         closing ? 'hz-animate-modal-out' : 'hz-animate-modal-in'

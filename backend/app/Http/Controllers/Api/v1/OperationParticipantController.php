@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Operation;
 use App\Models\OperationParticipant;
 use App\Models\OperationRole;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,10 @@ class OperationParticipantController extends Controller
             'stats'             => null,
         ]);
 
+        if (Auth::id()) {
+            User::whereKey(Auth::id())->increment('operations_joined_count');
+        }
+
         return response()->json($participant->load('role', 'user'), 201);
     }
 
@@ -70,6 +75,15 @@ class OperationParticipantController extends Controller
 
         if (!$participant) {
             return response()->json(['message' => 'Not in operation'], 404);
+        }
+
+        if (
+            $user
+            && in_array($operation->status, ['draft', 'published'], true)
+            && $operation->starts_at
+            && now()->lt($operation->starts_at)
+        ) {
+            User::whereKey($user->id)->increment('operations_left_early_count');
         }
 
         $participant->delete();

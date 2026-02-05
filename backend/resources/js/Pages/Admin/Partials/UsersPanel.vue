@@ -2,7 +2,7 @@
   <div class="mx-auto max-w-5xl hz-stack">
 
     <!-- SEARCH PANEL -->
-    <div class="hz-panel hz-stack">
+    <div class="hz-panel hz-stack !border !border-[color:var(--horizon-sunset-blue)]">
       <div class="hz-title-lg">Search Users</div>
 
       <div class="hz-row">
@@ -25,7 +25,7 @@
     </div>
 
     <!-- USERS LIST PANEL -->
-    <div class="hz-panel hz-stack">
+    <div class="hz-panel hz-stack !border !border-[color:var(--horizon-sunset-blue)]">
       <div class="hz-title-lg">Users ({{ totalUsers }})</div>
 
       <div class="hz-stack">
@@ -34,7 +34,7 @@
         <div
           v-for="u in users.data"
           :key="u.id"
-          class="hz-card-soft hz-row-between"
+          class="hz-card-soft hz-row-between !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-stack-sm">
             <div class="hz-title-md">{{ u.rsi_handle || u.discord_name || 'Unknown' }}</div>
@@ -65,7 +65,7 @@
       </div>
 
       <!-- PAGINATION -->
-      <div class="hz-row-between hz-stack-sm">
+      <div class="flex items-center justify-center flex-wrap gap-3">
         <HorizonButton
           variant="primary"
           size="sm"

@@ -7,11 +7,11 @@
         {{ title }}
       </h3>
 
-      <div class="px-3 py-1 rounded-full bg-[var(--color-horizon-offwhite)] text-[var(--color-horizon-alloy)] text-xs font-semibold">
+      <div class="px-3 py-1 rounded-full bg-[var(--horizon-sunset-blue)] text-[var(--color-horizon-offwhite)] text-xs font-semibold">
         {{ status }}
       </div>
     </div>
-
+    <div class="border-t border-[color:var(--horizon-sunset-blue)] my-3"></div>
     <!-- DESCRIPTION -->
     <p class="text-base hz-text-soft leading-relaxed">
       {{ description }}
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Divider -->
-    <div class="border-t border-horizon-offwhite my-3"></div>
+    <div class="border-t border-[color:var(--horizon-sunset-blue)] my-3"></div>
 
     <!-- Slot (footer/actions) -->
     <slot />

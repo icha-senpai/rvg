@@ -18,7 +18,7 @@ class JoinOperation
             ]);
         }
 
-        return $operation->participants()->create([
+        $participant = $operation->participants()->create([
             'user_id'           => $user->id,
             'operation_role_id' => $data['operation_role_id'] ?? null,
             'slot'              => $data['slot'] ?? null,
@@ -26,5 +26,9 @@ class JoinOperation
             'notes'             => $data['notes'] ?? null,
             'stats'             => null,
         ]);
+
+        $user->increment('operations_joined_count');
+
+        return $participant;
     }
 }
