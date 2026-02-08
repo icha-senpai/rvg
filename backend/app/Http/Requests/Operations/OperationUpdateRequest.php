@@ -40,6 +40,8 @@ class OperationUpdateRequest extends FormRequest
             'slots.*'              => 'required|string|max:255|regex:/\S/',
 
             'status'               => 'sometimes|in:draft,published,in_progress,completed,canceled',
+
+            'media_id'             => 'nullable|integer|exists:media,id',
         ];
     }
 }

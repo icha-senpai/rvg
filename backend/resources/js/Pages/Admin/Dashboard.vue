@@ -32,6 +32,14 @@
       >
         Roles
       </HorizonButton>
+
+      <HorizonButton
+        size="sm"
+        :variant="activeTab === 'media' ? 'primary' : 'ghost'"
+        @click="activeTab = 'media'"
+      >
+        Media
+      </HorizonButton>
     </div>
 
     <!-- CONTENT PANELS -->
@@ -47,6 +55,10 @@
       <RolesPanel :roles="roles" />
     </div>
 
+    <div v-if="activeTab === 'media'" class="hz-animate-fade">
+      <MediaPanel />
+    </div>
+
     </div>
   </HorizonContainer>
 </template>
@@ -57,6 +69,7 @@ import HorizonContainer from '@/Components/HorizonContainer.vue';
 import UsersPanel from './Partials/UsersPanel.vue';
 import SquadronsPanel from './Partials/SquadronsPanel.vue';
 import RolesPanel from './Partials/RolesPanel.vue';
+import MediaPanel from './Partials/MediaPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({

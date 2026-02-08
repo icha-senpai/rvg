@@ -193,6 +193,22 @@ class User extends Authenticatable
     }
 
     /* --------------------------------------
+     | MEDIA (polymorphic)
+     -------------------------------------- */
+
+    public function media()
+    {
+        return $this->morphMany(\App\Models\Media::class, 'mediable');
+    }
+
+    public function avatar()
+    {
+        return $this->morphOne(\App\Models\Media::class, 'mediable')
+            ->where('collection', \App\Models\Media::COLLECTION_AVATAR)
+            ->latest();
+    }
+
+    /* --------------------------------------
      | STATUS CONSTANTS
      -------------------------------------- */
 

@@ -9,11 +9,13 @@ use App\Models\User;
 use App\Models\Squadron;
 use App\Models\Operation;
 use App\Models\RsiChangeRequest;
+use App\Models\Media;
 
 use App\Policies\SquadronPolicy;
 use App\Policies\OperationPolicy;
 use App\Policies\RsiChangeRequestPolicy;
 use App\Policies\AdminPolicy;
+use App\Policies\MediaPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,7 @@ class AuthServiceProvider extends ServiceProvider
         Operation::class       => OperationPolicy::class,
         RsiChangeRequest::class => RsiChangeRequestPolicy::class,
         User::class            => AdminPolicy::class,
+        Media::class           => MediaPolicy::class,
     ];
 
     /**

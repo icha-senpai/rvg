@@ -514,9 +514,22 @@ async function updateSlot() {
 
     </div>
 
+    <!-- OPERATION IMAGE -->
+    <div
+      v-if="operation.media_image"
+      class="mx-auto max-w-5xl"
+      style="border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--horizon-sunset-blue);"
+    >
+      <img
+        :src="operation.media_image.medium_url || operation.media_image.url"
+        :alt="operation.media_image.alt_text || operation.title"
+        style="width: 100%; max-height: 320px; object-fit: cover; display: block;"
+      />
+    </div>
+
     <HorizonPanel
       v-if="canManageOperation"
-      class="mx-auto max-w-5xl rounded-xl shadow-lg"
+      class="mx-auto max-w-5xl rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
     >
       <div class="hz-section-label mb-3">Operation Controls</div>
 
@@ -557,7 +570,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- META PANEL -->
-        <HorizonPanel class="rounded-xl shadow-lg ">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="grid md:grid-cols-2 gap-6">
 
             <div class="hz-stack-xs">
@@ -631,7 +644,7 @@ async function updateSlot() {
         <!-- BRIEFING -->
         <HorizonPanel
           v-if="operation.description"
-          class="rounded-xl shadow-lg "
+          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-section-label mb-2">Operaton Briefing</div>
           <p class="hz-body whitespace-pre-line">{{ operation.description }}</p>
@@ -640,7 +653,7 @@ async function updateSlot() {
         <!-- NOTES -->
         <HorizonPanel
           v-if="operation.notes"
-          class="rounded-xl shadow-lg"
+          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-section-label mb-2">Operation Extended Briefing</div>
           <p class="hz-body whitespace-pre-line">{{ operation.notes }}</p>
@@ -681,7 +694,7 @@ async function updateSlot() {
         </HorizonPanel>
 
         <!-- ROLES -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
 
           <div class="hz-section-label mb-3">Roles</div>
 
@@ -757,7 +770,7 @@ async function updateSlot() {
       <section class="space-y-6">
 
         <!-- USER STATUS -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="hz-section-label mb-3">Your Status</div>
 
           <!-- Already joined -->
@@ -833,7 +846,7 @@ async function updateSlot() {
         </HorizonPanel>
 
         <!-- PARTICIPANTS -->
-        <HorizonPanel class="rounded-xl shadow-lg">
+        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
           <div class="hz-section-label mb-3">Participants</div>
 
           <p class="hz-body mb-3">

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\v1\TokenController;
 use App\Http\Controllers\Api\v1\OperationController;
 use App\Http\Controllers\Api\v1\OperationParticipantController;
 use App\Http\Controllers\Api\v1\DiscordIdentityController;
+use App\Http\Controllers\Api\v1\MediaApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -187,4 +188,10 @@ Route::middleware(['auth:sanctum',])->group(function () {
     Route::put('/operations/{operation}/participants/{participant}/slot', [OperationParticipantController::class, 'updateSlot'])
         ->name('api.operations.updateSlot');
     Route::put('/operations/{operation}/participants/{participant}/stats', [OperationParticipantController::class, 'updateStats']);
+
+    // Media
+    Route::get('/media', [MediaApiController::class, 'index']);
+    Route::get('/media/{media}', [MediaApiController::class, 'show']);
+    Route::post('/media/upload', [MediaApiController::class, 'upload']);
+    Route::delete('/media/{media}', [MediaApiController::class, 'destroy']);
 });

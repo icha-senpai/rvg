@@ -1,0 +1,179 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Models\Media;
+use App\Domain\Media\MediaService;
+use App\Domain\Media\Presenters\MediaPresenter;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Inertia\Inertia;
+
+class MediaController extends Controller
+{
+    use AuthorizesRequests;
+
+    public function __construct(
+        protected MediaService $service
+    ) {}
+
+    /* ============================================================
+     | ADMIN MEDIA LIBRARY (paginated list for admin dashboard)
+     * ============================================================ */
+
+    public function index(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        $filters = [
+            'collection' => $request->query('collection'),
+            'search'     => trim((string) $request->query('search', '')),
+            'mime_type'  => $request->query('mime_type'),
+        ];
+
+        $media = $this->service->list($filters, 24);
+
+        $media->setCollection(
+            $media->getCollection()->map(
+                fn (Media $m) => MediaPresenter::make($m)->full()
+            )
+        );
+
+        // Gather summary stats for the dashboard header
+        $stats = [
+            'total'       => Media::count(),
+            'total_size'  => Media::sum('size'),
+            'by_collection' => Media::selectRaw('collection, COUNT(*) as count')
+                ->groupBy('collection')
+                ->pluck('count', 'collection'),
+        ];
+
+        return Inertia::render('Admin/Partials/MediaPanel', [
+            'media'   => $media,
+            'filters' => $filters,
+            'stats'   => $stats,
+            'collections' => Media::COLLECTIONS,
+        ]);
+    }
+
+    /**
+     * Return media list as JSON (for AJAX panel refresh / picker modal).
+     */
+    public function list(Request $request)
+    {
+        $filters = [
+            'collection' => $request->query('collection'),
+            'search'     => trim((string) $request->query('search', '')),
+            'mime_type'  => $request->query('mime_type'),
+        ];
+
+        $media = $this->service->list($filters, 24);
+
+        $media->setCollection(
+            $media->getCollection()->map(
+                fn (Media $m) => MediaPresenter::make($m)->summary()
+            )
+        );
+
+        return response()->json([
+            'status'  => 'ok',
+            'payload' => ['media' => $media],
+        ]);
+    }
+
+    /* ============================================================
+     | UPLOAD
+     * ============================================================ */
+
+    public function upload(Request $request)
+    {
+        $data = $request->validate([
+            'file'       => ['required', 'file', 'max:51200'], // 50 MB in KB
+            'collection' => ['required', 'string', 'in:' . implode(',', Media::COLLECTIONS)],
+            'alt_text'   => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $collection = $data['collection'];
+        $user = $request->user();
+
+        // Policy check: can this user upload to this collection?
+        $this->authorize('upload', [Media::class, $collection]);
+
+        $media = $this->service->upload(
+            $request->file('file'),
+            $user,
+            $collection,
+            [
+                'alt_text' => $data['alt_text'] ?? null,
+            ]
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status'  => 'ok',
+                'payload' => ['media' => MediaPresenter::make($media)->full()],
+            ], 201);
+        }
+
+        return back()->with('success', 'File uploaded.');
+    }
+
+    /* ============================================================
+     | UPDATE METADATA (alt_text, collection)
+     * ============================================================ */
+
+    public function update(Request $request, Media $media)
+    {
+        $this->authorize('update', $media);
+
+        $data = $request->validate([
+            'alt_text' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $media->update($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status'  => 'ok',
+                'payload' => ['media' => MediaPresenter::make($media->fresh())->full()],
+            ]);
+        }
+
+        return back()->with('success', 'Media updated.');
+    }
+
+    /* ============================================================
+     | DELETE
+     * ============================================================ */
+
+    public function destroy(Request $request, Media $media)
+    {
+        $this->authorize('delete', $media);
+
+        $this->service->delete($media);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'Media deleted.',
+            ]);
+        }
+
+        return back()->with('success', 'Media deleted.');
+    }
+
+    /* ============================================================
+     | SHOW SINGLE (JSON detail for modals / drawers)
+     * ============================================================ */
+
+    public function show(Request $request, Media $media)
+    {
+        $this->authorize('view', $media);
+
+        return response()->json([
+            'status'  => 'ok',
+            'payload' => ['media' => MediaPresenter::make($media)->full()],
+        ]);
+    }
+}

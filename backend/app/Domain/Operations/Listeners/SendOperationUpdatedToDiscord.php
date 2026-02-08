@@ -28,6 +28,7 @@ class SendOperationUpdatedToDiscord
                     'operation_kind' => $op->operation_kind,
                     'operation_strictness' => $op->operation_strictness,
                     'visibility' => $op->visibility,
+                    'ping' => false,
                 ];
 
                 if ($op->squadron_name) {

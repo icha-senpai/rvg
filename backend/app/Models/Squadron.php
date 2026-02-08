@@ -44,6 +44,19 @@ class Squadron extends Model
         return $this->hasMany(Operation::class);
     }
 
+    /* Media (polymorphic) */
+    public function media()
+    {
+        return $this->morphMany(\App\Models\Media::class, 'mediable');
+    }
+
+    public function emblem()
+    {
+        return $this->morphOne(\App\Models\Media::class, 'mediable')
+            ->where('collection', \App\Models\Media::COLLECTION_SQUADRON_EMBLEM)
+            ->latest();
+    }
+
     /* Status helpers */
     public function isActive()    { return $this->status === 'active'; }
     public function isInactive()  { return $this->status === 'inactive'; }

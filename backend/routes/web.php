@@ -6,18 +6,21 @@ use Inertia\Inertia;
 
 // WEB CONTROLLERS
 use App\Http\Controllers\Web\OperationPageController;
+use App\Http\Controllers\Web\OperationCalendarController;
+use App\Http\Controllers\Web\OperationParticipantController;
+use App\Http\Controllers\Web\OperationTransitionController;
 use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\SquadronLeaderController;
 use App\Http\Controllers\Web\SquadronPromotionController;
 use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
-
-// ADMIN SUBCONTROLLERS
-use App\Http\Controllers\Admin\SquadronRankController;
+use App\Http\Controllers\Web\MediaController;
 
 // AUTH CONTROLLERS
 use App\Http\Controllers\Api\v1\DiscordAuthController;
 
+// ADMIN SUBCONTROLLERS
+use App\Http\Controllers\Admin\SquadronRankController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,11 +77,11 @@ Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')
     ->name('operations.show');
 
-Route::get('/operations/{operation}/calendar', [OperationPageController::class, 'calendar'])
+Route::get('/operations/{operation}/calendar', [OperationCalendarController::class, 'calendar'])
     ->whereNumber('operation')
     ->name('operations.calendar');
 
-Route::get('/operations/{operation}/calendar.ics', [OperationPageController::class, 'calendar'])
+Route::get('/operations/{operation}/calendar.ics', [OperationCalendarController::class, 'calendar'])
     ->whereNumber('operation');
 
 
@@ -109,27 +112,27 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::put('/operations/{operation}', [OperationPageController::class, 'update'])
         ->name('operations.update');
     Route::post('/operations/{operation}/publish', 
-        [OperationPageController::class, 'publish'])
+        [OperationTransitionController::class, 'publish'])
         ->name('operations.publish');
     Route::post('/operations/{operation}/start', 
-        [OperationPageController::class, 'start'])
+        [OperationTransitionController::class, 'start'])
         ->name('operations.start');
     Route::post('/operations/{operation}/complete', 
-        [OperationPageController::class, 'complete'])
+        [OperationTransitionController::class, 'complete'])
         ->name('operations.complete');
     Route::post('/operations/{operation}/cancel', 
-        [OperationPageController::class, 'cancel'])
+        [OperationTransitionController::class, 'cancel'])
         ->name('operations.cancel');
     Route::delete('/operations/{operation}', 
         [OperationPageController::class, 'destroy'])
         ->name('operations.destroy');
-    Route::post('/operations/{operation}/join', [OperationPageController::class, 'join'])
+    Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join'])
         ->name('operations.join');
 
-    Route::post('/operations/{operation}/leave', [OperationPageController::class, 'leave'])
+    Route::post('/operations/{operation}/leave', [OperationParticipantController::class, 'leave'])
         ->name('operations.leave');
 
-    Route::post('/operations/{operation}/participants/{participant}/slot', [OperationPageController::class, 'updateSlot'])
+    Route::post('/operations/{operation}/participants/{participant}/slot', [OperationParticipantController::class, 'updateSlot'])
         ->name('operations.participants.slot');
 
     });
@@ -185,6 +188,38 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| MEDIA ROUTES (Authenticated members)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'rsi.verified'])->prefix('media')->group(function () {
+
+    // Upload (any authenticated user, policy enforces per-collection rules)
+    Route::post('/upload', [MediaController::class, 'upload'])
+        ->name('media.upload');
+
+    // JSON list for picker modals (filtered by collection)
+    Route::get('/list', [MediaController::class, 'list'])
+        ->name('media.list');
+
+    // Single media detail (JSON)
+    Route::get('/{media}', [MediaController::class, 'show'])
+        ->whereNumber('media')
+        ->name('media.show');
+
+    // Update metadata (alt_text)
+    Route::put('/{media}', [MediaController::class, 'update'])
+        ->whereNumber('media')
+        ->name('media.update');
+
+    // Delete (policy-controlled)
+    Route::delete('/{media}', [MediaController::class, 'destroy'])
+        ->whereNumber('media')
+        ->name('media.destroy');
+});
+
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN PANEL (DIRECTOR + TECH DIRECTOR ONLY)
 |--------------------------------------------------------------------------
 */
@@ -196,6 +231,10 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         // DASHBOARD
         Route::get('/dashboard', [AdminController::class, 'dashboard'])
             ->name('admin.dashboard');
+
+        // MEDIA LIBRARY
+        Route::get('/media', [MediaController::class, 'index'])
+            ->name('admin.media.index');
 
         Route::get('/roles', function () {
             return Inertia::render('Admin/RolesIndex', [

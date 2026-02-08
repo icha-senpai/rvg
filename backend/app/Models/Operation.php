@@ -73,6 +73,18 @@ class Operation extends Model
         return $this->hasMany(OperationRole::class);
     }
 
+    /* Media (polymorphic) */
+    public function media()
+    {
+        return $this->morphMany(\App\Models\Media::class, 'mediable');
+    }
+
+    public function images()
+    {
+        return $this->morphMany(\App\Models\Media::class, 'mediable')
+            ->where('collection', \App\Models\Media::COLLECTION_OPERATION_IMAGE);
+    }
+
     /* ---------------------------------
      | Status Helpers
      --------------------------------- */

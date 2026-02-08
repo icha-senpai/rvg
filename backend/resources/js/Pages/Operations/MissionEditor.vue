@@ -11,6 +11,7 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
 import HorizonSection from '@/Components/HorizonSection.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
+import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 
 // ----------------------
 // PROPS
@@ -171,7 +172,28 @@ const form = useForm({
   status: props.mission?.status ?? 'draft',
   squadron_id: props.squadronId,
   squadron_name: props.mission?.squadron_name ?? '',
+  media_id: props.mission?.media_image?.id ?? null,
 });
+
+// ----------------------
+// MEDIA PICKER
+// ----------------------
+const mediaPickerOpen = ref(false);
+const selectedMedia = ref(props.mission?.media_image ?? null);
+
+function openMediaPicker() {
+  mediaPickerOpen.value = true;
+}
+
+function handleMediaSelected(media) {
+  selectedMedia.value = media;
+  form.media_id = media.id;
+}
+
+function clearSelectedMedia() {
+  selectedMedia.value = null;
+  form.media_id = null;
+}
 
 // ----------------------
 // SLOT HANDLERS
@@ -521,11 +543,58 @@ async function destroyOperation() {
           </div>
         </HorizonSection>
 
-        <!-- Media 
-        <HorizonSection title="Media">
-          <HorizonInput label="Icon" v-model="form.icon" />
-          <HorizonInput label="Image URL" placeholder="https://" v-model="form.image_url" />
-        </HorizonSection> -->
+        <!-- Media -->
+        <HorizonSection title="Operation Image">
+          <div class="hz-stack">
+
+            <!-- SELECTED IMAGE PREVIEW -->
+            <div v-if="selectedMedia" class="hz-stack-sm">
+              <div
+                style="border-radius: var(--radius-sm); overflow: hidden; background: var(--color-bg-elevated);"
+              >
+                <img
+                  :src="selectedMedia.medium_url || selectedMedia.url"
+                  :alt="selectedMedia.alt_text || selectedMedia.original_filename"
+                  style="width: 100%; max-height: 240px; object-fit: cover;"
+                />
+              </div>
+
+              <div class="hz-row-between">
+                <div class="hz-text-muted" style="font-size: var(--text-tiny); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ selectedMedia.original_filename }}
+                </div>
+
+                <div class="hz-row">
+                  <HorizonButton size="xs" variant="ghost" @click="openMediaPicker">
+                    Change
+                  </HorizonButton>
+                  <HorizonButton size="xs" variant="ghost" @click="clearSelectedMedia">
+                    Remove
+                  </HorizonButton>
+                </div>
+              </div>
+            </div>
+
+            <!-- NO IMAGE SELECTED -->
+            <div v-else>
+              <HorizonButton variant="ghost" @click="openMediaPicker">
+                Select Image
+              </HorizonButton>
+              <div class="hz-text-muted" style="font-size: var(--text-tiny); margin-top: var(--space-xs);">
+                Browse the media library or upload a new image.
+              </div>
+            </div>
+          </div>
+        </HorizonSection>
+
+        <!-- Media Picker Modal -->
+        <MediaPickerModal
+          :open="mediaPickerOpen"
+          collection="operation_image"
+          title="Select Operation Image"
+          @close="mediaPickerOpen = false"
+          @selected="handleMediaSelected"
+        />
 
         <!-- Roles -->
         <HorizonSection title="Roles">

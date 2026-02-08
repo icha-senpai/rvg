@@ -528,6 +528,19 @@ async function updateSlot() {
       </div>
     </div>
 
+    <!-- OPERATION IMAGE -->
+    <div
+      v-if="operation.media_image"
+      class="mx-auto max-w-5xl"
+      style="border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--horizon-sunset-blue);"
+    >
+      <img
+        :src="operation.media_image.medium_url || operation.media_image.url"
+        :alt="operation.media_image.alt_text || operation.title"
+        style="width: 100%; max-height: 320px; object-fit: cover; display: block;"
+      />
+    </div>
+
     <HorizonPanel
       v-if="canManageOperation"
       class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"

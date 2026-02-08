@@ -38,6 +38,8 @@ class OperationStoreRequest extends FormRequest
 
             'status'               => 'nullable|in:draft,published',
 
+            'media_id'             => 'nullable|integer|exists:media,id',
+
             'slots'                => 'nullable|array',
             'slots.*'              => 'required|string|max:255|regex:/\S/',
         ];

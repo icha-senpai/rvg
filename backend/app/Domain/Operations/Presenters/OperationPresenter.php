@@ -69,7 +69,11 @@ class OperationPresenter
         $this->operation->loadMissing([
             'participants.user',
             'roles.participants.user',
+            'images',
         ]);
+
+        // Get the primary operation image (most recent)
+        $primaryImage = $this->operation->images->first();
 
         return [
             'id'             => $this->operation->id,
@@ -93,6 +97,15 @@ class OperationPresenter
             'status'         => $this->operation->status,
             'cancellation_reason' => $this->operation->cancellation_reason,
             'slots'          => $this->operation->slots,
+
+            'media_image'    => $primaryImage ? [
+                'id'            => $primaryImage->id,
+                'url'           => $primaryImage->url,
+                'thumbnail_url' => $primaryImage->thumbnail_url,
+                'medium_url'    => $primaryImage->medium_url,
+                'alt_text'      => $primaryImage->alt_text,
+                'original_filename' => $primaryImage->original_filename,
+            ] : null,
 
             'creator' => [
                 'id'   => $this->operation->creator?->id,
@@ -143,6 +156,9 @@ class OperationPresenter
     // ------------------------------------------------------
     public function form(): array
     {
+        $this->operation->loadMissing('images');
+        $primaryImage = $this->operation->images->first();
+
         return [
             'id'             => $this->operation->id,
             'title'          => $this->operation->title,
@@ -164,6 +180,15 @@ class OperationPresenter
             'notes'          => $this->operation->notes,
             'status'         => $this->operation->status,
             'slots'          => $this->operation->slots,
+
+            'media_image'    => $primaryImage ? [
+                'id'            => $primaryImage->id,
+                'url'           => $primaryImage->url,
+                'thumbnail_url' => $primaryImage->thumbnail_url,
+                'medium_url'    => $primaryImage->medium_url,
+                'alt_text'      => $primaryImage->alt_text,
+                'original_filename' => $primaryImage->original_filename,
+            ] : null,
         ];
     }
 

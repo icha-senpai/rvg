@@ -140,13 +140,13 @@ onBeforeUnmount(() => {
   <button
     v-if="user && !mobileOpen"
     type="button"
-    class="md:hidden fixed top-3 left-3 z-50 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-elevated border border-bg-hover text-horizon-white"
+    class="md:hidden fixed top-3 left-3 z-[80] inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-elevated border border-bg-hover text-horizon-white"
     @click="openMobileNav"
   >
     <span class="text-sm font-semibold">Menu</span>
   </button>
 
-  <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-40">
+  <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-[70]">
     <div class="absolute inset-0 bg-black/60" @click="closeMobileNav"></div>
 
     <aside class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">

@@ -12,6 +12,8 @@ module.exports = {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
         const roleIdToPing = process.env.OP_ANNOUNCE_ROLE_ID;
 
+        const shouldPing = op?.ping !== false;
+
         let operationUrl = null;
         if (process.env.API_BASE_URL && op?.id) {
             try {
@@ -109,14 +111,16 @@ module.exports = {
         // SEND TO DISCORD
         // ------------------------------
         try {
-            const content = roleIdToPing
+            const content = roleIdToPing && shouldPing
                 ? `${actionText} <@&${roleIdToPing}>`
                 : actionText;
 
             await channel.send({
                 content,
                 embeds: [embed],
-                allowedMentions: roleIdToPing ? { roles: [roleIdToPing] } : undefined,
+                allowedMentions: roleIdToPing && shouldPing
+                    ? { roles: [roleIdToPing] }
+                    : { parse: [] },
             });
             log(`📢 Operation announced: ${op.title} (#${op.id})`);
         } catch (err) {
