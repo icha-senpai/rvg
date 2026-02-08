@@ -100,7 +100,7 @@ class OperationPageController extends Controller
                 ->map(fn ($op) => OperationPresenter::make($op)->summary())
         );
 
-        return Inertia::render('Operations/MissionsIndex', [
+        return Inertia::render('Operations/OperationDashboard', [
             'operations' => $operations,
             'filters' => [
                 'status' => $status,
@@ -266,7 +266,7 @@ class OperationPageController extends Controller
         $operations = $this->query->forUser($user)
             ->withQueryString();
 
-        return Inertia::render('Operations/MemberIndex', [
+        return Inertia::render('Operations/OperationsIndex', [
             'operations' => $operations,
         ]);
     }

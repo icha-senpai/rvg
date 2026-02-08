@@ -66,12 +66,17 @@ Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback'])
 */
 
 // Public listings & viewing
-Route::get('/operations', [OperationPageController::class, 'index'])
+Route::get('/operations/dashboard', [OperationPageController::class, 'index'])
     ->name('operations.index');
-    
-Route::get('/operations/member', [OperationPageController::class, 'memberIndex' ])
+
+Route::get('/operations', [OperationPageController::class, 'memberIndex' ])
     ->middleware(['auth', 'rsi.verified'])
     ->name('operations.member');
+
+Route::get('/operations/member', function () {
+    return redirect()->route('operations.member');
+})
+    ->middleware(['auth', 'rsi.verified']);
 
 Route::get('/operations/{operation}', [OperationPageController::class, 'show'])
     ->whereNumber('operation')

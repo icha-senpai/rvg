@@ -59,7 +59,7 @@ const navItems = computed(() => {
     {
       key: 'archive',
       label: 'Horizon Archive',
-      href: 'https://docs.horizoninterstellar.com/collection/horizon-databank-ehz6KYHyv1',
+      href: 'https://docs.horizoninterstellar.com/collection/horizon-archive-ehz6KYHyv1/overview',
       isActive: false,
     },
     {
@@ -67,14 +67,14 @@ const navItems = computed(() => {
       label: 'Operations',
       routeName: 'operations.member',
       params: undefined,
-      isActive: url.startsWith('/operations/member'),
+      isActive: url === '/operations' || url === '/operations/' || url.startsWith('/operations?'),
     },
     {
       key: 'operations_dashboard',
       label: 'Operations Dashboard',
       routeName: 'operations.index',
       params: undefined,
-      isActive: url === '/operations' || url.startsWith('/operations?'),
+      isActive: url === '/operations/dashboard' || url === '/operations/dashboard/' || url.startsWith('/operations/dashboard?'),
       show: canSeeOperationsDashboard.value,
     },
     {
