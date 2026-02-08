@@ -93,26 +93,17 @@ Route::get('/operations/{operation}/calendar.ics', [OperationCalendarController:
 
 // Create operation (requires auth)
 Route::middleware(['auth', 'rsi.verified'])->group(function () {
-    Route::get('/operations/create', [OperationPageController::class, 'createGlobal'])
-        ->name('operations.createGlobal');
-
     Route::post('/operations', [OperationPageController::class, 'storeGlobal'])
         ->name('operations.storeGlobal');
 
-    Route::get('/operations/{operation}/edit', [OperationPageController::class, 'edit'])
-        ->name('operations.edit');
+    Route::post('/squadrons/{squadron}/operations', [OperationPageController::class, 'store'])
+        ->name('operations.store');
 
     Route::get('/operations/{operation}/show-data', [OperationPageController::class, 'showData'])
         ->name('operations.showData');
 
     Route::get('/operations/{operation}/edit-data', [OperationPageController::class, 'editData'])
         ->name('operations.editData');
-
-    Route::post('/squadrons/{squadron}/operations', [OperationPageController::class, 'store'])
-        ->name('operations.store');
-
-    Route::get('/squadrons/{squadron}/operations/create', [OperationPageController::class, 'create'])
-        ->name('operations.create');
         
     Route::put('/operations/{operation}', [OperationPageController::class, 'update'])
         ->name('operations.update');

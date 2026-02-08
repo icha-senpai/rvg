@@ -42,7 +42,9 @@ class DiscordAuthController extends Controller
             $user = $this->discord->syncBasicUser($discordUser);
 
             // Create a Laravel session for web routes (Inertia)
-            \Illuminate\Support\Facades\Auth::login($user, remember: true);
+            \Illuminate\Support\Facades\Auth::login($user, remember: false);
+
+            $request->session()->put('hz_auth_started_at', now()->toIso8601String());
 
             // Log successful auth
             DiscordLogger::auth('login_success', [

@@ -148,7 +148,7 @@ class OperationPageController extends Controller
     {
         $this->authorize('create', Operation::class);
 
-        return Inertia::render('Operations/MissionEditor', [
+        return Inertia::render('Operations/Components/MissionEditorForm', [
             'mission'    => null,
             'squadronId' => null,
         ]);
@@ -178,7 +178,7 @@ class OperationPageController extends Controller
     {
         $this->authorize('create', [Operation::class, Squadron::findOrFail((int) $squadronId)]);
 
-        return Inertia::render('Operations/MissionEditor', [
+        return Inertia::render('Operations/Components/MissionEditorForm', [
             'mission'    => null,
             'squadronId' => (int) $squadronId,
         ]);
@@ -211,7 +211,7 @@ class OperationPageController extends Controller
     {
         $this->authorize('update', $operation);
 
-        return Inertia::render('Operations/MissionEditor', [
+        return Inertia::render('Operations/Components/MissionEditorForm', [
             'mission'    => OperationPresenter::make($operation)->form(),
             'squadronId' => $operation->squadron_id,
         ]);
@@ -219,7 +219,11 @@ class OperationPageController extends Controller
 
     public function editData(Request $request, Operation $operation)
     {
-        $this->authorize('update', $operation);
+        $user = $request->user();
+
+        if (! $user || $user->cannot('update', $operation)) {
+            abort(404);
+        }
 
         return response()->json([
             'status' => 'ok',
@@ -273,7 +277,11 @@ class OperationPageController extends Controller
 
     public function showData(Request $request, Operation $operation)
     {
-        $this->authorize('view', $operation);
+        $user = $request->user();
+
+        if (! $user || $user->cannot('view', $operation)) {
+            abort(404);
+        }
 
         return response()->json(
             $this->showData->build(

@@ -12,12 +12,9 @@ class TokenService
      */
     public function createTokensFor(User $user)
     {
-        // Determine leadership lifetime
         $isLeadership = $user->rank_level >= 2;
 
-        $refreshExpiryDays = $isLeadership
-            ? 7     // leadership
-            : 14;   // regular members
+        $refreshExpiryDays = 7;
 
         // ACCESS TOKEN → 24 hours
         $accessToken = $user->createToken('access_token', ['access'], now()->addDay());
