@@ -4,25 +4,29 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Squadron;
+use App\Models\Media;
 use App\Http\Requests\SquadronStoreRequest;
 use App\Http\Requests\SquadronUpdateRequest;
 use App\Domain\Squadrons\SquadronService;
 use App\Domain\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Domain\Media\MediaService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 
 class SquadronController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected SquadronService $squadrons
+        protected SquadronService $squadrons,
+        protected MediaService $media
     ) {}
 
     /** GET /api/v1/squadrons */
     public function index()
     {
-        if (auth()->check()) {
+        if (Auth::check()) {
             $this->authorize('viewAny', Squadron::class);
         }
 
@@ -38,7 +42,7 @@ class SquadronController extends Controller
     {
         $this->authorize('view', $squadron);
 
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Load full graph
         $squadron = $this->squadrons->show($squadron);
@@ -105,10 +109,50 @@ class SquadronController extends Controller
     {
         $this->authorize('update', $squadron);
 
+        $data = $request->validated();
+        $emblemMediaId = $data['emblem_media_id'] ?? null;
+        $emblemKeyExists = array_key_exists('emblem_media_id', $data);
+        unset($data['emblem_media_id']);
+
+        $squadron = $this->squadrons->update($squadron, $data);
+
+        if ($emblemKeyExists) {
+            if ($emblemMediaId === null) {
+                Media::where('mediable_type', Squadron::class)
+                    ->where('mediable_id', $squadron->id)
+                    ->where('collection', Media::COLLECTION_SQUADRON_EMBLEM)
+                    ->update([
+                        'mediable_type' => null,
+                        'mediable_id'   => null,
+                    ]);
+            } else {
+                $media = Media::findOrFail((int) $emblemMediaId);
+
+                if ($media->collection !== Media::COLLECTION_SQUADRON_EMBLEM) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Selected media is not a squadron emblem.',
+                    ], 422);
+                }
+
+                if ($media->mediable_type && ! (
+                    $media->mediable_type === Squadron::class
+                    && (int) $media->mediable_id === (int) $squadron->id
+                )) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Selected media is already attached to another record.',
+                    ], 422);
+                }
+
+                $this->media->attach($media, $squadron, true);
+            }
+        }
+
+        $squadron = $this->squadrons->show($squadron);
+
         return response()->json(
-            SquadronPresenter::make(
-                $this->squadrons->update($squadron, $request->validated())
-            )
+            SquadronPresenter::make($squadron)
         );
     }
 

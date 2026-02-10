@@ -9,6 +9,12 @@ const props = defineProps({
   activeAction: String,
 })
 
+const activeMemberCount = computed(() => {
+  return (props.members ?? []).filter(m => m?.membership_status === 'active').length
+})
+
+const maxRosterSize = 21
+
 const sortedMembers = computed(() => {
   const list = [...(props.members ?? [])]
 
@@ -54,7 +60,10 @@ const emit = defineEmits([
 
 <template>
   <div class="hz-stack">
-    <div class="hz-section-label">Roster</div>
+    <div class="hz-row-between items-center">
+      <div class="hz-section-label">Roster</div>
+      <div class="hz-text-muted">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
+    </div>
 
     <div v-if="!members || members.length === 0" class="hz-soft">
       No members found.

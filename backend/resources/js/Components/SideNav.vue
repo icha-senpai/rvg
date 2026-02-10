@@ -29,8 +29,12 @@ const isDirectorLike = computed(() => {
   return roles.value.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
 });
 
+const canSeeEverything = computed(() => {
+  return isDirectorLike.value;
+});
+
 const canSeeOperationsDashboard = computed(() => {
-  return isDirectorLike.value || rankLevel.value >= 2;
+  return canSeeEverything.value || rankLevel.value >= 2;
 });
 
 const mySquadron = computed(() => {
@@ -98,7 +102,7 @@ const navItems = computed(() => {
       routeName: 'admin.dashboard',
       params: undefined,
       isActive: url.startsWith('/admin'),
-      show: isDirectorLike.value,
+      show: canSeeEverything.value,
     },
   ].filter(item => item.show !== false);
 });
@@ -149,13 +153,13 @@ onBeforeUnmount(() => {
   <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-[70]">
     <div class="absolute inset-0 bg-black/60" @click="closeMobileNav"></div>
 
-    <aside class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
+    <aside class="absolute inset-y-0 left-0 w-64 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="-mx-4 -mt-4 bg-black overflow-hidden">
           <img
-            src="/images/og-card.png"
+            src="/images/JPEG_Primary%20Logo.jpg"
             alt="Horizon Interstellar"
-            class="block w-full h-36 object-contain scale-150"
+            class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
           />
         </div>
 
@@ -211,12 +215,35 @@ onBeforeUnmount(() => {
         </nav>
 
         <div class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover">
-          <div class="text-xs text-text-secondary">User Info</div>
-          <div class="text-sm font-semibold truncate text-horizon-white">
-            {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
-          </div>
-          <div class="text-xs text-text-secondary">
-            Rank {{ rankName }}
+          <div class="flex items-center gap-3">
+            <Link
+              :href="route('member.profile', user.id)"
+              class="shrink-0 block"
+              title="View your profile"
+            >
+              <img
+                v-if="user.discord_avatar"
+                :src="user.discord_avatar"
+                alt=""
+                class="h-10 w-10 rounded-xl object-cover border border-bg-hover"
+              />
+              <div
+                v-else
+                class="h-10 w-10 rounded-xl bg-bg-hover border border-bg-hover flex items-center justify-center text-sm font-semibold text-horizon-white"
+              >
+                {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
+              </div>
+            </Link>
+
+            <div class="min-w-0">
+              <div class="text-xs text-text-secondary">User Info</div>
+              <div class="text-sm font-semibold truncate text-horizon-white">
+                {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
+              </div>
+              <div class="text-xs text-text-secondary">
+                Rank {{ rankName }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -230,9 +257,9 @@ onBeforeUnmount(() => {
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="-mx-4 -mt-4 bg-black overflow-hidden">
           <img
-            src="/images/og-card.png"
+            src="/images/JPEG_Primary%20Logo.jpg"
             alt="Horizon Interstellar"
-            class="block w-full h-36 object-contain scale-150"
+            class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
           />
         </div>
 
@@ -278,12 +305,35 @@ onBeforeUnmount(() => {
         <div
           class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover"
         >
-          <div class="text-xs text-text-secondary">User Info</div>
-          <div class="text-sm font-semibold truncate text-horizon-white">
-            {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
-          </div>
-          <div class="text-xs text-text-secondary">
-            Rank {{ rankName }}
+          <div class="flex items-center gap-3">
+            <Link
+              :href="route('member.profile', user.id)"
+              class="shrink-0 block"
+              title="View your profile"
+            >
+              <img
+                v-if="user.discord_avatar"
+                :src="user.discord_avatar"
+                alt=""
+                class="h-10 w-10 rounded-xl object-cover border border-bg-hover"
+              />
+              <div
+                v-else
+                class="h-10 w-10 rounded-xl bg-bg-hover border border-bg-hover flex items-center justify-center text-sm font-semibold text-horizon-white"
+              >
+                {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
+              </div>
+            </Link>
+
+            <div class="min-w-0">
+              <div class="text-xs text-text-secondary">User Info</div>
+              <div class="text-sm font-semibold truncate text-horizon-white">
+                {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
+              </div>
+              <div class="text-xs text-text-secondary">
+                Rank {{ rankName }}
+              </div>
+            </div>
           </div>
         </div>
       </div>

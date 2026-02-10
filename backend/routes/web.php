@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 // WEB CONTROLLERS
@@ -15,6 +16,8 @@ use App\Http\Controllers\Web\SquadronPromotionController;
 use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
+use App\Http\Resources\MeResource;
+use App\Models\User;
 
 // AUTH CONTROLLERS
 use App\Http\Controllers\Api\v1\DiscordAuthController;
@@ -46,6 +49,25 @@ Route::get('/login', function () {
     return redirect()->to('/auth/discord');
 })->name('login');
 
+Route::get('/user/{user}', function (User $user) {
+    $canViewOtherProfiles = Gate::allows('access-admin-panel');
+
+    if (! $canViewOtherProfiles && (int) $user->id !== (int) Auth::id()) {
+        return redirect()->route('member.profile', ['user' => Auth::id()]);
+    }
+
+    return Inertia::render('Member/userpage', [
+        'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
+    ]);
+})
+    ->whereNumber('user')
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('member.profile');
+
+Route::get('/me', function () {
+    return redirect()->route('member.profile', ['user' => Auth::id()]);
+})
+    ->middleware(['auth', 'rsi.verified']);
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +89,7 @@ Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback'])
 
 // Public listings & viewing
 Route::get('/operations/dashboard', [OperationPageController::class, 'index'])
+    ->middleware(['auth', 'rsi.verified'])
     ->name('operations.index');
 
 Route::get('/operations', [OperationPageController::class, 'memberIndex' ])
@@ -197,6 +220,10 @@ Route::middleware(['auth', 'rsi.verified'])->prefix('media')->group(function () 
     Route::get('/list', [MediaController::class, 'list'])
         ->name('media.list');
 
+    Route::get('/{media}/download', [MediaController::class, 'download'])
+        ->whereNumber('media')
+        ->name('media.download');
+
     // Single media detail (JSON)
     Route::get('/{media}', [MediaController::class, 'show'])
         ->whereNumber('media')
@@ -231,6 +258,10 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         // MEDIA LIBRARY
         Route::get('/media', [MediaController::class, 'index'])
             ->name('admin.media.index');
+
+        Route::get('/media/{media}/download', [MediaController::class, 'download'])
+            ->whereNumber('media')
+            ->name('admin.media.download');
 
         Route::get('/roles', function () {
             return Inertia::render('Admin/RolesIndex', [
@@ -300,3 +331,12 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/squadron/demote', [SquadronRankController::class, 'demote'])
             ->name('admin.squadron.demote');
     });
+
+Route::fallback(function () {
+    return Inertia::render('Error', [
+        'status' => 404,
+    ])->toResponse(request())->setStatusCode(404);
+})->withoutMiddleware([
+    \App\Http\Middleware\ForceDiscordAuth::class,
+    \App\Http\Middleware\EnforceMaxAuthAge::class,
+]);

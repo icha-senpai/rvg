@@ -31,6 +31,15 @@ class MeResource extends JsonResource
             // User-editable profile fields
             'bio'                 => $this->bio,
             'timezone'            => $this->timezone,
+
+            'favorite_ships'       => $this->favorite_ships,
+            'favorite_guns'        => $this->favorite_guns,
+            'primary_role'         => $this->primary_role,
+            'secondary_role'       => $this->secondary_role,
+            'experience_ratings'   => $this->experience_ratings,
+            'preferred_gameplay_style' => $this->preferred_gameplay_style,
+            'callsign'             => $this->callsign,
+            'typical_op_commitment' => $this->typical_op_commitment,
             'preferred_roles'     => $this->preferred_roles,
             'notification_settings' => $this->notification_settings,
             'availability_status' => $this->availability_status,

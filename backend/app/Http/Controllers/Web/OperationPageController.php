@@ -36,6 +36,19 @@ class OperationPageController extends Controller
      * ============================================================ */
     public function index(Request $request)
     {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
+        $rankLevel = (int) ($user->rank_level ?? 0);
+
+        if (! $isDirectorLike && $rankLevel < 2) {
+            abort(403);
+        }
+
         $now = now();
 
         $status = (string) $request->query('status', 'active');

@@ -8,6 +8,7 @@ use App\Domain\Media\MediaService;
 use App\Domain\Media\Presenters\MediaPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class MediaController extends Controller
@@ -62,13 +63,40 @@ class MediaController extends Controller
      */
     public function list(Request $request)
     {
+        $this->authorize('viewAny', Media::class);
+
         $filters = [
             'collection' => $request->query('collection'),
             'search'     => trim((string) $request->query('search', '')),
             'mime_type'  => $request->query('mime_type'),
         ];
 
-        $media = $this->service->list($filters, 24);
+        $user = $request->user();
+        $collection = (string) ($filters['collection'] ?? '');
+
+        $isDirectorLike = $user
+            ? ($user->hasRole('director') || $user->hasRole('tech_director'))
+            : false;
+
+        $publicCollections = [
+            Media::COLLECTION_SQUADRON_EMBLEM,
+            Media::COLLECTION_OPERATION_IMAGE,
+            Media::COLLECTION_SHIP_IMAGE,
+            Media::COLLECTION_SITE_ASSET,
+        ];
+
+        if (! $isDirectorLike) {
+            if (! $collection) {
+                $filters['uploaded_by'] = $user?->id;
+            } elseif (! in_array($collection, $publicCollections, true)) {
+                $filters['uploaded_by'] = $user?->id;
+            }
+        }
+
+        $perPage = (int) $request->query('per_page', 24);
+        $perPage = max(1, min(100, $perPage));
+
+        $media = $this->service->list($filters, $perPage);
 
         $media->setCollection(
             $media->getCollection()->map(
@@ -76,9 +104,17 @@ class MediaController extends Controller
             )
         );
 
+        $stats = [
+            'total' => Media::count(),
+            'total_size' => Media::sum('size'),
+        ];
+
         return response()->json([
             'status'  => 'ok',
-            'payload' => ['media' => $media],
+            'payload' => [
+                'media' => $media,
+                'stats' => $stats,
+            ],
         ]);
     }
 
@@ -174,6 +210,36 @@ class MediaController extends Controller
         return response()->json([
             'status'  => 'ok',
             'payload' => ['media' => MediaPresenter::make($media)->full()],
+        ]);
+    }
+
+    public function download(Request $request, Media $media)
+    {
+        $this->authorize('access-admin-panel');
+
+        $disk = $media->disk;
+        $path = $media->path;
+
+        if (! Storage::disk($disk)->exists($path)) {
+            abort(404);
+        }
+
+        $stream = Storage::disk($disk)->readStream($path);
+
+        if ($stream === false) {
+            abort(404);
+        }
+
+        $filename = $media->original_filename ?: basename($path);
+        $mime = $media->mime_type ?: 'application/octet-stream';
+
+        return response()->streamDownload(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, $filename, [
+            'Content-Type' => $mime,
         ]);
     }
 }

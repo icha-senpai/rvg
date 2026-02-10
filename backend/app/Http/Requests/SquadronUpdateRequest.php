@@ -17,6 +17,8 @@ class SquadronUpdateRequest extends FormRequest
             'name' => 'sometimes|string|max:255|unique:squadrons,name,' . $this->route('squadron')->id,
             'slug' => 'sometimes|string|max:255|unique:squadrons,slug,' . $this->route('squadron')->id,
             'status' => 'sometimes|string|in:active,inactive,disbanded',
+            'emblem_media_id' => 'sometimes|nullable|integer|exists:media,id',
+            'recruitment_propaganda' => 'sometimes|nullable|string|max:5000',
         ];
     }
 }

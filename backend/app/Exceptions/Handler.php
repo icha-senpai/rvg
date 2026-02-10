@@ -4,6 +4,8 @@ namespace App\Exceptions;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Inertia\Inertia;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -29,6 +31,29 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $e)
     {
+        if (!$request->expectsJson() && !$request->is('api/*')) {
+            $e = $this->prepareException($e);
+            $status = 500;
+
+            if ($e instanceof HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+            }
+
+            $alwaysRender = [403, 404, 419, 429];
+            $renderWhenNotDebug = [500, 503];
+
+            if (
+                in_array($status, $alwaysRender, true)
+                || (!config('app.debug') && in_array($status, $renderWhenNotDebug, true))
+            ) {
+                Inertia::setRootView('app');
+
+                return Inertia::render('Error', [
+                    'status' => $status,
+                ])->toResponse($request)->setStatusCode($status);
+            }
+        }
+
         return parent::render($request, $e);
     }
 }

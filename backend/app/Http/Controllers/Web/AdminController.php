@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Domain\Media\Presenters\MediaPresenter;
 use App\Models\User;
 use App\Models\Squadron;
 use App\Models\Role;
@@ -32,6 +33,8 @@ class AdminController extends Controller
                 'id',
                 'rsi_handle',
                 'discord_name',
+                'discord_avatar',
+                'rsi_verified_at',
                 'rank',
                 'rank_level',
                 'global_status',
@@ -56,6 +59,7 @@ class AdminController extends Controller
             ->withQueryString();
 
         $squadrons = Squadron::query()
+            ->with('emblem')
             ->leftJoin('squadron_members as leader_member', function ($join) {
                 $join->on('leader_member.squadron_id', '=', 'squadrons.id')
                     ->where('leader_member.role', '=', SquadronMember::ROLE_LEADER)
@@ -68,6 +72,7 @@ class AdminController extends Controller
                 'squadrons.name',
                 'squadrons.slug',
                 'squadrons.status',
+                'squadrons.emblem_path',
 
                 'leader_user.id as leader_id',
                 'leader_user.discord_name as leader_discord_name',
@@ -76,11 +81,23 @@ class AdminController extends Controller
                 'leader_user.rank_level as leader_rank_level',
             ])
             ->map(function ($row) {
+                $emblemUrl = null;
+
+                if ($row->relationLoaded('emblem') && $row->emblem) {
+                    $emblemUrl = $row->emblem->display_url;
+                } elseif ($row->emblem_path) {
+                    $emblemUrl = asset('storage/' . $row->emblem_path);
+                }
+
                 return [
                     'id' => $row->id,
                     'name' => $row->name,
                     'slug' => $row->slug,
                     'status' => $row->status,
+                    'emblem_url' => $emblemUrl,
+                    'emblem' => ($row->relationLoaded('emblem') && $row->emblem)
+                        ? MediaPresenter::make($row->emblem)->embedded()
+                        : null,
                     'leader_id' => $row->leader_id,
                     'leader' => $row->leader_id ? [
                         'id' => $row->leader_id,
@@ -139,6 +156,7 @@ class AdminController extends Controller
             'rank'                => ['nullable', 'string', 'max:255'],
             'rank_level'          => ['nullable', 'integer', 'min:1'],
             'global_status'       => ['nullable', 'string', 'max:255'],
+            'rsi_verified_at'      => ['nullable', 'date'],
             'bio'                 => ['nullable', 'string'],
             'timezone'            => ['nullable', 'string', 'max:255'],
             'availability_status' => ['nullable', 'string', 'max:255'],

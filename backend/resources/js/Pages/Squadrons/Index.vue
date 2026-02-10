@@ -94,6 +94,18 @@ onMounted(() => {
           class="hz-card-soft hz-stack cursor-pointer !border !border-[color:var(--horizon-sunset-blue)]"
           @click="openSquadron(squadron.id)"
         >
+          <div
+            v-if="squadron.emblem_url"
+            class="w-full max-w-[300px] aspect-square mx-auto bg-bg-surface rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)]"
+          >
+            <img
+              :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
+              :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
+              class="w-full h-full object-contain"
+              loading="lazy"
+            />
+          </div>
+
           <div class="hz-title-md">{{ squadron.name }}</div>
 
           <div class="hz-caption text-horizon-muted">

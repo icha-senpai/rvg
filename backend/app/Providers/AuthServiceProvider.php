@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\Gate;
 use App\Models\User;
 use App\Models\Squadron;
 use App\Models\Operation;
+use App\Models\OperationTemplate;
 use App\Models\RsiChangeRequest;
 use App\Models\Media;
 
 use App\Policies\SquadronPolicy;
 use App\Policies\OperationPolicy;
+use App\Policies\OperationTemplatePolicy;
 use App\Policies\RsiChangeRequestPolicy;
 use App\Policies\AdminPolicy;
 use App\Policies\MediaPolicy;
@@ -27,6 +29,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Squadron::class        => SquadronPolicy::class,
         Operation::class       => OperationPolicy::class,
+        OperationTemplate::class => OperationTemplatePolicy::class,
         RsiChangeRequest::class => RsiChangeRequestPolicy::class,
         User::class            => AdminPolicy::class,
         Media::class           => MediaPolicy::class,

@@ -3,11 +3,20 @@
 namespace App\Domain\Squadrons\Presenters;
 
 use App\Models\Squadron;
+use App\Domain\Media\Presenters\MediaPresenter;
 
 class SquadronPresenter
 {
     public static function make(Squadron $squadron): array
     {
+        $emblemUrl = null;
+
+        if ($squadron->relationLoaded('emblem') && $squadron->emblem) {
+            $emblemUrl = $squadron->emblem->display_url;
+        } elseif ($squadron->emblem_path) {
+            $emblemUrl = asset('storage/' . $squadron->emblem_path);
+        }
+
         return [
             'id'            => $squadron->id,
             'name'          => $squadron->name,
@@ -24,12 +33,14 @@ class SquadronPresenter
             'description'   => $squadron->description,
             'primary_color' => $squadron->primary_color,
             'secondary_color' => $squadron->secondary_color,
-            'emblem_url'    => $squadron->emblem_path
-                                ? asset('storage/' . $squadron->emblem_path)
-                                : null,
+            'emblem_url'    => $emblemUrl,
+            'emblem'        => $squadron->relationLoaded('emblem') && $squadron->emblem
+                ? MediaPresenter::make($squadron->emblem)->embedded()
+                : null,
 
             // Flags
             'recruiting'    => (bool) $squadron->recruiting,
+            'recruitment_propaganda' => $squadron->recruitment_propaganda,
 
             // Leader (light profile)
             'leader' => $squadron->relationLoaded('leader') && $squadron->leader

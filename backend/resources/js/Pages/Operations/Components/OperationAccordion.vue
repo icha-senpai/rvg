@@ -30,7 +30,30 @@
 
     <!-- COLLAPSED PREVIEW -->
     <div class="hz-caption text-horizon-offwhite mt-2" v-if="!open">
-      {{ collapsedMeta }}
+      <div class="flex items-center flex-wrap">
+        <template v-for="(part, idx) in collapsedMetaParts" :key="`${operation?.id ?? 'op'}_meta_${idx}`">
+          <span>{{ part }}</span>
+          <span v-if="idx < collapsedMetaParts.length - 1" class="opacity-70 px-2">•</span>
+        </template>
+
+        <span v-if="collapsedMetaParts.length" class="opacity-70 px-2">•</span>
+
+        <span class="inline-flex items-center gap-2">
+          <img
+            v-if="creatorAvatar"
+            :src="creatorAvatar"
+            alt=""
+            class="h-5 w-5 rounded-full object-cover border border-bg-hover"
+          />
+          <span
+            v-else
+            class="h-5 w-5 rounded-full bg-bg-hover border border-bg-hover flex items-center justify-center text-[10px] font-semibold text-horizon-white"
+          >
+            {{ creatorInitial }}
+          </span>
+          <span>{{ creatorName }}</span>
+        </span>
+      </div>
     </div>
 
     <!-- EXPANDED DETAILS -->
@@ -51,7 +74,21 @@
         </template>
 
         <span class="opacity-70"> Creator:</span>
-        {{ operation.creator?.rsi_handle ?? 'TBD' }}
+        <span class="inline-flex items-center gap-2 ml-2">
+          <img
+            v-if="creatorAvatar"
+            :src="creatorAvatar"
+            alt=""
+            class="h-5 w-5 rounded-full object-cover border border-bg-hover"
+          />
+          <span
+            v-else
+            class="h-5 w-5 rounded-full bg-bg-hover border border-bg-hover flex items-center justify-center text-[10px] font-semibold text-horizon-white"
+          >
+            {{ creatorInitial }}
+          </span>
+          <span>{{ creatorName }}</span>
+        </span>
       </div>
 
       <div class="grid grid-cols-2 gap-6">
@@ -143,19 +180,26 @@ const creatorName = computed(() => {
   return props.operation?.creator?.rsi_handle ?? 'TBD';
 });
 
-const collapsedMeta = computed(() => {
+const creatorAvatar = computed(() => {
+  return props.operation?.creator?.discord_avatar ?? null;
+});
+
+const creatorInitial = computed(() => {
+  return String(creatorName.value ?? 'M').slice(0, 1).toUpperCase();
+});
+
+const collapsedMetaParts = computed(() => {
   const op = props.operation;
-  if (!op) return '';
+  if (!op) return [];
 
   const parts = [];
   if (op.branch) parts.push(branchLabel(op.branch));
   parts.push(formatLocal(op.starts_at));
   parts.push(`${joinedCount.value} joined`);
-  parts.push(creatorName.value);
 
   return parts
     .filter(p => p && String(p).trim() !== '')
-    .join(' • ');
+    .map(p => String(p));
 });
 
 function truncate(text, length) {

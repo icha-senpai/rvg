@@ -6,6 +6,10 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ForceDiscordAuth;
 use App\Http\Middleware\EnforceMaxAuthAge;
+use Illuminate\Session\TokenMismatchException;
+use Inertia\Inertia;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
 
@@ -94,6 +98,58 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);
+        });
+
+        /*
+        |---------------------------------------------------------------
+        | Horizon Inertia Error Screens (Web only)
+        |---------------------------------------------------------------
+        */
+        $exceptions->renderable(function (NotFoundHttpException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            Inertia::setRootView('app');
+
+            return Inertia::render('Error', [
+                'status' => 404,
+            ])->toResponse($request)->setStatusCode(404);
+        });
+
+        $exceptions->renderable(function (TokenMismatchException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            Inertia::setRootView('app');
+
+            return Inertia::render('Error', [
+                'status' => 419,
+            ])->toResponse($request)->setStatusCode(419);
+        });
+
+        $exceptions->renderable(function (HttpExceptionInterface $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+            $alwaysRender = [403, 404, 419, 429];
+            $renderWhenNotDebug = [500, 503];
+
+            if (
+                in_array($status, $alwaysRender, true)
+                || (!config('app.debug') && in_array($status, $renderWhenNotDebug, true))
+            ) {
+                Inertia::setRootView('app');
+
+                return Inertia::render('Error', [
+                    'status' => $status,
+                ])->toResponse($request)->setStatusCode($status);
+            }
+
+            return null;
         });
     })
 

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\v1\OperationController;
 use App\Http\Controllers\Api\v1\OperationParticipantController;
 use App\Http\Controllers\Api\v1\DiscordIdentityController;
 use App\Http\Controllers\Api\v1\MediaApiController;
+use App\Http\Controllers\Api\v1\OperationTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -177,6 +178,12 @@ Route::middleware(['auth:sanctum',])->group(function () {
     Route::post('/operations/{operation}/start', [OperationController::class, 'start']);
     Route::post('/operations/{operation}/complete', [OperationController::class, 'complete']);
     Route::post('/operations/{operation}/cancel', [OperationController::class, 'cancel']);
+
+    // Operation Templates
+    Route::get('/operation-templates', [OperationTemplateController::class, 'index']);
+    Route::post('/operation-templates', [OperationTemplateController::class, 'store']);
+    Route::put('/operation-templates/{template}', [OperationTemplateController::class, 'update']);
+    Route::delete('/operation-templates/{template}', [OperationTemplateController::class, 'destroy']);
 
     // Operation Participants
     Route::post('/operations/{operation}/join', [OperationParticipantController::class, 'join'])

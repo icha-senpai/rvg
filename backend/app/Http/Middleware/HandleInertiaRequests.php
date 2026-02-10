@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Media\Presenters\MediaPresenter;
+use App\Models\User;
 use Inertia\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,26 +28,52 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if ($user) {
+            $user->load([
+                // 🔥 Add RBAC roles to payload
+                'roles:id,slug,name',
+
+                // Existing squadron relationship with pivot fields
+                'squadrons' => function ($query) {
+                    $query->with('emblem');
+                    $query->withPivot([
+                        'membership_status',
+                        'role',
+                        'joined_at',
+                        'left_at',
+                        'removed_at',
+                    ]);
+                },
+            ]);
+
+            $user->squadrons?->each(function ($sq) {
+                $emblemUrl = null;
+                $emblemEmbedded = null;
+
+                if ($sq->relationLoaded('emblem') && $sq->emblem) {
+                    $emblemUrl = $sq->emblem->display_url;
+                    $emblemEmbedded = MediaPresenter::make($sq->emblem)->embedded();
+                } elseif ($sq->emblem_path) {
+                    $emblemUrl = asset('storage/' . $sq->emblem_path);
+                }
+
+                $sq->setAttribute('emblem_url', $emblemUrl);
+
+                if ($sq->relationLoaded('emblem')) {
+                    $sq->unsetRelation('emblem');
+                }
+
+                $sq->setAttribute('emblem', $emblemEmbedded);
+            });
+        }
 
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $user
-                    ? $user->load([
-                        // 🔥 Add RBAC roles to payload
-                        'roles:id,slug,name',
-
-                        // Existing squadron relationship with pivot fields
-                        'squadrons' => function ($query) {
-                            $query->withPivot([
-                                'membership_status',
-                                'role',
-                                'joined_at',
-                                'left_at',
-                                'removed_at',
-                            ]);
-                        },
-                    ])
+                    ? $user
                     : null,
             ],
         ]);

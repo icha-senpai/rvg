@@ -11,14 +11,31 @@
           title="Operations Dashboard"
         />
 
-        <HorizonButton
-          v-if="canCreateOperation"
-          variant="primary"
-          size="md"
-          @click="openCreateDrawer"
-        >
-          Create Operation
-        </HorizonButton>
+        <div v-if="canCreateOperation" class="flex items-center gap-3">
+          <div class="w-64">
+            <HorizonSelect
+              v-model="createTemplateId"
+              :options="templateOptions"
+            />
+          </div>
+
+          <HorizonButton
+            variant="ghost"
+            size="md"
+            :disabled="!createTemplateId"
+            @click="openCreateDrawerFromTemplate"
+          >
+            Create From Template
+          </HorizonButton>
+
+          <HorizonButton
+            variant="primary"
+            size="md"
+            @click="openCreateDrawer"
+          >
+            Create Operation
+          </HorizonButton>
+        </div>
       </div>
 
       <!-- FILTER PANEL -->
@@ -91,36 +108,62 @@
                   </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                <div class="flex flex-col gap-2 w-full sm:w-auto sm:items-end">
+                  <div class="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                    <HorizonButton
+                      v-if="canManageOperation(op)"
+                      size="sm"
+                      variant="primary"
+                      class="w-20"
+                      @click="openEditDrawer(op)"
+                    >
+                      Edit
+                    </HorizonButton>
 
-                  <!-- EDIT -->
-                  <HorizonButton
-                    v-if="canManageOperation(op)"
-                    size="sm"
-                    variant="primary"
-                    @click="openEditDrawer(op)"
-                  >
-                    Edit
-                  </HorizonButton>
+                    <HorizonButton
+                      size="sm"
+                      variant="primary"
+                      class="w-20"
+                      @click="openViewModal(op)"
+                    >
+                      View
+                    </HorizonButton>
+                  </div>
 
-                  <!-- VIEW -->
-                  <HorizonButton
-                    size="sm"
-                    variant="primary"
-                    @click="openViewModal(op)"
-                  >
-                    View
-                  </HorizonButton>
+                  <div class="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                    <HorizonButton
+                      v-if="canManageOperation(op) && op.status === 'published'"
+                      size="sm"
+                      variant="primary"
+                      class="w-20 hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
+                      :disabled="isTransitionProcessing(op.id)"
+                      @click="startOperation(op)"
+                    >
+                      Start
+                    </HorizonButton>
 
-                  <!-- DELETE -->
-                  <HorizonButton
-                    v-if="canManageOperation(op)"
-                    variant="danger"
-                    size="sm"
-                    @click="destroy(op.id)"
-                  >
-                    Cancel
-                  </HorizonButton>
+                    <HorizonButton
+                      v-if="canManageOperation(op) && op.status === 'in_progress'"
+                      size="sm"
+                      variant="primary"
+                      class="w-20 hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
+                      :disabled="isTransitionProcessing(op.id)"
+                      @click="completeOperation(op)"
+                    >
+                      End
+                    </HorizonButton>
+
+                    <HorizonButton
+                      v-if="canManageOperation(op) && ['published', 'in_progress'].includes(op.status)"
+                      size="sm"
+                      variant="danger"
+                      class="w-20"
+                      :disabled="isTransitionProcessing(op.id)"
+                      @click="cancelOperation(op)"
+                    >
+                      Cancel
+                    </HorizonButton>
+                  </div>
                 </div>
 
               </div>
@@ -211,6 +254,10 @@
         :embedded="true"
         :mission="editingMission"
         :squadron-id="editorSquadronId"
+        :prefill-template-id="editorPrefillTemplateId"
+        @template-saved="handleTemplateSaved"
+        @template-updated="handleTemplateUpdated"
+        @template-deleted="handleTemplateDeleted"
         @cancel="closeDrawer"
         @deleted="handleDrawerDeleted"
         @saved="handleDrawerSaved"
@@ -267,7 +314,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios'
 import { route } from 'ziggy-js';
@@ -278,6 +325,7 @@ import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 import MissionGrid from '@/Components/MissionGrid.vue';
 import MissionCard from '@/Components/MissionCard.vue';
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
@@ -309,8 +357,91 @@ const todayLabel = computed(() => {
 const drawerOpen = ref(false)
 const editingMission = ref(null)
 const editorSquadronId = ref(null)
+const editorPrefillTemplateId = ref(null)
 const editHydrating = ref(false)
 const editHydrationError = ref(null)
+
+const templates = ref([])
+const templatesLoading = ref(false)
+const createTemplateId = ref('')
+
+const transitionProcessingIds = ref(new Set())
+
+function isTransitionProcessing(operationId) {
+  return transitionProcessingIds.value.has(Number(operationId))
+}
+
+function setTransitionProcessing(operationId, value) {
+  const id = Number(operationId)
+  const next = new Set(transitionProcessingIds.value)
+  if (value) next.add(id)
+  else next.delete(id)
+  transitionProcessingIds.value = next
+}
+
+const templateOptions = computed(() => {
+  return (templates.value ?? []).map(t => {
+    const scopeLabel = t.scope === 'personal'
+      ? 'Personal'
+      : t.scope === 'squadron'
+        ? 'Squadron'
+        : 'Global'
+
+    return {
+      label: `${scopeLabel}: ${t.name}`,
+      value: t.id,
+    }
+  })
+})
+
+async function fetchTemplates() {
+  if (templatesLoading.value) return
+  templatesLoading.value = true
+
+  try {
+    const { data } = await axios.get('/api/v1/operation-templates', {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    templates.value = Array.isArray(data?.payload?.templates)
+      ? data.payload.templates
+      : []
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status !== 401 && status !== 419) {
+      console.error('Failed to load templates', err)
+    }
+  } finally {
+    templatesLoading.value = false
+  }
+}
+
+async function handleTemplateSaved(template) {
+  const newId = template?.id
+  await fetchTemplates()
+  if (newId) {
+    createTemplateId.value = newId
+  }
+}
+
+async function handleTemplateUpdated(template) {
+  const id = template?.id
+  await fetchTemplates()
+  if (id) {
+    createTemplateId.value = id
+  }
+}
+
+async function handleTemplateDeleted(payload) {
+  const deletedId = payload?.id
+  await fetchTemplates()
+
+  if (deletedId && Number(createTemplateId.value) === Number(deletedId)) {
+    createTemplateId.value = ''
+  }
+}
 
 /* ----------------------
    VIEW MODAL STATE
@@ -391,6 +522,21 @@ function goToUrl(url) {
 function openCreateDrawer() {
   editingMission.value = null
   editorSquadronId.value = userSquadronId.value
+  editorPrefillTemplateId.value = null
+  editHydrating.value = false
+  editHydrationError.value = null
+  drawerOpen.value = true
+}
+
+function openCreateDrawerFromTemplate() {
+  const id = createTemplateId.value
+  if (!id) return
+
+  const template = (templates.value ?? []).find(t => Number(t?.id) === Number(id))
+
+  editingMission.value = null
+  editorSquadronId.value = template?.squadron_id ?? userSquadronId.value
+  editorPrefillTemplateId.value = id
   editHydrating.value = false
   editHydrationError.value = null
   drawerOpen.value = true
@@ -429,6 +575,7 @@ function closeDrawer() {
   drawerOpen.value = false
   editingMission.value = null
   editorSquadronId.value = null
+  editorPrefillTemplateId.value = null
   editHydrating.value = false
   editHydrationError.value = null
 }
@@ -532,7 +679,7 @@ const isDirectorLike = computed(() => {
 
 const canCreateOperation = computed(() => {
   if (isDirectorLike.value) return true;
-  if ((user.value?.rank_level ?? 0) >= 3) return true;
+  if ((user.value?.rank_level ?? 0) >= 2) return true;
 
   const roles = user.value?.roles ?? [];
   const highCommandRoleSlugs = ['commander_staff', 'wing_commander', 'admiral', 'grand_admiral'];
@@ -549,6 +696,12 @@ const canCreateOperation = computed(() => {
   if (isSquadronLieutenant.value) return true;
   return false;
 });
+
+onMounted(() => {
+  if (canCreateOperation.value) {
+    fetchTemplates()
+  }
+})
 
 function canManageOperation(op) {
   if (isDirectorLike.value) return true;
@@ -571,12 +724,69 @@ function canManageOperation(op) {
   return role === 'leader' || role === 'lieutenant';
 }
 
-function destroy(operationId) {
-  if (!confirm('Cancel this operation?')) return;
+async function startOperation(op) {
+  if (!op?.id) return
+  if (isTransitionProcessing(op.id)) return
+  if (!confirm('Start this operation?')) return
 
-  router.delete(route('operations.destroy', operationId, Ziggy), {
-    preserveScroll: true,
-  });
+  setTransitionProcessing(op.id, true)
+  try {
+    await axios.post(route('operations.start', op.id, Ziggy), {})
+    refreshOperations()
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status !== 401 && status !== 419) {
+      console.error(err)
+      alert('Failed to start operation.')
+    }
+  } finally {
+    setTransitionProcessing(op.id, false)
+  }
+}
+
+async function completeOperation(op) {
+  if (!op?.id) return
+  if (isTransitionProcessing(op.id)) return
+  if (!confirm('Mark this operation as completed?')) return
+
+  setTransitionProcessing(op.id, true)
+  try {
+    await axios.post(route('operations.complete', op.id, Ziggy), {})
+    refreshOperations()
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status !== 401 && status !== 419) {
+      console.error(err)
+      alert('Failed to complete operation.')
+    }
+  } finally {
+    setTransitionProcessing(op.id, false)
+  }
+}
+
+async function cancelOperation(op) {
+  if (!op?.id) return
+  if (isTransitionProcessing(op.id)) return
+
+  const reason = prompt('Cancellation reason (optional):')
+  if (reason === null) return
+  if (!confirm('Cancel this operation?')) return
+
+  setTransitionProcessing(op.id, true)
+  try {
+    await axios.post(route('operations.cancel', op.id, Ziggy), {
+      reason: reason || null,
+    })
+    refreshOperations()
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status !== 401 && status !== 419) {
+      console.error(err)
+      alert('Failed to cancel operation.')
+    }
+  } finally {
+    setTransitionProcessing(op.id, false)
+  }
 }
 
 /* ----------------------------------------

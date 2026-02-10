@@ -102,6 +102,7 @@ class SquadronManageController extends Controller
         $data = $request->validate([
             'motto'           => ['nullable', 'string', 'max:255'],
             'description'     => ['nullable', 'string'],
+            'recruitment_propaganda' => ['nullable', 'string'],
             'primary_color'   => ['nullable', 'string', 'max:20'],
             'secondary_color' => ['nullable', 'string', 'max:20'],
             'recruiting'      => ['boolean'],

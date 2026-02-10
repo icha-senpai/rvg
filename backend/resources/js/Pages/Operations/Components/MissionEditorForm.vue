@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { useForm, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../../ziggy'
@@ -11,6 +11,7 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSection from '@/Components/HorizonSection.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import HorizonDateTimePicker from '@/Components/HorizonDateTimePicker.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 
 // ----------------------
@@ -20,6 +21,9 @@ const emit = defineEmits([
   'saved',
   'deleted',
   'cancel',
+  'template-saved',
+  'template-updated',
+  'template-deleted',
 ])
 
 // ----------------------
@@ -29,6 +33,7 @@ const props = defineProps({
   squadronId: { type: Number, required: false, default: null },
   mission: { type: Object, default: null },
   embedded: { type: Boolean, default: false },
+  prefillTemplateId: { type: [Number, String], default: null },
 })
 
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -53,6 +58,134 @@ watch(
     form.squadron_name = typeof next === 'string' ? next : ''
   }
 )
+
+async function renameSelectedTemplate() {
+  if (!selectedTemplate.value) return
+  if (templatesUpdating.value || templatesDeleting.value) return
+
+  const nextName = prompt('New template name:', selectedTemplate.value?.name ?? '')
+  if (!nextName || !String(nextName).trim()) return
+
+  templatesUpdating.value = true
+  try {
+    const { data } = await axios.put(
+      `/api/v1/operation-templates/${selectedTemplate.value.id}`,
+      {
+        name: String(nextName).trim(),
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    const updatedTemplate = data?.payload?.template
+    await fetchTemplates()
+
+    if (updatedTemplate?.id) {
+      selectedTemplateId.value = updatedTemplate.id
+      emit('template-updated', updatedTemplate)
+    }
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status === 403) {
+      alert('You do not have permission to edit that template.')
+      return
+    }
+
+    if (status === 422) {
+      alert('Template name is invalid.')
+      return
+    }
+
+    console.error('Failed to rename template', err)
+    alert('Failed to rename template.')
+  } finally {
+    templatesUpdating.value = false
+  }
+}
+
+async function updateSelectedTemplate() {
+  if (!selectedTemplate.value) return
+  if (templatesUpdating.value || templatesDeleting.value) return
+
+  const ok = confirm(`Overwrite template "${selectedTemplate.value?.name ?? ''}" with the current form values?`)
+  if (!ok) return
+
+  templatesUpdating.value = true
+  try {
+    const { data } = await axios.put(
+      `/api/v1/operation-templates/${selectedTemplate.value.id}`,
+      {
+        payload: buildTemplatePayload(),
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    const updatedTemplate = data?.payload?.template
+    await fetchTemplates()
+
+    if (updatedTemplate?.id) {
+      selectedTemplateId.value = updatedTemplate.id
+      emit('template-updated', updatedTemplate)
+    }
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status === 403) {
+      alert('You do not have permission to edit that template.')
+      return
+    }
+
+    if (status === 422) {
+      alert('Template data is invalid.')
+      return
+    }
+
+    console.error('Failed to update template', err)
+    alert('Failed to update template.')
+  } finally {
+    templatesUpdating.value = false
+  }
+}
+
+async function deleteSelectedTemplate() {
+  if (!selectedTemplate.value) return
+  if (templatesDeleting.value || templatesUpdating.value) return
+
+  const ok = confirm(`Delete template "${selectedTemplate.value?.name ?? ''}"? This cannot be undone.`)
+  if (!ok) return
+
+  templatesDeleting.value = true
+  try {
+    await axios.delete(`/api/v1/operation-templates/${selectedTemplate.value.id}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    const deletedId = selectedTemplate.value.id
+
+    selectedTemplateId.value = ''
+    await fetchTemplates()
+    emit('template-deleted', { id: deletedId })
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status === 403) {
+      alert('You do not have permission to delete that template.')
+      return
+    }
+
+    console.error('Failed to delete template', err)
+    alert('Failed to delete template.')
+  } finally {
+    templatesDeleting.value = false
+  }
+}
 
 const squadronOptions = computed(() => {
   return (squadrons.value ?? []).map(s => ({
@@ -122,7 +255,228 @@ async function fetchSquadrons() {
 
 onMounted(() => {
   fetchSquadrons()
+  fetchTemplates()
 })
+
+const page = usePage()
+const authUser = computed(() => page.props.auth?.user ?? null)
+
+const isDirectorLike = computed(() => {
+  const roles = authUser.value?.roles ?? []
+  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+})
+
+const canSaveSquadronTemplate = computed(() => {
+  const squadronId = Number(props.squadronId)
+  if (!Number.isFinite(squadronId) || !squadronId) return false
+
+  const memberships = authUser.value?.squadrons ?? []
+  const membership = memberships.find(s => Number(s?.id) === squadronId)
+  if (!membership) return false
+
+  const status = membership?.pivot?.membership_status ?? null
+  if (status !== 'active') return false
+
+  const rankLevel = Number(authUser.value?.rank_level ?? 0)
+  return Number.isFinite(rankLevel) && rankLevel >= 2
+})
+
+const templates = ref([])
+const templatesLoading = ref(false)
+const templatesSaving = ref(false)
+const templatesUpdating = ref(false)
+const templatesDeleting = ref(false)
+const selectedTemplateId = ref('')
+const prefillAppliedId = ref(null)
+
+const selectedTemplate = computed(() => {
+  if (!selectedTemplateId.value) return null
+  return (templates.value ?? []).find(t => Number(t?.id) === Number(selectedTemplateId.value)) ?? null
+})
+
+const templateOptions = computed(() => {
+  return (templates.value ?? []).map(t => {
+    const scopeLabel = t.scope === 'personal'
+      ? 'Personal'
+      : t.scope === 'squadron'
+        ? 'Squadron'
+        : 'Global'
+
+    return {
+      label: `${scopeLabel}: ${t.name}`,
+      value: t.id,
+    }
+  })
+})
+
+async function fetchTemplates() {
+  if (templatesLoading.value) return
+  templatesLoading.value = true
+
+  try {
+    const { data } = await axios.get('/api/v1/operation-templates', {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    templates.value = Array.isArray(data?.payload?.templates)
+      ? data.payload.templates
+      : []
+
+    if (props.prefillTemplateId && prefillAppliedId.value !== props.prefillTemplateId) {
+      const id = Number(props.prefillTemplateId)
+      if (Number.isFinite(id)) {
+        selectedTemplateId.value = id
+        applyTemplateById(id)
+        prefillAppliedId.value = props.prefillTemplateId
+      }
+    }
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status !== 401 && status !== 419) {
+      console.error('Failed to load templates', err)
+    }
+  } finally {
+    templatesLoading.value = false
+  }
+}
+
+function buildTemplatePayload() {
+  const trimmedSquadrons = (selectedSquadronNames.value ?? [])
+    .map(s => (typeof s === 'string' ? s.trim() : ''))
+    .filter(Boolean)
+
+  return {
+    title: form.title ?? '',
+    type: form.type ?? '',
+    description: form.description ?? '',
+    notes: form.notes ?? '',
+    visibility: form.visibility ?? 'open',
+    squadron_name: trimmedSquadrons.length ? trimmedSquadrons.join(', ') : null,
+    operation_kind: form.operation_kind ?? 'operation',
+    branch: form.branch ?? '',
+    operation_strictness: form.operation_strictness ?? '',
+    start_location: form.start_location ?? '',
+    operation_location: form.operation_location ?? '',
+    slots: Array.isArray(form.slots) ? form.slots : [],
+  }
+}
+
+function applyTemplatePayload(payload) {
+  if (!payload || typeof payload !== 'object') return
+
+  if ('title' in payload) form.title = payload.title ?? ''
+  if ('type' in payload) form.type = payload.type ?? ''
+  if ('description' in payload) form.description = payload.description ?? ''
+  if ('notes' in payload) form.notes = payload.notes ?? ''
+
+  if ('visibility' in payload) form.visibility = payload.visibility ?? 'open'
+  if ('operation_kind' in payload) form.operation_kind = payload.operation_kind ?? 'operation'
+  if ('branch' in payload) form.branch = payload.branch ?? ''
+  if ('operation_strictness' in payload) form.operation_strictness = payload.operation_strictness ?? ''
+  if ('start_location' in payload) form.start_location = payload.start_location ?? ''
+  if ('operation_location' in payload) form.operation_location = payload.operation_location ?? ''
+
+  if ('slots' in payload) {
+    form.slots = Array.isArray(payload.slots) ? [...payload.slots] : []
+  }
+
+  if ('squadron_name' in payload) {
+    const raw = payload.squadron_name
+    const names = typeof raw === 'string' && raw.trim()
+      ? raw.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+
+    selectedSquadronNames.value = names
+    form.squadron_name = typeof raw === 'string' ? raw : ''
+  }
+}
+
+function applyTemplateById(id) {
+  const template = (templates.value ?? []).find(t => Number(t?.id) === Number(id))
+  if (!template) return
+  applyTemplatePayload(template.payload)
+}
+
+function applySelectedTemplate() {
+  if (!selectedTemplateId.value) return
+  applyTemplateById(selectedTemplateId.value)
+}
+
+async function saveTemplate(scope) {
+  if (templatesSaving.value) return
+  const name = prompt('Template name:')
+  if (!name || !String(name).trim()) return
+
+  const squadronId = scope === 'squadron' ? props.squadronId : null
+
+  templatesSaving.value = true
+  try {
+    const { data } = await axios.post(
+      '/api/v1/operation-templates',
+      {
+        name: String(name).trim(),
+        scope,
+        squadron_id: squadronId,
+        payload: buildTemplatePayload(),
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    const createdTemplate = data?.payload?.template
+    const newId = createdTemplate?.id
+    await fetchTemplates()
+
+    if (newId) {
+      selectedTemplateId.value = newId
+    }
+
+    if (createdTemplate) {
+      emit('template-saved', createdTemplate)
+    }
+  } catch (err) {
+    const status = err?.response?.status ?? null
+    if (status === 403) {
+      alert('You do not have permission to save that template.')
+      return
+    }
+
+    if (status === 422) {
+      alert('Template data is invalid. Please check fields and try again.')
+      return
+    }
+
+    console.error('Failed to save template', err)
+    alert('Failed to save template.')
+  } finally {
+    templatesSaving.value = false
+  }
+}
+
+watch(
+  () => props.prefillTemplateId,
+  (id) => {
+    if (!id) return
+    if (prefillAppliedId.value === id) return
+
+    const numericId = Number(id)
+    if (!Number.isFinite(numericId)) return
+
+    if ((templates.value ?? []).length) {
+      selectedTemplateId.value = numericId
+      applyTemplateById(numericId)
+      prefillAppliedId.value = id
+      return
+    }
+
+    fetchTemplates()
+  }
+)
 
 // ----------------------
 // MODE
@@ -199,6 +553,110 @@ const form = useForm({
   squadron_id: props.squadronId,
   squadron_name: props.mission?.squadron_name ?? '',
   media_id: props.mission?.media_image?.id ?? null,
+})
+
+const quarterHourMinuteOptions = [0, 15, 30, 45]
+
+function splitPickerValue(value) {
+  if (!value) return { date: '', time: '' }
+  const [date, timeRaw] = String(value).split('T')
+  const time = (timeRaw ?? '').slice(0, 5)
+  return { date: date ?? '', time }
+}
+
+function computeRsvpPartsFromStart(startDate, startTime) {
+  if (!startDate || !startTime) return null
+  const [year, month, day] = String(startDate).split('-').map(Number)
+  const [hour, minute] = String(startTime).split(':').map(Number)
+  if (!year || !month || !day) return null
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+
+  const startUtc = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
+  const rsvpUtc = new Date(startUtc.getTime() - 30 * 60 * 1000)
+
+  const pad = (n) => String(n).padStart(2, '0')
+
+  return {
+    date: `${rsvpUtc.getUTCFullYear()}-${pad(rsvpUtc.getUTCMonth() + 1)}-${pad(rsvpUtc.getUTCDate())}`,
+    time: `${pad(rsvpUtc.getUTCHours())}:${pad(rsvpUtc.getUTCMinutes())}`,
+  }
+}
+
+const rsvpAuto = ref(false)
+let rsvpAutoApplying = false
+
+const hasRsvpValue = !!(form.rsvp_date && form.rsvp_time)
+const initialComputedRsvp = computeRsvpPartsFromStart(form.start_date, form.start_time)
+
+if (!hasRsvpValue) {
+  rsvpAuto.value = true
+} else if (initialComputedRsvp) {
+  rsvpAuto.value = form.rsvp_date === initialComputedRsvp.date && form.rsvp_time === initialComputedRsvp.time
+}
+
+watch(
+  () => [form.start_date, form.start_time],
+  () => {
+    if (!rsvpAuto.value) return
+    const computed = computeRsvpPartsFromStart(form.start_date, form.start_time)
+    if (!computed) return
+
+    rsvpAutoApplying = true
+    form.rsvp_date = computed.date
+    form.rsvp_time = computed.time
+    rsvpAutoApplying = false
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [form.rsvp_date, form.rsvp_time],
+  () => {
+    if (rsvpAutoApplying) return
+    const computed = computeRsvpPartsFromStart(form.start_date, form.start_time)
+    if (!computed) {
+      rsvpAuto.value = false
+      return
+    }
+
+    rsvpAuto.value = form.rsvp_date === computed.date && form.rsvp_time === computed.time
+  }
+)
+
+const startDateTime = computed({
+  get() {
+    if (!form.start_date || !form.start_time) return ''
+    return `${form.start_date}T${form.start_time}`
+  },
+  set(value) {
+    const parts = splitPickerValue(value)
+    form.start_date = parts.date
+    form.start_time = parts.time
+  },
+})
+
+const endDateTime = computed({
+  get() {
+    if (!form.end_date || !form.end_time) return ''
+    return `${form.end_date}T${form.end_time}`
+  },
+  set(value) {
+    const parts = splitPickerValue(value)
+    form.end_date = parts.date
+    form.end_time = parts.time
+  },
+})
+
+const rsvpDateTime = computed({
+  get() {
+    if (!form.rsvp_date || !form.rsvp_time) return ''
+    return `${form.rsvp_date}T${form.rsvp_time}`
+  },
+  set(value) {
+    const parts = splitPickerValue(value)
+    form.rsvp_date = parts.date
+    form.rsvp_time = parts.time
+  },
 })
 
 // ----------------------
@@ -480,6 +938,83 @@ async function destroyOperation() {
       <!-- LEFT SIDE -->
       <div class="space-y-6">
 
+        <HorizonSection title="Templates">
+          <div class="hz-stack">
+            <HorizonSelect
+              label="Load Template"
+              v-model="selectedTemplateId"
+              :options="templateOptions"
+            />
+
+            <div class="flex flex-wrap gap-3">
+              <HorizonButton
+                size="sm"
+                variant="ghost"
+                :disabled="!selectedTemplateId"
+                @click="applySelectedTemplate"
+              >
+                Apply
+              </HorizonButton>
+
+              <HorizonButton
+                size="sm"
+                variant="ghost"
+                :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
+                @click="renameSelectedTemplate"
+              >
+                Rename
+              </HorizonButton>
+
+              <HorizonButton
+                size="sm"
+                variant="ghost"
+                :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
+                @click="updateSelectedTemplate"
+              >
+                Update
+              </HorizonButton>
+
+              <HorizonButton
+                size="sm"
+                variant="ghost"
+                :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
+                @click="deleteSelectedTemplate"
+              >
+                Delete
+              </HorizonButton>
+
+              <HorizonButton
+                size="sm"
+                variant="ghost"
+                :disabled="templatesSaving"
+                @click="saveTemplate('personal')"
+              >
+                Save Personal
+              </HorizonButton>
+
+              <HorizonButton
+                v-if="canSaveSquadronTemplate"
+                size="sm"
+                variant="ghost"
+                :disabled="templatesSaving"
+                @click="saveTemplate('squadron')"
+              >
+                Save Squadron
+              </HorizonButton>
+
+              <HorizonButton
+                v-if="isDirectorLike"
+                size="sm"
+                variant="ghost"
+                :disabled="templatesSaving"
+                @click="saveTemplate('global')"
+              >
+                Save Global
+              </HorizonButton>
+            </div>
+          </div>
+        </HorizonSection>
+
         <!-- Operation Details -->
         <HorizonSection title="Operation Details">
           <div class="hz-stack">
@@ -500,42 +1035,24 @@ async function destroyOperation() {
         <!-- Timing -->
         <HorizonSection title="Scheduling">
           <div class="grid md:grid-cols-2 gap-4">
-            <HorizonInput
-              label="Start Date"
-              type="date"
-              v-model="form.start_date"
+            <HorizonDateTimePicker
+              label="Start (UTC)"
+              v-model="startDateTime"
+              :minute-options="quarterHourMinuteOptions"
             />
 
-            <HorizonInput
-              label="Start Time"
-              type="time"
-              v-model="form.start_time"
+            <HorizonDateTimePicker
+              label="End (UTC) (optional)"
+              v-model="endDateTime"
+              :clearable="true"
+              :minute-options="quarterHourMinuteOptions"
             />
 
-            <HorizonInput
-              label="End Date (optional)"
-              type="date"
-              v-model="form.end_date"
-            />
-
-            <HorizonInput
-              label="End Time (optional)"
-              type="time"
-              v-model="form.end_time"
-            />
-          </div>
-
-          <div class="grid md:grid-cols-2 gap-4">
-            <HorizonInput
-              label="Sign Up Deadline - Date"
-              type="date"
-              v-model="form.rsvp_date"
-            />
-
-            <HorizonInput
-              label="Sign Up Deadline - Time"
-              type="time"
-              v-model="form.rsvp_time"
+            <HorizonDateTimePicker
+              label="Sign Up Deadline (UTC) (optional)"
+              v-model="rsvpDateTime"
+              :clearable="true"
+              :minute-options="quarterHourMinuteOptions"
             />
           </div>
         </HorizonSection>

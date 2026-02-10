@@ -7,6 +7,8 @@ import SquadronOverviewSection from './SquadronOverviewSection.vue'
 import SquadronViewerStatus from './SquadronViewerStatus.vue'
 import SquadronRoster from './SquadronRoster.vue'
 import HorizonButton from '@/Components/HorizonButton.vue';
+import MediaPickerModal from '@/Components/MediaPickerModal.vue'
+import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 /* -------------------------------------------------
    Props
 ------------------------------------------------- */
@@ -65,6 +67,55 @@ function goToVerify() {
   window.location.href = verifyUrl
 }
 
+function openEmblemPicker() {
+  if (!squadron.value) return
+  emblemPickerOpen.value = true
+}
+
+function closeEmblemPicker() {
+  emblemPickerOpen.value = false
+}
+
+async function setEmblem(media) {
+  if (!squadron.value) return
+  if (emblemSaving.value) return
+
+  emblemSaving.value = true
+  try {
+    await axios.put(`/api/v1/squadrons/${squadron.value.id}`, {
+      emblem_media_id: media?.id ?? null,
+    }, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    await fetchSquadron()
+    emit('updated', squadron.value)
+  } catch (error) {
+    const status = error?.response?.status ?? null
+    if (status === 403) {
+      alert('You do not have permission to update the squadron emblem.')
+      return
+    }
+
+    alert(
+      error.response?.data?.message ??
+      error.message ??
+      'Failed to update squadron emblem.'
+    )
+  } finally {
+    emblemSaving.value = false
+    closeEmblemPicker()
+  }
+}
+
+async function clearEmblem() {
+  if (!squadron.value) return
+  if (emblemSaving.value) return
+  await setEmblem(null)
+}
+
 const isOverlay = computed(() => props.variant === 'modal')
 const isEmbedded = computed(() => props.variant === 'embedded')
 
@@ -94,15 +145,33 @@ function onKeydown(e) {
    Edit state
 ------------------------------------------------- */
 const isEditing = ref(false)
+const isRecruitingEditing = ref(false)
+
+const activeTab = ref('overview')
+
+const emblemPickerOpen = ref(false)
+const emblemSaving = ref(false)
+
+function setActiveTab(tab) {
+  if ((isEditing.value || isRecruitingEditing.value) && tab !== activeTab.value) return
+  activeTab.value = tab
+}
 
 const editForm = ref({
   motto: '',
   description: '',
+  recruitment_propaganda: '',
 })
 
 const canEdit = computed(() =>
   permissions.value?.can_manage_members === true
 )
+
+const activeMemberCount = computed(() =>
+  (members.value ?? []).filter(m => m?.membership_status === 'active').length
+)
+
+const maxRosterSize = 21
 
 const lieutenantCount = computed(() =>
   (members.value ?? []).filter(member => member?.is_lieutenant === true).length
@@ -130,6 +199,7 @@ async function fetchSquadron() {
 
     editForm.value.motto = data.squadron?.motto ?? ''
     editForm.value.description = data.squadron?.description ?? ''
+    editForm.value.recruitment_propaganda = data.squadron?.recruitment_propaganda ?? ''
   } catch (error) {
     errorStatus.value = error.response?.status ?? null
 
@@ -160,6 +230,7 @@ async function saveSettings() {
     )
 
     isEditing.value = false
+    isRecruitingEditing.value = false
     await fetchSquadron()
 
     emit('updated', squadron.value)
@@ -175,6 +246,15 @@ function cancelEdit() {
   isEditing.value = false
   editForm.value.motto = squadron.value?.motto ?? ''
   editForm.value.description = squadron.value?.description ?? ''
+}
+
+function startRecruitingEdit() {
+  isRecruitingEditing.value = true
+}
+
+function cancelRecruitingEdit() {
+  isRecruitingEditing.value = false
+  editForm.value.recruitment_propaganda = squadron.value?.recruitment_propaganda ?? ''
 }
 
 async function applyToSquadron() {
@@ -402,7 +482,28 @@ onUnmounted(() => {
 
 watch(
   () => props.squadronId,
-  fetchSquadron
+  () => {
+    activeTab.value = 'overview'
+    fetchSquadron()
+  }
+)
+
+watch(
+  () => isEditing.value,
+  (editing) => {
+    if (editing) {
+      activeTab.value = 'overview'
+    }
+  }
+)
+
+watch(
+  () => isRecruitingEditing.value,
+  (editing) => {
+    if (editing) {
+      activeTab.value = 'recruiting'
+    }
+  }
 )
 </script>
 
@@ -448,7 +549,7 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="canEdit && !isEditing"
+            v-if="canEdit && !isEditing && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
@@ -467,61 +568,182 @@ watch(
         </div>
       </div>
 
-      <!-- Overview / Edit -->
-      <SquadronOverviewSection
-        v-if="!isEditing"
-        :squadron="squadron"
-      />
+      <!-- Tabs -->
+      <div
+        class="hz-row hz-text-soft gap-2"
+        style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
+      >
+        <HorizonButton
+          size="sm"
+          :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+          @click="setActiveTab('overview')"
+        >
+          Overview
+        </HorizonButton>
 
-      <div v-else class="hz-stack gap-2">
-        <label class="hz-label">Motto</label>
-        <input
-          v-model="editForm.motto"
-          class="hz-input"
-          placeholder="Optional motto"
+        <HorizonButton
+          size="sm"
+          :disabled="isEditing || isRecruitingEditing"
+          :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+          @click="setActiveTab('status')"
+        >
+          Status
+        </HorizonButton>
+
+        <HorizonButton
+          size="sm"
+          :disabled="isEditing || isRecruitingEditing"
+          :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+          @click="setActiveTab('recruiting')"
+        >
+          Recruiting
+        </HorizonButton>
+
+        <HorizonButton
+          size="sm"
+          :disabled="isEditing || isRecruitingEditing"
+          :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+          @click="setActiveTab('roster')"
+        >
+          Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+        </HorizonButton>
+      </div>
+
+      <div v-if="activeTab === 'overview'" class="hz-animate-fade">
+        <!-- Overview / Edit -->
+        <SquadronOverviewSection
+          v-if="!isEditing"
+          :squadron="squadron"
         />
 
-        <label class="hz-label">Description</label>
-        <textarea
-          v-model="editForm.description"
-          class="hz-textarea"
-          rows="4"
-          placeholder="Squadron description"
-        />
+        <div v-else class="hz-stack gap-2">
+          <label class="hz-label">Emblem</label>
 
-        <div class="hz-row gap-2">
-          <HorizonButton variant="primary" size="sm" @click="saveSettings">
-            Save
-          </HorizonButton>
-          <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
-            Cancel
-          </HorizonButton>
+          <div class="hz-row gap-3 items-center">
+            <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+              <img
+                v-if="squadron?.emblem_url"
+                :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
+                :alt="squadron?.emblem?.alt_text || `${squadron?.name} emblem`"
+                class="w-full h-full object-contain"
+                loading="lazy"
+              />
+            </div>
+
+            <div class="hz-row gap-2">
+              <HorizonButton
+                variant="ghost"
+                size="sm"
+                :disabled="emblemSaving"
+                @click="openEmblemPicker"
+              >
+                Choose Emblem
+              </HorizonButton>
+
+              <HorizonButton
+                variant="ghost"
+                size="sm"
+                :disabled="emblemSaving || !squadron?.emblem_url"
+                @click="clearEmblem"
+              >
+                Clear
+              </HorizonButton>
+            </div>
+          </div>
+
+          <label class="hz-label">Motto</label>
+          <input
+            v-model="editForm.motto"
+            class="hz-input"
+            placeholder="Optional motto"
+          />
+
+          <label class="hz-label">Description</label>
+          <HorizonRichTextEditor
+            v-model="editForm.description"
+            :rows="8"
+            placeholder="Squadron description"
+          />
+
+          <div class="hz-row gap-2">
+            <HorizonButton variant="primary" size="sm" @click="saveSettings">
+              Save
+            </HorizonButton>
+            <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
+              Cancel
+            </HorizonButton>
+          </div>
         </div>
       </div>
 
-      <!-- Viewer Status -->
-      <SquadronViewerStatus
-        :viewerMembership="viewerMembership"
-        :permissions="permissions"
-        :squadron="squadron"
-        :isLoading="isLoading"
-        :activeAction="activeAction"
-        @apply="applyToSquadron"
-        @leave="leaveSquadron"
-      />
+      <div v-if="activeTab === 'status'" class="hz-animate-fade">
+        <SquadronViewerStatus
+          :viewerMembership="viewerMembership"
+          :permissions="permissions"
+          :squadron="squadron"
+          :isLoading="isLoading"
+          :activeAction="activeAction"
+          @apply="applyToSquadron"
+          @leave="leaveSquadron"
+        />
+      </div>
 
-      <!-- Roster -->
-      <SquadronRoster
-        :members="members"
-        :permissions="permissions"
-        :canPromoteLieutenant="canPromoteLieutenant"
-        :activeAction="activeAction"
-        @accept-member="acceptMember"
-        @reject-member="rejectMember"
-        @promote-lt="promoteLieutenant"
-        @demote-lt="demoteLieutenant"
-        @remove-member="removeMember"
-      />
+      <div v-if="activeTab === 'recruiting'" class="hz-animate-fade">
+        <div class="hz-stack">
+          <div class="hz-row-between items-center">
+            <div class="hz-section-label">Recruiting</div>
+            <HorizonButton
+              v-if="canEdit && !isRecruitingEditing"
+              size="sm"
+              variant="ghost"
+              @click="startRecruitingEdit"
+            >
+              Edit
+            </HorizonButton>
+          </div>
+
+          <div
+            v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+            class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
+            v-html="squadron.recruitment_propaganda"
+          />
+          <div v-else-if="!isRecruitingEditing" class="hz-soft">
+            No recruitment message provided.
+          </div>
+
+          <div v-else class="hz-stack gap-2">
+            <label class="hz-label">Recruitment Propaganda</label>
+            <HorizonRichTextEditor
+              v-model="editForm.recruitment_propaganda"
+              :rows="10"
+              placeholder="Write a recruitment message…"
+            />
+
+            <div class="hz-row gap-2">
+              <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                Save
+              </HorizonButton>
+              <HorizonButton variant="ghost" size="sm" @click="cancelRecruitingEdit">
+                Cancel
+              </HorizonButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'roster'" class="hz-animate-fade">
+        <SquadronRoster
+          :members="members"
+          :permissions="permissions"
+          :canPromoteLieutenant="canPromoteLieutenant"
+          :activeAction="activeAction"
+          @accept-member="acceptMember"
+          @reject-member="rejectMember"
+          @promote-lt="promoteLieutenant"
+          @demote-lt="demoteLieutenant"
+          @remove-member="removeMember"
+        />
+      </div>
     </template>
   </div>
 
@@ -536,7 +758,7 @@ watch(
 
       <div class="hz-row gap-2">
         <HorizonButton
-          v-if="canEdit && !isEditing"
+          v-if="canEdit && !isEditing && activeTab === 'overview'"
           variant="ghost"
           size="sm"
           @click="isEditing = true"
@@ -586,58 +808,181 @@ watch(
       </div>
 
       <template v-if="squadron">
-        <SquadronOverviewSection
-          v-if="!isEditing"
-          :squadron="squadron"
-        />
+        <!-- Tabs -->
+        <div
+          class="hz-row hz-text-soft gap-2"
+          style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
+        >
+          <HorizonButton
+            size="sm"
+            :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+            @click="setActiveTab('overview')"
+          >
+            Overview
+          </HorizonButton>
 
-        <div v-else class="hz-stack gap-2">
-          <label class="hz-label">Motto</label>
-          <input
-            v-model="editForm.motto"
-            class="hz-input"
-            placeholder="Optional motto"
+          <HorizonButton
+            size="sm"
+            :disabled="isEditing || isRecruitingEditing"
+            :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+            @click="setActiveTab('status')"
+          >
+            Status
+          </HorizonButton>
+
+          <HorizonButton
+            size="sm"
+            :disabled="isEditing || isRecruitingEditing"
+            :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+            @click="setActiveTab('recruiting')"
+          >
+            Recruiting
+          </HorizonButton>
+
+          <HorizonButton
+            size="sm"
+            :disabled="isEditing || isRecruitingEditing"
+            :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+            @click="setActiveTab('roster')"
+          >
+            Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+          </HorizonButton>
+        </div>
+
+        <div v-if="activeTab === 'overview'" class="hz-animate-fade">
+          <SquadronOverviewSection
+            v-if="!isEditing"
+            :squadron="squadron"
           />
 
-          <label class="hz-label">Description</label>
-          <textarea
-            v-model="editForm.description"
-            class="hz-textarea"
-            rows="4"
-            placeholder="Squadron description"
-          />
+          <div v-else class="hz-stack gap-2">
+            <label class="hz-label">Emblem</label>
 
-          <div class="hz-row gap-2">
-            <HorizonButton variant="primary" size="sm" @click="saveSettings">
-              Save
-            </HorizonButton>
-            <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
-              Cancel
-            </HorizonButton>
+            <div class="hz-row gap-3 items-center">
+              <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+                <img
+                  v-if="squadron?.emblem_url"
+                  :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
+                  :alt="squadron?.emblem?.alt_text || `${squadron?.name} emblem`"
+                  class="w-full h-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+
+              <div class="hz-row gap-2">
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="emblemSaving"
+                  @click="openEmblemPicker"
+                >
+                  Choose Emblem
+                </HorizonButton>
+
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="emblemSaving || !squadron?.emblem_url"
+                  @click="clearEmblem"
+                >
+                  Clear
+                </HorizonButton>
+              </div>
+            </div>
+
+            <label class="hz-label">Motto</label>
+            <input
+              v-model="editForm.motto"
+              class="hz-input"
+              placeholder="Optional motto"
+            />
+
+            <label class="hz-label">Description</label>
+            <HorizonRichTextEditor
+              v-model="editForm.description"
+              :rows="8"
+              placeholder="Squadron description"
+            />
+
+            <div class="hz-row gap-2">
+              <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                Save
+              </HorizonButton>
+              <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
+                Cancel
+              </HorizonButton>
+            </div>
           </div>
         </div>
 
-        <SquadronViewerStatus
-          :viewerMembership="viewerMembership"
-          :permissions="permissions"
-          :squadron="squadron"
-          :isLoading="isLoading"
-          :activeAction="activeAction"
-          @apply="applyToSquadron"
-          @leave="leaveSquadron"
-        />
+        <div v-if="activeTab === 'status'" class="hz-animate-fade">
+          <SquadronViewerStatus
+            :viewerMembership="viewerMembership"
+            :permissions="permissions"
+            :squadron="squadron"
+            :isLoading="isLoading"
+            :activeAction="activeAction"
+            @apply="applyToSquadron"
+            @leave="leaveSquadron"
+          />
+        </div>
 
-        <SquadronRoster
-          :members="members"
-          :permissions="permissions"
-          :canPromoteLieutenant="canPromoteLieutenant"
-          :activeAction="activeAction"
-          @accept-member="acceptMember"
-          @reject-member="rejectMember"
-          @promote-lt="promoteLieutenant"
-          @demote-lt="demoteLieutenant"
-          @remove-member="removeMember"
-        />
+        <div v-if="activeTab === 'recruiting'" class="hz-animate-fade">
+          <div class="hz-stack">
+            <div class="hz-row-between items-center">
+              <div class="hz-section-label">Recruiting</div>
+              <HorizonButton
+                v-if="canEdit && !isRecruitingEditing"
+                size="sm"
+                variant="ghost"
+                @click="startRecruitingEdit"
+              >
+                Edit
+              </HorizonButton>
+            </div>
+
+            <div
+              v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+              class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
+              v-html="squadron.recruitment_propaganda"
+            />
+            <div v-else-if="!isRecruitingEditing" class="hz-soft">
+              No recruitment message provided.
+            </div>
+
+            <div v-else class="hz-stack gap-2">
+              <label class="hz-label">Recruitment Propaganda</label>
+              <HorizonRichTextEditor
+                v-model="editForm.recruitment_propaganda"
+                :rows="10"
+                placeholder="Write a recruitment message…"
+              />
+
+              <div class="hz-row gap-2">
+                <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                  Save
+                </HorizonButton>
+                <HorizonButton variant="ghost" size="sm" @click="cancelRecruitingEdit">
+                  Cancel
+                </HorizonButton>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="activeTab === 'roster'" class="hz-animate-fade">
+          <SquadronRoster
+            :members="members"
+            :permissions="permissions"
+            :canPromoteLieutenant="canPromoteLieutenant"
+            :activeAction="activeAction"
+            @accept-member="acceptMember"
+            @reject-member="rejectMember"
+            @promote-lt="promoteLieutenant"
+            @demote-lt="demoteLieutenant"
+            @remove-member="removeMember"
+          />
+        </div>
       </template>
     </section>
   </section>
@@ -668,7 +1013,7 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="canEdit && !isEditing"
+            v-if="canEdit && !isEditing && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
@@ -718,63 +1063,194 @@ watch(
         </div>
 
         <template v-if="squadron">
-          <!-- Overview / Edit -->
-          <SquadronOverviewSection
-            v-if="!isEditing"
-            :squadron="squadron"
-          />
+          <!-- Tabs -->
+          <div
+            class="hz-row hz-text-soft gap-2"
+            style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
+          >
+            <HorizonButton
+              size="sm"
+              :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+              @click="setActiveTab('overview')"
+            >
+              Overview
+            </HorizonButton>
 
-          <div v-else class="hz-stack gap-2">
-            <label class="hz-label">Motto</label>
-            <input
-              v-model="editForm.motto"
-              class="hz-input"
-              placeholder="Optional motto"
+            <HorizonButton
+              size="sm"
+              :disabled="isEditing || isRecruitingEditing"
+              :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+              @click="setActiveTab('status')"
+            >
+              Status
+            </HorizonButton>
+
+            <HorizonButton
+              size="sm"
+              :disabled="isEditing || isRecruitingEditing"
+              :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+              @click="setActiveTab('recruiting')"
+            >
+              Recruiting
+            </HorizonButton>
+
+            <HorizonButton
+              size="sm"
+              :disabled="isEditing || isRecruitingEditing"
+              :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+              @click="setActiveTab('roster')"
+            >
+              Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+            </HorizonButton>
+          </div>
+
+          <div v-if="activeTab === 'overview'" class="hz-animate-fade">
+            <!-- Overview / Edit -->
+            <SquadronOverviewSection
+              v-if="!isEditing"
+              :squadron="squadron"
             />
 
-            <label class="hz-label">Description</label>
-            <textarea
-              v-model="editForm.description"
-              class="hz-textarea"
-              rows="4"
-              placeholder="Squadron description"
-            />
+            <div v-else class="hz-stack gap-2">
+              <label class="hz-label">Emblem</label>
 
-            <div class="hz-row gap-2">
-              <HorizonButton variant="primary" size="sm" @click="saveSettings">
-                Save
-              </HorizonButton>
-              <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
-                Cancel
-              </HorizonButton>
+              <div class="hz-row gap-3 items-center">
+                <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+                  <img
+                    v-if="squadron?.emblem_url"
+                    :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
+                    :alt="squadron?.emblem?.alt_text || `${squadron?.name} emblem`"
+                    class="w-full h-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div class="hz-row gap-2">
+                  <HorizonButton
+                    variant="ghost"
+                    size="sm"
+                    :disabled="emblemSaving"
+                    @click="openEmblemPicker"
+                  >
+                    Choose Emblem
+                  </HorizonButton>
+
+                  <HorizonButton
+                    variant="ghost"
+                    size="sm"
+                    :disabled="emblemSaving || !squadron?.emblem_url"
+                    @click="clearEmblem"
+                  >
+                    Clear
+                  </HorizonButton>
+                </div>
+              </div>
+
+              <label class="hz-label">Motto</label>
+              <input
+                v-model="editForm.motto"
+                class="hz-input"
+                placeholder="Optional motto"
+              />
+
+              <label class="hz-label">Description</label>
+              <HorizonRichTextEditor
+                v-model="editForm.description"
+                :rows="8"
+                placeholder="Squadron description"
+              />
+
+              <div class="hz-row gap-2">
+                <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                  Save
+                </HorizonButton>
+                <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
+                  Cancel
+                </HorizonButton>
+              </div>
             </div>
           </div>
 
-          <!-- Viewer Status -->
-          <SquadronViewerStatus
-            :viewerMembership="viewerMembership"
-            :permissions="permissions"
-            :squadron="squadron"
-            :isLoading="isLoading"
-            :activeAction="activeAction"
-            @apply="applyToSquadron"
-            @leave="leaveSquadron"
-          />
+          <div v-if="activeTab === 'status'" class="hz-animate-fade">
+            <!-- Viewer Status -->
+            <SquadronViewerStatus
+              :viewerMembership="viewerMembership"
+              :permissions="permissions"
+              :squadron="squadron"
+              :isLoading="isLoading"
+              :activeAction="activeAction"
+              @apply="applyToSquadron"
+              @leave="leaveSquadron"
+            />
+          </div>
 
-          <!-- Roster -->
-          <SquadronRoster
-            :members="members"
-            :permissions="permissions"
-            :canPromoteLieutenant="canPromoteLieutenant"
-            :activeAction="activeAction"
-            @accept-member="acceptMember"
-            @reject-member="rejectMember"
-            @promote-lt="promoteLieutenant"
-            @demote-lt="demoteLieutenant"
-            @remove-member="removeMember"
-          />
+          <div v-if="activeTab === 'recruiting'" class="hz-animate-fade">
+            <div class="hz-stack">
+              <div class="hz-row-between items-center">
+                <div class="hz-section-label">Recruiting</div>
+                <HorizonButton
+                  v-if="canEdit && !isRecruitingEditing"
+                  size="sm"
+                  variant="ghost"
+                  @click="startRecruitingEdit"
+                >
+                  Edit
+                </HorizonButton>
+              </div>
+
+              <div
+                v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+                class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
+                v-html="squadron.recruitment_propaganda"
+              />
+              <div v-else-if="!isRecruitingEditing" class="hz-soft">
+                No recruitment message provided.
+              </div>
+
+              <div v-else class="hz-stack gap-2">
+                <label class="hz-label">Recruitment Propaganda</label>
+                <HorizonRichTextEditor
+                  v-model="editForm.recruitment_propaganda"
+                  :rows="10"
+                  placeholder="Write a recruitment message…"
+                />
+
+                <div class="hz-row gap-2">
+                  <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                    Save
+                  </HorizonButton>
+                  <HorizonButton variant="ghost" size="sm" @click="cancelRecruitingEdit">
+                    Cancel
+                  </HorizonButton>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'roster'" class="hz-animate-fade">
+            <!-- Roster -->
+            <SquadronRoster
+              :members="members"
+              :permissions="permissions"
+              :canPromoteLieutenant="canPromoteLieutenant"
+              :activeAction="activeAction"
+              @accept-member="acceptMember"
+              @reject-member="rejectMember"
+              @promote-lt="promoteLieutenant"
+              @demote-lt="demoteLieutenant"
+              @remove-member="removeMember"
+            />
+          </div>
         </template>
       </section>
     </section>
   </div>
+
+  <MediaPickerModal
+    :open="emblemPickerOpen"
+    collection="squadron_emblem"
+    title="Select Squadron Emblem"
+    @close="closeEmblemPicker"
+    @selected="setEmblem"
+  />
 </template>

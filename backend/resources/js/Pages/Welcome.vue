@@ -12,7 +12,11 @@
       </div>
 
       <h2 class="hz-title-xl text-horizon-white hz-glyph tracking-wide">
-        Horizon Interstellar
+        <img
+          src="/images/PNG_Horizontally_Logo.png"
+          alt="Horizon Interstellar"
+          class="mx-auto h-24 sm:h-28 md:h-32 lg:h-36 w-auto max-w-full object-contain"
+        />
       </h2>
       <br>
       <p class="hz-body text-text-secondary max-w-[48rem] mx-auto">

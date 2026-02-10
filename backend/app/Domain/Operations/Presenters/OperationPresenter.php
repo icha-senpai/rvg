@@ -48,7 +48,7 @@ class OperationPresenter
             'created_by'  => $this->operation->created_by,
 
             'creator' => $this->operation->creator
-                ? $this->operation->creator->only(['id', 'rsi_handle'])
+                ? $this->operation->creator->only(['id', 'rsi_handle', 'discord_avatar'])
                 : null,
 
             'squadron' => [
@@ -110,6 +110,7 @@ class OperationPresenter
             'creator' => [
                 'id'   => $this->operation->creator?->id,
                 'rsi_handle' => $this->operation->creator?->rsi_handle,
+                'discord_avatar' => $this->operation->creator?->discord_avatar,
             ],
 
             'squadron' => [

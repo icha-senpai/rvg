@@ -74,7 +74,7 @@ createInertiaApp({
         ).then((module) => {
             const page = module?.default ?? module;
 
-            if (name === 'Verify') {
+            if (name === 'Verify' || name === 'Error') {
                 page.layout = null;
             } else if (page.layout === undefined) {
                 page.layout = AppShell;
@@ -87,6 +87,7 @@ createInertiaApp({
         const app = createApp({ render: () => h(App, props) });
 
         app.use(plugin);
+
         app.config.globalProperties.route = (name, params, absolute = false) =>
             route(name, params, absolute, Ziggy);
         /* ============================================================

@@ -18,21 +18,35 @@
         :key="sq.id"
         class="hz-card-soft hz-row-between !border !border-[color:var(--horizon-sunset-blue)]"
       >
-        <div class="space-y-1">
-          <div class="hz-title">{{ sq.name }}</div>
-
-          <div class="hz-caption text-horizon-muted">
-            Slug: {{ sq.slug }}
+        <div class="hz-row gap-3 items-center">
+          <div
+            v-if="sq?.emblem_url"
+            class="w-24 h-24 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0"
+          >
+            <img
+              :src="sq?.emblem?.thumbnail_url || sq?.emblem?.medium_url || sq?.emblem?.url || sq?.emblem_url"
+              :alt="sq?.emblem?.alt_text || `${sq?.name} emblem`"
+              class="w-full h-full object-contain"
+              loading="lazy"
+            />
           </div>
 
-          <div class="hz-caption text-horizon-muted">
-            Status: {{ sq.status }}
-          </div>
+          <div class="space-y-1">
+            <div class="hz-title">{{ sq.name }}</div>
 
-          <div class="hz-caption text-horizon-muted">
-            Leader:
-            <span v-if="sq.leader"> {{ sq.leader.discord_name }} </span>
-            <span v-else>None</span>
+            <div class="hz-caption text-horizon-muted">
+              Slug: {{ sq.slug }}
+            </div>
+
+            <div class="hz-caption text-horizon-muted">
+              Status: {{ sq.status }}
+            </div>
+
+            <div class="hz-caption text-horizon-muted">
+              Leader:
+              <span v-if="sq.leader"> {{ sq.leader.discord_name }} </span>
+              <span v-else>None</span>
+            </div>
           </div>
         </div>
 

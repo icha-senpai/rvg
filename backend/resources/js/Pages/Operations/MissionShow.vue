@@ -6,7 +6,7 @@ import ProgressPill from '@/Components/ProgressPill.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
 
 import { ref, reactive, computed, watch } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
   operation: Object,
@@ -18,30 +18,6 @@ const props = defineProps({
 
 const operation = props.operation;
 const currentParticipant = computed(() => props.currentParticipant ?? null);
-
-const page = usePage();
-const user = computed(() => page.props.auth?.user ?? null);
-
-const canManageOperation = computed(() => {
-  const op = operation;
-  if (!user.value) return false;
-
-  const roles = user.value?.roles ?? [];
-  const isDirectorLike = roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
-  if (isDirectorLike) return true;
-
-  const squadronId = op?.squadron?.id;
-  if (!squadronId) return false;
-
-  const membership = user.value?.squadrons?.find(s => s.id === squadronId);
-  if (!membership) return false;
-
-  const membershipStatus = membership.pivot?.membership_status;
-  if (membershipStatus && membershipStatus !== 'active') return false;
-
-  const role = membership.pivot?.role;
-  return role === 'leader' || role === 'lieutenant';
-});
 
 const calendarChoice = ref('');
 const calendarOptions = [
@@ -333,69 +309,6 @@ watch(
 );
 
 const joinProcessing = ref(false);
-const transitionProcessing = ref(false);
-
-async function startOperation() {
-  if (transitionProcessing.value) return;
-  if (!confirm('Start this operation?')) return;
-
-  transitionProcessing.value = true;
-
-  router.post(
-    route('operations.start', operation.id),
-    {},
-    {
-      preserveScroll: true,
-      onFinish: () => {
-        transitionProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
-      },
-    }
-  );
-}
-
-async function completeOperation() {
-  if (transitionProcessing.value) return;
-  if (!confirm('Mark this operation as completed?')) return;
-
-  transitionProcessing.value = true;
-
-  router.post(
-    route('operations.complete', operation.id),
-    {},
-    {
-      preserveScroll: true,
-      onFinish: () => {
-        transitionProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
-      },
-    }
-  );
-}
-
-async function cancelOperation() {
-  if (transitionProcessing.value) return;
-
-  const reason = prompt('Cancellation reason (optional):');
-  if (reason === null) return;
-  if (!confirm('Cancel this operation?')) return;
-
-  transitionProcessing.value = true;
-
-  router.post(
-    route('operations.cancel', operation.id),
-    {
-      reason: reason || null,
-    },
-    {
-      preserveScroll: true,
-      onFinish: () => {
-        transitionProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
-      },
-    }
-  );
-}
 
 /* ============================================================
    JOIN (WEB)
@@ -517,51 +430,15 @@ async function updateSlot() {
     <!-- OPERATION IMAGE -->
     <div
       v-if="operation.media_image"
-      class="mx-auto max-w-5xl"
+      class="mx-auto max-w-5xl bg-[var(--color-bg-surface)]"
       style="border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--horizon-sunset-blue);"
     >
       <img
         :src="operation.media_image.medium_url || operation.media_image.url"
         :alt="operation.media_image.alt_text || operation.title"
-        style="width: 100%; max-height: 320px; object-fit: cover; display: block;"
+        style="width: 100%; max-height: min(60vh, 520px); object-fit: contain; display: block;"
       />
     </div>
-
-    <HorizonPanel
-      v-if="canManageOperation"
-      class="mx-auto max-w-5xl rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
-    >
-      <div class="hz-section-label mb-3">Operation Controls</div>
-
-      <div class="flex gap-3 flex-wrap">
-        <HorizonButton
-          v-if="operation.status === 'published'"
-          variant="primary"
-          @click="startOperation"
-          :disabled="transitionProcessing"
-        >
-          Start
-        </HorizonButton>
-
-        <HorizonButton
-          v-if="operation.status === 'in_progress'"
-          variant="primary"
-          @click="completeOperation"
-          :disabled="transitionProcessing"
-        >
-          End
-        </HorizonButton>
-
-        <HorizonButton
-          v-if="['published', 'in_progress'].includes(operation.status)"
-          variant="danger"
-          @click="cancelOperation"
-          :disabled="transitionProcessing"
-        >
-          Cancel
-        </HorizonButton>
-      </div>
-    </HorizonPanel>
 
     <!-- MAIN GRID -->
     <div class="mb-20 mx-auto max-w-5xl space-y-10">

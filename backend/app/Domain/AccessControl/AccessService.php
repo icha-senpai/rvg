@@ -129,7 +129,7 @@ class AccessService
         }
 
         if (!$squadron) {
-            if ((int) ($user->rank_level ?? 0) >= 3) {
+            if ((int) ($user->rank_level ?? 0) >= 2) {
                 return true;
             }
 
@@ -141,7 +141,7 @@ class AccessService
             ]);
         }
 
-        if ((int) ($user->rank_level ?? 0) >= 3
+        if ((int) ($user->rank_level ?? 0) >= 2
             || $this->hasAnyRole($user, [
                 'commander_staff',
                 'wing_commander',

@@ -6,7 +6,7 @@
       <div class="hz-stack-sm">
         <div class="hz-title-lg">Media Library</div>
         <div class="hz-text-muted">
-          {{ totalCount }} files · {{ humanTotalSize }}
+          {{ totalCount }} files · {{ humanTotalSize }} · If close to 8 GB consider Cloudflare R2 Storage
         </div>
       </div>
 
@@ -236,9 +236,18 @@
 
         <!-- ACTIONS -->
         <div class="hz-row-between" style="padding-top: var(--space-sm);">
-          <HorizonButton variant="danger" size="sm" @click="deleteMedia(detailItem.id)">
-            Delete
-          </HorizonButton>
+          <div class="hz-row" style="gap: var(--space-sm);">
+            <a
+              :href="`/admin/media/${detailItem.id}/download`"
+              class="hz-btn hz-btn-sm hz-btn-ghost"
+            >
+              Download Original
+            </a>
+
+            <HorizonButton variant="danger" size="sm" @click="deleteMedia(detailItem.id)">
+              Delete
+            </HorizonButton>
+          </div>
 
           <div class="hz-row">
             <HorizonButton variant="ghost" size="sm" @click="closeDetailModal">Cancel</HorizonButton>
@@ -346,7 +355,8 @@ async function loadStats() {
       headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
     });
     const json = await res.json();
-    totalCount.value = json.payload?.media?.total || 0;
+    totalCount.value = json.payload?.stats?.total ?? json.payload?.media?.total ?? 0;
+    totalSize.value = json.payload?.stats?.total_size ?? 0;
   } catch (err) {
     // stats are non-critical
   }

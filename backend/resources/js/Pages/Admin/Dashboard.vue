@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import UsersPanel from './Partials/UsersPanel.vue';
 import SquadronsPanel from './Partials/SquadronsPanel.vue';
@@ -80,5 +80,86 @@ const props = defineProps({
   eligibleLeaders: Array,
 });
 
-const activeTab = ref('users');
+const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media']);
+const activeTabStorageKey = 'adminDashboard.activeTab';
+
+function getTabFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  return allowedTabs.has(tab) ? tab : null;
+}
+
+function setTabInUrl(tab) {
+  const url = new URL(window.location.href);
+
+  if (tab && allowedTabs.has(tab)) {
+    url.searchParams.set('tab', tab);
+  } else {
+    url.searchParams.delete('tab');
+  }
+
+  window.history.replaceState({}, '', url);
+}
+
+function getInitialTab() {
+  const urlTab = getTabFromUrl();
+  if (urlTab) return urlTab;
+
+  const saved = window.sessionStorage.getItem(activeTabStorageKey);
+  if (allowedTabs.has(saved)) return saved;
+
+  return 'users';
+}
+
+const activeTab = ref(getInitialTab());
+
+const scrollStorageKeyForTab = (tab) => `adminDashboard.scrollY.${tab}`;
+let scrollDebounceId = null;
+
+function persistScrollPosition() {
+  if (scrollDebounceId) return;
+
+  scrollDebounceId = window.setTimeout(() => {
+    scrollDebounceId = null;
+    window.sessionStorage.setItem(scrollStorageKeyForTab(activeTab.value), String(window.scrollY || 0));
+  }, 50);
+}
+
+function restoreScrollPosition() {
+  const raw = window.sessionStorage.getItem(scrollStorageKeyForTab(activeTab.value));
+  const y = raw ? Number(raw) : 0;
+  if (!Number.isFinite(y) || y <= 0) return;
+
+  nextTick(() => {
+    window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+  });
+}
+
+watch(
+  () => activeTab.value,
+  (tab, prevTab) => {
+    window.sessionStorage.setItem(activeTabStorageKey, tab);
+    setTabInUrl(tab);
+
+    if (prevTab) {
+      window.sessionStorage.setItem(scrollStorageKeyForTab(prevTab), String(window.scrollY || 0));
+    }
+
+    restoreScrollPosition();
+  },
+  { immediate: true }
+);
+
+onMounted(() => {
+  restoreScrollPosition();
+  window.addEventListener('scroll', persistScrollPosition, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', persistScrollPosition);
+  if (scrollDebounceId) {
+    clearTimeout(scrollDebounceId);
+    scrollDebounceId = null;
+  }
+});
 </script>

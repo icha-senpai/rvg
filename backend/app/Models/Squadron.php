@@ -17,6 +17,7 @@ class Squadron extends Model
         'secondary_color',
         'emblem_path',
         'recruiting',
+        'recruitment_propaganda',
     ];
 
     protected $casts = [

@@ -18,6 +18,27 @@ class UpdateMeRequest extends FormRequest
             'bio' => ['nullable', 'string', 'max:1000'],
             'timezone' => ['nullable', 'string', 'max:64'],
 
+            'favorite_ships' => ['nullable', 'array'],
+            'favorite_ships.*' => ['string', 'max:80'],
+
+            'favorite_guns' => ['nullable', 'array'],
+            'favorite_guns.*' => ['string', 'max:80'],
+
+            'primary_role' => ['nullable', 'string', 'max:64'],
+            'secondary_role' => ['nullable', 'string', 'max:64'],
+
+            'experience_ratings' => ['nullable', 'array'],
+            'experience_ratings.space_combat' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'experience_ratings.ground_combat' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'experience_ratings.logistics_support' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'experience_ratings.medical' => ['nullable', 'integer', 'min:1', 'max:5'],
+
+            'preferred_gameplay_style' => ['nullable', 'string', 'max:64'],
+
+            'callsign' => ['nullable', 'string', 'max:64'],
+
+            'typical_op_commitment' => ['nullable', 'string', 'max:16', 'in:full,partial,flexible'],
+
             'preferred_roles' => ['nullable', 'array'],
             'preferred_roles.*' => ['string', 'max:50'],
 
