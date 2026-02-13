@@ -117,7 +117,13 @@ class SquadronManageController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSquadronLeader($squadron)) {
+        $canUpload = $user->isSquadronLeader($squadron)
+            || (
+                (int) ($user->rank_level ?? 0) >= 2
+                && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
+            );
+
+        if (! $canUpload) {
             abort(403);
         }
 

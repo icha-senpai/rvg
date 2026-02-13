@@ -113,12 +113,18 @@ class SquadronController extends Controller
     /** PUT /api/v1/squadrons/{squadron} */
     public function update(SquadronUpdateRequest $request, Squadron $squadron)
     {
-        $this->authorize('update', $squadron);
-
         $data = $request->validated();
         $emblemMediaId = $data['emblem_media_id'] ?? null;
         $emblemKeyExists = array_key_exists('emblem_media_id', $data);
         unset($data['emblem_media_id']);
+
+        $hasOtherUpdates = count($data) > 0;
+
+        if ($hasOtherUpdates) {
+            $this->authorize('update', $squadron);
+        } else {
+            $this->authorize('view', $squadron);
+        }
 
         if ($emblemKeyExists) {
             $user = Auth::user();
@@ -129,7 +135,14 @@ class SquadronController extends Controller
 
             $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
 
-            if (! $isDirectorLike && ! $user->isSquadronLeader($squadron)) {
+            $canUpdateEmblem = $isDirectorLike
+                || $user->isSquadronLeader($squadron)
+                || (
+                    (int) ($user->rank_level ?? 0) >= 2
+                    && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
+                );
+
+            if (! $canUpdateEmblem) {
                 abort(403);
             }
         }

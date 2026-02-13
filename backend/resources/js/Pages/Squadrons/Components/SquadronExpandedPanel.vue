@@ -194,15 +194,22 @@ const canEdit = computed(() =>
 
 const page = usePage()
 const authUser = computed(() => page.props.auth?.user ?? null)
+const authRankLevel = computed(() => Number(authUser.value?.rank_level ?? 0))
 
 const isDirectorLike = computed(() => {
   const roles = authUser.value?.roles ?? []
   return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
 })
 
-const canEditEmblem = computed(() =>
-  viewerMembership.value?.is_leader === true || isDirectorLike.value
-)
+const canEditEmblem = computed(() => {
+  if (isDirectorLike.value) return true
+  if (viewerMembership.value?.is_leader === true) return true
+
+  return (
+    authRankLevel.value >= 2
+    && viewerMembership.value?.membership_status === 'active'
+  )
+})
 
 const activeMemberCount = computed(() =>
   (members.value ?? []).filter(m => m?.membership_status === 'active').length
@@ -665,7 +672,7 @@ watch(
           <label class="hz-label">Emblem</label>
 
           <div class="hz-row gap-3 items-center">
-            <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+            <div class="w-20 h-20 rounded-lg overflow-hidden border border-(--horizon-sunset-blue) bg-bg-surface shrink-0">
               <img
                 v-if="squadron?.emblem_url"
                 :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
@@ -798,7 +805,7 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col !border !border-[color:var(--horizon-sunset-blue)]"
+    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col border! border-(--horizon-sunset-blue)!"
   >
     <header
       class="shrink-0 px-6 py-4 border-b border-white/10 flex items-start justify-between"
@@ -918,7 +925,7 @@ watch(
             <label class="hz-label">Emblem</label>
 
             <div class="hz-row gap-3 items-center">
-              <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+              <div class="w-20 h-20 rounded-lg overflow-hidden border border-(--horizon-sunset-blue) bg-bg-surface shrink-0">
                 <img
                   v-if="squadron?.emblem_url"
                   :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
@@ -1058,7 +1065,7 @@ watch(
       :class="[
         'relative z-50 w-full max-w-5xl max-h-[90vh]',
         'bg-bg-surface',
-        '!border !border-[color:var(--horizon-sunset-blue)]',
+        'border! border-(--horizon-sunset-blue)!',
         'rounded-2xl shadow-2xl',
         'flex flex-col overflow-hidden',
         closing ? 'hz-animate-modal-out' : 'hz-animate-modal-in'
@@ -1183,7 +1190,7 @@ watch(
               <label class="hz-label">Emblem</label>
 
               <div class="hz-row gap-3 items-center">
-                <div class="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)] bg-bg-surface shrink-0">
+                <div class="w-20 h-20 rounded-lg overflow-hidden border border-(--horizon-sunset-blue) bg-bg-surface shrink-0">
                   <img
                     v-if="squadron?.emblem_url"
                     :src="squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
@@ -1317,6 +1324,7 @@ watch(
     :open="emblemPickerOpen"
     collection="squadron_emblem"
     :squadronId="props.squadronId"
+    :allowUpload="canEditEmblem"
     title="Select Squadron Emblem"
     @close="closeEmblemPicker"
     @selected="setEmblem"

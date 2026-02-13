@@ -6,7 +6,6 @@ use App\Models\Media;
 use App\Models\Squadron;
 use App\Models\User;
 use App\Domain\AccessControl\AccessService;
-use App\Domain\AccessControl\RoleHierarchy;
 
 class MediaPolicy
 {
@@ -39,10 +38,25 @@ class MediaPolicy
 
             if ($media->mediable_type === Squadron::class && $media->mediable_id) {
                 $squadron = Squadron::find((int) $media->mediable_id);
-                return $squadron ? $user->isSquadronLeader($squadron) : false;
+                if (! $squadron) {
+                    return false;
+                }
+
+                if ($user->isSquadronLeader($squadron)) {
+                    return true;
+                }
+
+                if ((int) ($user->rank_level ?? 0) < 2) {
+                    return false;
+                }
+
+                return $user->squadronMemberships()
+                    ->active()
+                    ->where('squadron_id', $squadron->id)
+                    ->exists();
             }
 
-            return false;
+            return (int) ($user->rank_level ?? 0) >= 2;
         }
 
         // Directors see everything
@@ -57,16 +71,11 @@ class MediaPolicy
 
         if ($media->collection === Media::COLLECTION_SHIP_IMAGE
             || $media->collection === Media::COLLECTION_SITE_ASSET) {
-            return false;
+            return (int) ($user->rank_level ?? 0) >= 2;
         }
 
         if ($media->collection === Media::COLLECTION_OPERATION_IMAGE) {
-            if ((int) ($user->rank_level ?? 0) >= 2) {
-                return true;
-            }
-
-            $user->loadMissing('roles:id,slug');
-            return RoleHierarchy::userAtLeast($user, 'lieutenant');
+            return (int) ($user->rank_level ?? 0) >= 2;
         }
 
         // Public collections are visible to all authenticated users
@@ -92,7 +101,22 @@ class MediaPolicy
             }
 
             $squadron = Squadron::find($squadronId);
-            return $squadron ? $user->isSquadronLeader($squadron) : false;
+            if (! $squadron) {
+                return false;
+            }
+
+            if ($user->isSquadronLeader($squadron)) {
+                return true;
+            }
+
+            if ((int) ($user->rank_level ?? 0) < 2) {
+                return false;
+            }
+
+            return $user->squadronMemberships()
+                ->active()
+                ->where('squadron_id', $squadron->id)
+                ->exists();
         }
 
         // Directors and tech directors can upload to any collection (except emblems)
@@ -109,17 +133,13 @@ class MediaPolicy
 
             // Operation creators can attach images
             // (operation-level check happens in the controller)
-            Media::COLLECTION_OPERATION_IMAGE => (int) ($user->rank_level ?? 0) >= 2
-                || (function () use ($user) {
-                    $user->loadMissing('roles:id,slug');
-                    return RoleHierarchy::userAtLeast($user, 'lieutenant');
-                })(),
+            Media::COLLECTION_OPERATION_IMAGE => (int) ($user->rank_level ?? 0) >= 2,
 
-            // Ship images: directors only
-            Media::COLLECTION_SHIP_IMAGE => false,
+            // Ship images: rank level 2+ (or director-like above)
+            Media::COLLECTION_SHIP_IMAGE => (int) ($user->rank_level ?? 0) >= 2,
 
-            // Site assets: directors only
-            Media::COLLECTION_SITE_ASSET => false,
+            // Site assets: rank level 2+ (or director-like above)
+            Media::COLLECTION_SITE_ASSET => (int) ($user->rank_level ?? 0) >= 2,
 
             default => false,
         };

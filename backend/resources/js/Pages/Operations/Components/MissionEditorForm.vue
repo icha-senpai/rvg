@@ -273,6 +273,11 @@ const isDirectorLike = computed(() => {
   return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
 })
 
+const canUploadOperationImages = computed(() => {
+  if (isDirectorLike.value) return true
+  return Number(authUser.value?.rank_level ?? 0) >= 2
+})
+
 const canSaveSquadronTemplate = computed(() => {
   const squadronId = Number(props.squadronId)
   if (!Number.isFinite(squadronId) || !squadronId) return false
@@ -1244,6 +1249,7 @@ async function destroyOperation() {
         <MediaPickerModal
           :open="mediaPickerOpen"
           collection="operation_image"
+          :allowUpload="canUploadOperationImages"
           title="Select Operation Image"
           @close="mediaPickerOpen = false"
           @selected="handleMediaSelected"

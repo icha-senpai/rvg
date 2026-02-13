@@ -22,6 +22,7 @@
           Browse
         </HorizonButton>
         <HorizonButton
+          v-if="allowUpload"
           size="sm"
           :variant="activeTab === 'upload' ? 'primary' : 'ghost'"
           @click="activeTab = 'upload'"
@@ -98,7 +99,7 @@
       </div>
 
       <!-- UPLOAD TAB -->
-      <div v-if="activeTab === 'upload'" class="hz-stack">
+      <div v-if="allowUpload && activeTab === 'upload'" class="hz-stack">
 
         <div>
           <label class="hz-text-soft">Alt Text (optional)</label>
@@ -173,6 +174,7 @@ const props = defineProps({
   squadronId: { type: [Number, String], default: null },
   /** Modal title */
   title: { type: String, default: 'Select Image' },
+  allowUpload: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['close', 'selected']);
@@ -334,7 +336,16 @@ function resetState() {
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     resetState();
+    if (!props.allowUpload && activeTab.value === 'upload') {
+      activeTab.value = 'browse';
+    }
     loadMedia(1);
+  }
+});
+
+watch(() => props.allowUpload, (allowed) => {
+  if (!allowed && activeTab.value === 'upload') {
+    activeTab.value = 'browse';
   }
 });
 

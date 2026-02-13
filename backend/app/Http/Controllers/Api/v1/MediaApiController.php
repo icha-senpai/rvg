@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Domain\Media\MediaService;
 use App\Domain\Media\Presenters\MediaPresenter;
-use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\Squadron;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -40,9 +39,13 @@ class MediaApiController extends Controller
             ? ($user->hasRole('director') || $user->hasRole('tech_director'))
             : false;
 
+        $canUseAdminCollections = $user
+            ? ((int) ($user->rank_level ?? 0) >= 2)
+            : false;
+
         if ($collection === Media::COLLECTION_SHIP_IMAGE
             || $collection === Media::COLLECTION_SITE_ASSET) {
-            if (! $isDirectorLike) {
+            if (! $isDirectorLike && ! $canUseAdminCollections) {
                 abort(403);
             }
         }
@@ -56,7 +59,18 @@ class MediaApiController extends Controller
             }
 
             $squadron = Squadron::find($squadronId);
-            if (! $squadron || ! $user || ! $user->isSquadronLeader($squadron)) {
+
+            $canBrowseEmblems = $squadron
+                && $user
+                && (
+                    $user->isSquadronLeader($squadron)
+                    || (
+                        (int) ($user->rank_level ?? 0) >= 2
+                        && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
+                    )
+                );
+
+            if (! $canBrowseEmblems) {
                 abort(403);
             }
         }
@@ -64,11 +78,6 @@ class MediaApiController extends Controller
         $canBrowseOperationImages = false;
         if ($user) {
             $canBrowseOperationImages = (int) ($user->rank_level ?? 0) >= 2;
-
-            if (! $canBrowseOperationImages) {
-                $user->loadMissing('roles:id,slug');
-                $canBrowseOperationImages = RoleHierarchy::userAtLeast($user, 'lieutenant');
-            }
         }
 
         $publicCollections = [
@@ -82,6 +91,8 @@ class MediaApiController extends Controller
                 if (! $canBrowseOperationImages) {
                     $filters['uploaded_by'] = $user?->id;
                 }
+            } elseif ($collection === Media::COLLECTION_SHIP_IMAGE
+                || $collection === Media::COLLECTION_SITE_ASSET) {
             } elseif ($collection === Media::COLLECTION_SQUADRON_EMBLEM) {
                 // squadron leader may browse the emblem library
             } elseif (! in_array($collection, $publicCollections, true)) {
