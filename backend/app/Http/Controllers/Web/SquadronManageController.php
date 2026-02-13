@@ -128,7 +128,7 @@ class SquadronManageController extends Controller
         }
 
         $data = $request->validate([
-            'emblem' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'emblem' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:51200'],
         ]);
 
         $this->squadrons->uploadEmblem($squadron, $request->file('emblem'));
