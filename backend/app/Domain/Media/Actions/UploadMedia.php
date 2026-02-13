@@ -30,7 +30,7 @@ class UploadMedia
         string $collection,
         array $options = []
     ): Media {
-        $this->validate($file, $collection);
+        $mime = $this->validate($file, $collection);
 
         $disk = 'public';
         $basePath = $this->buildBasePath($collection, $uploader->id);
@@ -51,7 +51,6 @@ class UploadMedia
         $thumbnailPath = null;
         $mediumPath = null;
 
-        $mime = $file->getMimeType();
         $canGenerateVariants = $this->canGenerateVariants($mime);
 
         if ($canGenerateVariants) {
@@ -86,7 +85,7 @@ class UploadMedia
      | VALIDATION
      ------------------------------------------ */
 
-    protected function validate(UploadedFile $file, string $collection): void
+    protected function validate(UploadedFile $file, string $collection): string
     {
         if (! in_array($collection, Media::COLLECTIONS, true)) {
             throw ValidationException::withMessages([
@@ -94,12 +93,54 @@ class UploadMedia
             ]);
         }
 
-        $mime = $file->getMimeType();
+        $mimeAliases = [
+            'image/jpg' => 'image/jpeg',
+            'image/pjpeg' => 'image/jpeg',
+            'image/x-png' => 'image/png',
+            'image/svg' => 'image/svg+xml',
+        ];
 
-        if (! in_array($mime, Media::ALLOWED_MIMES, true)) {
+        $serverMime = $file->getMimeType();
+        $serverMime = $serverMime ? ($mimeAliases[$serverMime] ?? $serverMime) : null;
+
+        $clientMime = $file->getClientMimeType();
+        $clientMime = $clientMime ? ($mimeAliases[$clientMime] ?? $clientMime) : null;
+
+        $extension = strtolower(
+            $file->getClientOriginalExtension()
+            ?: ($file->guessExtension() ?: '')
+        );
+
+        $extensionToMime = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            'svg' => 'image/svg+xml',
+        ];
+
+        $mime = null;
+        if ($serverMime && in_array($serverMime, Media::ALLOWED_MIMES, true)) {
+            $mime = $serverMime;
+        } elseif ($clientMime && in_array($clientMime, Media::ALLOWED_MIMES, true)) {
+            $mime = $clientMime;
+        } elseif ($extension && isset($extensionToMime[$extension])) {
+            $mime = $extensionToMime[$extension];
+        }
+
+        if (! $mime) {
             throw ValidationException::withMessages([
-                'file' => "File type not allowed: {$mime}. Allowed: JPEG, PNG, WebP, GIF, SVG.",
+                'file' => 'File type not allowed. Allowed: JPEG, PNG, WebP, GIF, SVG.',
             ]);
+        }
+
+        if (in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+            if (@getimagesize($file->getRealPath()) === false) {
+                throw ValidationException::withMessages([
+                    'file' => 'Invalid image file.',
+                ]);
+            }
         }
 
         if ($file->getSize() > Media::MAX_SIZE_BYTES) {
@@ -108,6 +149,8 @@ class UploadMedia
                 'file' => "File exceeds maximum size of {$maxMb} MB.",
             ]);
         }
+
+        return $mime;
     }
 
     /* ------------------------------------------
