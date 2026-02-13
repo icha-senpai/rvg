@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="-mx-4 -mt-4 bg-black overflow-hidden">
           <img
-            src="/images/JPEG_Primary%20Logo.jpg"
+            src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
             class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
           />
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="-mx-4 -mt-4 bg-black overflow-hidden">
           <img
-            src="/images/JPEG_Primary%20Logo.jpg"
+            src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
             class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
           />
