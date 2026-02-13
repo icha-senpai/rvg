@@ -25,6 +25,8 @@ class MePreferenceController extends Controller
         }
 
         return response()->json([
+            'status'  => 'success',
+            'message' => null,
             'data' => [
                 'status'          => $prefs->status,
                 'loa_until'       => $prefs->loa_until,
@@ -70,6 +72,7 @@ class MePreferenceController extends Controller
         $prefs->save();
 
         return response()->json([
+            'status'  => 'success',
             'message' => 'Preferences updated.',
             'data' => [
                 'status'          => $prefs->status,

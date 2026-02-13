@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
+import { Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -23,6 +24,39 @@ const TableCell = TableCellPkg.default ?? TableCellPkg.TableCell
 const TextStyle = TextStylePkg.default ?? TextStylePkg.TextStyle
 const Color = ColorPkg.default ?? ColorPkg.Color
 const FontFamily = FontFamilyPkg.default ?? FontFamilyPkg.FontFamily
+
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize || null,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) return {}
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+  addCommands() {
+    return {
+      setFontSize: (fontSize) => ({ chain }) => {
+        return chain().setMark('textStyle', { fontSize }).run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain().setMark('textStyle', { fontSize: null }).run()
+      },
+    }
+  },
+})
 
 const props = defineProps({
   modelValue: {
@@ -171,6 +205,12 @@ const currentFontFamily = computed(() => {
   return editor.getAttributes('textStyle')?.fontFamily || ''
 })
 
+const currentFontSize = computed(() => {
+  toolbarTick.value
+  if (!editor) return ''
+  return editor.getAttributes('textStyle')?.fontSize || ''
+})
+
 const fontFamilyOptions = [
   { value: '', label: 'Font: Default', preview: '' },
   { value: 'system-ui', label: 'Font: System', preview: 'system-ui' },
@@ -184,6 +224,17 @@ const fontFamilyOptions = [
   { value: 'times new roman', label: 'Font: Times', preview: '"Times New Roman", Times, serif' },
   { value: 'monospace', label: 'Font: Mono', preview: 'monospace' },
   { value: 'courier new', label: 'Font: Courier', preview: '"Courier New", Courier, monospace' },
+]
+
+const fontSizeOptions = [
+  { value: '', label: 'Size: Default' },
+  { value: '12px', label: '12px' },
+  { value: '14px', label: '14px' },
+  { value: '16px', label: '16px' },
+  { value: '18px', label: '18px' },
+  { value: '20px', label: '20px' },
+  { value: '24px', label: '24px' },
+  { value: '32px', label: '32px' },
 ]
 
 const currentFontFamilyPreview = computed(() => {
@@ -240,6 +291,7 @@ const editor = new Editor({
       },
     }),
     TextStyle,
+    FontSize,
     Color,
     FontFamily,
     TextAlign.configure({
@@ -369,6 +421,17 @@ function applyFontFamily(value) {
   editor.chain().setFontFamily(value).run()
 }
 
+function applyFontSize(value) {
+  focusAndRestoreSelection()
+
+  if (!value) {
+    editor.chain().unsetFontSize().run()
+    return
+  }
+
+  editor.chain().setFontSize(value).run()
+}
+
 function insertTable() {
   focusAndRestoreSelection()
   editor.chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
@@ -492,6 +555,24 @@ onBeforeUnmount(() => {
           :key="opt.value || '__default'"
           :value="opt.value"
           :style="{ fontFamily: opt.preview }"
+        >
+          {{ opt.label }}
+        </option>
+      </select>
+
+      <select
+        class="hz-input"
+        style="max-width: 130px; padding: 0.3rem 0.55rem;"
+        title="Font size"
+        :disabled="disabled"
+        :value="currentFontSize"
+        @mousedown.stop
+        @change="applyFontSize($event.target.value)"
+      >
+        <option
+          v-for="opt in fontSizeOptions"
+          :key="opt.value || '__default'"
+          :value="opt.value"
         >
           {{ opt.label }}
         </option>

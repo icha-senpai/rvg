@@ -10,6 +10,8 @@ class Squadron extends Model
         'name',
         'slug',
         'status',
+        'branch',
+        'division',
         'leader_id',
         'motto',
         'description',

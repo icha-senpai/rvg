@@ -4,6 +4,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+function formatTitle(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .join(' ')
+}
 </script>
 
 <template>
@@ -23,6 +34,9 @@ const emit = defineEmits(['close'])
 
       <div>
         <div class="hz-title-md">{{ squadron?.name }}</div>
+        <div v-if="squadron?.branch" class="hz-caption text-horizon-muted">
+          {{ formatTitle(squadron.branch) }}<span v-if="squadron?.division"> · {{ formatTitle(squadron.division) }}</span>
+        </div>
         <div class="hz-text-soft">{{ squadron?.motto }}</div>
       </div>
     </div>

@@ -42,9 +42,18 @@
               Status: {{ sq.status }}
             </div>
 
+            <div v-if="sq.branch" class="hz-caption text-horizon-muted">
+              Branch: {{ formatTitle(sq.branch) }}<span v-if="sq.division"> · {{ formatTitle(sq.division) }}</span>
+            </div>
+
             <div class="hz-caption text-horizon-muted">
               Leader:
-              <span v-if="sq.leader"> {{ sq.leader.discord_name }} </span>
+              <span
+                v-if="sq.leader"
+                :style="leaderNameColor(sq.leader) ? { color: leaderNameColor(sq.leader) } : undefined"
+              >
+                {{ sq.leader.rsi_handle ?? sq.leader.discord_name }}
+              </span>
               <span v-else>None</span>
             </div>
           </div>
@@ -113,6 +122,24 @@
           />
           </div>
 
+          <div>
+            <HorizonSelect
+              v-model="form.branch"
+              :options="branchOptions"
+              label="Branch"
+              class="w-full"
+            />
+          </div>
+
+          <div>
+            <HorizonSelect
+              v-model="form.division"
+              :options="divisionOptions"
+              label="Division"
+              class="w-full"
+            />
+          </div>
+
           <div v-if="isEditing" class="hz-caption text-horizon-muted">
             Current leader:
             <span v-if="editingSquadron?.leader">
@@ -166,12 +193,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
+
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 const props = defineProps({
   squadrons: {
@@ -183,6 +212,87 @@ const props = defineProps({
     default: () => [],
   },
 });
+
+const form = ref({
+  id: null,
+  name: '',
+  slug: '',
+  status: 'active',
+  branch: null,
+  division: null,
+  leader_id: null,
+});
+
+const branchOptions = [
+  { label: 'None', value: null },
+  { label: 'Defence', value: 'defence' },
+  { label: 'Industries', value: 'industries' },
+  { label: 'Frontiers', value: 'frontiers' },
+  { label: 'Lifeline', value: 'lifeline' },
+]
+
+const divisionsByBranch = {
+  defence: [
+    { label: 'Marines', value: 'marines' },
+    { label: 'Navy', value: 'navy' },
+    { label: 'Airforce', value: 'airforce' },
+  ],
+  industries: [
+    { label: 'Procurement', value: 'procurement' },
+    { label: 'Logistics', value: 'logistics' },
+    { label: 'Construction', value: 'construction' },
+  ],
+  frontiers: [
+    { label: 'Exploration', value: 'exploration' },
+    { label: 'Science', value: 'science' },
+    { label: 'Development', value: 'development' },
+  ],
+  lifeline: [
+    { label: 'Triage', value: 'triage' },
+    { label: 'Recovery', value: 'recovery' },
+    { label: 'Medical', value: 'medical' },
+  ],
+}
+
+const divisionOptions = computed(() => {
+  const branch = form.value?.branch
+  if (!branch || !divisionsByBranch[branch]) {
+    return [{ label: 'None', value: null }]
+  }
+
+  return [{ label: 'None', value: null }, ...divisionsByBranch[branch]]
+})
+
+watch(
+  () => form.value.branch,
+  (branch) => {
+    if (!branch) {
+      form.value.division = null
+      return
+    }
+
+    const allowed = (divisionsByBranch[branch] ?? []).map(d => d.value)
+    if (form.value.division && !allowed.includes(form.value.division)) {
+      form.value.division = null
+    }
+  }
+)
+
+function formatTitle(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .join(' ')
+}
+
+function leaderNameColor(leader) {
+  const slug = getHighestOrgRoleSlug(leader?.roles, leader?.rank)
+  return getOrgRoleColor(slug)
+}
 
 /* MODAL STATE */
 const modalOpen = ref(false);
@@ -197,14 +307,6 @@ function handleKeydown(event) {
   closeModal();
 }
 
-const form = ref({
-  id: null,
-  name: '',
-  slug: '',
-  status: 'active',
-  leader_id: null,
-});
-
 /* OPEN CREATE */
 function openCreateModal() {
   isEditing.value = false;
@@ -217,6 +319,8 @@ function openCreateModal() {
     name: '',
     slug: '',
     status: 'active',
+    branch: null,
+    division: null,
     leader_id: null,
   };
 }
@@ -233,6 +337,8 @@ function openEditModal(sq) {
     name: sq.name,
     slug: sq.slug,
     status: sq.status,
+    branch: sq.branch ?? null,
+    division: sq.division ?? null,
     leader_id: sq.leader_id ?? null,
   };
 }

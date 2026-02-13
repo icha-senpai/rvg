@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 
 import SquadronPanelHeader from './SquadronPanelHeader.vue'
@@ -69,6 +70,7 @@ function goToVerify() {
 
 function openEmblemPicker() {
   if (!squadron.value) return
+  if (!canEditEmblem.value) return
   emblemPickerOpen.value = true
 }
 
@@ -88,6 +90,7 @@ async function setEmblem(media) {
       headers: {
         Accept: 'application/json',
       },
+      hzSkipErrorDialog: true,
     })
 
     await fetchSquadron()
@@ -95,15 +98,18 @@ async function setEmblem(media) {
   } catch (error) {
     const status = error?.response?.status ?? null
     if (status === 403) {
-      alert('You do not have permission to update the squadron emblem.')
+      window.hzNotifyError({
+        message: 'You do not have permission to update the squadron emblem.',
+      })
       return
     }
 
-    alert(
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to update squadron emblem.'
-    )
+    window.hzNotifyError({
+      message:
+        error.response?.data?.message ??
+        error.message ??
+        'Failed to update squadron emblem.',
+    })
   } finally {
     emblemSaving.value = false
     closeEmblemPicker()
@@ -147,14 +153,33 @@ function onKeydown(e) {
 const isEditing = ref(false)
 const isRecruitingEditing = ref(false)
 
-const activeTab = ref('overview')
+const activeTab = ref('recruiting')
 
 const emblemPickerOpen = ref(false)
 const emblemSaving = ref(false)
 
 function setActiveTab(tab) {
-  if ((isEditing.value || isRecruitingEditing.value) && tab !== activeTab.value) return
+  if (isTabLocked.value && tab !== activeTab.value) {
+    const from = activeTab.value
+    const isEditableTab = (t) => t === 'overview' || t === 'recruiting'
+    if (!(isEditableTab(from) && isEditableTab(tab))) return
+  }
   activeTab.value = tab
+}
+
+const isTabLocked = computed(() => isEditing.value || isRecruitingEditing.value)
+
+function isTabDisabled(tab) {
+  if (!isTabLocked.value) return false
+  return tab === 'status' || tab === 'roster'
+}
+
+function cancelSettingsEdit() {
+  isEditing.value = false
+  isRecruitingEditing.value = false
+  editForm.value.motto = squadron.value?.motto ?? ''
+  editForm.value.description = squadron.value?.description ?? ''
+  editForm.value.recruitment_propaganda = squadron.value?.recruitment_propaganda ?? ''
 }
 
 const editForm = ref({
@@ -165,6 +190,18 @@ const editForm = ref({
 
 const canEdit = computed(() =>
   permissions.value?.can_manage_members === true
+)
+
+const page = usePage()
+const authUser = computed(() => page.props.auth?.user ?? null)
+
+const isDirectorLike = computed(() => {
+  const roles = authUser.value?.roles ?? []
+  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+})
+
+const canEditEmblem = computed(() =>
+  viewerMembership.value?.is_leader === true || isDirectorLike.value
 )
 
 const activeMemberCount = computed(() =>
@@ -235,17 +272,16 @@ async function saveSettings() {
 
     emit('updated', squadron.value)
   } catch (error) {
-    alert(
-      error.response?.data?.message ??
-      'Failed to save squadron settings.'
-    )
+    window.hzNotifyError({
+      message:
+        error.response?.data?.message ??
+        'Failed to save squadron settings.',
+    })
   }
 }
 
 function cancelEdit() {
-  isEditing.value = false
-  editForm.value.motto = squadron.value?.motto ?? ''
-  editForm.value.description = squadron.value?.description ?? ''
+  cancelSettingsEdit()
 }
 
 function startRecruitingEdit() {
@@ -253,8 +289,7 @@ function startRecruitingEdit() {
 }
 
 function cancelRecruitingEdit() {
-  isRecruitingEditing.value = false
-  editForm.value.recruitment_propaganda = squadron.value?.recruitment_propaganda ?? ''
+  cancelSettingsEdit()
 }
 
 async function applyToSquadron() {
@@ -483,7 +518,7 @@ onUnmounted(() => {
 watch(
   () => props.squadronId,
   () => {
-    activeTab.value = 'overview'
+    activeTab.value = 'recruiting'
     fetchSquadron()
   }
 )
@@ -549,10 +584,19 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="canEdit && !isEditing && activeTab === 'overview'"
+            v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
+          >
+            Edit
+          </HorizonButton>
+
+          <HorizonButton
+            v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+            variant="ghost"
+            size="sm"
+            @click="startRecruitingEdit"
           >
             Edit
           </HorizonButton>
@@ -575,24 +619,7 @@ watch(
       >
         <HorizonButton
           size="sm"
-          :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-          @click="setActiveTab('overview')"
-        >
-          Overview
-        </HorizonButton>
-
-        <HorizonButton
-          size="sm"
-          :disabled="isEditing || isRecruitingEditing"
-          :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-          @click="setActiveTab('status')"
-        >
-          Status
-        </HorizonButton>
-
-        <HorizonButton
-          size="sm"
-          :disabled="isEditing || isRecruitingEditing"
+          :disabled="isTabDisabled('recruiting')"
           :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
           @click="setActiveTab('recruiting')"
         >
@@ -601,7 +628,25 @@ watch(
 
         <HorizonButton
           size="sm"
-          :disabled="isEditing || isRecruitingEditing"
+          :disabled="isTabDisabled('overview')"
+          :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+          @click="setActiveTab('overview')"
+        >
+          Overview
+        </HorizonButton>
+
+        <HorizonButton
+          size="sm"
+          :disabled="isTabDisabled('status')"
+          :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+          @click="setActiveTab('status')"
+        >
+          Status
+        </HorizonButton>
+
+        <HorizonButton
+          size="sm"
+          :disabled="isTabDisabled('roster')"
           :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
           @click="setActiveTab('roster')"
         >
@@ -612,7 +657,7 @@ watch(
       <div v-if="activeTab === 'overview'" class="hz-animate-fade">
         <!-- Overview / Edit -->
         <SquadronOverviewSection
-          v-if="!isEditing"
+          v-if="!isTabLocked"
           :squadron="squadron"
         />
 
@@ -635,6 +680,7 @@ watch(
                 variant="ghost"
                 size="sm"
                 :disabled="emblemSaving"
+                v-if="canEditEmblem"
                 @click="openEmblemPicker"
               >
                 Choose Emblem
@@ -644,6 +690,7 @@ watch(
                 variant="ghost"
                 size="sm"
                 :disabled="emblemSaving || !squadron?.emblem_url"
+                v-if="canEditEmblem"
                 @click="clearEmblem"
               >
                 Clear
@@ -666,7 +713,12 @@ watch(
           />
 
           <div class="hz-row gap-2">
-            <HorizonButton variant="primary" size="sm" @click="saveSettings">
+            <HorizonButton
+              v-if="canEdit"
+              variant="primary"
+              size="sm"
+              @click="saveSettings"
+            >
               Save
             </HorizonButton>
             <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
@@ -692,22 +744,14 @@ watch(
         <div class="hz-stack">
           <div class="hz-row-between items-center">
             <div class="hz-section-label">Recruiting</div>
-            <HorizonButton
-              v-if="canEdit && !isRecruitingEditing"
-              size="sm"
-              variant="ghost"
-              @click="startRecruitingEdit"
-            >
-              Edit
-            </HorizonButton>
           </div>
 
           <div
-            v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+            v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
             class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
             v-html="squadron.recruitment_propaganda"
           />
-          <div v-else-if="!isRecruitingEditing" class="hz-soft">
+          <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
             No recruitment message provided.
           </div>
 
@@ -720,7 +764,12 @@ watch(
             />
 
             <div class="hz-row gap-2">
-              <HorizonButton variant="primary" size="sm" @click="saveSettings">
+              <HorizonButton
+                v-if="canEdit"
+                variant="primary"
+                size="sm"
+                @click="saveSettings"
+              >
                 Save
               </HorizonButton>
               <HorizonButton variant="ghost" size="sm" @click="cancelRecruitingEdit">
@@ -749,7 +798,7 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden min-h-0 max-h-[85vh] !border !border-[color:var(--horizon-sunset-blue)]"
+    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col !border !border-[color:var(--horizon-sunset-blue)]"
   >
     <header
       class="shrink-0 px-6 py-4 border-b border-white/10 flex items-start justify-between"
@@ -758,10 +807,19 @@ watch(
 
       <div class="hz-row gap-2">
         <HorizonButton
-          v-if="canEdit && !isEditing && activeTab === 'overview'"
+          v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
           variant="ghost"
           size="sm"
           @click="isEditing = true"
+        >
+          Edit
+        </HorizonButton>
+
+        <HorizonButton
+          v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+          variant="ghost"
+          size="sm"
+          @click="startRecruitingEdit"
         >
           Edit
         </HorizonButton>
@@ -776,7 +834,7 @@ watch(
       </div>
     </header>
 
-    <section class="flex-1 min-h-0 overflow-y-auto px-6 py-6 hz-stack">
+    <section class="px-6 py-6 hz-stack">
       <div v-if="isLoading" class="hz-soft">
         Loading squadron…
       </div>
@@ -815,24 +873,7 @@ watch(
         >
           <HorizonButton
             size="sm"
-            :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-            @click="setActiveTab('overview')"
-          >
-            Overview
-          </HorizonButton>
-
-          <HorizonButton
-            size="sm"
-            :disabled="isEditing || isRecruitingEditing"
-            :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-            @click="setActiveTab('status')"
-          >
-            Status
-          </HorizonButton>
-
-          <HorizonButton
-            size="sm"
-            :disabled="isEditing || isRecruitingEditing"
+            :disabled="isTabDisabled('recruiting')"
             :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
             @click="setActiveTab('recruiting')"
           >
@@ -841,7 +882,25 @@ watch(
 
           <HorizonButton
             size="sm"
-            :disabled="isEditing || isRecruitingEditing"
+            :disabled="isTabDisabled('overview')"
+            :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+            @click="setActiveTab('overview')"
+          >
+            Overview
+          </HorizonButton>
+
+          <HorizonButton
+            size="sm"
+            :disabled="isTabDisabled('status')"
+            :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+            @click="setActiveTab('status')"
+          >
+            Status
+          </HorizonButton>
+
+          <HorizonButton
+            size="sm"
+            :disabled="isTabDisabled('roster')"
             :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
             @click="setActiveTab('roster')"
           >
@@ -851,7 +910,7 @@ watch(
 
         <div v-if="activeTab === 'overview'" class="hz-animate-fade">
           <SquadronOverviewSection
-            v-if="!isEditing"
+            v-if="!isTabLocked"
             :squadron="squadron"
           />
 
@@ -874,6 +933,7 @@ watch(
                   variant="ghost"
                   size="sm"
                   :disabled="emblemSaving"
+                  v-if="canEditEmblem"
                   @click="openEmblemPicker"
                 >
                   Choose Emblem
@@ -883,6 +943,7 @@ watch(
                   variant="ghost"
                   size="sm"
                   :disabled="emblemSaving || !squadron?.emblem_url"
+                  v-if="canEditEmblem"
                   @click="clearEmblem"
                 >
                   Clear
@@ -905,7 +966,12 @@ watch(
             />
 
             <div class="hz-row gap-2">
-              <HorizonButton variant="primary" size="sm" @click="saveSettings">
+              <HorizonButton
+                v-if="canEdit"
+                variant="primary"
+                size="sm"
+                @click="saveSettings"
+              >
                 Save
               </HorizonButton>
               <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
@@ -931,22 +997,14 @@ watch(
           <div class="hz-stack">
             <div class="hz-row-between items-center">
               <div class="hz-section-label">Recruiting</div>
-              <HorizonButton
-                v-if="canEdit && !isRecruitingEditing"
-                size="sm"
-                variant="ghost"
-                @click="startRecruitingEdit"
-              >
-                Edit
-              </HorizonButton>
             </div>
 
             <div
-              v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+              v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
               class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
               v-html="squadron.recruitment_propaganda"
             />
-            <div v-else-if="!isRecruitingEditing" class="hz-soft">
+            <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
               No recruitment message provided.
             </div>
 
@@ -1013,10 +1071,19 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="canEdit && !isEditing && activeTab === 'overview'"
+            v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
+          >
+            Edit
+          </HorizonButton>
+
+          <HorizonButton
+            v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+            variant="ghost"
+            size="sm"
+            @click="startRecruitingEdit"
           >
             Edit
           </HorizonButton>
@@ -1070,24 +1137,7 @@ watch(
           >
             <HorizonButton
               size="sm"
-              :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-              @click="setActiveTab('overview')"
-            >
-              Overview
-            </HorizonButton>
-
-            <HorizonButton
-              size="sm"
-              :disabled="isEditing || isRecruitingEditing"
-              :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-              @click="setActiveTab('status')"
-            >
-              Status
-            </HorizonButton>
-
-            <HorizonButton
-              size="sm"
-              :disabled="isEditing || isRecruitingEditing"
+              :disabled="isTabDisabled('recruiting')"
               :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
               @click="setActiveTab('recruiting')"
             >
@@ -1096,7 +1146,25 @@ watch(
 
             <HorizonButton
               size="sm"
-              :disabled="isEditing || isRecruitingEditing"
+              :disabled="isTabDisabled('overview')"
+              :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+              @click="setActiveTab('overview')"
+            >
+              Overview
+            </HorizonButton>
+
+            <HorizonButton
+              size="sm"
+              :disabled="isTabDisabled('status')"
+              :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+              @click="setActiveTab('status')"
+            >
+              Status
+            </HorizonButton>
+
+            <HorizonButton
+              size="sm"
+              :disabled="isTabDisabled('roster')"
               :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
               @click="setActiveTab('roster')"
             >
@@ -1107,7 +1175,7 @@ watch(
           <div v-if="activeTab === 'overview'" class="hz-animate-fade">
             <!-- Overview / Edit -->
             <SquadronOverviewSection
-              v-if="!isEditing"
+              v-if="!isTabLocked"
               :squadron="squadron"
             />
 
@@ -1130,6 +1198,7 @@ watch(
                     variant="ghost"
                     size="sm"
                     :disabled="emblemSaving"
+                    v-if="canEditEmblem"
                     @click="openEmblemPicker"
                   >
                     Choose Emblem
@@ -1139,6 +1208,7 @@ watch(
                     variant="ghost"
                     size="sm"
                     :disabled="emblemSaving || !squadron?.emblem_url"
+                    v-if="canEditEmblem"
                     @click="clearEmblem"
                   >
                     Clear
@@ -1161,7 +1231,12 @@ watch(
               />
 
               <div class="hz-row gap-2">
-                <HorizonButton variant="primary" size="sm" @click="saveSettings">
+                <HorizonButton
+                  v-if="canEdit"
+                  variant="primary"
+                  size="sm"
+                  @click="saveSettings"
+                >
                   Save
                 </HorizonButton>
                 <HorizonButton variant="ghost" size="sm" @click="cancelEdit">
@@ -1188,22 +1263,14 @@ watch(
             <div class="hz-stack">
               <div class="hz-row-between items-center">
                 <div class="hz-section-label">Recruiting</div>
-                <HorizonButton
-                  v-if="canEdit && !isRecruitingEditing"
-                  size="sm"
-                  variant="ghost"
-                  @click="startRecruitingEdit"
-                >
-                  Edit
-                </HorizonButton>
               </div>
 
               <div
-                v-if="!isRecruitingEditing && squadron?.recruitment_propaganda"
+                v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
                 class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
                 v-html="squadron.recruitment_propaganda"
               />
-              <div v-else-if="!isRecruitingEditing" class="hz-soft">
+              <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
                 No recruitment message provided.
               </div>
 
@@ -1249,6 +1316,7 @@ watch(
   <MediaPickerModal
     :open="emblemPickerOpen"
     collection="squadron_emblem"
+    :squadronId="props.squadronId"
     title="Select Squadron Emblem"
     @close="closeEmblemPicker"
     @selected="setEmblem"

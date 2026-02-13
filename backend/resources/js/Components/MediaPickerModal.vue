@@ -170,6 +170,7 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   /** Which collection to filter by */
   collection: { type: String, required: true },
+  squadronId: { type: [Number, String], default: null },
   /** Modal title */
   title: { type: String, default: 'Select Image' },
 });
@@ -194,6 +195,9 @@ async function loadMedia(page = 1) {
   const params = new URLSearchParams();
   params.set('page', page);
   params.set('collection', props.collection);
+  if (props.squadronId !== null && props.squadronId !== undefined && String(props.squadronId) !== '') {
+    params.set('squadron_id', String(props.squadronId));
+  }
   if (search.value) params.set('search', search.value);
 
   try {
@@ -266,6 +270,9 @@ async function submitUpload() {
   const formData = new FormData();
   formData.append('file', uploadFile.value);
   formData.append('collection', props.collection);
+  if (props.squadronId !== null && props.squadronId !== undefined && String(props.squadronId) !== '') {
+    formData.append('squadron_id', String(props.squadronId));
+  }
   if (uploadAltText.value) formData.append('alt_text', uploadAltText.value);
 
   try {

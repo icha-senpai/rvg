@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\User;
 use Illuminate\Support\Facades\Config;
 
@@ -12,7 +13,8 @@ class TokenService
      */
     public function createTokensFor(User $user)
     {
-        $isLeadership = $user->rank_level >= 2;
+        $user->loadMissing('roles:id,slug');
+        $isLeadership = RoleHierarchy::userAtLeast($user, 'lieutenant');
 
         $refreshExpiryDays = 7;
 

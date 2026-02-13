@@ -22,6 +22,8 @@ class BotVerificationController extends Controller
         $user = User::where('discord_id', $validated['discord_id'])->firstOrFail();
 
         return response()->json([
+            'status' => 'success',
+            'message' => null,
             'success' => true,
             'user' => [
                 'id'          => $user->id,
@@ -45,6 +47,8 @@ class BotVerificationController extends Controller
         }
 
         return response()->json([
+            'status' => 'success',
+            'message' => null,
             'success' => true,
             'user' => [
                 'id'              => $user->id,
@@ -70,6 +74,8 @@ class BotVerificationController extends Controller
         $isMember = $this->checkDiscordGuildMembership($discordId);
 
         return response()->json([
+            'status' => 'success',
+            'message' => null,
             'is_member'  => $isMember,
             'user_id'    => $user->id,
             'discord_id' => $discordId,

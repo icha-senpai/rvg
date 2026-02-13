@@ -18,7 +18,7 @@ class SquadronService
      */
     public function listAll()
     {
-        return Squadron::with('leader')
+        return Squadron::with(['leader.roles'])
             ->with('emblem')
             ->withCount('members')
             ->orderBy('name')
@@ -31,8 +31,8 @@ class SquadronService
     public function loadGraph(Squadron $squadron): Squadron
     {
         return $squadron->load([
-            'members.user',
-            'leader',
+            'members.user.roles',
+            'leader.roles',
             'emblem',
         ]);
     }
@@ -90,7 +90,7 @@ class SquadronService
      */
     public function members(Squadron $squadron)
     {
-        return $squadron->members()->with('user')->get();
+        return $squadron->members()->with(['user.roles'])->get();
     }
 
     /**
@@ -362,6 +362,19 @@ class SquadronService
                 ], true)) {
                     $allowed['font-family'] = $v;
                 }
+                continue;
+            }
+
+            if ($prop === 'font-size') {
+                $v = strtolower(trim($value));
+
+                if (preg_match('/^(\d{1,3})px$/', $v, $m) === 1) {
+                    $px = (int) $m[1];
+                    if ($px >= 10 && $px <= 64) {
+                        $allowed['font-size'] = $px . 'px';
+                    }
+                }
+
                 continue;
             }
         }

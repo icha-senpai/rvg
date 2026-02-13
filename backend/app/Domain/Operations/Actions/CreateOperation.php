@@ -4,6 +4,7 @@ namespace App\Domain\Operations\Actions;
 
 use App\Models\Operation;
 use App\Models\Squadron;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use App\Domain\Operations\Events\OperationPublished; // <-- ADD THIS if using events
 
@@ -16,12 +17,18 @@ class CreateOperation
             ? $data['status']
             : 'draft';
 
+        $creatorId = Auth::id();
+
         $operation = Operation::create([
             ...$data,
             'squadron_id' => $squadron?->id,
-            'created_by'  => Auth::id(),
+            'created_by'  => $creatorId,
             'status'      => $status,
         ]);
+
+        if ($creatorId) {
+            User::whereKey($creatorId)->increment('operations_created_count');
+        }
 
         // 🔥 FIRE PUBLISH CODE IF NEEDED
         if ($status === 'published') {

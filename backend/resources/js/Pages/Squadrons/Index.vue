@@ -4,6 +4,8 @@ import axios from 'axios'
 import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const squadrons = ref([])
 const isLoading = ref(false)
 const errorMessage = ref(null)
@@ -68,6 +70,23 @@ function handleSquadronUpdated(updated) {
   }
 }
 
+function leaderNameColor(squadron) {
+  const leader = squadron?.leader ?? null
+  const slug = getHighestOrgRoleSlug(leader?.roles, leader?.rank)
+  return getOrgRoleColor(slug)
+}
+
+function formatTitle(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .join(' ')
+}
+
 onMounted(() => {
   fetchSquadrons()
 })
@@ -91,12 +110,12 @@ onMounted(() => {
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
-          class="hz-card-soft hz-stack cursor-pointer !border !border-[color:var(--horizon-sunset-blue)]"
+          class="hz-card-soft hz-stack cursor-pointer overflow-hidden border! border-(--horizon-sunset-blue)! p-0! w-full max-w-64 sm:max-w-none mx-auto"
           @click="openSquadron(squadron.id)"
         >
           <div
             v-if="squadron.emblem_url"
-            class="w-full max-w-[300px] aspect-square mx-auto bg-bg-surface rounded-lg overflow-hidden border border-[color:var(--horizon-sunset-blue)]"
+            class="w-full aspect-square bg-bg-surface"
           >
             <img
               :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
@@ -106,14 +125,23 @@ onMounted(() => {
             />
           </div>
 
-          <div class="hz-title-md">{{ squadron.name }}</div>
+          <div class="hz-stack p-3! sm:p-6!">
+            <div class="hz-title-sm sm:hz-title-md">{{ squadron.name }}</div>
 
-          <div class="hz-caption text-horizon-muted">
-            Leader: {{ squadron.leader?.display_name ?? squadron.leader?.rsi_handle ?? 'None' }}
-          </div>
+            <div class="hz-caption text-horizon-muted">
+              Leader:
+              <span :style="leaderNameColor(squadron) ? { color: leaderNameColor(squadron) } : undefined">
+                {{ squadron.leader?.rsi_handle ?? squadron.leader?.display_name ?? 'None' }}
+              </span>
+            </div>
 
-          <div class="hz-text-soft">
-            {{ squadron.motto ?? 'No motto provided.' }}
+            <div v-if="squadron.branch" class="hz-caption text-horizon-muted">
+              {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
+            </div>
+
+            <div class="hz-text-soft">
+              {{ squadron.motto ?? 'No motto provided.' }}
+            </div>
           </div>
         </div>
       </div>

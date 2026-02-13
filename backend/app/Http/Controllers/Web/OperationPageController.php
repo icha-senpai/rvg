@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Domain\AccessControl\RoleHierarchy;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\Operation;
@@ -42,10 +43,9 @@ class OperationPageController extends Controller
             abort(403);
         }
 
-        $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
-        $rankLevel = (int) ($user->rank_level ?? 0);
+        $user->loadMissing('roles:id,slug');
 
-        if (! $isDirectorLike && $rankLevel < 2) {
+        if (! RoleHierarchy::userAtLeast($user, 'lieutenant')) {
             abort(403);
         }
 
@@ -69,7 +69,7 @@ class OperationPageController extends Controller
         }
 
         $query = Operation::query()
-            ->with(['squadron.leader', 'creator']);
+            ->with(['squadron.leader', 'creator.roles']);
 
         if ($status === 'active') {
             $query->whereIn('status', ['published', 'in_progress']);

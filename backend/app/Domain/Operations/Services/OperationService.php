@@ -48,10 +48,10 @@ class OperationService
     /**
      * State machine transition using Action + wrapped error normalization.
      */
-    public function transition(Operation $operation, string $status, ?string $reason = null): Operation
+    public function transition(Operation $operation, string $status, ?string $reason = null, ?string $outcome = null): Operation
     {
         try {
-            return (new TransitionOperation)->execute($operation, $status, $reason);
+            return (new TransitionOperation)->execute($operation, $status, $reason, $outcome);
         } catch (\Exception $e) {
             throw ValidationException::withMessages([
                 'status' => $e->getMessage(),
@@ -81,6 +81,7 @@ class OperationService
         return $operation->load([
             'squadron',
             'creator',
+            'creator.roles',
             'participants.user',
             'roles.participants.user',
         ]);

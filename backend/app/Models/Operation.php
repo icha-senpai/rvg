@@ -13,15 +13,16 @@ class Operation extends Model
 
         'title',
         'description',
+        'extended_description',
 
         'starts_at',
         'ends_at',
 
         // Classification
         'visibility',
-        'operation_kind',
+        'operation_type',
         'branch',
-        'type',
+        'gameplay_type',
 
         // Style
         'difficulty',
@@ -36,6 +37,7 @@ class Operation extends Model
         'rsvp_deadline',
         'notes',
         'status',
+        'completion_outcome',
         'cancellation_reason',
 
         // Mission structure
@@ -48,6 +50,7 @@ class Operation extends Model
         'rsvp_deadline'  => 'datetime',
         'slots'          => 'array',
         'status'         => 'string',
+        'completion_outcome' => 'string',
     ];
 
     /* ---------------------------------

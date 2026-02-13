@@ -19,7 +19,11 @@ class MeController extends Controller
 
         // Ensure RSI/Discord fields are present in the response payload
         // by passing them explicitly into MeResource.
-        return new MeResource($user);
+        return response()->json([
+            'status'  => 'success',
+            'message' => null,
+            'data'    => new MeResource($user),
+        ]);
     }
 
     /**
@@ -60,6 +64,7 @@ class MeController extends Controller
         $user->refresh()->load('roles');
 
         return response()->json([
+            'status'  => 'success',
             'message' => 'Profile updated.',
             'data'    => new MeResource($user),
         ]);

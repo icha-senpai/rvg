@@ -64,7 +64,11 @@ class OperationTransitionController extends Controller
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->transition($operation, 'completed');
+        $data = $request->validate([
+            'outcome' => 'required|in:success,failed',
+        ]);
+
+        $updated = $this->service->transition($operation, 'completed', null, $data['outcome']);
 
         if ($request->expectsJson()) {
             return response()->json([

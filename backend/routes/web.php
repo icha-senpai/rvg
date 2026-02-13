@@ -50,12 +50,6 @@ Route::get('/login', function () {
 })->name('login');
 
 Route::get('/user/{user}', function (User $user) {
-    $canViewOtherProfiles = Gate::allows('access-admin-panel');
-
-    if (! $canViewOtherProfiles && (int) $user->id !== (int) Auth::id()) {
-        return redirect()->route('member.profile', ['user' => Auth::id()]);
-    }
-
     return Inertia::render('Member/userpage', [
         'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
     ]);

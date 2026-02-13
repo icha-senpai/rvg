@@ -128,58 +128,17 @@ class AccessService
             return true;
         }
 
+        $user->loadMissing('roles:id,slug');
+
         if (!$squadron) {
-            if ((int) ($user->rank_level ?? 0) >= 2) {
-                return true;
-            }
-
-            return $this->hasAnyRole($user, [
-                'commander_staff',
-                'wing_commander',
-                'admiral',
-                'grand_admiral',
-            ]);
+            return RoleHierarchy::userAtLeast($user, 'lieutenant');
         }
 
-        if ((int) ($user->rank_level ?? 0) >= 2
-            || $this->hasAnyRole($user, [
-                'commander_staff',
-                'wing_commander',
-                'admiral',
-                'grand_admiral',
-            ])
-        ) {
+        if (RoleHierarchy::userAtLeast($user, 'lieutenant')) {
             return $user->squadronMemberships()
                 ->active()
                 ->where('squadron_id', $squadron->id)
                 ->exists();
-        }
-
-        // Global RBAC: any user with create or host permissions
-        $hostingPerms = PermissionRegistry::group('operation.hosting');
-
-        if ($this->can($user, 'operation.create')
-            || $this->any($user, $hostingPerms)
-        ) {
-            return $user->squadronMemberships()
-                ->active()
-                ->where('squadron_id', $squadron->id)
-                ->exists();
-        }
-
-        // Squadron-specific creation rules
-        if ($squadron) {
-            $ctx = $this->context($user);
-
-            // Squadron Leader can always create for their squadron
-            if ($ctx->isSquadronLeader($squadron)) {
-                return true;
-            }
-
-            // Lieutenant can create small squadron ops only
-            if ($ctx->isSquadronLieutenant($squadron)) {
-                return true;
-            }
         }
 
         return false;
@@ -270,9 +229,9 @@ class AccessService
             return true;
         }
 
-        // Either analytics.operation OR full operation.manage
+        // Either analytics.operation OR operation.stats.manage
         if ($this->can($user, 'analytics.operation')
-            || $this->can($user, 'operation.manage')) {
+            || $this->can($user, 'operation.stats.manage')) {
             return true;
         }
 

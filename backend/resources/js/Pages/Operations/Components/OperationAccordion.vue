@@ -8,7 +8,7 @@
     <div class="flex justify-between items-start gap-4">
       <div class="min-w-0">
         <div class="hz-section-label">
-          {{ operationKindLabel(operation.operation_kind) }}
+          {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
         </div>
         <h3 class="hz-title-md text-horizon-white">
           {{ displayTitle }}
@@ -31,6 +31,19 @@
     <!-- COLLAPSED PREVIEW -->
     <div class="hz-caption text-horizon-offwhite mt-2" v-if="!open">
       <div class="flex items-center flex-wrap">
+        <template v-if="operation.branch">
+          <span class="inline-flex items-center gap-2">
+            <img
+              v-if="branchLogoSrc"
+              :src="branchLogoSrc"
+              :alt="branchLogoAlt"
+              class="h-5 w-5 rounded-full object-contain border border-bg-hover"
+            />
+            <span>{{ branchLabel(operation.branch) }}</span>
+          </span>
+          <span v-if="collapsedMetaParts.length" class="opacity-70 px-2">•</span>
+        </template>
+
         <template v-for="(part, idx) in collapsedMetaParts" :key="`${operation?.id ?? 'op'}_meta_${idx}`">
           <span>{{ part }}</span>
           <span v-if="idx < collapsedMetaParts.length - 1" class="opacity-70 px-2">•</span>
@@ -51,7 +64,7 @@
           >
             {{ creatorInitial }}
           </span>
-          <span>{{ creatorName }}</span>
+          <span :style="creatorColor ? { color: creatorColor } : undefined">{{ creatorName }}</span>
         </span>
       </div>
     </div>
@@ -66,14 +79,22 @@
         </p>
       </div>
 
-      <div class="hz-caption text-horizon-offwhite">
+      <div class="hz-caption text-horizon-offwhite flex items-center flex-wrap">
         <template v-if="operation.branch">
           <span class="opacity-70">Branch:</span>
-          {{ branchLabel(operation.branch) }}
-          <span class="opacity-70">•</span>
+          <span class="inline-flex items-center gap-2">
+            <img
+              v-if="branchLogoSrc"
+              :src="branchLogoSrc"
+              :alt="branchLogoAlt"
+              class="h-5 w-5 rounded-full object-contain border border-bg-hover"
+            />
+            <span>{{ branchLabel(operation.branch) }}</span>
+          </span>
+          <span class="opacity-70 px-2">•</span>
         </template>
 
-        <span class="opacity-70"> Creator:</span>
+        <span class="opacity-70">Creator:</span>
         <span class="inline-flex items-center gap-2 ml-2">
           <img
             v-if="creatorAvatar"
@@ -87,7 +108,7 @@
           >
             {{ creatorInitial }}
           </span>
-          <span>{{ creatorName }}</span>
+          <span :style="creatorColor ? { color: creatorColor } : undefined">{{ creatorName }}</span>
         </span>
       </div>
 
@@ -147,6 +168,8 @@ import { computed, ref } from 'vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const emit = defineEmits(['view'])
 const props = defineProps({
   operation: Object,
@@ -162,7 +185,7 @@ function operationTitlePrefix(kind) {
 
 const displayTitle = computed(() => {
   const title = props.operation?.title ?? '';
-  const prefix = operationTitlePrefix(props.operation?.operation_kind);
+  const prefix = operationTitlePrefix(props.operation?.operation_type ?? props.operation?.operation_kind);
   return prefix ? `${prefix}: ${title}` : title;
 });
 
@@ -188,18 +211,39 @@ const creatorInitial = computed(() => {
   return String(creatorName.value ?? 'M').slice(0, 1).toUpperCase();
 });
 
+const creatorColor = computed(() => {
+  const creator = props.operation?.creator ?? null
+  const slug = getHighestOrgRoleSlug(creator?.roles, creator?.rank)
+  return getOrgRoleColor(slug)
+})
+
 const collapsedMetaParts = computed(() => {
   const op = props.operation;
   if (!op) return [];
 
   const parts = [];
-  if (op.branch) parts.push(branchLabel(op.branch));
   parts.push(formatLocal(op.starts_at));
   parts.push(`${joinedCount.value} joined`);
 
   return parts
     .filter(p => p && String(p).trim() !== '')
     .map(p => String(p));
+});
+
+const branchLogoSrc = computed(() => {
+  const branch = props.operation?.branch ?? '';
+  switch (branch) {
+    case 'defence': return '/images/Horizon_Defence_Logo.png';
+    case 'frontiers': return '/images/Horizon_Frontiers_Logo.png';
+    case 'industries': return '/images/Horizon_Industries_logo.png';
+    case 'lifelines': return '/images/Horizon_Lifeline_logo.png';
+    default: return null;
+  }
+});
+
+const branchLogoAlt = computed(() => {
+  const branch = props.operation?.branch ?? '';
+  return branch ? `${branchLabel(branch)} branch logo` : '';
 });
 
 function truncate(text, length) {

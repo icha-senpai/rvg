@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Domain\AccessControl\RoleHierarchy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -20,14 +21,31 @@ class RankMiddleware
             return $next($request);
         }
 
-        $userRank = (int) $user->rank_level;
         $requiredRank = (int) $requiredRank;
+        $requiredRole = match($requiredRank) {
+            1 => 'member',
+            2 => 'lieutenant',
+            3 => 'commander',
+            4 => 'wing_commander',
+            5 => 'admiral',
+            6 => 'grand_admiral',
+            default => null,
+        };
 
-        if ($userRank < $requiredRank) {
+        if (! $requiredRole) {
+            return response()->json([
+                'error' => 'Invalid rank requirement',
+                'required_rank_level' => $requiredRank,
+            ], 500);
+        }
+
+        $user->loadMissing('roles:id,slug');
+
+        if (! RoleHierarchy::userAtLeast($user, $requiredRole)) {
             return response()->json([
                 'error' => 'Insufficient rank',
                 'required_rank_level' => $requiredRank,
-                'your_rank_level' => $userRank,
+                'required_role' => $requiredRole,
                 'message' => 'You need at least rank ' . $this->getRankName($requiredRank) . ' to access this resource.'
             ], 403);
         }

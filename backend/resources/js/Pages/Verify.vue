@@ -67,7 +67,10 @@ onMounted(async () => {
     }
 
     try {
-        const res = await axios.get('/api/v1/me', { headers: authHeaders() });
+        const res = await axios.get('/api/v1/me', {
+            headers: authHeaders(),
+            hzSkipErrorDialog: true,
+        });
 
         discordVerified.value = true;
         rsiVerified.value = !!res.data.data.rsi_verified;
@@ -109,7 +112,10 @@ const getCode = async () => {
     loadingCode.value = true;
 
     try {
-        const res = await axios.post('/api/v1/generate-code', {}, { headers: authHeaders() });
+        const res = await axios.post('/api/v1/generate-code', {}, {
+            headers: authHeaders(),
+            hzSkipErrorDialog: true,
+        });
         verificationCode.value = res.data.data.verification_code;
     } catch (e) {
         error.value = {
@@ -140,7 +146,10 @@ const verifyRsi = async () => {
     verifying.value = true;
 
     try {
-        await axios.post('/api/v1/verify-rsi', { rsi_handle: rsiHandle.value }, { headers: authHeaders() });
+        await axios.post('/api/v1/verify-rsi', { rsi_handle: rsiHandle.value }, {
+            headers: authHeaders(),
+            hzSkipErrorDialog: true,
+        });
 
         // Success = send them home
         window.location.href = '/';

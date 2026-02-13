@@ -1,7 +1,19 @@
 <template>
   <div class="hz-row-between">
     <div class="hz-row gap-2">
-      <span class="hz-text-primary font-medium">
+      <Link
+        v-if="member.user?.id"
+        :href="route('member.profile', member.user.id)"
+        class="hz-text-primary font-medium hover:underline"
+        :style="nameColor ? { color: nameColor } : undefined"
+      >
+        {{ member.user?.rsi_handle ?? member.user?.display_name }}
+      </Link>
+      <span
+        v-else
+        class="hz-text-primary font-medium"
+        :style="nameColor ? { color: nameColor } : undefined"
+      >
         {{ member.user?.rsi_handle ?? member.user?.display_name }}
       </span>
 
@@ -67,7 +79,11 @@
 </template>
 
 <script setup>
+import { Link } from '@inertiajs/vue3'
 import HorizonButton from '@/Components/HorizonButton.vue';
+
+import { computed } from 'vue'
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 const props = defineProps({
   member: Object,
@@ -83,4 +99,10 @@ const emit = defineEmits([
   'demote-lt',
   'remove',
 ])
+
+const nameColor = computed(() => {
+  const u = props.member?.user ?? null
+  const slug = getHighestOrgRoleSlug(u?.roles, u?.rank)
+  return getOrgRoleColor(slug)
+})
 </script>

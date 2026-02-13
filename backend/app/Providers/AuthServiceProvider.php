@@ -42,6 +42,18 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        Gate::before(function ($user, string $ability) {
+            if (! $user) {
+                return null;
+            }
+
+            if (str_contains($ability, '.')) {
+                return $user->hasPermission($ability);
+            }
+
+            return null;
+        });
+
         // Admin panel access gate
         Gate::define('access-admin-panel', function (User $user) {
             return $user->hasRole('director') 

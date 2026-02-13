@@ -30,6 +30,7 @@ class SquadronMemberController extends Controller
             $member = $this->membership->adminAddMember($squadron, $request->user_id);
         } catch (ValidationException $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => $e->errors()['user_id'][0] ?? 'Cannot add member',
             ], 409);
         }
@@ -78,6 +79,7 @@ class SquadronMemberController extends Controller
             )
         ) {
             return response()->json([
+                'status' => 'error',
                 'success' => false,
                 'message' => 'Lieutenants cannot remove the squadron leader.',
             ], 403);
@@ -85,7 +87,10 @@ class SquadronMemberController extends Controller
 
         $this->membership->adminRemoveMember($squadron, $member);
 
-        return response()->json(['message' => 'Member removed']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Member removed',
+        ]);
     }
 
     public function join(Squadron $squadron)
@@ -96,6 +101,7 @@ class SquadronMemberController extends Controller
             $member = $this->membership->userJoin($squadron, $user);
         } catch (ValidationException $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => $e->errors()['member'][0] ?? 'Cannot join squadron',
             ], 409);
         }
@@ -116,11 +122,15 @@ class SquadronMemberController extends Controller
             $this->membership->userLeave($squadron, $user);
         } catch (ValidationException $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => $e->errors()['member'][0] ?? 'Cannot leave squadron',
             ], 404);
         }
 
-        return response()->json(['message' => 'Left squadron successfully']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Left squadron successfully',
+        ]);
     }
     public function promoteLieutenant(
         Squadron $squadron,
@@ -132,17 +142,20 @@ class SquadronMemberController extends Controller
             $member = $this->membership->promoteLieutenant($squadron, $user);
         } catch (ModelNotFoundException) {
             return response()->json([
+                'status' => 'error',
                 'success' => false,
                 'message' => 'User is not a member of this squadron.',
             ], 404);
         } catch (ValidationException $e) {
             return response()->json([
+                'status' => 'error',
                 'success' => false,
                 'message' => collect($e->errors())->flatten()->first() ?? 'Cannot promote member.',
             ], 409);
         }
 
         return response()->json([
+            'status' => 'success',
             'success' => true,
             'member' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
                 $member->load('user')
@@ -157,11 +170,13 @@ class SquadronMemberController extends Controller
             $this->membership->demoteLieutenant($squadron, $user);
         } catch (ModelNotFoundException) {
             return response()->json([
+                'status' => 'error',
                 'success' => false,
                 'message' => 'User is not a lieutenant in this squadron.',
             ], 404);
         } catch (ValidationException $e) {
             return response()->json([
+                'status' => 'error',
                 'success' => false,
                 'message' => collect($e->errors())->flatten()->first() ?? 'Cannot demote member.',
             ], 409);

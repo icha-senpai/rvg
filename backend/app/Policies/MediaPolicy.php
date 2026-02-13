@@ -3,8 +3,10 @@
 namespace App\Policies;
 
 use App\Models\Media;
+use App\Models\Squadron;
 use App\Models\User;
 use App\Domain\AccessControl\AccessService;
+use App\Domain\AccessControl\RoleHierarchy;
 
 class MediaPolicy
 {
@@ -30,6 +32,19 @@ class MediaPolicy
      */
     public function view(User $user, Media $media): bool
     {
+        if ($media->collection === Media::COLLECTION_SQUADRON_EMBLEM) {
+            if ($this->access->isDirectorLike($user)) {
+                return true;
+            }
+
+            if ($media->mediable_type === Squadron::class && $media->mediable_id) {
+                $squadron = Squadron::find((int) $media->mediable_id);
+                return $squadron ? $user->isSquadronLeader($squadron) : false;
+            }
+
+            return false;
+        }
+
         // Directors see everything
         if ($this->access->isDirectorLike($user)) {
             return true;
@@ -40,13 +55,22 @@ class MediaPolicy
             return true;
         }
 
+        if ($media->collection === Media::COLLECTION_SHIP_IMAGE
+            || $media->collection === Media::COLLECTION_SITE_ASSET) {
+            return false;
+        }
+
+        if ($media->collection === Media::COLLECTION_OPERATION_IMAGE) {
+            if ((int) ($user->rank_level ?? 0) >= 2) {
+                return true;
+            }
+
+            $user->loadMissing('roles:id,slug');
+            return RoleHierarchy::userAtLeast($user, 'lieutenant');
+        }
+
         // Public collections are visible to all authenticated users
-        $publicCollections = [
-            Media::COLLECTION_SQUADRON_EMBLEM,
-            Media::COLLECTION_OPERATION_IMAGE,
-            Media::COLLECTION_SHIP_IMAGE,
-            Media::COLLECTION_SITE_ASSET,
-        ];
+        $publicCollections = [];
 
         return in_array($media->collection, $publicCollections, true);
     }
@@ -56,9 +80,22 @@ class MediaPolicy
      *
      * Collection is passed as a string via the second argument.
      */
-    public function upload(User $user, ?string $collection = null): bool
+    public function upload(User $user, ?string $collection = null, ?int $squadronId = null): bool
     {
-        // Directors and tech directors can upload to any collection
+        if ($collection === Media::COLLECTION_SQUADRON_EMBLEM) {
+            if ($this->access->isDirectorLike($user)) {
+                return true;
+            }
+
+            if (! $squadronId) {
+                return false;
+            }
+
+            $squadron = Squadron::find($squadronId);
+            return $squadron ? $user->isSquadronLeader($squadron) : false;
+        }
+
+        // Directors and tech directors can upload to any collection (except emblems)
         if ($this->access->isDirectorLike($user)) {
             return true;
         }
@@ -67,13 +104,16 @@ class MediaPolicy
             // Any verified member can upload their own avatar
             Media::COLLECTION_AVATAR => true,
 
-            // Squadron leaders and lieutenants can upload emblems
-            // (squadron-level check happens in the controller)
-            Media::COLLECTION_SQUADRON_EMBLEM => true,
+            // Squadron emblems handled above (needs squadron context)
+            Media::COLLECTION_SQUADRON_EMBLEM => false,
 
             // Operation creators can attach images
             // (operation-level check happens in the controller)
-            Media::COLLECTION_OPERATION_IMAGE => true,
+            Media::COLLECTION_OPERATION_IMAGE => (int) ($user->rank_level ?? 0) >= 2
+                || (function () use ($user) {
+                    $user->loadMissing('roles:id,slug');
+                    return RoleHierarchy::userAtLeast($user, 'lieutenant');
+                })(),
 
             // Ship images: directors only
             Media::COLLECTION_SHIP_IMAGE => false,

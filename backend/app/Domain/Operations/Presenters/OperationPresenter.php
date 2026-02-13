@@ -17,6 +17,7 @@ class OperationPresenter
             'squadron',
             'squadron.leader',
             'creator',
+            'creator.roles',
         ]);
 
         $this->viewer = $viewer;
@@ -41,14 +42,26 @@ class OperationPresenter
             'ends_at'     => $this->operation->ends_at?->toIso8601String(),
             'visibility'  => $this->operation->visibility,
             'difficulty'  => $this->operation->difficulty,
-            'operation_kind' => $this->operation->operation_kind,
+            'operation_type' => $this->operation->operation_type,
             'operation_strictness' => $this->operation->operation_strictness,
             'branch'      => $this->operation->branch,
             'status'      => $this->operation->status,
+            'completion_outcome' => $this->operation->completion_outcome,
             'created_by'  => $this->operation->created_by,
 
             'creator' => $this->operation->creator
-                ? $this->operation->creator->only(['id', 'rsi_handle', 'discord_avatar'])
+                ? [
+                    'id' => $this->operation->creator->id,
+                    'rsi_handle' => $this->operation->creator->rsi_handle,
+                    'discord_avatar' => $this->operation->creator->discord_avatar,
+                    'rank' => $this->operation->creator->rank,
+                    'rank_level' => $this->operation->creator->rank_level,
+                    'rank_name' => $this->operation->creator->rank_name,
+                    'roles' => $this->operation->creator->roles->map(fn ($role) => [
+                        'slug' => $role->slug,
+                        'name' => $role->name,
+                    ])->values(),
+                ]
                 : null,
 
             'squadron' => [
@@ -70,6 +83,7 @@ class OperationPresenter
             'participants.user',
             'roles.participants.user',
             'images',
+            'creator.roles',
         ]);
 
         // Get the primary operation image (most recent)
@@ -83,9 +97,9 @@ class OperationPresenter
             'starts_at'      => $this->operation->starts_at?->toIso8601String(),
             'ends_at'        => $this->operation->ends_at?->toIso8601String(),
             'visibility'     => $this->operation->visibility,
-            'operation_kind' => $this->operation->operation_kind,
+            'operation_type' => $this->operation->operation_type,
             'branch'         => $this->operation->branch,
-            'type'           => $this->operation->type,
+            'gameplay_type'  => $this->operation->gameplay_type,
             'difficulty'     => $this->operation->difficulty,
             'operation_strictness' => $this->operation->operation_strictness,
             'icon'           => $this->operation->icon,
@@ -94,7 +108,9 @@ class OperationPresenter
             'operation_location' => $this->operation->operation_location,
             'rsvp_deadline'  => $this->operation->rsvp_deadline?->toIso8601String(),
             'notes'          => $this->operation->notes,
+            'extended_description' => $this->operation->extended_description,
             'status'         => $this->operation->status,
+            'completion_outcome' => $this->operation->completion_outcome,
             'cancellation_reason' => $this->operation->cancellation_reason,
             'slots'          => $this->operation->slots,
 
@@ -111,6 +127,15 @@ class OperationPresenter
                 'id'   => $this->operation->creator?->id,
                 'rsi_handle' => $this->operation->creator?->rsi_handle,
                 'discord_avatar' => $this->operation->creator?->discord_avatar,
+                'rank' => $this->operation->creator?->rank,
+                'rank_level' => $this->operation->creator?->rank_level,
+                'rank_name' => $this->operation->creator?->rank_name,
+                'roles' => $this->operation->creator
+                    ? $this->operation->creator->roles->map(fn ($role) => [
+                        'slug' => $role->slug,
+                        'name' => $role->name,
+                    ])->values()
+                    : [],
             ],
 
             'squadron' => [
@@ -168,9 +193,9 @@ class OperationPresenter
             'starts_at'      => optional($this->operation->starts_at)->toIso8601String(),
             'ends_at'        => optional($this->operation->ends_at)->toIso8601String(),
             'visibility'     => $this->operation->visibility,
-            'operation_kind' => $this->operation->operation_kind,
+            'operation_type' => $this->operation->operation_type,
             'branch'         => $this->operation->branch,
-            'type'           => $this->operation->type,
+            'gameplay_type'  => $this->operation->gameplay_type,
             'difficulty'     => $this->operation->difficulty,
             'operation_strictness' => $this->operation->operation_strictness,
             'icon'           => $this->operation->icon,
@@ -179,7 +204,9 @@ class OperationPresenter
             'operation_location' => $this->operation->operation_location,
             'rsvp_deadline'  => optional($this->operation->rsvp_deadline)->toIso8601String(),
             'notes'          => $this->operation->notes,
+            'extended_description' => $this->operation->extended_description,
             'status'         => $this->operation->status,
+            'completion_outcome' => $this->operation->completion_outcome,
             'slots'          => $this->operation->slots,
 
             'media_image'    => $primaryImage ? [

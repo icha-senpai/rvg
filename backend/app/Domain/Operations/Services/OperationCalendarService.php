@@ -23,7 +23,7 @@ class OperationCalendarService
 
         $descriptionParts = array_values(array_filter([
             $operation->description,
-            $operation->notes,
+            $operation->extended_description ?? $operation->notes,
             route('operations.show', $operation->id),
         ]));
 

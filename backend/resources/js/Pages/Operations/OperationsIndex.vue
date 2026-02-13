@@ -59,7 +59,7 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ operationKindLabel(modalHeaderOperation?.operation_kind) }}
+            {{ operationKindLabel(modalHeaderOperation?.operation_type ?? modalHeaderOperation?.operation_kind) }}
           </div>
           <div class="hz-title-md text-horizon-white">
             {{ operationDisplayTitle(modalHeaderOperation) }}
@@ -136,7 +136,7 @@ function operationTitlePrefix(kind) {
 
 function operationDisplayTitle(op) {
   const title = op?.title ?? ''
-  const prefix = operationTitlePrefix(op?.operation_kind)
+  const prefix = operationTitlePrefix(op?.operation_type ?? op?.operation_kind)
   return prefix ? `${prefix}: ${title}` : title
 }
 

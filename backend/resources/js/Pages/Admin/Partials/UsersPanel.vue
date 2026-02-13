@@ -60,6 +60,7 @@
               <Link
                 :href="route('member.profile', u.id)"
                 class="hz-title-md inline-block hover:underline"
+                :style="userNameColor(u) ? { color: userNameColor(u) } : undefined"
               >
                 {{ u.rsi_handle || u.discord_name || 'Unknown' }}
               </Link>
@@ -130,7 +131,10 @@
     <!-- HEADER -->
     <div class="hz-row-between">
       <div class="hz-title-lg">
-        Edit User · {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
+        Edit User ·
+        <span :style="userNameColor(editingUser) ? { color: userNameColor(editingUser) } : undefined">
+          {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
+        </span>
       </div>
 
       <HorizonButton variant="primary" size="sm" @click="closeUserEditor">
@@ -411,6 +415,8 @@ import { Link, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const props = defineProps({
   users: Object,
   roles: Array,
@@ -449,12 +455,11 @@ const roleSortOrder = [
   'grand_admiral',
   'admiral',
   'wing_commander',
-  'commander_squadron',
-  'commander_staff',
+  'cit',
+  'commander',
   'lieutenant',
   'member',
   'tech_team',
-  'mission_commander',
   'viewer',
 ];
 
@@ -557,6 +562,11 @@ const sortedRoles = computed(() => [...(props.roles ?? [])].sort(compareRoles));
 function formatRoleList(userRoles) {
   const sorted = [...(userRoles ?? [])].sort(compareRoles);
   return sorted.map(r => r.name).join(', ');
+}
+
+function userNameColor(u) {
+  const slug = getHighestOrgRoleSlug(u?.roles, u?.rank)
+  return getOrgRoleColor(slug)
 }
 
 /* ============================================================

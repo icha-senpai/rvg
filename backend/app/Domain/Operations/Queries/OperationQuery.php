@@ -13,7 +13,7 @@ class OperationQuery
 
         return Operation::visibleToUser($user)
             ->withCount('participants')
-            ->with(['squadron', 'creator'])
+            ->with(['squadron', 'creator.roles'])
             ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
             ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
             ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])

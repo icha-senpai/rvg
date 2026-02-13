@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
@@ -17,11 +18,22 @@ class Handler extends ExceptionHandler
     {
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated',
+                'errors' => null,
             ], 401);
         }
 
         return redirect()->guest('/');
+    }
+
+    protected function invalidJson($request, ValidationException $exception)
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => $exception->getMessage(),
+            'errors' => $exception->errors(),
+        ], $exception->status);
     }
 
     public function report(Throwable $e): void

@@ -2,6 +2,8 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const page = usePage();
 
 const user = computed(() => page.props?.auth?.user ?? null);
@@ -25,6 +27,12 @@ const rankName = computed(() => {
   );
 });
 
+const userNameColor = computed(() => {
+  const u = user.value
+  const slug = getHighestOrgRoleSlug(u?.roles, u?.rank)
+  return getOrgRoleColor(slug)
+})
+
 const isDirectorLike = computed(() => {
   return roles.value.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
 });
@@ -34,7 +42,10 @@ const canSeeEverything = computed(() => {
 });
 
 const canSeeOperationsDashboard = computed(() => {
-  return canSeeEverything.value || rankLevel.value >= 2;
+  if (canSeeEverything.value) return true;
+
+  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral'];
+  return roles.value.some(r => officerRoleSlugs.includes(r?.slug));
 });
 
 const mySquadron = computed(() => {
@@ -237,7 +248,7 @@ onBeforeUnmount(() => {
 
             <div class="min-w-0">
               <div class="text-xs text-text-secondary">User Info</div>
-              <div class="text-sm font-semibold truncate text-horizon-white">
+              <div class="text-sm font-semibold truncate text-horizon-white" :style="userNameColor ? { color: userNameColor } : undefined">
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
               </div>
               <div class="text-xs text-text-secondary">
@@ -327,7 +338,7 @@ onBeforeUnmount(() => {
 
             <div class="min-w-0">
               <div class="text-xs text-text-secondary">User Info</div>
-              <div class="text-sm font-semibold truncate text-horizon-white">
+              <div class="text-sm font-semibold truncate text-horizon-white" :style="userNameColor ? { color: userNameColor } : undefined">
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
               </div>
               <div class="text-xs text-text-secondary">

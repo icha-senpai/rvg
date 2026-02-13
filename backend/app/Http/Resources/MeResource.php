@@ -2,12 +2,22 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\AccessControl\RoleHierarchy;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class MeResource extends JsonResource
 {
     public function toArray($request)
     {
+        $viewer = $request?->user();
+        $isDirectorLike = (bool) ($viewer && ($viewer->hasRole('director') || $viewer->hasRole('tech_director')));
+        if ($viewer) {
+            $viewer->loadMissing('roles:id,slug');
+        }
+
+        $canViewRestrictedOperationStats = $isDirectorLike
+            || ($viewer && RoleHierarchy::userAtLeast($viewer, 'commander'));
+
         return [
             'id'                  => $this->id,
             'name'                => $this->name,
@@ -46,9 +56,13 @@ class MeResource extends JsonResource
             'loa_note'            => $this->loa_note,
             'personal_tags'       => $this->personal_tags,
 
-            'operations_joined_count' => $this->operations_joined_count,
-            'operations_left_early_count' => $this->operations_left_early_count,
             'operations_completed_count' => $this->operations_completed_count,
+            'operations_created_count' => $this->operations_created_count,
+            'operations_canceled_count' => $this->operations_canceled_count,
+            'operations_success_count' => $this->operations_success_count,
+            'operations_failed_count' => $this->operations_failed_count,
+            'operations_joined_count' => $canViewRestrictedOperationStats ? $this->operations_joined_count : null,
+            'operations_left_early_count' => $canViewRestrictedOperationStats ? $this->operations_left_early_count : null,
 
             // RBAC roles
             'roles' => $this->roles->map(fn ($role) => [

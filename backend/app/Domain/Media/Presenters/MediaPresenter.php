@@ -36,6 +36,21 @@ class MediaPresenter
             'thumbnail_url'     => $this->media->thumbnail_url,
             'medium_url'        => $this->media->medium_url,
             'alt_text'          => $this->media->alt_text,
+            'uploader' => $this->media->uploader
+                ? [
+                    'id' => $this->media->uploader->id,
+                    'rsi_handle' => $this->media->uploader->rsi_handle,
+                    'discord_name' => $this->media->uploader->discord_name,
+                    'rank' => $this->media->uploader->rank,
+                    'rank_level' => $this->media->uploader->rank_level,
+                    'roles' => $this->media->uploader->relationLoaded('roles')
+                        ? $this->media->uploader->roles->map(fn ($role) => [
+                            'slug' => $role->slug,
+                            'name' => $role->name,
+                        ])->values()
+                        : [],
+                ]
+                : null,
             'created_at'        => $this->media->created_at?->toIso8601String(),
         ];
     }
@@ -45,7 +60,10 @@ class MediaPresenter
      */
     public function full(): array
     {
-        $this->media->loadMissing('uploader:id,rsi_handle,discord_name');
+        $this->media->loadMissing([
+            'uploader:id,rsi_handle,discord_name,rank,rank_level',
+            'uploader.roles:id,slug,name',
+        ]);
 
         return [
             'id'                => $this->media->id,
@@ -71,7 +89,17 @@ class MediaPresenter
             'mediable_id'       => $this->media->mediable_id,
 
             'uploader' => $this->media->uploader
-                ? $this->media->uploader->only(['id', 'rsi_handle', 'discord_name'])
+                ? [
+                    'id' => $this->media->uploader->id,
+                    'rsi_handle' => $this->media->uploader->rsi_handle,
+                    'discord_name' => $this->media->uploader->discord_name,
+                    'rank' => $this->media->uploader->rank,
+                    'rank_level' => $this->media->uploader->rank_level,
+                    'roles' => $this->media->uploader->roles->map(fn ($role) => [
+                        'slug' => $role->slug,
+                        'name' => $role->name,
+                    ])->values(),
+                ]
                 : null,
 
             'created_at' => $this->media->created_at?->toIso8601String(),

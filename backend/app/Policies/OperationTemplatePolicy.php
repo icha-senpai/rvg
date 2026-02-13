@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\OperationTemplate;
 use App\Models\Squadron;
 use App\Models\User;
@@ -46,7 +47,7 @@ class OperationTemplatePolicy
                 return false;
             }
 
-            return (int) ($user->rank_level ?? 0) >= 2;
+            return $this->isRankTwoOrDirectorLike($user);
         }
 
         return false;
@@ -89,7 +90,7 @@ class OperationTemplatePolicy
                 return false;
             }
 
-            return (int) ($user->rank_level ?? 0) >= 2;
+            return $this->isRankTwoOrDirectorLike($user);
         }
 
         return false;
@@ -146,6 +147,9 @@ class OperationTemplatePolicy
 
     protected function isRankTwoOrDirectorLike(User $user): bool
     {
-        return $this->isDirectorLike($user) || (int) ($user->rank_level ?? 0) >= 2;
+        $user->loadMissing('roles:id,slug');
+
+        return $this->isDirectorLike($user)
+            || RoleHierarchy::userAtLeast($user, 'lieutenant');
     }
 }

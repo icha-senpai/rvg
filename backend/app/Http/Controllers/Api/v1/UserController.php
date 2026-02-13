@@ -91,7 +91,8 @@ class UserController extends Controller
         $user->delete();
 
         return ApiResponse::success(
-            'User deleted successfully'
+            'User deleted successfully',
+            []
         );
     }
 

@@ -12,18 +12,26 @@ class DiscordIdentityController extends Controller
     {
         // Very simple shared-secret guard
         if ($request->header('X-BOT-TOKEN') !== config('services.discord.bot_token')) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden',
+                'data' => null,
+            ], 403);
         }
 
         $user = User::where('discord_id', $discordId)->first();
 
         if (!$user) {
             return response()->json([
+                'status' => 'success',
+                'message' => null,
                 'data' => null,
             ]);
         }
 
         return response()->json([
+            'status' => 'success',
+            'message' => null,
             'data' => [
                 'discord_id'   => $user->discord_id,
                 'rsi_handle'   => $user->rsi_handle,

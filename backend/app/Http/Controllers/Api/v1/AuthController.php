@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\LoginRequest;
+use App\Domain\AccessControl\RoleHierarchy;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 use App\Http\Requests\DiscordVerifyRequest;
 use App\Http\Requests\RsiVerifyRequest;
+use App\Http\Requests\LoginRequest;
 use App\Traits\HandlesFailedAttempts;
 use App\Traits\LogsAuthEvents;
 use Illuminate\Support\Facades\Hash;
@@ -30,6 +34,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Too many failed login attempts.',
                 'locked_until' => $locked,
             ], 429);
@@ -46,6 +51,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Invalid credentials.',
             ], 401);
         }
@@ -114,6 +120,7 @@ class AuthController extends Controller
             $this->logAuthEvent('discord.verify.unauthenticated', null, ['ip' => $ip]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated.',
             ], 401);
         }
@@ -126,6 +133,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Too many failed attempts.',
                 'locked_until' => $locked,
             ], 429);
@@ -142,6 +150,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Discord account already linked.',
             ], 409);
         }
@@ -160,6 +169,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Discord verification successful.',
         ]);
     }
@@ -175,6 +185,7 @@ class AuthController extends Controller
             $this->logAuthEvent('rsi.verify.unauthenticated', null, ['ip' => $ip]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated.',
             ], 401);
         }
@@ -187,6 +198,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Too many failed attempts.',
                 'locked_until' => $locked,
             ], 429);
@@ -203,6 +215,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'RSI handle already linked.',
             ], 409);
         }
@@ -220,6 +233,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'RSI verification successful.',
         ]);
     }
@@ -232,6 +246,7 @@ class AuthController extends Controller
         if (!$rawToken) {
             $this->logAuthEvent('logout.no_token', null);
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated.'
             ], 401);
         }
@@ -241,6 +256,7 @@ class AuthController extends Controller
         if (!$pat) {
             $this->logAuthEvent('logout.invalid_token', null);
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated.'
             ], 401);
         }
@@ -253,6 +269,7 @@ class AuthController extends Controller
         $this->logAuthEvent('logout.success', $userId);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Logged out successfully.',
         ]);
     }
@@ -265,6 +282,7 @@ class AuthController extends Controller
 
         if (!$rawToken) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated (no token).'
             ], 401);
         }
@@ -274,6 +292,7 @@ class AuthController extends Controller
 
         if (!$pat) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated (invalid token).'
             ], 401);
         }
@@ -281,6 +300,7 @@ class AuthController extends Controller
     // Must be a refresh token
         if ($pat->name !== 'refresh_token') {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Invalid token type. Must use refresh token.',
                 'state'   => 'WRONG_TOKEN_TYPE'
             ], 401);
@@ -289,6 +309,7 @@ class AuthController extends Controller
     // Check expiration
         if ($pat->expires_at && $pat->expires_at->isPast()) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Refresh token expired.',
                 'state'   => 'EXPIRED_REFRESH'
             ], 401);
@@ -299,6 +320,7 @@ class AuthController extends Controller
 
         if (!$user) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Unauthenticated (no user).'
             ], 401);
         }
@@ -312,6 +334,7 @@ class AuthController extends Controller
 
         if (!$guildId) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Access token refresh unavailable (missing Discord guild id).',
                 'state'   => 'MISSING_GUILD_ID'
             ], 500);
@@ -325,6 +348,7 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
             return response()->json([
+                'status' => 'error',
                 'message' => 'Access revoked. You are no longer in the org Discord.',
                 'state'   => 'LEFT_GUILD'
             ], 403);
@@ -340,7 +364,8 @@ class AuthController extends Controller
             ->delete();
 
         // Determine expiration based on rank
-        $isLeadership = ($user->rank_level >= 2);
+        $user->loadMissing('roles:id,slug');
+        $isLeadership = RoleHierarchy::userAtLeast($user, 'lieutenant');
         $accessExpires = now()->addDay();
 
         // Issue new access token
@@ -351,6 +376,7 @@ class AuthController extends Controller
         )->plainTextToken;
 
         return response()->json([
+            'status' => 'success',
             'message'       => 'Access token refreshed.',
             'access_token'  => $newAccess,
             'expires_in'    => 86400,

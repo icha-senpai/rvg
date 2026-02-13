@@ -9,6 +9,8 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonStat from '@/Components/HorizonStat.vue'
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const page = usePage()
 
 const inertiaUser = computed(() => page.props?.auth?.user ?? null)
@@ -336,16 +338,21 @@ const rolesLabel = computed(() => {
   return roles.map(r => r?.name ?? r?.slug).filter(Boolean).join(', ')
 })
 
+const displayNameColor = computed(() => {
+  const u = me.value ?? {}
+  const slug = getHighestOrgRoleSlug(u?.roles, u?.rank)
+  return getOrgRoleColor(slug)
+})
+
 const canViewRestrictedOperationStats = computed(() => {
   const viewer = inertiaUser.value ?? {}
-  const rankLevel = Number(viewer?.rank_level ?? 0)
-
-  if (rankLevel >= 3) return true
-
   const roles = viewer?.roles ?? []
   const roleSlugs = roles.map(r => r?.slug).filter(Boolean)
 
-  return roleSlugs.includes('director') || roleSlugs.includes('tech_director')
+  if (roleSlugs.includes('director') || roleSlugs.includes('tech_director')) return true
+
+  const commanderPlusRoleSlugs = ['commander', 'wing_commander', 'admiral', 'grand_admiral']
+  return roleSlugs.some(s => commanderPlusRoleSlugs.includes(s))
 })
 
 const favoriteShipsLabel = computed(() => {
@@ -454,6 +461,10 @@ function normalizeExperienceRatings(source) {
 const operationsStats = computed(() => {
   const u = me.value ?? {}
   return {
+    created: u?.operations_created_count ?? 0,
+    canceled: u?.operations_canceled_count ?? 0,
+    success: u?.operations_success_count ?? 0,
+    failed: u?.operations_failed_count ?? 0,
     joined: u?.operations_joined_count ?? 0,
     completed: u?.operations_completed_count ?? 0,
     leftEarly: u?.operations_left_early_count ?? 0,
@@ -606,7 +617,7 @@ watch(
                 class="h-28 w-28 rounded-2xl object-cover border border-bg-hover"
               />
               <div
-                v-else
+                v-else :style="displayNameColor ? { color: displayNameColor } : undefined"
                 class="h-28 w-28 rounded-2xl bg-bg-hover border border-bg-hover flex items-center justify-center text-lg font-semibold"
               >
                 {{ String(displayName).slice(0, 1).toUpperCase() }}
@@ -652,34 +663,80 @@ watch(
         </div>
       </HorizonPanel>
 
-      <div
-        v-if="canViewRestrictedOperationStats"
-        class="grid grid-cols-1 gap-4 md:grid-cols-3"
-      >
-        <HorizonStat
-          label="Operations Completed"
-          :value="operationsStats.completed"
-          class="!border !border-[color:var(--horizon-sunset-blue)]"
-        />
-        <HorizonStat
-          label="Operations Joined"
-          :value="operationsStats.joined"
-          class="!border !border-[color:var(--horizon-sunset-blue)]"
-        />
-        <HorizonStat
-          label="Left Early"
-          :value="operationsStats.leftEarly"
-          class="!border !border-[color:var(--horizon-sunset-blue)]"
-        />
-      </div>
+      <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
+        <div class="hz-stack-sm">
+          <div class="hz-section-label">Operation Stats</div>
 
-      <div v-else class="grid grid-cols-1 gap-4">
-        <HorizonStat
-          label="Operations Completed"
-          :value="operationsStats.completed"
-          class="!border !border-[color:var(--horizon-sunset-blue)]"
-        />
-      </div>
+          <div
+            v-if="canViewRestrictedOperationStats"
+            class="grid grid-cols-1 gap-4 md:grid-cols-3"
+          >
+            <HorizonStat
+              label="Operations Created"
+              :value="operationsStats.created"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Canceled"
+              :value="operationsStats.canceled"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Success"
+              :value="operationsStats.success"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Failed"
+              :value="operationsStats.failed"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Completed"
+              :value="operationsStats.completed"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Joined"
+              :value="operationsStats.joined"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Left Early"
+              :value="operationsStats.leftEarly"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+          </div>
+
+          <div v-else class="grid grid-cols-1 gap-4">
+            <HorizonStat
+              label="Operations Created"
+              :value="operationsStats.created"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Canceled"
+              :value="operationsStats.canceled"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Success"
+              :value="operationsStats.success"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Failed"
+              :value="operationsStats.failed"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+            <HorizonStat
+              label="Operations Completed"
+              :value="operationsStats.completed"
+              class="!border !border-[color:var(--horizon-sunset-blue)]"
+            />
+          </div>
+        </div>
+      </HorizonPanel>
 
       <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
         <div class="hz-stack-sm">

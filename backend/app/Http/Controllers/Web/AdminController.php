@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Media\Presenters\MediaPresenter;
+use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\User;
 use App\Models\Squadron;
 use App\Models\Role;
@@ -58,7 +59,7 @@ class AdminController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $squadrons = Squadron::query()
+        $rawSquadrons = Squadron::query()
             ->with('emblem')
             ->leftJoin('squadron_members as leader_member', function ($join) {
                 $join->on('leader_member.squadron_id', '=', 'squadrons.id')
@@ -72,6 +73,8 @@ class AdminController extends Controller
                 'squadrons.name',
                 'squadrons.slug',
                 'squadrons.status',
+                'squadrons.branch',
+                'squadrons.division',
                 'squadrons.emblem_path',
 
                 'leader_user.id as leader_id',
@@ -79,8 +82,24 @@ class AdminController extends Controller
                 'leader_user.rsi_handle as leader_rsi_handle',
                 'leader_user.rank as leader_rank',
                 'leader_user.rank_level as leader_rank_level',
-            ])
-            ->map(function ($row) {
+            ]);
+
+        $leaderIds = $rawSquadrons
+            ->pluck('leader_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $leadersById = $leaderIds->isNotEmpty()
+            ? User::query()
+                ->with(['roles:id,slug,name'])
+                ->whereIn('id', $leaderIds)
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        $squadrons = $rawSquadrons
+            ->map(function ($row) use ($leadersById) {
                 $emblemUrl = null;
 
                 if ($row->relationLoaded('emblem') && $row->emblem) {
@@ -94,6 +113,8 @@ class AdminController extends Controller
                     'name' => $row->name,
                     'slug' => $row->slug,
                     'status' => $row->status,
+                    'branch' => $row->branch,
+                    'division' => $row->division,
                     'emblem_url' => $emblemUrl,
                     'emblem' => ($row->relationLoaded('emblem') && $row->emblem)
                         ? MediaPresenter::make($row->emblem)->embedded()
@@ -105,12 +126,22 @@ class AdminController extends Controller
                         'rsi_handle' => $row->leader_rsi_handle,
                         'rank' => $row->leader_rank,
                         'rank_level' => $row->leader_rank_level,
+                        'roles' => $leadersById->get($row->leader_id)
+                            ? $leadersById->get($row->leader_id)->roles->map(fn ($role) => [
+                                'slug' => $role->slug,
+                                'name' => $role->name,
+                            ])->values()
+                            : [],
                     ] : null,
                 ];
             })
             ->values();
 
-        $eligibleLeaders = User::where('rank_level', '>=', 3)
+        $eligibleLeaderRoleSlugs = ['commander', 'wing_commander', 'admiral', 'grand_admiral', 'director', 'tech_director'];
+
+        $eligibleLeaders = User::whereHas('roles', function ($q) use ($eligibleLeaderRoleSlugs) {
+            $q->whereIn('slug', $eligibleLeaderRoleSlugs);
+        })
             ->select('id', 'discord_name', 'rsi_handle', 'rank', 'rank_level')
             ->orderByDesc('rank_level')
             ->orderBy('discord_name')
@@ -206,14 +237,15 @@ class AdminController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'slug'      => ['required', 'string', 'max:255', 'unique:squadrons,slug'],
             'status'    => ['required', 'in:active,inactive,disbanded'],
+            'branch'    => ['nullable', 'string', 'in:defence,industries,frontiers,lifeline'],
+            'division'  => ['nullable', 'string', 'in:marines,navy,airforce,procurement,logistics,construction,exploration,science,development,triage,recovery,medical'],
             'leader_id' => [
                 'nullable',
                 'exists:users,id',
                 function ($attr, $value, $fail) {
                     if ($value) {
-                        $leader = \App\Models\User::find($value);
-                        // Commander and above = rank_level >= 3
-                        if (! $leader || $leader->rank_level < 3) {
+                        $leader = \App\Models\User::with('roles:id,slug')->find($value);
+                        if (! $leader || ! RoleHierarchy::userAtLeast($leader, 'commander')) {
                             $fail('Selected leader does not have sufficient rank.');
                         }
                     }
@@ -221,10 +253,18 @@ class AdminController extends Controller
             ],
         ]);
 
+        if (! $this->isValidSquadronBranchDivision($data['branch'] ?? null, $data['division'] ?? null)) {
+            return back()->withErrors([
+                'division' => 'Selected division is not valid for the chosen branch.',
+            ]);
+        }
+
         $squadron = Squadron::create([
             'name'   => $data['name'],
             'slug'   => $data['slug'],
             'status' => $data['status'],
+            'branch' => $data['branch'] ?? null,
+            'division' => $data['division'] ?? null,
         ]);
 
         // Assign leader via squadron_members
@@ -262,19 +302,27 @@ class AdminController extends Controller
             'name'      => ['required', 'string', 'max:255'],
             'slug'      => ['required', 'string', 'max:255'],
             'status'    => ['required', 'in:active,inactive,disbanded'],
+            'branch'    => ['nullable', 'string', 'in:defence,industries,frontiers,lifeline'],
+            'division'  => ['nullable', 'string', 'in:marines,navy,airforce,procurement,logistics,construction,exploration,science,development,triage,recovery,medical'],
             'leader_id' => [
                 'nullable',
                 'exists:users,id',
                 function ($attr, $value, $fail) {
                     if ($value) {
-                        $leader = \App\Models\User::find($value);
-                        if (! $leader || $leader->rank_level < 3) {
+                        $leader = \App\Models\User::with('roles:id,slug')->find($value);
+                        if (! $leader || ! RoleHierarchy::userAtLeast($leader, 'commander')) {
                             $fail('Selected leader does not have sufficient rank.');
                         }
                     }
                 },
             ],
         ]);
+
+        if (! $this->isValidSquadronBranchDivision($data['branch'] ?? null, $data['division'] ?? null)) {
+            return back()->withErrors([
+                'division' => 'Selected division is not valid for the chosen branch.',
+            ]);
+        }
 
         $squadron = Squadron::findOrFail($data['id']);
         $previousLeaderId = $squadron->leader_id;
@@ -285,6 +333,8 @@ class AdminController extends Controller
             'name'   => $data['name'],
             'slug'   => $data['slug'],
             'status' => $data['status'],
+            'branch' => $data['branch'] ?? null,
+            'division' => $data['division'] ?? null,
             'leader_id' => $newLeaderId,
         ]);
 
@@ -480,7 +530,11 @@ class AdminController extends Controller
 
         $squadrons = Squadron::orderBy('name')->get();
 
-        $eligibleLeaders = User::where('rank_level', '>=', 3)
+        $eligibleLeaderRoleSlugs = ['commander', 'wing_commander', 'admiral', 'grand_admiral', 'director', 'tech_director'];
+
+        $eligibleLeaders = User::whereHas('roles', function ($q) use ($eligibleLeaderRoleSlugs) {
+                $q->whereIn('slug', $eligibleLeaderRoleSlugs);
+            })
             ->select('id', 'discord_name', 'rank', 'rank_level')
             ->orderByDesc('rank_level')
             ->orderBy('discord_name')
@@ -490,6 +544,22 @@ class AdminController extends Controller
             'squadrons'       => $squadrons,
             'eligibleLeaders' => $eligibleLeaders,
         ]);
+    }
+
+    private function isValidSquadronBranchDivision(?string $branch, ?string $division): bool
+    {
+        if (! $branch && ! $division) return true;
+        if (! $branch || ! $division) return false;
+
+        $map = [
+            'defence' => ['marines', 'navy', 'airforce'],
+            'industries' => ['procurement', 'logistics', 'construction'],
+            'frontiers' => ['exploration', 'science', 'development'],
+            'lifeline' => ['triage', 'recovery', 'medical'],
+        ];
+
+        return array_key_exists($branch, $map)
+            && in_array($division, $map[$branch], true);
     }
 
 }

@@ -44,7 +44,7 @@ abstract class OperationState
     /**
      * Perform a state transition, validating if it's allowed.
      */
-    public function transitionTo(string $targetStatus, ?string $reason = null): Operation
+    public function transitionTo(string $targetStatus, ?string $reason = null, ?string $outcome = null): Operation
     {
         if (! in_array($targetStatus, $this->allowedTransitions(), true)) {
             throw ValidationException::withMessages([
@@ -56,6 +56,16 @@ abstract class OperationState
 
         if ($targetStatus === 'canceled' && $reason) {
             $this->operation->cancellation_reason = $reason;
+        }
+
+        if ($targetStatus === 'completed') {
+            if ($outcome !== null && ! in_array($outcome, ['success', 'failed'], true)) {
+                throw ValidationException::withMessages([
+                    'outcome' => 'Invalid completion outcome.',
+                ]);
+            }
+
+            $this->operation->completion_outcome = $outcome;
         }
 
         $this->operation->save();

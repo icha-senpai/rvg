@@ -77,6 +77,7 @@ async function renameSelectedTemplate() {
         headers: {
           Accept: 'application/json',
         },
+        hzSkipErrorDialog: true,
       }
     )
 
@@ -90,17 +91,19 @@ async function renameSelectedTemplate() {
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status === 403) {
-      alert('You do not have permission to edit that template.')
+      window.hzNotifyError({ message: 'You do not have permission to edit that template.' })
       return
     }
 
     if (status === 422) {
-      alert('Template name is invalid.')
+      window.hzNotifyError({
+        message: extractFirstFormError(err?.response?.data?.errors, 'Template name is invalid.'),
+      })
       return
     }
 
     console.error('Failed to rename template', err)
-    alert('Failed to rename template.')
+    window.hzNotifyError({ message: 'Failed to rename template.' })
   } finally {
     templatesUpdating.value = false
   }
@@ -124,6 +127,7 @@ async function updateSelectedTemplate() {
         headers: {
           Accept: 'application/json',
         },
+        hzSkipErrorDialog: true,
       }
     )
 
@@ -137,17 +141,19 @@ async function updateSelectedTemplate() {
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status === 403) {
-      alert('You do not have permission to edit that template.')
+      window.hzNotifyError({ message: 'You do not have permission to edit that template.' })
       return
     }
 
     if (status === 422) {
-      alert('Template data is invalid.')
+      window.hzNotifyError({
+        message: extractFirstFormError(err?.response?.data?.errors, 'Template data is invalid.'),
+      })
       return
     }
 
     console.error('Failed to update template', err)
-    alert('Failed to update template.')
+    window.hzNotifyError({ message: 'Failed to update template.' })
   } finally {
     templatesUpdating.value = false
   }
@@ -166,6 +172,7 @@ async function deleteSelectedTemplate() {
       headers: {
         Accept: 'application/json',
       },
+      hzSkipErrorDialog: true,
     })
 
     const deletedId = selectedTemplate.value.id
@@ -176,12 +183,12 @@ async function deleteSelectedTemplate() {
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status === 403) {
-      alert('You do not have permission to delete that template.')
+      window.hzNotifyError({ message: 'You do not have permission to delete that template.' })
       return
     }
 
     console.error('Failed to delete template', err)
-    alert('Failed to delete template.')
+    window.hzNotifyError({ message: 'Failed to delete template.' })
   } finally {
     templatesDeleting.value = false
   }
@@ -270,6 +277,8 @@ const canSaveSquadronTemplate = computed(() => {
   const squadronId = Number(props.squadronId)
   if (!Number.isFinite(squadronId) || !squadronId) return false
 
+  if (isDirectorLike.value) return true
+
   const memberships = authUser.value?.squadrons ?? []
   const membership = memberships.find(s => Number(s?.id) === squadronId)
   if (!membership) return false
@@ -277,8 +286,9 @@ const canSaveSquadronTemplate = computed(() => {
   const status = membership?.pivot?.membership_status ?? null
   if (status !== 'active') return false
 
-  const rankLevel = Number(authUser.value?.rank_level ?? 0)
-  return Number.isFinite(rankLevel) && rankLevel >= 2
+  const roles = authUser.value?.roles ?? []
+  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
+  return roles.some(r => officerRoleSlugs.includes(r?.slug))
 })
 
 const templates = ref([])
@@ -349,12 +359,12 @@ function buildTemplatePayload() {
 
   return {
     title: form.title ?? '',
-    type: form.type ?? '',
+    gameplay_type: form.gameplay_type ?? '',
     description: form.description ?? '',
-    notes: form.notes ?? '',
+    extended_description: form.extended_description ?? '',
     visibility: form.visibility ?? 'open',
     squadron_name: trimmedSquadrons.length ? trimmedSquadrons.join(', ') : null,
-    operation_kind: form.operation_kind ?? 'operation',
+    operation_type: form.operation_type ?? 'operation',
     branch: form.branch ?? '',
     operation_strictness: form.operation_strictness ?? '',
     start_location: form.start_location ?? '',
@@ -367,12 +377,15 @@ function applyTemplatePayload(payload) {
   if (!payload || typeof payload !== 'object') return
 
   if ('title' in payload) form.title = payload.title ?? ''
-  if ('type' in payload) form.type = payload.type ?? ''
+  if ('gameplay_type' in payload) form.gameplay_type = payload.gameplay_type ?? ''
+  else if ('type' in payload) form.gameplay_type = payload.type ?? ''
   if ('description' in payload) form.description = payload.description ?? ''
-  if ('notes' in payload) form.notes = payload.notes ?? ''
+  if ('extended_description' in payload) form.extended_description = payload.extended_description ?? ''
+  else if ('notes' in payload) form.extended_description = payload.notes ?? ''
 
   if ('visibility' in payload) form.visibility = payload.visibility ?? 'open'
-  if ('operation_kind' in payload) form.operation_kind = payload.operation_kind ?? 'operation'
+  if ('operation_type' in payload) form.operation_type = payload.operation_type ?? 'operation'
+  else if ('operation_kind' in payload) form.operation_type = payload.operation_kind ?? 'operation'
   if ('branch' in payload) form.branch = payload.branch ?? ''
   if ('operation_strictness' in payload) form.operation_strictness = payload.operation_strictness ?? ''
   if ('start_location' in payload) form.start_location = payload.start_location ?? ''
@@ -425,6 +438,7 @@ async function saveTemplate(scope) {
         headers: {
           Accept: 'application/json',
         },
+        hzSkipErrorDialog: true,
       }
     )
 
@@ -442,17 +456,22 @@ async function saveTemplate(scope) {
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status === 403) {
-      alert('You do not have permission to save that template.')
+      window.hzNotifyError({ message: 'You do not have permission to save that template.' })
       return
     }
 
     if (status === 422) {
-      alert('Template data is invalid. Please check fields and try again.')
+      window.hzNotifyError({
+        message: extractFirstFormError(
+          err?.response?.data?.errors,
+          'Template data is invalid. Please check fields and try again.'
+        ),
+      })
       return
     }
 
     console.error('Failed to save template', err)
-    alert('Failed to save template.')
+    window.hzNotifyError({ message: 'Failed to save template.' })
   } finally {
     templatesSaving.value = false
   }
@@ -514,6 +533,16 @@ function buildDateTime(date, time) {
   return `${date} ${normalizedTime}`
 }
 
+function extractFirstFormError(errors, fallbackMessage = 'Please check the form and try again.') {
+  if (!errors || typeof errors !== 'object') return fallbackMessage
+
+  const firstKey = Object.keys(errors)[0]
+  const firstValue = firstKey ? errors[firstKey] : null
+  const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue
+
+  return firstMessage ? String(firstMessage) : fallbackMessage
+}
+
 // ----------------------
 // FORM
 // ----------------------
@@ -523,9 +552,9 @@ const rsvp = splitUTC(props.mission?.rsvp_deadline)
 
 const form = useForm({
   title: props.mission?.title ?? '',
-  operation_kind: props.mission?.operation_kind ?? 'operation',
+  operation_type: props.mission?.operation_type ?? props.mission?.operation_kind ?? 'operation',
   branch: props.mission?.branch ?? '',
-  type: props.mission?.type ?? '',
+  gameplay_type: props.mission?.gameplay_type ?? props.mission?.type ?? '',
 
   start_location: props.mission?.start_location ?? '',
   operation_location: props.mission?.operation_location ?? '',
@@ -542,7 +571,7 @@ const form = useForm({
   rsvp_deadline: buildDateTime(rsvp.date, rsvp.time),
 
   description: props.mission?.description ?? '',
-  notes: props.mission?.notes ?? '',
+  extended_description: props.mission?.extended_description ?? props.mission?.notes ?? '',
   visibility: props.mission?.visibility ?? 'open',
   difficulty: props.mission?.difficulty ?? '',
   operation_strictness: props.mission?.operation_strictness ?? '',
@@ -727,17 +756,17 @@ async function submit(mode) {
   const re = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/
 
   if (!re.test(form.starts_at)) {
-    alert('Start date and time are required.')
+    window.hzNotifyError({ message: 'Start date and time are required.' })
     return
   }
 
   if (form.ends_at && !re.test(form.ends_at)) {
-    alert('End time must include date and time.')
+    window.hzNotifyError({ message: 'End time must include date and time.' })
     return
   }
 
   if (form.rsvp_deadline && !re.test(form.rsvp_deadline)) {
-    alert('RSVP deadline must include date and time.')
+    window.hzNotifyError({ message: 'RSVP deadline must include date and time.' })
     return
   }
 
@@ -815,6 +844,7 @@ async function submit(mode) {
       const errors = err?.response?.data?.errors
       if (err?.response?.status === 422 && errors) {
         form.setError(errors)
+        window.hzNotifyError({ message: extractFirstFormError(errors) })
         return
       }
 
@@ -848,7 +878,9 @@ async function submit(mode) {
             mode: 'edit',
           })
         },
-        onError: e => console.error('UPDATE ERROR:', e),
+        onError: (errors) => {
+          console.error('UPDATE ERROR:', errors)
+        },
       }
     )
   }
@@ -861,7 +893,12 @@ async function submit(mode) {
       ? route('operations.store', { squadron: props.squadronId }, Ziggy)
       : route('operations.storeGlobal', {}, Ziggy)
 
-    const response = await form.post(storeUrl, { preserveScroll: true })
+    const response = await form.post(storeUrl, {
+      preserveScroll: true,
+      onError: (errors) => {
+        console.error('CREATE ERROR:', errors)
+      },
+    })
 
     let newId =
       response?.props?.operation?.id ??
@@ -1027,7 +1064,7 @@ async function destroyOperation() {
             <HorizonInput
               label="Gameplay Type"
               placeholder="Escort / Recon / Patrol / Meeting / Other"
-              v-model="form.type"
+              v-model="form.gameplay_type"
             />
           </div>
         </HorizonSection>
@@ -1063,17 +1100,19 @@ async function destroyOperation() {
             v-model="form.description"
             rows="6"
             class="hz-textarea w-full"
-            placeholder="Operation overview...High level details, this is for the discord embed, etc."
+            maxlength="255"
+            placeholder="Operation overview (max 255 characters). Be Creative! It's for Discord."
           ></textarea>
         </HorizonSection>
 
         <!-- Notes -->
         <HorizonSection title="Operation Extended Briefing">
           <textarea
-            v-model="form.notes"
+            v-model="form.extended_description"
             rows="6"
             class="hz-textarea w-full"
-            placeholder="Expanded detail not for discord"
+            maxlength="5000"
+            placeholder="Expanded detail (max 5000 characters). Write your heart out!"
           ></textarea>
         </HorizonSection>
 
@@ -1105,7 +1144,7 @@ async function destroyOperation() {
 
             <HorizonSelect
               label="Operation Type"
-              v-model="form.operation_kind"
+              v-model="form.operation_type"
               :options="[
                 { label: 'Operation', value: 'operation' },
                 { label: 'Squadron Training', value: 'squadron_training' },

@@ -16,6 +16,7 @@ class OperationStatusUpdateRequest extends FormRequest
         return [
             'status' => 'required|in:published,in_progress,completed,canceled',
             'reason' => 'nullable|string|max:500',
+            'outcome' => 'required_if:status,completed|in:success,failed',
         ];
     }
 }

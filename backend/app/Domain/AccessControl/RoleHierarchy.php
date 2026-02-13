@@ -12,13 +12,13 @@ class RoleHierarchy
     public const LEVELS = [
         'member'            => 1,
         'lieutenant'        => 2,
-        'commander_squadron'=> 3,
-        'commander_staff'   => 3,
-        'wing_commander'    => 4,
-        'admiral'           => 5,
-        'grand_admiral'     => 6,
-        'director'          => 7,
-        'tech_director'     => 7,
+        'cit'               => 3,
+        'commander'         => 4,
+        'wing_commander'    => 5,
+        'admiral'           => 6,
+        'grand_admiral'     => 7,
+        'tech_director'     => 8,
+        'director'          => 9,
     ];
 
     public static function levelFor(string $roleSlug): int

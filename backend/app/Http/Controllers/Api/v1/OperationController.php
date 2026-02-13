@@ -86,6 +86,7 @@ class OperationController extends Controller
         $deleted = $this->service->cancel($operation);
 
         return response()->json([
+            'status'    => 'success',
             'message'   => 'Operation canceled',
             'operation' => OperationPresenter::make($deleted)->summary(),
         ]);
@@ -100,7 +101,8 @@ class OperationController extends Controller
         $updated = $this->service->transition(
             $operation,
             $data['status'],
-            $data['reason'] ?? null
+            $data['reason'] ?? null,
+            $data['outcome'] ?? null
         );
 
         return response()->json(
@@ -123,7 +125,11 @@ class OperationController extends Controller
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->transition($operation, 'completed');
+        $data = $request->validate([
+            'outcome' => 'required|in:success,failed',
+        ]);
+
+        $updated = $this->service->transition($operation, 'completed', null, $data['outcome']);
 
         return response()->json(
             OperationPresenter::make($updated)->full()

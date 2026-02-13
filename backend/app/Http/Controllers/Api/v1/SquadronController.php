@@ -11,6 +11,7 @@ use App\Domain\Squadrons\SquadronService;
 use App\Domain\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
 use App\Domain\Media\MediaService;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,6 +44,9 @@ class SquadronController extends Controller
         $this->authorize('view', $squadron);
 
         $user = Auth::user();
+        if (! $user instanceof User) {
+            $user = null;
+        }
 
         // Load full graph
         $squadron = $this->squadrons->show($squadron);
@@ -55,6 +59,8 @@ class SquadronController extends Controller
         }
 
         return response()->json([
+            'status' => 'success',
+            'message' => null,
             'squadron' => \App\Domain\Squadrons\Presenters\SquadronPresenter::make($squadron),
 
             'members' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::collection(
@@ -114,6 +120,20 @@ class SquadronController extends Controller
         $emblemKeyExists = array_key_exists('emblem_media_id', $data);
         unset($data['emblem_media_id']);
 
+        if ($emblemKeyExists) {
+            $user = Auth::user();
+
+            if (! ($user instanceof User)) {
+                abort(403);
+            }
+
+            $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
+
+            if (! $isDirectorLike && ! $user->isSquadronLeader($squadron)) {
+                abort(403);
+            }
+        }
+
         $squadron = $this->squadrons->update($squadron, $data);
 
         if ($emblemKeyExists) {
@@ -163,7 +183,10 @@ class SquadronController extends Controller
 
         $this->squadrons->delete($squadron);
 
-        return response()->json(['message' => 'Squadron deleted']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Squadron deleted',
+        ]);
     }
 
     /** GET /api/v1/squadrons/{squadron}/members */

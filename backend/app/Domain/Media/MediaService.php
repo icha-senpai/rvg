@@ -89,7 +89,10 @@ class MediaService
     public function list(array $filters = [], int $perPage = 20)
     {
         $query = Media::query()
-            ->with('uploader:id,rsi_handle,discord_name')
+            ->with([
+                'uploader:id,rsi_handle,discord_name,rank,rank_level',
+                'uploader.roles:id,slug,name',
+            ])
             ->orderByDesc('created_at');
 
         if (! empty($filters['collection'])) {

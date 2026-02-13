@@ -204,7 +204,10 @@
           </div>
 
           <div class="hz-text-muted">
-            Uploaded by: {{ detailItem.uploader?.rsi_handle || detailItem.uploader?.discord_name || 'Unknown' }}
+            Uploaded by:
+            <span :style="uploaderNameColor(detailItem.uploader) ? { color: uploaderNameColor(detailItem.uploader) } : undefined">
+              {{ detailItem.uploader?.rsi_handle || detailItem.uploader?.discord_name || 'Unknown' }}
+            </span>
           </div>
 
           <div class="hz-text-muted">
@@ -264,6 +267,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 /* ============================================================
    STATE
 ============================================================ */
@@ -276,6 +281,11 @@ const filters = ref({
   search: '',
   collection: null,
 });
+
+function uploaderNameColor(uploader) {
+  const slug = getHighestOrgRoleSlug(uploader?.roles, uploader?.rank)
+  return getOrgRoleColor(slug)
+}
 
 const pagination = ref({
   currentPage: 1,

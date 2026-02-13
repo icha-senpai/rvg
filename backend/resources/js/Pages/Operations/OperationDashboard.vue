@@ -100,7 +100,9 @@
 
                   <div class="hz-caption text-horizon-offwhite">
                     <span class="opacity-70">CRE:</span>
-                    {{ op.creator?.rsi_handle ?? 'TBD' }}
+                    <span :style="creatorNameColor(op) ? { color: creatorNameColor(op) } : undefined">
+                      {{ op.creator?.rsi_handle ?? 'TBD' }}
+                    </span>
                   </div>
 
                   <div class="hz-caption text-horizon-offwhite">
@@ -142,16 +144,24 @@
                       Start
                     </HorizonButton>
 
-                    <HorizonButton
+                    <div
                       v-if="canManageOperation(op) && op.status === 'in_progress'"
-                      size="sm"
-                      variant="primary"
-                      class="w-20 hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
-                      :disabled="isTransitionProcessing(op.id)"
-                      @click="completeOperation(op)"
+                      class="w-28"
                     >
-                      End
-                    </HorizonButton>
+                      <HorizonSelect
+                        v-model="completionOutcomeByOpId[op.id]"
+                        :options="completionOutcomeOptions"
+                      />
+                      <HorizonButton
+                        size="sm"
+                        variant="primary"
+                        class="mt-2 w-full hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
+                        :disabled="isTransitionProcessing(op.id) || !completionOutcomeByOpId[op.id]"
+                        @click="completeOperation(op, completionOutcomeByOpId[op.id])"
+                      >
+                        End
+                      </HorizonButton>
+                    </div>
 
                     <HorizonButton
                       v-if="canManageOperation(op) && ['published', 'in_progress'].includes(op.status)"
@@ -272,7 +282,7 @@
       <template #header>
         <div class="hz-stack-xs">
           <div class="hz-section-label">
-            {{ (modalHeaderOperation?.operation_kind ?? 'operation') === 'operation' ? 'Operation' : 'Operation' }}
+            {{ (modalHeaderOperation?.operation_type ?? modalHeaderOperation?.operation_kind ?? 'operation') === 'operation' ? 'Operation' : 'Operation' }}
           </div>
           <div class="hz-title-md text-horizon-white">
             {{ operationDisplayTitle(modalHeaderOperation) }}
@@ -333,6 +343,8 @@ import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.v
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
 import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
 const page = usePage();
 const props = defineProps({
   operations: {
@@ -366,6 +378,12 @@ const templatesLoading = ref(false)
 const createTemplateId = ref('')
 
 const transitionProcessingIds = ref(new Set())
+
+const completionOutcomeByOpId = ref({})
+const completionOutcomeOptions = [
+  { label: 'Success', value: 'success' },
+  { label: 'Failed', value: 'failed' },
+]
 
 function isTransitionProcessing(operationId) {
   return transitionProcessingIds.value.has(Number(operationId))
@@ -465,7 +483,7 @@ function operationTitlePrefix(kind) {
 
 function operationDisplayTitle(op) {
   const title = op?.title ?? ''
-  const prefix = operationTitlePrefix(op?.operation_kind)
+  const prefix = operationTitlePrefix(op?.operation_type ?? op?.operation_kind)
   return prefix ? `${prefix}: ${title}` : title
 }
 
@@ -662,8 +680,6 @@ const userSquadronId = computed(() => {
   return u.squadrons[0]?.id ?? null;
 });
 
-const can = computed(() => page.props.auth?.can ?? {});
-
 const isSquadronLeader = computed(() =>
   user.value?.squadrons?.some(s => s.pivot?.role === 'leader')
 );
@@ -679,21 +695,11 @@ const isDirectorLike = computed(() => {
 
 const canCreateOperation = computed(() => {
   if (isDirectorLike.value) return true;
-  if ((user.value?.rank_level ?? 0) >= 2) return true;
 
   const roles = user.value?.roles ?? [];
-  const highCommandRoleSlugs = ['commander_staff', 'wing_commander', 'admiral', 'grand_admiral'];
-  if (roles.some(r => highCommandRoleSlugs.includes(r?.slug))) return true;
+  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral'];
+  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true;
 
-  if (!userSquadronId.value) return false;
-
-  if (can.value['operation.create']) return true;
-  if (can.value['operation.host.small']) return true;
-  if (can.value['operation.host.medium']) return true;
-  if (can.value['operation.host.large']) return true;
-  if (can.value['operation.host.org']) return true;
-  if (isSquadronLeader.value) return true;
-  if (isSquadronLieutenant.value) return true;
   return false;
 });
 
@@ -724,6 +730,12 @@ function canManageOperation(op) {
   return role === 'leader' || role === 'lieutenant';
 }
 
+function creatorNameColor(op) {
+  const creator = op?.creator ?? null
+  const slug = getHighestOrgRoleSlug(creator?.roles, creator?.rank)
+  return getOrgRoleColor(slug)
+}
+
 async function startOperation(op) {
   if (!op?.id) return
   if (isTransitionProcessing(op.id)) return
@@ -737,27 +749,30 @@ async function startOperation(op) {
     const status = err?.response?.status ?? null
     if (status !== 401 && status !== 419) {
       console.error(err)
-      alert('Failed to start operation.')
+      window.hzNotifyError({ message: 'Failed to start operation.' })
     }
   } finally {
     setTransitionProcessing(op.id, false)
   }
 }
 
-async function completeOperation(op) {
+async function completeOperation(op, outcome) {
   if (!op?.id) return
   if (isTransitionProcessing(op.id)) return
+  if (!outcome) return
   if (!confirm('Mark this operation as completed?')) return
 
   setTransitionProcessing(op.id, true)
   try {
-    await axios.post(route('operations.complete', op.id, Ziggy), {})
+    await axios.post(route('operations.complete', op.id, Ziggy), {
+      outcome,
+    })
     refreshOperations()
   } catch (err) {
     const status = err?.response?.status ?? null
     if (status !== 401 && status !== 419) {
       console.error(err)
-      alert('Failed to complete operation.')
+      window.hzNotifyError({ message: 'Failed to complete operation.' })
     }
   } finally {
     setTransitionProcessing(op.id, false)
@@ -782,7 +797,7 @@ async function cancelOperation(op) {
     const status = err?.response?.status ?? null
     if (status !== 401 && status !== 419) {
       console.error(err)
-      alert('Failed to cancel operation.')
+      window.hzNotifyError({ message: 'Failed to cancel operation.' })
     }
   } finally {
     setTransitionProcessing(op.id, false)

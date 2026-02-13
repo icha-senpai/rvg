@@ -21,14 +21,10 @@ class PermissionRegistry
 
         'operation.hosting' => [
             'operation.create',
-            'operation.host.small',
-            'operation.host.medium',
-            'operation.host.large',
-            'operation.host.org',
         ],
 
         'operation.management' => [
-            'operation.manage',
+            'operation.stats.manage',
             'operation.members.manage',
         ],
 

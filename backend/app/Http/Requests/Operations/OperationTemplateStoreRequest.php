@@ -26,13 +26,14 @@ class OperationTemplateStoreRequest extends FormRequest
             'payload' => 'required|array',
 
             'payload.title' => 'nullable|string|max:255',
-            'payload.type' => 'nullable|string|max:255',
-            'payload.description' => 'nullable|string',
-            'payload.notes' => 'nullable|string|max:2000',
+            'payload.gameplay_type' => 'nullable|string|max:255',
+            'payload.description' => 'nullable|string|max:255',
+            'payload.notes' => 'nullable|string|max:5000',
+            'payload.extended_description' => 'nullable|string|max:5000',
 
             'payload.visibility' => 'nullable|in:open,squadron,private',
             'payload.squadron_name' => 'nullable|string|max:255',
-            'payload.operation_kind' => 'nullable|in:operation,squadron_training,wing_training,roleplay,meeting,event',
+            'payload.operation_type' => 'nullable|in:operation,squadron_training,wing_training,roleplay,meeting,event',
             'payload.branch' => 'nullable|in:industries,defence,frontiers,lifelines',
             'payload.operation_strictness' => 'nullable|in:casual,normal,strict,roleplay',
 

@@ -38,15 +38,15 @@ class RoleAndPermissionSeeder extends Seeder
                     'is_system'   => false,
                 ],
                 [
-                    'name'        => 'Commander – Squadron',
-                    'slug'        => 'commander_squadron',
+                    'name'        => 'Commander',
+                    'slug'        => 'commander',
                     'description' => 'Manages their squadron and its officers.',
                     'is_system'   => false,
                 ],
                 [
-                    'name'        => 'Commander – Staff',
-                    'slug'        => 'commander_staff',
-                    'description' => 'Manages a domain: Fleet, Logistics, etc.',
+                    'name'        => 'C.I.T (Commander in Training)',
+                    'slug'        => 'cit',
+                    'description' => 'Commander in training.',
                     'is_system'   => false,
                 ],
                 [
@@ -74,12 +74,6 @@ class RoleAndPermissionSeeder extends Seeder
                     'is_system'   => false,
                 ],
                 [
-                    'name'        => 'Mission Commander',
-                    'slug'        => 'mission_commander',
-                    'description' => 'Analytics + doctrine creation for operations.',
-                    'is_system'   => false,
-                ],
-                [
                     'name'        => 'Technical Director',
                     'slug'        => 'tech_director',
                     'description' => 'Manages technical infrastructure and RBAC.',
@@ -101,11 +95,77 @@ class RoleAndPermissionSeeder extends Seeder
                 );
             }
 
+            $legacySquadronCommanderRoleId = Role::query()
+                ->where('slug', 'commander_squadron')
+                ->value('id');
+
+            if ($legacySquadronCommanderRoleId && isset($roleModels['commander'])) {
+                $legacyUserIds = DB::table('role_user')
+                    ->where('role_id', $legacySquadronCommanderRoleId)
+                    ->pluck('user_id')
+                    ->unique()
+                    ->values();
+
+                if ($legacyUserIds->isNotEmpty()) {
+                    $now = now();
+                    $rows = $legacyUserIds
+                        ->map(fn ($userId) => [
+                            'user_id'    => $userId,
+                            'role_id'    => $roleModels['commander']->id,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ])
+                        ->all();
+
+                    DB::table('role_user')->insertOrIgnore($rows);
+                }
+            }
+
+            $legacyStaffCommanderRoleId = Role::query()
+                ->where('slug', 'commander_staff')
+                ->value('id');
+
+            if ($legacyStaffCommanderRoleId && isset($roleModels['wing_commander'])) {
+                $legacyUserIds = DB::table('role_user')
+                    ->where('role_id', $legacyStaffCommanderRoleId)
+                    ->pluck('user_id')
+                    ->unique()
+                    ->values();
+
+                if ($legacyUserIds->isNotEmpty()) {
+                    $now = now();
+                    $rows = $legacyUserIds
+                        ->map(fn ($userId) => [
+                            'user_id'    => $userId,
+                            'role_id'    => $roleModels['wing_commander']->id,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ])
+                        ->all();
+
+                    DB::table('role_user')->insertOrIgnore($rows);
+                }
+            }
+
+            Role::query()
+                ->whereIn('slug', ['commander_squadron', 'commander_staff', 'mission_commander'])
+                ->delete();
+
             /**
              * -----------------------------------------
              * 2. PERMISSIONS (UNIFIED OPERATIONS ENGINE)
              * -----------------------------------------
              */
+
+            Permission::query()
+                ->whereIn('slug', [
+                    'operation.host.small',
+                    'operation.host.medium',
+                    'operation.host.large',
+                    'operation.host.org',
+                ])
+                ->delete();
+
             $permissions = [
 
                 // Squadron
@@ -132,9 +192,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => 'Create new operations (events or missions).',
                 ],
                 [
-                    'name'        => 'Manage all operations',
-                    'slug'        => 'operation.manage',
-                    'description' => 'Edit or delete any operation.',
+                    'name'        => 'Manage operation stats',
+                    'slug'        => 'operation.stats.manage',
+                    'description' => 'Adjust operation stats and analytics fields.',
                 ],
                 [
                     'name'        => 'View operations',
@@ -148,27 +208,6 @@ class RoleAndPermissionSeeder extends Seeder
                 ],
 
                 // Operation host tiers
-                [
-                    'name'        => 'Host small operations',
-                    'slug'        => 'operation.host.small',
-                    'description' => 'Host squad-level operations.',
-                ],
-                [
-                    'name'        => 'Host medium operations',
-                    'slug'        => 'operation.host.medium',
-                    'description' => 'Host multi-squad or domain operations.',
-                ],
-                [
-                    'name'        => 'Host large operations',
-                    'slug'        => 'operation.host.large',
-                    'description' => 'Host division-wide operations.',
-                ],
-                [
-                    'name'        => 'Host org-wide operations',
-                    'slug'        => 'operation.host.org',
-                    'description' => 'Host org-wide strategic operations.',
-                ],
-
                 // Users / System
                 [
                     'name'        => 'View users',
@@ -244,7 +283,6 @@ class RoleAndPermissionSeeder extends Seeder
             $roleModels['member']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['operation.view']->id,
-                $permissionModels['operation.create']->id,
             ]);
 
             // Viewer
@@ -255,44 +293,31 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['analytics.view']->id,
             ]);
 
-            // Mission Commander  → now Operation Analyst
-            $roleModels['mission_commander']->permissions()->sync([
-                $permissionModels['squadron.view']->id,
-                $permissionModels['user.view']->id,
-                $permissionModels['analytics.view']->id,
-                $permissionModels['analytics.operation']->id,
-                $permissionModels['operation.view']->id,
-            ]);
-
             // Lieutenant
             $roleModels['lieutenant']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['operation.view']->id,
                 $permissionModels['operation.create']->id,
-                $permissionModels['operation.host.small']->id,
+                $permissionModels['operation.stats.manage']->id,
             ]);
 
-            // Commander – Squadron
-            $roleModels['commander_squadron']->permissions()->sync([
+            // C.I.T (Commander in Training)
+            $roleModels['cit']->permissions()->sync([
+                $permissionModels['squadron.view']->id,
+                $permissionModels['operation.view']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.stats.manage']->id,
+                $permissionModels['operation.members.manage']->id,
+            ]);
+            // Commander
+            $roleModels['commander']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['squadron.manage']->id,
                 $permissionModels['squadron.members.manage']->id,
                 $permissionModels['operation.view']->id,
                 $permissionModels['operation.create']->id,
-                $permissionModels['operation.host.small']->id,
-                $permissionModels['operation.host.medium']->id,
+                $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
-            ]);
-
-            // Commander – Staff
-            $roleModels['commander_staff']->permissions()->sync([
-                $permissionModels['squadron.view']->id,
-                $permissionModels['operation.view']->id,
-                $permissionModels['operation.host.medium']->id,
-                $permissionModels['operation.host.large']->id,
-                $permissionModels['domain.manage.resources']->id,
-                $permissionModels['domain.manage.operations']->id,
-                $permissionModels['analytics.view']->id,
             ]);
 
             // Wing Commander
@@ -301,10 +326,12 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.manage']->id,
                 $permissionModels['squadron.members.manage']->id,
                 $permissionModels['operation.view']->id,
-                $permissionModels['operation.host.medium']->id,
-                $permissionModels['operation.host.large']->id,
+                $permissionModels['operation.create']->id,
+                $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
+                $permissionModels['domain.manage.resources']->id,
                 $permissionModels['domain.manage.operations']->id,
+                $permissionModels['analytics.view']->id,
             ]);
 
             // Admiral
@@ -312,9 +339,7 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.view']->id,
                 $permissionModels['operation.view']->id,
                 $permissionModels['operation.create']->id,
-                $permissionModels['operation.manage']->id,
-                $permissionModels['operation.host.large']->id,
-                $permissionModels['operation.host.org']->id,
+                $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
                 $permissionModels['user.view']->id,
                 $permissionModels['domain.manage.resources']->id,
@@ -329,9 +354,7 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['squadron.members.manage']->id,
                 $permissionModels['operation.view']->id,
                 $permissionModels['operation.create']->id,
-                $permissionModels['operation.manage']->id,
-                $permissionModels['operation.host.large']->id,
-                $permissionModels['operation.host.org']->id,
+                $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
                 $permissionModels['user.view']->id,
                 $permissionModels['user.manage']->id,

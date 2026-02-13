@@ -39,6 +39,12 @@ class SquadronMemberPresenter
                     'rank'          => $member->user->rank,
                     'rank_level'    => $member->user->rank_level,
                     'avatar'        => $member->user->discord_avatar,
+                    'roles'         => $member->user->relationLoaded('roles')
+                        ? $member->user->roles->map(fn ($role) => [
+                            'slug' => $role->slug,
+                            'name' => $role->name,
+                        ])->values()
+                        : [],
                 ]
                 : null,
         ];

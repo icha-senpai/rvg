@@ -30,7 +30,11 @@ class OperationParticipantController extends Controller
             ->where('user_id', Auth::id())
             ->exists()
         ) {
-            return response()->json(['error' => 'Already joined this operation'], 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Already joined this operation',
+                'error' => 'Already joined this operation',
+            ], 422);
         }
 
         // Optional role validation
@@ -38,13 +42,21 @@ class OperationParticipantController extends Controller
         if ($roleId) {
             $role = OperationRole::findOrFail($roleId);
             if ($role->operation_id !== $operation->id) {
-                return response()->json(['error' => 'Invalid role for this operation'], 422);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid role for this operation',
+                    'error' => 'Invalid role for this operation',
+                ], 422);
             }
 
             if ($role->capacity !== null) {
                 $filled = $role->participants()->count();
                 if ($filled >= $role->capacity) {
-                    return response()->json(['error' => 'Role is full'], 422);
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Role is full',
+                        'error' => 'Role is full',
+                    ], 422);
                 }
             }
         }
@@ -74,7 +86,10 @@ class OperationParticipantController extends Controller
             ->first();
 
         if (!$participant) {
-            return response()->json(['message' => 'Not in operation'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Not in operation',
+            ], 404);
         }
 
         if (
@@ -88,7 +103,10 @@ class OperationParticipantController extends Controller
 
         $participant->delete();
 
-        return response()->json(['message' => 'Left operation']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Left operation',
+        ]);
     }
 
     public function updateSlot(Request $request, Operation $operation, OperationParticipant $participant)

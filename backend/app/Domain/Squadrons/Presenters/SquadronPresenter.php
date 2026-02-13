@@ -22,6 +22,9 @@ class SquadronPresenter
             'name'          => $squadron->name,
             'slug'          => $squadron->slug,
 
+            'branch'        => $squadron->branch,
+            'division'      => $squadron->division,
+
             // State
             'status'        => $squadron->status,
             'is_active'     => $squadron->isActive(),
@@ -52,6 +55,12 @@ class SquadronPresenter
                     'rank'        => $squadron->leader->rank,
                     'rank_level'  => $squadron->leader->rank_level,
                     'avatar'      => $squadron->leader->discord_avatar,
+                    'roles'       => $squadron->leader->relationLoaded('roles')
+                        ? $squadron->leader->roles->map(fn ($role) => [
+                            'slug' => $role->slug,
+                            'name' => $role->name,
+                        ])->values()
+                        : [],
                 ]
                 : null,
 

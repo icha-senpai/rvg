@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RsiChangeRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 
 class RsiHandleController extends Controller
 {
@@ -26,18 +27,19 @@ class RsiHandleController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $exists = RsiChangeRequest::where('user_id', auth()->id())
+        $exists = RsiChangeRequest::where('user_id', Auth::id())
             ->where('status', 'pending')
             ->exists();
 
         if ($exists) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'You already have a pending request.'
             ], 422);
         }
 
         $requestModel = RsiChangeRequest::create([
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'requested_rsi_handle' => $validated['requested_rsi_handle'],
             'notes' => $validated['notes'] ?? null,
         ]);
@@ -50,12 +52,15 @@ class RsiHandleController extends Controller
         $this->authorize('user.manage'); // RBAC permission
 
         if ($change->status !== 'pending') {
-            return response()->json(['message' => 'Already processed'], 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Already processed',
+            ], 422);
         }
 
         $change->update([
             'status' => 'approved',
-            'approved_by' => auth()->id(),
+            'approved_by' => Auth::id(),
             'resolved_at' => now(),
         ]);
 
@@ -64,7 +69,10 @@ class RsiHandleController extends Controller
             'rsi_verified_at' => now(),
         ]);
 
-        return response()->json(['message' => 'RSI handle updated']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'RSI handle updated',
+        ]);
     }
 
     public function reject(Request $req, RsiChangeRequest $change)
@@ -72,15 +80,21 @@ class RsiHandleController extends Controller
         $this->authorize('user.manage');
 
         if ($change->status !== 'pending') {
-            return response()->json(['message' => 'Already processed'], 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Already processed',
+            ], 422);
         }
 
         $change->update([
             'status' => 'rejected',
-            'approved_by' => auth()->id(),
+            'approved_by' => Auth::id(),
             'resolved_at' => now(),
         ]);
 
-        return response()->json(['message' => 'Request rejected']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Request rejected',
+        ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\AccessControl\PermissionRegistry;
 use App\Domain\Media\Presenters\MediaPresenter;
 use App\Models\User;
 use Inertia\Middleware;
@@ -24,12 +25,15 @@ class HandleInertiaRequests extends Middleware
             return [
                 'auth' => [
                     'user' => null,
+                    'can' => [],
                 ]
             ];
         }
 
         /** @var User|null $user */
         $user = Auth::user();
+
+        $can = [];
 
         if ($user) {
             $user->load([
@@ -68,6 +72,18 @@ class HandleInertiaRequests extends Middleware
 
                 $sq->setAttribute('emblem', $emblemEmbedded);
             });
+
+            if ($user->hasRole('director') || $user->hasRole('tech_director')) {
+                $can = array_fill_keys(PermissionRegistry::all(), true);
+            } else {
+                $permissionSlugs = $user->permissions()->pluck('slug')->all();
+                $permissionSlugSet = array_fill_keys($permissionSlugs, true);
+
+                $can = [];
+                foreach (PermissionRegistry::all() as $slug) {
+                    $can[$slug] = isset($permissionSlugSet[$slug]);
+                }
+            }
         }
 
         return array_merge(parent::share($request), [
@@ -75,6 +91,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user
                     ? $user
                     : null,
+                'can' => $can,
             ],
         ]);
     }

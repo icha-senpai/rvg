@@ -24,7 +24,7 @@ class SendOperationPublishedToDiscord
                 'title' => $op->title,
                 'description' => $op->description,
                 'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
-                'operation_kind' => $op->operation_kind,
+                'operation_type' => $op->operation_type,
                 'operation_strictness' => $op->operation_strictness,
                 'visibility' => $op->visibility,
             ];

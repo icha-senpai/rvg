@@ -52,6 +52,7 @@ class OperationTemplateController extends Controller
 
         return response()->json([
             'status' => 'ok',
+            'message' => null,
             'payload' => [
                 'templates' => $templates->map(fn (OperationTemplate $t) => $this->present($t))->values(),
             ],
@@ -78,6 +79,7 @@ class OperationTemplateController extends Controller
 
         return response()->json([
             'status' => 'ok',
+            'message' => null,
             'payload' => [
                 'template' => $this->present($template),
             ],
@@ -102,6 +104,7 @@ class OperationTemplateController extends Controller
 
         return response()->json([
             'status' => 'ok',
+            'message' => null,
             'payload' => [
                 'template' => $this->present($template->fresh()),
             ],
@@ -116,6 +119,7 @@ class OperationTemplateController extends Controller
 
         return response()->json([
             'status' => 'ok',
+            'message' => null,
             'payload' => [
                 'deleted' => true,
             ],
@@ -135,14 +139,26 @@ class OperationTemplateController extends Controller
 
     protected function sanitizePayload(array $payload): array
     {
+        if (! array_key_exists('operation_type', $payload) && array_key_exists('operation_kind', $payload)) {
+            $payload['operation_type'] = $payload['operation_kind'];
+        }
+
+        if (! array_key_exists('gameplay_type', $payload) && array_key_exists('type', $payload)) {
+            $payload['gameplay_type'] = $payload['type'];
+        }
+
+        if (! array_key_exists('extended_description', $payload) && array_key_exists('notes', $payload)) {
+            $payload['extended_description'] = $payload['notes'];
+        }
+
         $allowedKeys = [
             'title',
-            'type',
+            'gameplay_type',
             'description',
-            'notes',
+            'extended_description',
             'visibility',
             'squadron_name',
-            'operation_kind',
+            'operation_type',
             'branch',
             'operation_strictness',
             'start_location',

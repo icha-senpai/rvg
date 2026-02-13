@@ -51,7 +51,7 @@ function operationTitlePrefix(kind) {
 
 const displayTitle = computed(() => {
   const title = operation?.title ?? '';
-  const prefix = operationTitlePrefix(operation?.operation_kind);
+  const prefix = operationTitlePrefix(operation?.operation_type ?? operation?.operation_kind);
   return prefix ? `${prefix}: ${title}` : title;
 });
 
@@ -63,7 +63,7 @@ function toCalendarUtcStamp(d) {
 const calendarBody = computed(() => {
   const parts = [
     operation?.description,
-    operation?.notes,
+    operation?.extended_description ?? operation?.notes,
     window?.location?.href,
   ].filter(Boolean);
   return parts.join('\n\n');
@@ -403,7 +403,7 @@ async function updateSlot() {
 
         <div class="hz-stack-sm">
           <div class="hz-section-label">
-            {{ operationKindLabel(operation.operation_kind) }}
+            {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
           </div>
 
           <h1 class="hz-title-lg text-horizon-white">
@@ -508,10 +508,10 @@ async function updateSlot() {
               </div>
             </div>
 
-            <div v-if="operation.type" class="hz-stack-xs">
+            <div v-if="operation.gameplay_type || operation.type" class="hz-stack-xs">
               <div class="hz-section-label">Gameplay Type</div>
               <div class="hz-body-strong">
-                {{ operation.type }}
+                {{ operation.gameplay_type ?? operation.type }}
               </div>
             </div>
 
@@ -529,42 +529,46 @@ async function updateSlot() {
 
         <!-- NOTES -->
         <HorizonPanel
-          v-if="operation.notes"
+          v-if="operation.extended_description || operation.notes"
           class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
         >
           <div class="hz-section-label mb-2">Operation Extended Briefing</div>
-          <p class="hz-body whitespace-pre-line">{{ operation.notes }}</p>
+          <p class="hz-body whitespace-pre-line">{{ operation.extended_description ?? operation.notes }}</p>
+        </HorizonPanel>
 
-          <div class="mt-6">
-            <div class="hz-section-label mb-3">Meta Information</div>
+        <!-- META INFORMATION -->
+        <HorizonPanel
+          v-if="operation.start_location || operation.operation_location || operation.branch || operation.squadron_name"
+          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
+        >
+          <div class="hz-section-label mb-3">Meta Information</div>
 
-            <div class="grid md:grid-cols-2 gap-6">
-              <div v-if="operation.start_location" class="hz-stack-xs">
-                <div class="hz-section-label">Start Location</div>
-                <div class="hz-body-strong">
-                  {{ operation.start_location }}
-                </div>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div v-if="operation.start_location" class="hz-stack-xs">
+              <div class="hz-section-label">Start Location</div>
+              <div class="hz-body-strong">
+                {{ operation.start_location }}
               </div>
+            </div>
 
-              <div v-if="operation.operation_location" class="hz-stack-xs">
-                <div class="hz-section-label">Operation Location</div>
-                <div class="hz-body-strong">
-                  {{ operation.operation_location }}
-                </div>
+            <div v-if="operation.operation_location" class="hz-stack-xs">
+              <div class="hz-section-label">Operation Location</div>
+              <div class="hz-body-strong">
+                {{ operation.operation_location }}
               </div>
+            </div>
 
-              <div v-if="operation.branch" class="hz-stack-xs">
-                <div class="hz-section-label">Branch</div>
-                <div class="hz-body-strong">
-                  {{ formatBranchLabel(operation.branch) }}
-                </div>
+            <div v-if="operation.branch" class="hz-stack-xs">
+              <div class="hz-section-label">Branch</div>
+              <div class="hz-body-strong">
+                {{ formatFirstLetter(operation.branch) }}
               </div>
+            </div>
 
-              <div v-if="operation.squadron_name" class="hz-stack-xs">
-                <div class="hz-section-label">Squadrons</div>
-                <div class="hz-body-strong">
-                  {{ operation.squadron_name }}
-                </div>
+            <div v-if="operation.squadron_name" class="hz-stack-xs">
+              <div class="hz-section-label">Squadrons</div>
+              <div class="hz-body-strong">
+                {{ operation.squadron_name }}
               </div>
             </div>
           </div>
@@ -686,7 +690,7 @@ async function updateSlot() {
           <!-- Not joined -->
           <template v-else>
             <p class="hz-body mb-4">
-              Join this {{ operation.operation_kind }} with an optional role.
+              Join this {{ operation.operation_type ?? operation.operation_kind }} with an optional role.
             </p>
 
             <div class="hz-stack">
