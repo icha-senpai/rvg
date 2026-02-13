@@ -180,11 +180,22 @@ const favoriteShipOptions = [
   },
   {
     label: 'Banu Souli (BANU)',
-    options: ['Defender', 'Merchantman'],
+    options: [
+      'Defender', 
+      'Merchantman'
+    ],
   },
   {
     label: 'Consolidated Outland (CNOU)',
-    options: ['Mustang Alpha', 'Mustang Beta', 'Mustang Delta', 'Mustang Gamma', 'Mustang Omega', 'Nomad', 'Pioneer'],
+    options: [
+      'Mustang Alpha', 
+      'Mustang Beta', 
+      'Mustang Delta', 
+      'Mustang Gamma', 
+      'Mustang Omega', 
+      'Nomad', 
+      'Pioneer'
+    ],
   },
   {
     label: 'Crusader Industries (CRUS)',
@@ -225,19 +236,36 @@ const favoriteShipOptions = [
   },
   {
     label: 'Esperia (ESPR)',
-    options: ['Prowler', 'Blade', 'Glaive', 'Talon', 'Talon Shrike', 'Stinger'],
+    options: [
+      'Prowler', 
+      'Blade', 
+      'Glaive', 
+      'Talon', 
+      'Talon Shrike', 
+      'Stinger'
+    ],
   },
   {
     label: "Grey's Market (GLSN / Grey's Market)",
-    options: ['Shiv'],
+    options: [
+      'Shiv'
+    ],
   },
   {
     label: 'Greycat Industrial',
-    options: ['ROC', 'STV'],
+    options: [
+      'ROC', 
+      'STV'
+    ],
   },
   {
     label: 'Kruger Intergalactic (KRIG)',
-    options: ['P-52 Merlin', 'P-72 Archimedes', 'L-21 Wolf', 'L-22 Alpha Wolf'],
+    options: [
+      'P-52 Merlin', 
+      'P-72 Archimedes', 
+      'L-21 Wolf', 
+      'L-22 Alpha Wolf'
+    ],
   },
   {
     label: 'MISC (MISC)',
@@ -267,7 +295,14 @@ const favoriteShipOptions = [
   },
   {
     label: 'Mirai (MRAI)',
-    options: ['Fury', 'Fury LX', 'Fury MX', 'Guardian', 'Guardian QI', 'Guardian MX'],
+    options: [
+      'Fury',
+      'Fury LX', 
+      'Fury MX', 
+      'Guardian', 
+      'Guardian QI', 
+      'Guardian MX'
+    ],
   },
   {
     label: 'Origin Jumpworks (ORIG)',
@@ -306,11 +341,19 @@ const favoriteShipOptions = [
       'Apollo Triage',
       'Apollo Medivac',
       'Hermes',
+      'Salvation',
     ],
   },
   {
     label: 'Tumbril',
-    options: ['Cyclone', 'Cyclone-RC', 'Cyclone-RN', 'Cyclone-RR', 'Cyclone-TR', 'Nova'],
+    options: [
+      'Cyclone',
+      'Cyclone-RC',
+      'Cyclone-RN',
+      'Cyclone-RR',
+      'Cyclone-TR',
+      'Nova',
+    ],
   },
   {
     label: 'Other / Alien / Rare',
