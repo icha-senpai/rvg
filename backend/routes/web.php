@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\SquadronPromotionController;
 use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
+use App\Http\Controllers\Web\MemberDirectoryController;
 use App\Http\Resources\MeResource;
 use App\Models\User;
 
@@ -57,6 +58,10 @@ Route::get('/user/{user}', function (User $user) {
     ->whereNumber('user')
     ->middleware(['auth', 'rsi.verified'])
     ->name('member.profile');
+
+Route::get('/members', [MemberDirectoryController::class, 'index'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('members.index');
 
 Route::get('/me', function () {
     return redirect()->route('member.profile', ['user' => Auth::id()]);
