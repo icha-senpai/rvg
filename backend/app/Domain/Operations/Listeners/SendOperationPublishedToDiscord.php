@@ -39,6 +39,15 @@ class SendOperationPublishedToDiscord
             ->asJson()   // <<< 🔥 REQUIRED: ensures JSON payload is correct
             ->post(config('services.bot.url') . '/op-published', $payload);
 
+            // Persist the Discord message id so we can delete + repost on future updates.
+            // We do not edit embeds in-place; the website is the source of truth.
+            $messageId = $response->json('message_id');
+            if (is_string($messageId) && $messageId !== '') {
+                $op->forceFill([
+                    'discord_message_id' => $messageId,
+                ])->saveQuietly();
+            }
+
             Log::info("🌐 Bot webhook delivered. Status: {$response->status()}");
         } catch (\Throwable $e) {
             Log::warning("❌ Bot webhook failed: {$e->getMessage()}", [

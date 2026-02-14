@@ -38,9 +38,12 @@ router.post('/op-published', async (req, res) => {
 
     try {
         const client = req.app.get('client');
-        await operationService.announceOperation(client, op);
+        const messageId = await operationService.announceOperation(client, op);
 
-        return res.json({ message: 'Operation announcement sent.' });
+        return res.json({
+            message: 'Operation announcement sent.',
+            message_id: messageId,
+        });
     } catch (error) {
         console.error('[OpWebhook] Error:', error);
         return res.status(500).json({ message: 'Internal bot error.' });
@@ -74,9 +77,51 @@ router.post('/op-updated', async (req, res) => {
 
     try {
         const client = req.app.get('client');
-        await operationService.announceOperationUpdated(client, op);
+        const messageId = await operationService.announceOperationUpdated(client, op);
 
-        return res.json({ message: 'Operation update announcement sent.' });
+        return res.json({
+            message: 'Operation update announcement sent.',
+            message_id: messageId,
+        });
+    } catch (error) {
+        console.error('[OpWebhook] Error:', error);
+        return res.status(500).json({ message: 'Internal bot error.' });
+    }
+});
+
+router.post('/op-delete', async (req, res) => {
+    const received = req.headers['x-bot-secret'];
+    const expected = process.env.DISCORD_BOT_SECRET;
+
+    if (received !== expected) {
+        log('[OpWebhook] Forbidden', {
+            path: req.originalUrl ?? req.url,
+            receivedPresent: Boolean(received),
+            receivedLength: typeof received === 'string' ? received.length : null,
+        });
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const { message_id: messageId } = req.body || {};
+
+    if (!messageId || typeof messageId !== 'string') {
+        return res.status(400).json({ message: 'Invalid delete payload' });
+    }
+
+    try {
+        const client = req.app.get('client');
+        const result = await operationService.deleteOperationAnnouncement(client, messageId);
+
+        if (result?.status === 'deleted') {
+            return res.status(200).json({ message: 'Deleted.' });
+        }
+
+        // Important: treat “already deleted” as not-an-error for the website.
+        if (result?.status === 'not_found') {
+            return res.status(404).json({ message: 'Not found.' });
+        }
+
+        return res.status(500).json({ message: 'Delete failed.' });
     } catch (error) {
         console.error('[OpWebhook] Error:', error);
         return res.status(500).json({ message: 'Internal bot error.' });

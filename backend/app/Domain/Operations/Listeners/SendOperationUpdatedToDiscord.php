@@ -15,6 +15,36 @@ class SendOperationUpdatedToDiscord
         Log::info("📡 Listener fired for UPDATED operation {$op->id}");
 
         try {
+            // We do NOT edit embeds in-place.
+            // Discord is not the source of truth, so on update we delete the old message (if any)
+            // and then repost a fresh embed.
+            if (is_string($op->discord_message_id) && $op->discord_message_id !== '') {
+                $deleteResponse = Http::withHeaders([
+                    'X-Bot-Secret' => config('services.bot.secret'),
+                ])
+                ->asJson()
+                ->post(config('services.bot.url') . '/op-delete', [
+                    'message_id' => $op->discord_message_id,
+                    'operation_id' => $op->id,
+                ]);
+
+                // Treat “already deleted” as success.
+                if (! in_array($deleteResponse->status(), [200, 204, 404], true)) {
+                    Log::warning('❌ Bot delete webhook failed; skipping repost to avoid duplicates', [
+                        'operation_id' => $op->id,
+                        'status' => $deleteResponse->status(),
+                        'body' => $deleteResponse->body(),
+                    ]);
+
+                    return;
+                }
+
+                // Clear old id once we know the old message is gone (or already gone).
+                $op->forceFill([
+                    'discord_message_id' => null,
+                ])->saveQuietly();
+            }
+
             $response = Http::withHeaders([
                 'X-Bot-Secret' => config('services.bot.secret'),
             ])
@@ -37,6 +67,14 @@ class SendOperationUpdatedToDiscord
 
                 return $payload;
             })());
+
+            // Persist the new message id so the next update can delete + repost.
+            $messageId = $response->json('message_id');
+            if (is_string($messageId) && $messageId !== '') {
+                $op->forceFill([
+                    'discord_message_id' => $messageId,
+                ])->saveQuietly();
+            }
 
             Log::info("🌐 Bot update webhook delivered. Status: {$response->status()}");
         } catch (\Throwable $e) {

@@ -115,7 +115,7 @@ module.exports = {
                 ? `${actionText} <@&${roleIdToPing}>`
                 : actionText;
 
-            await channel.send({
+            const message = await channel.send({
                 content,
                 embeds: [embed],
                 allowedMentions: roleIdToPing && shouldPing
@@ -123,12 +123,55 @@ module.exports = {
                     : { parse: [] },
             });
             log(`📢 Operation announced: ${op.title} (#${op.id})`);
+
+            // Return message id so the website can persist it and delete + repost on update.
+            return message?.id || null;
         } catch (err) {
             console.error('❌ Failed to send operation embed:', err);
+            return null;
         }
     },
 
     async announceOperationUpdated(client, op) {
         return this.announceOperation(client, op, 'An operation has been updated');
+    },
+
+    async deleteOperationAnnouncement(client, messageId) {
+        const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
+
+        if (!channelId) {
+            console.error('❌ OP_ANNOUNCE_CHANNEL_ID missing in .env!');
+            return { status: 'error', reason: 'missing_channel_id' };
+        }
+
+        if (!messageId || typeof messageId !== 'string') {
+            return { status: 'error', reason: 'missing_message_id' };
+        }
+
+        let channel = null;
+        try {
+            channel = await client.channels.fetch(channelId);
+        } catch (err) {
+            console.error('❌ Failed to fetch announcement channel:', err);
+            return { status: 'error', reason: 'channel_fetch_failed' };
+        }
+
+        if (!channel || !channel.messages || typeof channel.messages.delete !== 'function') {
+            console.error('❌ Announcement channel is not a message-capable channel');
+            return { status: 'error', reason: 'channel_not_message_capable' };
+        }
+
+        try {
+            await channel.messages.delete(messageId);
+            return { status: 'deleted' };
+        } catch (err) {
+            // Discord "Unknown Message" error code
+            if (err && typeof err === 'object' && err.code === 10008) {
+                return { status: 'not_found' };
+            }
+
+            console.error('❌ Failed to delete operation announcement:', err);
+            return { status: 'error', reason: 'delete_failed' };
+        }
     },
 };

@@ -40,6 +40,9 @@ class Operation extends Model
         'completion_outcome',
         'cancellation_reason',
 
+        // Discord announcement tracking
+        'discord_message_id',
+
         // Mission structure
         'slots',
     ];
