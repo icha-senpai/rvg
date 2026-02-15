@@ -58,7 +58,9 @@ class SendOperationUpdatedToDiscord
                     'operation_type' => $op->operation_type,
                     'operation_strictness' => $op->operation_strictness,
                     'visibility' => $op->visibility,
-                    'ping' => false,
+                    // Allow Discord role ping on update announcements (same behavior as publish).
+                    // The bot defaults to pinging unless ping === false.
+                    'ping' => true,
                 ];
 
                 if ($op->squadron_name) {
