@@ -4,75 +4,125 @@ This repository contains the unified development environment for the **Horizon I
 
 ## 🚀 Overview
 
-The system is a two-part architecture:
+The platform is a hybrid Inertia + API architecture:
 
-- **Backend (Laravel 12 API)**
-  - Sanctum API token authentication  
-  - Discord ID–based login  
-  - Verification code system  
-  - RSI + org membership verification  
-  - Rank middleware (1–6)  
-  - Mission endpoints  
-  - User profiles  
-  - UEX data ingestion (future phase)  
-  - Discord integration
+- **Backend (Laravel 12 + Sanctum)**
+  - Discord OAuth authentication with session + API token support
+  - RSI handle verification with org membership validation
+  - Role-based access control (9-level hierarchy: member → director)
+  - Full operations system (CRUD, state machine, templates, calendar export)
+  - Squadron management with leader/lieutenant structure
+  - Polymorphic media system (avatars, operation images, emblems)
+  - Admin panel for user, squadron, and role management
+  - REST API (`/api/v1`) for external consumers (bot, future mobile)
 
-- **Frontend (laravel 12)**
-  - UI for officers + members  
-  - Custom bridge plugin for API syncing  
-  - User dashboard  
-  - Org management tools  
-  - Integrated login flow to backend  
+- **Frontend (Vue 3 + Inertia.js + Tailwind CSS v4)**
+  - Operations dashboard and mission editor
+  - Squadron listing, detail pages, and roster management
+  - Member directory and extended user profiles
+  - Admin dashboard with user/squadron/role management
+  - Rich text editor, date/time picker, media picker, and 30+ shared components
+  - Global error handling with popup dialog system
 
-This is the early skeleton phase, building the foundations before scaling.
+- **Discord Bot (Node.js + Discord.js)**
+  - `/verify` and `/status` slash commands
+  - Operation announcement webhooks
+  - Nickname sync cron and welcome service
+
+The platform is in **active feature development** — core infrastructure is stable and all major systems are functional.
 
 ---
 
-## 📡 Current Features Implemented
+## 📡 Current Features
 
-### Authentication & Security
+### Authentication & Identity
+- Discord OAuth login → Sanctum token issuance
+- RSI handle verification (code generation → profile scrape → org check)
+- Bot-assisted verification via Discord slash command
+- Auth audit logging and failed attempt tracking
+- Force Discord auth, max auth age, and RSI verified middleware
 
-- Discord → Backend token creation  
-- Sanctum API guard wired correctly  
-- Token issuance on verified login  
-- Rank middleware for chain-of-command access  
-- `/profile` endpoint for authenticated users  
+### Access Control
+- Role-based access with 9-level hierarchy (`RoleHierarchy`)
+- Centralized `AccessService` with DDD permission rules
+- Policy classes for operations, squadrons, media, templates, RSI requests
+- Director/Tech Director global override
 
-### Verification System
+### Operations
+- Full CRUD with state machine (`draft → published → in_progress → completed/canceled`)
+- Operation types, branches (industries/defence/frontiers/lifelines), visibility, strictness
+- Slot system, role definitions, participant join/leave/slot assignment
+- DB-backed templates (personal/squadron/global scope)
+- Calendar export (.ics), Discord webhook announcements
+- Rich editor with template load/save, media picker, extended description
+- Completion outcome tracking (success/failure/partial)
 
-- Generate verification code  
-- Validate RSI handle  
-- Validate org membership  
-- Store verification attempts  
-- Link Discord ID → User row in DB  
+### Squadrons
+- Full CRUD with leader/lieutenant role structure (max 2 lieutenants)
+- Member management (add, update status, remove, promote, demote)
+- Identity fields (emblem, description, motto, branch, division, propaganda)
+- Squadron listing, detail pages, and roster with profile links
 
-### Core Endpoints
+### User Profiles
+- Extended profile fields (bio, timezone, callsign, ships, guns, roles, tags, availability)
+- Member directory with paginated search
+- Operation stat counters (joined, completed, created, canceled, success, failed)
+- RSI handle change request flow (request → approve/reject)
+- Viewable profiles with role-gated stat visibility
 
-- `/ping` health check  
-- `/profile` (rank ≥ 1)  
-- `/users` listing (rank ≥ 3)  
-- Mission + event placeholders  
+### Media
+- Polymorphic media system (avatars, operation images, squadron emblems)
+- Upload, attach, delete actions with policy-controlled access
+- Reusable media picker modal component
+
+### Admin Panel
+- Dashboard for director/tech_director roles
+- User management (update profile, assign roles)
+- Squadron management (CRUD, member management, rank promotions)
+- Role management (create, update, delete)
+- Media library browser
+
+### Discord Bot
+- `/verify` and `/status` slash commands
+- Operation publish/update webhook announcements
+- Nickname sync cron, welcome service, guild member event handling
 
 ---
 
 ## 🧑‍💻 Development Requirements
 
 - PHP 8.4 (Laragon recommended)
-- Laravel 12+
+- Laravel 12
+- Vue 3 + Inertia.js
+- Tailwind CSS v4
 - Node 20+
 - PostgreSQL
-- Postman or Insomnia
+- Discord application (OAuth + bot token)
 
 ---
 
 ## 🏁 How to Start
 
+```bash
 cd backend
 composer install
-php artisan migrate
 npm install
+cp .env.example .env        # configure DB, Discord, and app keys
+php artisan key:generate
+php artisan migrate
+npm run dev                  # Vite dev server
+php artisan serve            # Laravel dev server
+```
 
-Follow CONTRIBUTING.md for branching and workflow.
+For the Discord bot:
+```bash
+cd bots/horizon-bot
+npm install
+# configure .env with bot token and API keys
+node index.js
+```
+
+See `ONBOARDING.md` for detailed setup instructions.
 
 ---
 

@@ -25,6 +25,9 @@ use App\Http\Controllers\Api\v1\DiscordAuthController;
 
 // ADMIN SUBCONTROLLERS
 use App\Http\Controllers\Admin\SquadronRankController;
+use App\Http\Controllers\Web\Admin\AdminUserController;
+use App\Http\Controllers\Web\Admin\AdminSquadronController;
+use App\Http\Controllers\Web\Admin\AdminRoleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -277,10 +280,10 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         });
 
 
-        Route::post('/users/update', [AdminController::class, 'updateUser'])
+        Route::post('/users/update', [AdminUserController::class, 'update'])
             ->name('admin.users.update');
 
-        Route::post('/users/update-roles', [AdminController::class, 'updateUserRoles'])
+        Route::post('/users/update-roles', [AdminUserController::class, 'updateRoles'])
             ->name('admin.users.updateRoles');
 
         /*
@@ -288,35 +291,35 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         | SQUADRON MANAGEMENT
         |-----------------------
         */
-        Route::get('/squadrons', [AdminController::class, 'squadronsIndex'])
+        Route::get('/squadrons', [AdminSquadronController::class, 'index'])
             ->name('admin.squadrons.index')
             ->middleware('can:access-admin-panel');
 
-        Route::post('/squadrons/store', [AdminController::class, 'storeSquadron'])
+        Route::post('/squadrons/store', [AdminSquadronController::class, 'store'])
             ->name('admin.squadrons.store');
 
-        Route::post('/squadrons/update', [AdminController::class, 'updateSquadron'])
+        Route::post('/squadrons/update', [AdminSquadronController::class, 'update'])
             ->name('admin.squadrons.update');
 
-        Route::post('/squadrons/delete', [AdminController::class, 'deleteSquadron'])
+        Route::post('/squadrons/delete', [AdminSquadronController::class, 'destroy'])
             ->name('admin.squadrons.delete');
 
-        Route::post('/squadrons/members/add', [AdminController::class, 'addSquadronMember'])
+        Route::post('/squadrons/members/add', [AdminSquadronController::class, 'addMember'])
             ->name('admin.squadrons.members.add');
 
-        Route::post('/squadrons/members/update', [AdminController::class, 'updateSquadronMember'])
+        Route::post('/squadrons/members/update', [AdminSquadronController::class, 'updateMember'])
             ->name('admin.squadrons.members.update');
 
-        Route::post('/squadrons/members/remove', [AdminController::class, 'removeSquadronMember'])
+        Route::post('/squadrons/members/remove', [AdminSquadronController::class, 'removeMember'])
             ->name('admin.squadrons.members.remove');
 
-        Route::post('/roles/store', [AdminController::class, 'storeRole'])
+        Route::post('/roles/store', [AdminRoleController::class, 'store'])
             ->name('admin.roles.store');
 
-        Route::post('/roles/update', [AdminController::class, 'updateRole'])
+        Route::post('/roles/update', [AdminRoleController::class, 'update'])
             ->name('admin.roles.update');
 
-        Route::post('/roles/delete', [AdminController::class, 'deleteRole'])
+        Route::post('/roles/delete', [AdminRoleController::class, 'destroy'])
             ->name('admin.roles.delete');
 
         /*
