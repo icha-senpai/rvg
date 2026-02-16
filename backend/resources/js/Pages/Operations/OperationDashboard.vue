@@ -713,7 +713,14 @@ function canManageOperation(op) {
   if (isDirectorLike.value) return true;
 
   const squadronId = op?.squadron?.id;
-  if (!squadronId) return false;
+  if (!squadronId) {
+    const creatorId = op?.creator?.id ?? op?.created_by ?? null
+    if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
+      return false
+    }
+
+    return canCreateOperation.value
+  }
 
   const squadronLeaderId = op?.squadron?.leader?.id;
   if (squadronLeaderId && squadronLeaderId === user.value?.id) {

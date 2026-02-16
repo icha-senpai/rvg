@@ -154,10 +154,15 @@ class AccessService
             return true;
         }
 
-        // Only squadron leader/lieutenant for this operation's squadron
-        if (!$operation->squadron_id) {
-            return false;
+        // Global operations: creator can edit if they are lieutenant+
+        if (! $operation->squadron_id) {
+            $user->loadMissing('roles:id,slug');
+
+            return (int) $operation->created_by === (int) $user->id
+                && RoleHierarchy::userAtLeast($user, 'lieutenant');
         }
+
+        // Only squadron leader/lieutenant for this operation's squadron
 
         $squadron = Squadron::find($operation->squadron_id);
         if (!$squadron) {
