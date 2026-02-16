@@ -318,7 +318,8 @@ Domain/Operations/
 
 - ~~**AdminController is oversized**~~ — **Resolved.** Split into 4 focused controllers: `AdminController` (dashboard only), `AdminUserController`, `AdminSquadronController`, `AdminRoleController` under `Web/Admin/`.
 - **Authorization migration** — There's an open intent to move from `rank_level`-based gating to role-based checks using `RoleHierarchy` thresholds (lieutenant+/commander+) consistently across all UI and backend gates.
-- **Operation update permissions for global ops** — `canUpdateOperation` currently returns `false` for operations without a `squadron_id` (global ops) unless user is director. The creator of a global op who is lieutenant+ cannot edit it.
+- ~~**Operation update permissions for global ops**~~ — Fixed
+`canUpdateOperation` currently returns `false` for operations without a `squadron_id` (global ops) unless user is director. The creator of a global op who is lieutenant+ cannot edit it.
 - **UEX data ingestion** — Mentioned in the README as a future phase, not started.
 - **Mobile/responsive UI audit** — No evidence of dedicated mobile optimization pass.
 
