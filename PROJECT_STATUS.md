@@ -342,7 +342,7 @@ Domain/Operations/
 | Models | 14 |
 | Controllers (Web) | 11 |
 | Controllers (API v1) | 17 |
-| Controllers (Admin) | 1 (large) |
+| Controllers (Admin) | 4 |
 | Middleware | 6 |
 | Form Requests | 19+ |
 | Policies | 6 |
