@@ -168,6 +168,7 @@ const favoriteShipOptions = [
       'MPUV Personnel',
       'MPUV Cargo',
       'MPUV Tractor',
+      'Moth',
       'MOLE',
       'MOLE Carbon',
       'MOLE Talus',
@@ -342,6 +343,8 @@ const favoriteShipOptions = [
       'Apollo Medivac',
       'Hermes',
       'Salvation',
+      'Scorpius',
+      'Scorpius Antares',
     ],
   },
   {
