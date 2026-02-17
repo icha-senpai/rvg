@@ -373,6 +373,7 @@ const favoriteShipOptions = [
   {
     label: 'Other / Alien / Rare',
     options: [
+      'Retribution',
       'Khartu-al',
       "San'tok.yāi",
       'Railen',
