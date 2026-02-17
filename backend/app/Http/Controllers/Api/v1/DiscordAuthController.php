@@ -29,7 +29,19 @@ class DiscordAuthController extends Controller
         try {
             $discordUser = $this->discord->getUser(stateless: true);
 
-            if (!$this->discord->checkGuildMembership($discordUser->getId())) {
+            $inGuild = $this->discord->checkGuildMembership($discordUser->getId());
+
+            if ($inGuild === null) {
+                DiscordLogger::auth('login_guild_check_unavailable', [
+                    'discord_id' => $discordUser->getId(),
+                    'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
+                return redirect('/verify?error=discord_check_unavailable');
+            }
+
+            if ($inGuild === false) {
                 DiscordLogger::auth('login_rejected_not_in_guild', [
                     'discord_id' => $discordUser->getId(),
                     'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),

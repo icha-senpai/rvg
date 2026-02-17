@@ -6,6 +6,7 @@ use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Str;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class DiscordOAuthService
@@ -29,14 +30,14 @@ class DiscordOAuthService
     {
         $driver = Socialite::driver('discord');
 
-        if ($stateless) {
-            $driver = $driver->stateless();
+        if ($stateless && $driver instanceof \Laravel\Socialite\Two\AbstractProvider) {
+            return $driver->stateless()->user();
         }
 
         return $driver->user();
     }
 
-    public function checkGuildMembership(?string $discordId): bool
+    public function checkGuildMembership(?string $discordId): ?bool
     {
         // No Discord ID? No guild.
         if (!$discordId) {
@@ -53,12 +54,15 @@ class DiscordOAuthService
 
         if (!$guildId || !$botToken) {
             Log::warning('Discord guild check skipped: missing GUILD_ID or BOT_TOKEN.');
-            return false;
+            return null;
         }
+
+        $cacheKey = "discord_guild_member:{$guildId}:{$discordId}";
 
         $client = new Client([
             'base_uri' => 'https://discord.com/api/v10/',
-            'timeout'  => 5,
+            'timeout'  => 8,
+            'connect_timeout' => 4,
             'http_errors' => false,
         ]);
 
@@ -71,8 +75,21 @@ class DiscordOAuthService
                 ],
             ]);
 
-            if ($response->getStatusCode() !== 200) {
+            if ($response->getStatusCode() === 404) {
                 return false;
+            }
+
+            if ($response->getStatusCode() !== 200) {
+                Log::warning('Discord guild membership check returned non-200', [
+                    'discord_id' => $discordId,
+                    'status'     => $response->getStatusCode(),
+                ]);
+
+                if (Cache::get($cacheKey) === true) {
+                    return true;
+                }
+
+                return null;
             }
 
             $payload = json_decode((string) $response->getBody(), true);
@@ -84,12 +101,18 @@ class DiscordOAuthService
                     'content_type' => $response->getHeaderLine('Content-Type'),
                 ]);
 
-                return false;
+                if (Cache::get($cacheKey) === true) {
+                    return true;
+                }
+
+                return null;
             }
 
             if (is_array($payload) && array_key_exists('pending', $payload) && $payload['pending'] === true) {
                 return false;
             }
+
+            Cache::put($cacheKey, true, now()->addMinutes(30));
 
             return true;
         } catch (\Throwable $e) {
@@ -98,8 +121,11 @@ class DiscordOAuthService
                 'error'      => $e->getMessage(),
             ]);
 
-            // On error, safest is to treat as NOT in guild
-            return false;
+            if (Cache::get($cacheKey) === true) {
+                return true;
+            }
+
+            return null;
         }
     }
 

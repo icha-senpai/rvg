@@ -14,6 +14,8 @@ let initialErrorMessage = null;
 
 if (errorFromUrl === 'not_in_guild') {
     initialErrorMessage = 'Access denied. You must be in the org Discord before you can continue.';
+} else if (errorFromUrl === 'discord_check_unavailable') {
+    initialErrorMessage = 'Discord verification is temporarily unavailable (guild check failed). Please try again in a few minutes.';
 } else if (errorFromUrl === 'oauth') {
     initialErrorMessage = 'Discord login failed. Please try again.';
 } else if (errorFromUrl) {

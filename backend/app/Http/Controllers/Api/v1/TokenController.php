@@ -60,6 +60,14 @@ class TokenController extends Controller
         // 🔍 Guild check (toggleable with DISCORD_GUILD_CHECK)
         $isInGuild = $this->discord->checkGuildMembership($user->discord_id);
 
+        if ($isInGuild === null) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Discord guild membership check is temporarily unavailable. Please try again.',
+                'state' => 'GUILD_CHECK_UNAVAILABLE',
+            ], 503);
+        }
+
         $result = $this->tokens->refreshAccessToken($user, $pat, $isInGuild);
 
         if (isset($result['error'])) {

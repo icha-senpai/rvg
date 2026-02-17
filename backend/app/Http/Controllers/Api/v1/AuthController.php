@@ -74,7 +74,23 @@ class AuthController extends Controller
 
         $discord = app(\App\Services\DiscordOAuthService::class);
 
-        if (!$discord->checkGuildMembership($user->discord_id)) {
+        $inGuild = $discord->checkGuildMembership($user->discord_id);
+
+        if ($inGuild === null) {
+            $this->logAuthEvent('login.rejected_guild_check_unavailable', $user->id, [
+                'ip' => $ip,
+                'discord_id' => $user->discord_id,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Discord guild membership check is temporarily unavailable. Please try again.',
+                'state' => 'GUILD_CHECK_UNAVAILABLE',
+                'payload' => null,
+            ], 503);
+        }
+
+        if ($inGuild === false) {
             $this->logAuthEvent('login.rejected_not_in_guild', $user->id, [
                 'ip' => $ip,
                 'discord_id' => $user->discord_id,
