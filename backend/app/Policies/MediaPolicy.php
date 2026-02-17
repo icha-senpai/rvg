@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\Squadron;
 use App\Models\User;
 use App\Domain\AccessControl\AccessService;
+use App\Domain\AccessControl\RoleHierarchy;
 
 class MediaPolicy
 {
@@ -46,7 +47,7 @@ class MediaPolicy
                     return true;
                 }
 
-                if ((int) ($user->rank_level ?? 0) < 2) {
+                if (! $this->isOfficer($user)) {
                     return false;
                 }
 
@@ -56,7 +57,7 @@ class MediaPolicy
                     ->exists();
             }
 
-            return (int) ($user->rank_level ?? 0) >= 2;
+            return $this->isOfficer($user);
         }
 
         // Directors see everything
@@ -71,11 +72,11 @@ class MediaPolicy
 
         if ($media->collection === Media::COLLECTION_SHIP_IMAGE
             || $media->collection === Media::COLLECTION_SITE_ASSET) {
-            return (int) ($user->rank_level ?? 0) >= 2;
+            return $this->isOfficer($user);
         }
 
         if ($media->collection === Media::COLLECTION_OPERATION_IMAGE) {
-            return (int) ($user->rank_level ?? 0) >= 2;
+            return $this->isOfficer($user);
         }
 
         // Public collections are visible to all authenticated users
@@ -109,7 +110,7 @@ class MediaPolicy
                 return true;
             }
 
-            if ((int) ($user->rank_level ?? 0) < 2) {
+            if (! $this->isOfficer($user)) {
                 return false;
             }
 
@@ -133,16 +134,24 @@ class MediaPolicy
 
             // Operation creators can attach images
             // (operation-level check happens in the controller)
-            Media::COLLECTION_OPERATION_IMAGE => (int) ($user->rank_level ?? 0) >= 2,
+            Media::COLLECTION_OPERATION_IMAGE => $this->isOfficer($user),
 
             // Ship images: rank level 2+ (or director-like above)
-            Media::COLLECTION_SHIP_IMAGE => (int) ($user->rank_level ?? 0) >= 2,
+            Media::COLLECTION_SHIP_IMAGE => $this->isOfficer($user),
 
             // Site assets: rank level 2+ (or director-like above)
-            Media::COLLECTION_SITE_ASSET => (int) ($user->rank_level ?? 0) >= 2,
+            Media::COLLECTION_SITE_ASSET => $this->isOfficer($user),
 
             default => false,
         };
+    }
+
+    private function isOfficer(User $user): bool
+    {
+        $user->loadMissing('roles:id,slug');
+
+        return RoleHierarchy::userAtLeast($user, 'lieutenant')
+            || (int) ($user->rank_level ?? 0) >= 2;
     }
 
     /**

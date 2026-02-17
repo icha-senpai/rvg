@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\Media;
 use App\Models\Squadron;
 use App\Domain\Media\MediaService;
@@ -81,9 +82,15 @@ class MediaController extends Controller
             ? ($user->hasRole('director') || $user->hasRole('tech_director'))
             : false;
 
-        $canUseAdminCollections = $user
-            ? ((int) ($user->rank_level ?? 0) >= 2)
+        if ($user) {
+            $user->loadMissing('roles:id,slug');
+        }
+
+        $isOfficer = $user
+            ? (RoleHierarchy::userAtLeast($user, 'lieutenant') || (int) ($user->rank_level ?? 0) >= 2)
             : false;
+
+        $canUseAdminCollections = $isOfficer;
 
         if ($collection === Media::COLLECTION_SHIP_IMAGE
             || $collection === Media::COLLECTION_SITE_ASSET) {
@@ -106,7 +113,7 @@ class MediaController extends Controller
                 && (
                     $user->isSquadronLeader($squadron)
                     || (
-                        (int) ($user->rank_level ?? 0) >= 2
+                        $isOfficer
                         && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
                     )
                 );
@@ -118,7 +125,7 @@ class MediaController extends Controller
 
         $canBrowseOperationImages = false;
         if ($user) {
-            $canBrowseOperationImages = (int) ($user->rank_level ?? 0) >= 2;
+            $canBrowseOperationImages = $isOfficer;
         }
 
         $publicCollections = [];

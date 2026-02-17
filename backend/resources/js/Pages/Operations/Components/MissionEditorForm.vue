@@ -275,6 +275,11 @@ const isDirectorLike = computed(() => {
 
 const canUploadOperationImages = computed(() => {
   if (isDirectorLike.value) return true
+
+  const roles = authUser.value?.roles ?? []
+  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
+  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true
+
   return Number(authUser.value?.rank_level ?? 0) >= 2
 })
 
