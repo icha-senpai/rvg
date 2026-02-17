@@ -238,25 +238,27 @@ const favoriteShipOptions = [
   {
     label: 'Esperia (ESPR)',
     options: [
-      'Prowler', 
+      'Prowler',
+      'Prowler Utility', 
       'Blade', 
       'Glaive', 
       'Talon', 
       'Talon Shrike', 
-      'Stinger'
+      'Stinger',
     ],
   },
   {
     label: "Grey's Market (GLSN / Grey's Market)",
     options: [
-      'Shiv'
+      'Shiv',
     ],
   },
   {
     label: 'Greycat Industrial',
     options: [
       'ROC', 
-      'STV'
+      'STV',
+      'Cydnus',
     ],
   },
   {
@@ -265,7 +267,7 @@ const favoriteShipOptions = [
       'P-52 Merlin', 
       'P-72 Archimedes', 
       'L-21 Wolf', 
-      'L-22 Alpha Wolf'
+      'L-22 Alpha Wolf',
     ],
   },
   {
@@ -302,7 +304,7 @@ const favoriteShipOptions = [
       'Fury MX', 
       'Guardian', 
       'Guardian QI', 
-      'Guardian MX'
+      'Guardian MX',
     ],
   },
   {
@@ -320,6 +322,8 @@ const favoriteShipOptions = [
       '600i Explorer',
       '890 Jump',
       'X1',
+      '85x',
+      'M50',
     ],
   },
   {
@@ -334,8 +338,10 @@ const favoriteShipOptions = [
       'Constellation Taurus',
       'Constellation Aquila',
       'Constellation Phoenix',
+      'Constellation Phoenix Emerald',
       'Galaxy',
       'Perseus',
+      'Pegasus',
       'Polaris',
       'Bengal',
       'Apollo',
@@ -345,6 +351,12 @@ const favoriteShipOptions = [
       'Salvation',
       'Scorpius',
       'Scorpius Antares',
+      'Zeus',
+      'Zeus mkII',
+      'Zeus mkII CL',
+      'Zeus mkII ES',
+      'Zeus mkII MR',
+      'Zeus mkII ST',
     ],
   },
   {
@@ -364,6 +376,16 @@ const favoriteShipOptions = [
       'Khartu-al',
       "San'tok.yāi",
       'Railen',
+      'Syulen',
+      'Cleaver',
+      'Driller',
+      'Harvester',
+      'Hunter',
+      'Kingship',
+      'Mualer',
+      'Scythe',
+      'Stinger',
+      'Void',
     ],
   },
 ]
