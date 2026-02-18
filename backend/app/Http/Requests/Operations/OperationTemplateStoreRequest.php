@@ -27,7 +27,7 @@ class OperationTemplateStoreRequest extends FormRequest
 
             'payload.title' => 'nullable|string|max:255',
             'payload.gameplay_type' => 'nullable|string|max:255',
-            'payload.description' => 'nullable|string|max:255',
+            'payload.description' => 'nullable|string|max:510',
             'payload.notes' => 'nullable|string|max:5000',
             'payload.extended_description' => 'nullable|string|max:5000',
 

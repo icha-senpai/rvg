@@ -1110,8 +1110,8 @@ async function destroyOperation() {
             v-model="form.description"
             rows="6"
             class="hz-textarea w-full"
-            maxlength="255"
-            placeholder="Operation overview (max 255 characters). Be Creative! It's for Discord."
+            maxlength="510"
+            placeholder="Operation overview (max 510 characters). Be Creative! It's for Discord."
           ></textarea>
         </HorizonSection>
 

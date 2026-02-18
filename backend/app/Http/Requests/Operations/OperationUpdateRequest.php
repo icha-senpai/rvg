@@ -34,7 +34,7 @@ class OperationUpdateRequest extends FormRequest
     {
         return [
             'title'                => 'sometimes|string|max:255',
-            'description'          => 'sometimes|string|nullable|max:255',
+            'description'          => 'sometimes|string|nullable|max:510',
             'squadron_name'        => 'sometimes|nullable|string|max:255',
             'starts_at'            => 'sometimes|date',
             'ends_at'              => 'sometimes|nullable|date|after:starts_at',
