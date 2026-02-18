@@ -286,6 +286,9 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/users/update-roles', [AdminUserController::class, 'updateRoles'])
             ->name('admin.users.updateRoles');
 
+        Route::post('/users/unverify', [AdminUserController::class, 'unverify'])
+            ->name('admin.users.unverify');
+
         /*
         |-----------------------
         | SQUADRON MANAGEMENT

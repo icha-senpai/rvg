@@ -153,7 +153,7 @@
       <div>
         <label class="hz-text-soft">Rank</label>
         <select v-model="form.rank" class="hz-input">
-          <option value="">Not set</option>
+          
           <option v-for="opt in rankOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
@@ -168,7 +168,7 @@
       <div>
         <label class="hz-text-soft">Global Status</label>
         <select v-model="form.global_status" class="hz-input">
-          <option value="">Unset</option>
+          
           <option v-for="opt in globalStatusOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
@@ -397,9 +397,15 @@
         Cancel
       </HorizonButton>
 
-      <HorizonButton variant="primary" size="sm" @click="saveUser">
-        Save Changes
-      </HorizonButton>
+      <div class="hz-row gap-2">
+        <HorizonButton variant="danger" size="sm" @click="unverifyUser">
+          Unverify User
+        </HorizonButton>
+
+        <HorizonButton variant="primary" size="sm" @click="saveUser">
+          Save Changes
+        </HorizonButton>
+      </div>
     </div>
 
   </div>
@@ -963,6 +969,26 @@ onBeforeUnmount(() => {
 /* ============================================================
    SAVE ACTIONS
 ============================================================ */
+function unverifyUser() {
+  const userId = form.value.id;
+  if (!userId) return;
+
+  const ok = window.confirm('Unverify this user? They will be forced back through verification and their API tokens will be revoked.');
+  if (!ok) return;
+
+  router.post(
+    route('admin.users.unverify'),
+    { id: userId },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeUserEditor();
+        router.visit(window.location.href, { preserveScroll: true });
+      },
+    }
+  );
+}
+
 function saveUser() {
   router.post(route('admin.users.update'), form.value, {
     preserveScroll: true,

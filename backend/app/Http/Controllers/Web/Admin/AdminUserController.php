@@ -76,4 +76,30 @@ class AdminUserController extends Controller
             ->route('admin.dashboard')
             ->with('success', 'Roles updated successfully.');
     }
+
+    public function unverify(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:users,id'],
+        ]);
+
+        $user = User::findOrFail($data['id']);
+
+        $user->rsi_verified_at = null;
+        $user->global_status = 'pending';
+        $user->verification_code = null;
+        $user->verification_expires_at = null;
+        $user->save();
+
+        $user->tokens()->delete();
+
+        Cache::forget("user_roles_{$user->id}");
+        Cache::forget("user_permissions_{$user->id}");
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', 'User marked as unverified.');
+    }
 }
