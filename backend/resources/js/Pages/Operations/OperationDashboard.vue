@@ -5,14 +5,14 @@
     <section class="mx-auto max-w-5xl space-y-7">
 
       <!-- Header + Create button -->
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <HorizonSectionHeader
           label=""
           title="Operations Dashboard"
         />
 
-        <div v-if="canCreateOperation" class="flex items-center gap-3">
-          <div class="w-64">
+        <div v-if="canCreateOperation" class="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+          <div class="w-full sm:w-64">
             <HorizonSelect
               v-model="createTemplateId"
               :options="templateOptions"
@@ -23,6 +23,7 @@
             variant="ghost"
             size="md"
             :disabled="!createTemplateId"
+            class="w-full sm:w-auto"
             @click="openCreateDrawerFromTemplate"
           >
             Create From Template
@@ -31,6 +32,7 @@
           <HorizonButton
             variant="primary"
             size="md"
+            class="w-full sm:w-auto"
             @click="openCreateDrawer"
           >
             Create Operation

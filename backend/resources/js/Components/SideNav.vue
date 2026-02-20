@@ -169,12 +169,16 @@ onBeforeUnmount(() => {
     <span class="text-sm font-semibold">Menu</span>
   </button>
 
-  <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-70">
+  <div
+    v-if="user && mobileOpen"
+    class="md:hidden fixed top-0 left-0 right-0 z-70"
+    style="height: 100vh; height: 100dvh;"
+  >
     <div class="absolute inset-0 bg-black/60" @click="closeMobileNav"></div>
 
     <aside class="absolute inset-y-0 left-0 w-74 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
-      <div class="h-full flex flex-col p-4 gap-4">
-        <div class="-mx-4 -mt-4 bg-black overflow-hidden">
+      <div class="h-full flex flex-col p-4 gap-4 min-h-0">
+        <div class="-mx-4 -mt-4 bg-black overflow-hidden shrink-0">
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
@@ -182,7 +186,7 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <div class="flex items-center justify-end px-2">
+        <div class="flex items-center justify-end px-2 shrink-0">
           <button
             type="button"
             class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
@@ -192,9 +196,9 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div class="px-2 hz-section-label"></div>
+        <div class="px-2 hz-section-label shrink-0"></div>
 
-        <nav class="flex flex-col gap-2">
+        <nav class="flex flex-col gap-2 flex-1 min-h-0 overflow-auto">
           <template v-for="item in navItems" :key="item.key">
             <Link
               v-if="!item.href"
@@ -233,7 +237,7 @@ onBeforeUnmount(() => {
           </template>
         </nav>
 
-        <div class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover">
+        <div class="shrink-0 px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover">
           <div class="flex items-center gap-3">
             <Link
               :href="route('member.profile', user.id)"
@@ -273,8 +277,8 @@ onBeforeUnmount(() => {
     <div
       class="h-full bg-bg-elevated border-r border-bg-hover"
     >
-      <div class="h-full flex flex-col p-4 gap-4">
-        <div class="-mx-4 -mt-4 bg-black overflow-hidden">
+      <div class="h-full flex flex-col p-4 gap-4 min-h-0">
+        <div class="-mx-4 -mt-4 bg-black overflow-hidden shrink-0">
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
@@ -282,9 +286,9 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <div class="px-2 hz-section-label"></div>
+        <div class="px-2 hz-section-label shrink-0"></div>
 
-        <nav class="flex flex-col gap-2">
+        <nav class="flex flex-col gap-2 flex-1 min-h-0 overflow-auto">
           <template v-for="item in navItems" :key="item.key">
             <Link
               v-if="!item.href"
@@ -322,7 +326,7 @@ onBeforeUnmount(() => {
         </nav>
 
         <div
-          class="mt-auto px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover"
+          class="shrink-0 px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover"
         >
           <div class="flex items-center gap-3">
             <Link

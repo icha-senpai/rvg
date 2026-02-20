@@ -388,43 +388,29 @@ async function updateSlot() {
   <HorizonContainer class="space-y-10">
 
     <!-- HEADER -->
-    <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
+    <div class="mx-auto max-w-5xl mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="hz-section-label">
+          {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
+        </div>
 
-      <div class="flex items-center gap-4">
-        <!-- 
-        <HorizonButton
-          variant="ghost"
-          size="sm"
-          @click="$inertia.visit(route('operations.index'))"
-        >
-          ⟵ Back
-        </HorizonButton>
-        -->
+        <div class="flex items-center gap-3">
+          <ProgressPill :variant="statusVariant">
+            {{ operation.status }}
+          </ProgressPill>
 
-        <div class="hz-stack-sm">
-          <div class="hz-section-label">
-            {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
+          <div v-if="canAddToCalendar" class="w-56">
+            <HorizonSelect
+              v-model="calendarChoice"
+              :options="calendarOptions"
+            />
           </div>
-
-          <h1 class="hz-title-lg text-horizon-white">
-            {{ displayTitle }}
-          </h1>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <ProgressPill :variant="statusVariant">
-          {{ operation.status }}
-        </ProgressPill>
-
-        <div v-if="canAddToCalendar" class="w-56">
-          <HorizonSelect
-            v-model="calendarChoice"
-            :options="calendarOptions"
-          />
-        </div>
-      </div>
-
+      <h1 class="hz-title-lg text-horizon-white mt-2">
+        {{ displayTitle }}
+      </h1>
     </div>
 
     <!-- OPERATION IMAGE -->
