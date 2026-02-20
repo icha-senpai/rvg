@@ -71,12 +71,7 @@ const navItems = computed(() => {
       params: undefined,
       isActive: url === '/',
     },
-    {
-      key: 'archive',
-      label: 'Horizon Archive',
-      href: 'https://docs.horizoninterstellar.com/collection/horizon-archive-ehz6KYHyv1/overview',
-      isActive: false,
-    },
+
     {
       key: 'operations_member',
       label: 'Operations',
@@ -106,6 +101,12 @@ const navItems = computed(() => {
       params: mySquadron.value ? mySquadron.value.id : undefined,
       isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.id}` : false,
       show: !!mySquadron.value,
+    },
+    {
+      key: 'archive',
+      label: 'Horizon Archive',
+      href: 'https://docs.horizoninterstellar.com/collection/horizon-archive-ehz6KYHyv1/overview',
+      isActive: false,
     },
     {
       key: 'members_index',
@@ -171,13 +172,13 @@ onBeforeUnmount(() => {
   <div v-if="user && mobileOpen" class="md:hidden fixed inset-0 z-70">
     <div class="absolute inset-0 bg-black/60" @click="closeMobileNav"></div>
 
-    <aside class="absolute inset-y-0 left-0 w-64 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
+    <aside class="absolute inset-y-0 left-0 w-74 max-w-[85vw] bg-bg-elevated border-r border-bg-hover">
       <div class="h-full flex flex-col p-4 gap-4">
         <div class="-mx-4 -mt-4 bg-black overflow-hidden">
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
-            class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
+            class="block w-full h-36 object-contain scale-220 -translate-y-1.5"
           />
         </div>
 
@@ -193,12 +194,12 @@ onBeforeUnmount(() => {
 
         <div class="px-2 hz-section-label"></div>
 
-        <nav class="flex flex-col gap-1">
+        <nav class="flex flex-col gap-2">
           <template v-for="item in navItems" :key="item.key">
             <Link
               v-if="!item.href"
               :href="route(item.routeName, item.params)"
-              class="px-3 py-2 rounded-xl text-sm font-semibold transition"
+              class="px-4 py-3 rounded-xl text-base font-semibold transition"
               :class="
                 item.isActive
                   ? 'bg-bg-hover text-horizon-white'
@@ -222,7 +223,7 @@ onBeforeUnmount(() => {
               :href="item.href"
               target="_blank"
               rel="noopener noreferrer"
-              class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
+              class="px-4 py-3 rounded-xl text-base font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
               @click="closeMobileNav"
             >
               <div class="flex items-center justify-between gap-3">
@@ -268,7 +269,7 @@ onBeforeUnmount(() => {
     </aside>
   </div>
 
-  <aside v-if="user" class="hidden md:block h-screen w-64 shrink-0 sticky top-0">
+  <aside v-if="user" class="hidden md:block h-screen w-74 shrink-0 sticky top-0">
     <div
       class="h-full bg-bg-elevated border-r border-bg-hover"
     >
@@ -277,18 +278,18 @@ onBeforeUnmount(() => {
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
-            class="block w-full h-36 object-contain scale-180 -translate-y-1.5"
+            class="block w-full h-36 object-contain scale-220 -translate-y-1.5"
           />
         </div>
 
         <div class="px-2 hz-section-label"></div>
 
-        <nav class="flex flex-col gap-1">
+        <nav class="flex flex-col gap-2">
           <template v-for="item in navItems" :key="item.key">
             <Link
               v-if="!item.href"
               :href="route(item.routeName, item.params)"
-              class="px-3 py-2 rounded-xl text-sm font-semibold transition"
+              class="px-4 py-3 rounded-xl text-base font-semibold transition"
               :class="
                 item.isActive
                   ? 'bg-bg-hover text-horizon-white'
@@ -311,7 +312,7 @@ onBeforeUnmount(() => {
               :href="item.href"
               target="_blank"
               rel="noopener noreferrer"
-              class="px-3 py-2 rounded-xl text-sm font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
+              class="px-4 py-3 rounded-xl text-base font-semibold transition text-text-secondary hover:bg-bg-hover hover:text-horizon-white"
             >
               <div class="flex items-center justify-between gap-3">
                 <span class="truncate">{{ item.label }}</span>

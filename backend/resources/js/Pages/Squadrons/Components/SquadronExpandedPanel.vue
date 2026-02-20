@@ -620,45 +620,60 @@ watch(
       </div>
 
       <!-- Tabs -->
-      <div
-        class="hz-row hz-text-soft gap-2"
-        style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
-      >
-        <HorizonButton
-          size="sm"
-          :disabled="isTabDisabled('recruiting')"
-          :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
-          @click="setActiveTab('recruiting')"
+      <div class="relative">
+        <div
+          class="hz-row hz-text-soft gap-2 overflow-x-auto whitespace-nowrap flex-nowrap pr-10 sm:pr-0 sm:overflow-visible"
+          style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
         >
-          Recruiting
-        </HorizonButton>
+          <HorizonButton
+            class="shrink-0"
+            size="sm"
+            :disabled="isTabDisabled('recruiting')"
+            :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+            @click="setActiveTab('recruiting')"
+          >
+            Recruiting
+          </HorizonButton>
 
-        <HorizonButton
-          size="sm"
-          :disabled="isTabDisabled('overview')"
-          :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-          @click="setActiveTab('overview')"
-        >
-          Overview
-        </HorizonButton>
+          <HorizonButton
+            class="shrink-0"
+            size="sm"
+            :disabled="isTabDisabled('overview')"
+            :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+            @click="setActiveTab('overview')"
+          >
+            Overview
+          </HorizonButton>
 
-        <HorizonButton
-          size="sm"
-          :disabled="isTabDisabled('status')"
-          :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-          @click="setActiveTab('status')"
-        >
-          Status
-        </HorizonButton>
+          <HorizonButton
+            class="shrink-0"
+            size="sm"
+            :disabled="isTabDisabled('status')"
+            :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+            @click="setActiveTab('status')"
+          >
+            Status
+          </HorizonButton>
 
-        <HorizonButton
-          size="sm"
-          :disabled="isTabDisabled('roster')"
-          :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
-          @click="setActiveTab('roster')"
-        >
-          Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
-        </HorizonButton>
+          <HorizonButton
+            class="shrink-0"
+            size="sm"
+            :disabled="isTabDisabled('roster')"
+            :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+            @click="setActiveTab('roster')"
+          >
+            Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+          </HorizonButton>
+        </div>
+
+        <div
+          class="pointer-events-none absolute inset-y-0 right-0 w-10 sm:hidden"
+          style="background: linear-gradient(to left, var(--horizon-card), transparent);"
+        ></div>
+
+        <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-secondary sm:hidden">
+          Swipe →
+        </div>
       </div>
 
       <div v-if="activeTab === 'overview'" class="hz-animate-fade">
@@ -874,45 +889,60 @@ watch(
 
       <template v-if="squadron">
         <!-- Tabs -->
-        <div
-          class="hz-row hz-text-soft gap-2"
-          style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
-        >
-          <HorizonButton
-            size="sm"
-            :disabled="isTabDisabled('recruiting')"
-            :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
-            @click="setActiveTab('recruiting')"
+        <div class="relative">
+          <div
+            class="hz-row hz-text-soft gap-2 overflow-x-auto whitespace-nowrap flex-nowrap pr-10 sm:pr-0 sm:overflow-visible"
+            style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
           >
-            Recruiting
-          </HorizonButton>
+            <HorizonButton
+              class="shrink-0"
+              size="sm"
+              :disabled="isTabDisabled('recruiting')"
+              :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+              @click="setActiveTab('recruiting')"
+            >
+              Recruiting
+            </HorizonButton>
 
-          <HorizonButton
-            size="sm"
-            :disabled="isTabDisabled('overview')"
-            :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-            @click="setActiveTab('overview')"
-          >
-            Overview
-          </HorizonButton>
+            <HorizonButton
+              class="shrink-0"
+              size="sm"
+              :disabled="isTabDisabled('overview')"
+              :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+              @click="setActiveTab('overview')"
+            >
+              Overview
+            </HorizonButton>
 
-          <HorizonButton
-            size="sm"
-            :disabled="isTabDisabled('status')"
-            :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-            @click="setActiveTab('status')"
-          >
-            Status
-          </HorizonButton>
+            <HorizonButton
+              class="shrink-0"
+              size="sm"
+              :disabled="isTabDisabled('status')"
+              :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+              @click="setActiveTab('status')"
+            >
+              Status
+            </HorizonButton>
 
-          <HorizonButton
-            size="sm"
-            :disabled="isTabDisabled('roster')"
-            :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
-            @click="setActiveTab('roster')"
-          >
-            Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
-          </HorizonButton>
+            <HorizonButton
+              class="shrink-0"
+              size="sm"
+              :disabled="isTabDisabled('roster')"
+              :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+              @click="setActiveTab('roster')"
+            >
+              Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+            </HorizonButton>
+          </div>
+
+          <div
+            class="pointer-events-none absolute inset-y-0 right-0 w-10 sm:hidden"
+            style="background: linear-gradient(to left, var(--horizon-card), transparent);"
+          ></div>
+
+          <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-secondary sm:hidden">
+            Swipe →
+          </div>
         </div>
 
         <div v-if="activeTab === 'overview'" class="hz-animate-fade">
@@ -1138,45 +1168,60 @@ watch(
 
         <template v-if="squadron">
           <!-- Tabs -->
-          <div
-            class="hz-row hz-text-soft gap-2"
-            style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
-          >
-            <HorizonButton
-              size="sm"
-              :disabled="isTabDisabled('recruiting')"
-              :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
-              @click="setActiveTab('recruiting')"
+          <div class="relative">
+            <div
+              class="hz-row hz-text-soft gap-2 overflow-x-auto whitespace-nowrap flex-nowrap pr-10 sm:pr-0 sm:overflow-visible"
+              style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);"
             >
-              Recruiting
-            </HorizonButton>
+              <HorizonButton
+                class="shrink-0"
+                size="sm"
+                :disabled="isTabDisabled('recruiting')"
+                :variant="activeTab === 'recruiting' ? 'primary' : 'ghost'"
+                @click="setActiveTab('recruiting')"
+              >
+                Recruiting
+              </HorizonButton>
 
-            <HorizonButton
-              size="sm"
-              :disabled="isTabDisabled('overview')"
-              :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
-              @click="setActiveTab('overview')"
-            >
-              Overview
-            </HorizonButton>
+              <HorizonButton
+                class="shrink-0"
+                size="sm"
+                :disabled="isTabDisabled('overview')"
+                :variant="activeTab === 'overview' ? 'primary' : 'ghost'"
+                @click="setActiveTab('overview')"
+              >
+                Overview
+              </HorizonButton>
 
-            <HorizonButton
-              size="sm"
-              :disabled="isTabDisabled('status')"
-              :variant="activeTab === 'status' ? 'primary' : 'ghost'"
-              @click="setActiveTab('status')"
-            >
-              Status
-            </HorizonButton>
+              <HorizonButton
+                class="shrink-0"
+                size="sm"
+                :disabled="isTabDisabled('status')"
+                :variant="activeTab === 'status' ? 'primary' : 'ghost'"
+                @click="setActiveTab('status')"
+              >
+                Status
+              </HorizonButton>
 
-            <HorizonButton
-              size="sm"
-              :disabled="isTabDisabled('roster')"
-              :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
-              @click="setActiveTab('roster')"
-            >
-              Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
-            </HorizonButton>
+              <HorizonButton
+                class="shrink-0"
+                size="sm"
+                :disabled="isTabDisabled('roster')"
+                :variant="activeTab === 'roster' ? 'primary' : 'ghost'"
+                @click="setActiveTab('roster')"
+              >
+                Roster ({{ activeMemberCount }}/{{ maxRosterSize }})
+              </HorizonButton>
+            </div>
+
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 w-10 sm:hidden"
+              style="background: linear-gradient(to left, var(--horizon-card), transparent);"
+            ></div>
+
+            <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-secondary sm:hidden">
+              Swipe →
+            </div>
           </div>
 
           <div v-if="activeTab === 'overview'" class="hz-animate-fade">
