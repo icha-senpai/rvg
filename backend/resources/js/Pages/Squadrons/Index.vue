@@ -87,6 +87,18 @@ function formatTitle(value) {
     .join(' ')
 }
 
+function branchLogoSrc(branch) {
+  const key = String(branch ?? '').trim().toLowerCase()
+  const map = {
+    defence: '/images/Horizon_Defence_Logo.png',
+    frontiers: '/images/Horizon_Frontiers_Logo.png',
+    industries: '/images/Horizon_Industries_logo.png',
+    lifelines: '/images/Horizon_Lifeline_logo.png',
+  }
+
+  return map[key] ?? null
+}
+
 onMounted(() => {
   fetchSquadrons()
 })
@@ -135,8 +147,17 @@ onMounted(() => {
               </span>
             </div>
 
-            <div v-if="squadron.branch" class="hz-caption text-horizon-muted">
-              {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
+            <div v-if="squadron.branch" class="hz-caption text-horizon-muted flex items-center gap-2">
+              <img
+                v-if="branchLogoSrc(squadron.branch)"
+                :src="branchLogoSrc(squadron.branch)"
+                :alt="`${formatTitle(squadron.branch)} logo`"
+                class="w-4 h-4 object-contain shrink-0"
+                loading="lazy"
+              />
+              <span>
+                {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
+              </span>
             </div>
 
             <div class="hz-text-soft">

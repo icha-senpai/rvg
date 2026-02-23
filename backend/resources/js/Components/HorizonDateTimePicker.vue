@@ -54,6 +54,9 @@
                 : (cell.isSelected
                     ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
                     : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'),
+              (!cell.isBlank && cell.isTodayHighlight && !cell.isSelected)
+                ? 'ring-1 ring-[color:var(--horizon-sunset-blue)]'
+                : '',
             ]"
             @click="!cell.isBlank && selectDay(cell.day)"
           >
@@ -431,6 +434,12 @@ const calendarCells = computed(() => {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
 
   const selected = parseLocalDatetime(model.value)
+  const shouldHighlightToday = !selected
+
+  const today = new Date()
+  const todayYear = today.getFullYear()
+  const todayMonth = today.getMonth() + 1
+  const todayDay = today.getDate()
 
   const cells = []
   const total = 42
@@ -445,11 +454,21 @@ const calendarCells = computed(() => {
       selected.month === monthIndex + 1 &&
       selected.day === day
 
+    const isToday =
+      !isBlank &&
+      year === todayYear &&
+      monthIndex + 1 === todayMonth &&
+      day === todayDay
+
+    const isTodayHighlight = isToday && shouldHighlightToday
+
     cells.push({
       key: `${year}-${monthIndex}-${i}`,
       day: isBlank ? '' : day,
       isBlank,
       isSelected,
+      isToday,
+      isTodayHighlight,
     })
   }
 
