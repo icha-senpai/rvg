@@ -7,23 +7,14 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import * as TextAlignPkg from '@tiptap/extension-text-align'
-import * as TablePkg from '@tiptap/extension-table'
-import * as TableRowPkg from '@tiptap/extension-table-row'
-import * as TableHeaderPkg from '@tiptap/extension-table-header'
-import * as TableCellPkg from '@tiptap/extension-table-cell'
-import * as TextStylePkg from '@tiptap/extension-text-style'
-import * as ColorPkg from '@tiptap/extension-color'
-import * as FontFamilyPkg from '@tiptap/extension-font-family'
-
-const TextAlign = TextAlignPkg.default ?? TextAlignPkg.TextAlign
-const Table = TablePkg.default ?? TablePkg.Table
-const TableRow = TableRowPkg.default ?? TableRowPkg.TableRow
-const TableHeader = TableHeaderPkg.default ?? TableHeaderPkg.TableHeader
-const TableCell = TableCellPkg.default ?? TableCellPkg.TableCell
-const TextStyle = TextStylePkg.default ?? TextStylePkg.TextStyle
-const Color = ColorPkg.default ?? ColorPkg.Color
-const FontFamily = FontFamilyPkg.default ?? FontFamilyPkg.FontFamily
+import { TextAlign } from '@tiptap/extension-text-align'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
+import { FontFamily } from '@tiptap/extension-font-family'
 
 const FontSize = Extension.create({
   name: 'fontSize',

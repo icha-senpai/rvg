@@ -5,6 +5,7 @@ namespace App\Domain\Operations\Actions;
 use App\Models\Operation;
 use App\Models\Squadron;
 use App\Models\User;
+use App\Domain\Operations\Actions\JoinOperation;
 use Illuminate\Support\Facades\Auth;
 use App\Domain\Operations\Events\OperationPublished; // <-- ADD THIS if using events
 
@@ -28,6 +29,12 @@ class CreateOperation
 
         if ($creatorId) {
             User::whereKey($creatorId)->increment('operations_created_count');
+
+            $creator = Auth::user();
+
+            if ($creator && ! $operation->participants()->where('user_id', $creator->id)->exists()) {
+                (new JoinOperation)->execute($operation, $creator, []);
+            }
         }
 
         // 🔥 FIRE PUBLISH CODE IF NEEDED
