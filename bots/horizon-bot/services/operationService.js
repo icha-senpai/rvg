@@ -67,7 +67,7 @@ module.exports = {
                 const member = await guild.members.fetch(leaderDiscordId);
 
                 leaderHeaderName =
-                    member?.user?.globalName
+                    member?.nickname
                     || member?.displayName
                     || member?.user?.username
                     || leaderHeaderName;
