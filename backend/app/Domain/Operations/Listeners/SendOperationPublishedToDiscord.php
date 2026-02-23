@@ -10,7 +10,7 @@ class SendOperationPublishedToDiscord
 {
     public function handle(OperationPublished $event)
     {
-        $op = $event->operation->fresh(['squadron']);
+        $op = $event->operation->fresh(['squadron', 'creator']);
 
         Log::info("📡 Listener fired for operation {$op->id}");
         Log::info("Sending timestamp to bot", [
@@ -19,6 +19,13 @@ class SendOperationPublishedToDiscord
         ]);
 
         try {
+            $operationLeader = $op->creator?->rsi_handle
+                ?? $op->creator?->name;
+
+            $operationLeaderDiscordId = $op->creator?->discord_id;
+            $operationLeaderDiscordName = $op->creator?->discord_name;
+            $operationLeaderDiscordAvatar = $op->creator?->discord_avatar;
+
             $payload = [
                 'id' => $op->id,
                 'title' => $op->title,
@@ -26,7 +33,11 @@ class SendOperationPublishedToDiscord
                 'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
                 'operation_type' => $op->operation_type,
                 'operation_strictness' => $op->operation_strictness,
-                'visibility' => $op->visibility,
+                'start_location' => $op->start_location,
+                'operation_leader' => $operationLeader,
+                'operation_leader_discord_id' => $operationLeaderDiscordId,
+                'operation_leader_discord_name' => $operationLeaderDiscordName,
+                'operation_leader_discord_avatar' => $operationLeaderDiscordAvatar,
             ];
 
             if ($op->squadron_name) {

@@ -10,7 +10,7 @@ class SendOperationUpdatedToDiscord
 {
     public function handle(OperationUpdated $event)
     {
-        $op = $event->operation->fresh(['squadron']);
+        $op = $event->operation->fresh(['squadron', 'creator']);
 
         Log::info("📡 Listener fired for UPDATED operation {$op->id}");
 
@@ -50,6 +50,13 @@ class SendOperationUpdatedToDiscord
             ])
             ->asJson()
             ->post(config('services.bot.url') . '/op-updated', (function () use ($op) {
+                $operationLeader = $op->creator?->rsi_handle
+                    ?? $op->creator?->name;
+
+                $operationLeaderDiscordId = $op->creator?->discord_id;
+                $operationLeaderDiscordName = $op->creator?->discord_name;
+                $operationLeaderDiscordAvatar = $op->creator?->discord_avatar;
+
                 $payload = [
                     'id' => $op->id,
                     'title' => $op->title,
@@ -57,7 +64,11 @@ class SendOperationUpdatedToDiscord
                     'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
                     'operation_type' => $op->operation_type,
                     'operation_strictness' => $op->operation_strictness,
-                    'visibility' => $op->visibility,
+                    'start_location' => $op->start_location,
+                    'operation_leader' => $operationLeader,
+                    'operation_leader_discord_id' => $operationLeaderDiscordId,
+                    'operation_leader_discord_name' => $operationLeaderDiscordName,
+                    'operation_leader_discord_avatar' => $operationLeaderDiscordAvatar,
                     // Allow Discord role ping on update announcements (same behavior as publish).
                     // The bot defaults to pinging unless ping === false.
                     'ping' => true,

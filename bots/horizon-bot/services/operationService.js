@@ -47,7 +47,53 @@ module.exports = {
                 ? op.description
                 : '*No description provided.*';
 
-        const kind = typeof op?.operation_kind === 'string' ? op.operation_kind : '';
+        const leaderDiscordId = typeof op?.operation_leader_discord_id === 'string'
+            ? op.operation_leader_discord_id
+            : null;
+
+        const leaderFallbackName = typeof op?.operation_leader === 'string'
+            ? op.operation_leader.trim()
+            : '';
+
+        let leaderHeaderName = typeof op?.operation_leader_discord_name === 'string'
+            ? op.operation_leader_discord_name.trim()
+            : leaderFallbackName;
+
+        let leaderHeaderIconUrl = null;
+
+        if (leaderDiscordId && process.env.DISCORD_GUILD_ID) {
+            try {
+                const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
+                const member = await guild.members.fetch(leaderDiscordId);
+
+                leaderHeaderName =
+                    member?.user?.globalName
+                    || member?.displayName
+                    || member?.user?.username
+                    || leaderHeaderName;
+
+                leaderHeaderIconUrl = member?.displayAvatarURL
+                    ? member.displayAvatarURL({ size: 64 })
+                    : leaderHeaderIconUrl;
+            } catch (e) {
+            }
+        }
+
+        if (!leaderHeaderIconUrl) {
+            const rawAvatar = typeof op?.operation_leader_discord_avatar === 'string'
+                ? op.operation_leader_discord_avatar.trim()
+                : '';
+
+            if (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://')) {
+                leaderHeaderIconUrl = rawAvatar;
+            } else if (rawAvatar && leaderDiscordId) {
+                leaderHeaderIconUrl = `https://cdn.discordapp.com/avatars/${leaderDiscordId}/${rawAvatar}.png?size=64`;
+            }
+        }
+
+        const kind = typeof op?.operation_kind === 'string'
+            ? op.operation_kind
+            : (typeof op?.operation_type === 'string' ? op.operation_type : '');
         const titlePrefix =
             kind === 'squadron_training'
                 ? 'Squadron Training'
@@ -68,6 +114,16 @@ module.exports = {
         // ------------------------------
         // BUILD EMBED
         // ------------------------------
+        const startLocationRaw = typeof op?.start_location === 'string' ? op.start_location.trim() : '';
+        const startLocation = startLocationRaw.length > 1021
+            ? `${startLocationRaw.slice(0, 1021)}...`
+            : startLocationRaw;
+
+        const operationLeaderRaw = typeof op?.operation_leader === 'string' ? op.operation_leader.trim() : '';
+        const operationLeader = operationLeaderRaw.length > 1021
+            ? `${operationLeaderRaw.slice(0, 1021)}...`
+            : operationLeaderRaw;
+
         const fields = [
             {
                 name: 'Starts At',
@@ -75,13 +131,18 @@ module.exports = {
                 inline: false,
             },
             {
-                name: 'Strictness',
-                value: op.operation_strictness || 'default',
+                name: 'Start Location',
+                value: startLocation || 'N/A',
                 inline: false,
             },
             {
-                name: 'Visibility',
-                value: op.visibility || 'open',
+                name: 'Operation Leader',
+                value: operationLeader || 'N/A',
+                inline: false,
+            },
+            {
+                name: 'Comm Strictness',
+                value: op.operation_strictness || 'default',
                 inline: false,
             },
         ];
@@ -100,12 +161,19 @@ module.exports = {
             .setTitle(null)
             .setDescription(
                 `${operationUrl ? `# [${displayTitle}](${operationUrl})\n` : `# ${displayTitle}\n`}` +
-                `━━━━━━━━━━━━━━━━━━\n\n` +
+                `\n` +
                 `${desc}`
             )
             .addFields(fields)
             .setFooter({ text: `Operation ID: ${op.id}` })
             .setTimestamp();
+
+        if (leaderHeaderName) {
+            embed.setAuthor({
+                name: leaderHeaderName,
+                iconURL: leaderHeaderIconUrl || undefined,
+            });
+        }
 
         // ------------------------------
         // SEND TO DISCORD
