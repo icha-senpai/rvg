@@ -812,11 +812,15 @@ async function submit(mode) {
       }
 
       if (isEdit.value) {
-        await axios.put(
+        const { data } = await axios.put(
           route('operations.update', props.mission.id, Ziggy),
           form.data(),
           headers
         )
+
+        const nextMedia = data?.payload?.operation?.media_image ?? null
+        selectedMedia.value = nextMedia
+        form.media_id = nextMedia?.id ?? null
 
         if (shouldPublishTransition && currentStatus === 'draft') {
           await axios.post(
@@ -840,6 +844,10 @@ async function submit(mode) {
 
       const { data } = await axios.post(storeUrl, form.data(), headers)
       const newId = data?.payload?.operation?.id
+
+      const nextMedia = data?.payload?.operation?.media_image ?? null
+      selectedMedia.value = nextMedia
+      form.media_id = nextMedia?.id ?? null
 
       if (!newId) {
         console.error('Could not resolve operation ID.')

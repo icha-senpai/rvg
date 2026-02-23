@@ -220,7 +220,12 @@ class MediaController extends Controller
 
         $data = $request->validate([
             'alt_text' => ['nullable', 'string', 'max:255'],
+            'original_filename' => ['sometimes', 'string', 'max:255', 'regex:/\S/', 'not_regex:/[\\/\\\\]/'],
         ]);
+
+        if (array_key_exists('original_filename', $data)) {
+            $data['original_filename'] = trim((string) $data['original_filename']);
+        }
 
         $media->update($data);
 

@@ -215,6 +215,12 @@
           </div>
         </div>
 
+        <!-- EDIT NAME -->
+        <div>
+          <label class="hz-text-soft">Name</label>
+          <input v-model="detailFilename" class="hz-input" placeholder="Display name..." />
+        </div>
+
         <!-- EDIT ALT TEXT -->
         <div>
           <label class="hz-text-soft">Alt Text</label>
@@ -484,10 +490,12 @@ async function submitUpload() {
 ============================================================ */
 const detailItem = ref(null);
 const detailAltText = ref('');
+const detailFilename = ref('');
 
 function openDetailModal(item) {
   detailItem.value = item;
   detailAltText.value = item.alt_text || '';
+  detailFilename.value = item.original_filename || '';
 }
 
 function closeDetailModal() {
@@ -509,6 +517,21 @@ async function saveAltText() {
 
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+  const rawFilename = String(detailFilename.value ?? '').trim();
+  const existingFilename = String(detailItem.value.original_filename ?? '').trim();
+
+  const existingExtMatch = existingFilename.match(/(\.[a-z0-9]{1,10})$/i);
+  const existingExt = existingExtMatch ? existingExtMatch[1] : '';
+  const rawHasExt = /\.[a-z0-9]{1,10}$/i.test(rawFilename);
+
+  let nextFilename = rawFilename;
+  if (nextFilename && !rawHasExt && existingExt) {
+    const maxBase = Math.max(0, 255 - existingExt.length);
+    nextFilename = `${nextFilename.slice(0, maxBase)}${existingExt}`;
+  } else if (nextFilename.length > 255) {
+    nextFilename = nextFilename.slice(0, 255);
+  }
+
   try {
     const res = await fetch(`/media/${detailItem.value.id}`, {
       method: 'PUT',
@@ -518,7 +541,10 @@ async function saveAltText() {
         'X-Requested-With': 'XMLHttpRequest',
         ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
       },
-      body: JSON.stringify({ alt_text: detailAltText.value }),
+      body: JSON.stringify({
+        alt_text: detailAltText.value,
+        ...(nextFilename ? { original_filename: nextFilename } : {}),
+      }),
     });
 
     if (res.ok) {
@@ -526,7 +552,16 @@ async function saveAltText() {
       const idx = media.value.findIndex(m => m.id === detailItem.value.id);
       if (idx !== -1) {
         media.value[idx].alt_text = detailAltText.value;
+        if (nextFilename) {
+          media.value[idx].original_filename = nextFilename;
+        }
       }
+
+      detailItem.value.alt_text = detailAltText.value;
+      if (nextFilename) {
+        detailItem.value.original_filename = nextFilename;
+      }
+
       closeDetailModal();
     }
   } catch (err) {

@@ -347,6 +347,16 @@ class OperationPageController extends Controller
         $media = Media::find($mediaId);
 
         if ($media && $media->collection === Media::COLLECTION_OPERATION_IMAGE) {
+            if ($media->mediable_type !== null
+                && $media->mediable_id !== null
+                && ($media->mediable_type !== Operation::class || (int) $media->mediable_id !== (int) $operation->id)) {
+                $mediaCopy = $media->replicate(['mediable_type', 'mediable_id']);
+                $mediaCopy->mediable_type = null;
+                $mediaCopy->mediable_id = null;
+                $mediaCopy->save();
+                $media = $mediaCopy;
+            }
+
             Media::where('mediable_type', Operation::class)
                 ->where('mediable_id', $operation->id)
                 ->where('collection', Media::COLLECTION_OPERATION_IMAGE)
