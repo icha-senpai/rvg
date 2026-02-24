@@ -1,10 +1,25 @@
 const axios = require('axios');
 const https = require('https');
 
+const fs = require('fs');
+
+const insecureTls = process.env.BOT_INSECURE_TLS === 'true';
+const caCertPath = process.env.API_CA_CERT_PATH;
+
+const agentOptions = {
+    rejectUnauthorized: !insecureTls,
+};
+
+if (caCertPath) {
+    try {
+        agentOptions.ca = fs.readFileSync(caCertPath);
+    } catch (err) {
+        throw new Error(`Failed to read API_CA_CERT_PATH file: ${caCertPath} (${err.message})`);
+    }
+}
+
 const axiosInstance = axios.create({
-    httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-    }),
+    httpsAgent: new https.Agent(agentOptions),
     validateStatus: status => status >= 200 && status < 500
 });
 

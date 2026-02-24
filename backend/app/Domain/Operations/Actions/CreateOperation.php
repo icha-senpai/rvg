@@ -37,7 +37,7 @@ class CreateOperation
             }
         }
 
-        // 🔥 FIRE PUBLISH CODE IF NEEDED
+        // FIRE PUBLISH CODE IF NEEDED
         if ($status === 'published') {
             // If you're using Laravel Events:
             event(new OperationPublished($operation));

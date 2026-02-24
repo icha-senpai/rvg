@@ -13,11 +13,10 @@ use App\Http\Requests\Operations\OperationUpdateRequest;
 
 // Services & Presenters
 use App\Domain\Operations\Services\OperationService;
+use App\Domain\Operations\Services\OperationMediaService;
 use App\Domain\Operations\Services\OperationShowDataService;
 use App\Domain\Operations\Presenters\OperationPresenter;
 use App\Domain\Operations\Queries\OperationQuery;
-use App\Domain\Media\MediaService;
-use App\Models\Media;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
@@ -28,7 +27,7 @@ class OperationPageController extends Controller
     public function __construct(
         protected OperationService    $service,
         protected OperationQuery      $query,
-        protected MediaService        $media,
+        protected OperationMediaService $operationMedia,
         protected OperationShowDataService $showData
     ) {}
 
@@ -49,76 +48,15 @@ class OperationPageController extends Controller
             abort(403);
         }
 
-        $now = now();
-
-        $status = (string) $request->query('status', 'active');
-        $search = trim((string) $request->query('search', ''));
-
-        $allowedStatuses = [
-            'active',
-            'all',
-            'draft',
-            'published',
-            'in_progress',
-            'completed',
-            'canceled',
-        ];
-
-        if (! in_array($status, $allowedStatuses, true)) {
-            $status = 'active';
-        }
-
-        $query = Operation::query()
-            ->with(['squadron.leader', 'creator.roles']);
-
-        if ($status === 'active') {
-            $query->whereIn('status', ['published', 'in_progress']);
-        } elseif ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($search !== '') {
-            $searchId = null;
-            if (preg_match('/^#?(\d+)$/', $search, $matches)) {
-                $searchId = (int) $matches[1];
-            }
-
-            $query->where(function ($q) use ($search, $searchId) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-
-                $q->orWhereHas('squadron', function ($squadronQuery) use ($search) {
-                    $squadronQuery->where('name', 'like', "%{$search}%");
-                });
-
-                $q->orWhereHas('creator', function ($creatorQuery) use ($search) {
-                    $creatorQuery->where('rsi_handle', 'like', "%{$search}%");
-                });
-
-                if ($searchId !== null) {
-                    $q->orWhere('id', $searchId);
-                }
-            });
-        }
-
-        $operations = $query
-            ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
-            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
-            ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
-            ->paginate(12)
-            ->withQueryString();
-
-        $operations->setCollection(
-            $operations->getCollection()
-                ->map(fn ($op) => OperationPresenter::make($op)->summary())
+        [$operations, $filters] = $this->query->dashboardList(
+            (string) $request->query('status', 'active'),
+            (string) $request->query('search', ''),
+            12
         );
 
         return Inertia::render('Operations/OperationDashboard', [
             'operations' => $operations,
-            'filters' => [
-                'status' => $status,
-                'search' => $search,
-            ],
+            'filters' => $filters,
         ]);
     }
 
@@ -129,28 +67,12 @@ class OperationPageController extends Controller
     {
         $this->authorize('view', $operation);
 
-        // Load full graph for display
-        $operation = $this->service->loadGraph($operation);
         $user = $request->user();
-
-        $participants = $operation->participants;
-
-        // Group participants by slot
-        $participantsBySlot = $participants->groupBy(function ($p) {
-            return $p->slot ?: 'unassigned';
-        });
-
-        $unassigned = $participants->filter(fn ($p) => !$p->slot)->values();
-
-        $currentParticipant = $participants->firstWhere('user_id', $user->id);
+        $data = $this->showData->build($operation, $user?->getAuthIdentifier());
 
         return Inertia::render('Operations/MissionShow', [
-            'operation'              => OperationPresenter::make($operation)->full(),
-            'authUser'               => $user,
-            'participants'           => $participants,
-            'participantsBySlot'     => $participantsBySlot,
-            'unassignedParticipants' => $unassigned,
-            'currentParticipant'     => $currentParticipant,
+            ...$data,
+            'authUser' => $user,
         ]);
     }
 
@@ -330,43 +252,6 @@ class OperationPageController extends Controller
             return;
         }
 
-        $mediaId = $request->input('media_id');
-
-        // Detach current images if clearing
-        if (empty($mediaId)) {
-            Media::where('mediable_type', Operation::class)
-                ->where('mediable_id', $operation->id)
-                ->where('collection', Media::COLLECTION_OPERATION_IMAGE)
-                ->update([
-                    'mediable_type' => null,
-                    'mediable_id'   => null,
-                ]);
-            return;
-        }
-
-        $media = Media::find($mediaId);
-
-        if ($media && $media->collection === Media::COLLECTION_OPERATION_IMAGE) {
-            if ($media->mediable_type !== null
-                && $media->mediable_id !== null
-                && ($media->mediable_type !== Operation::class || (int) $media->mediable_id !== (int) $operation->id)) {
-                $mediaCopy = $media->replicate(['mediable_type', 'mediable_id']);
-                $mediaCopy->mediable_type = null;
-                $mediaCopy->mediable_id = null;
-                $mediaCopy->save();
-                $media = $mediaCopy;
-            }
-
-            Media::where('mediable_type', Operation::class)
-                ->where('mediable_id', $operation->id)
-                ->where('collection', Media::COLLECTION_OPERATION_IMAGE)
-                ->where('id', '!=', $media->id)
-                ->update([
-                    'mediable_type' => null,
-                    'mediable_id'   => null,
-                ]);
-
-            $this->media->attach($media, $operation);
-        }
+        $this->operationMedia->syncOperationImage($operation, $request->input('media_id'));
     }
 }

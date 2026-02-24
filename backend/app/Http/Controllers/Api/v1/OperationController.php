@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Requests\Operations\OperationIndexRequest;
 use App\Http\Requests\Operations\OperationStoreRequest;
 use App\Http\Requests\Operations\OperationUpdateRequest;
 use App\Http\Requests\Operations\OperationStatusUpdateRequest;
@@ -21,14 +22,77 @@ class OperationController extends Controller
         protected OperationService $service
     ) {}
 
-    public function index()
+    public function index(OperationIndexRequest $request)
     {
         $this->authorize('viewAny', Operation::class);
 
-        $operations = Operation::with(['squadron', 'creator'])
-            ->orderBy('starts_at')
-            ->get()
-            ->map(fn ($op) => OperationPresenter::make($op)->summary());
+        $now = now();
+
+        $validated = $request->validated();
+
+        $status = (string) ($validated['status'] ?? 'active');
+        $search = trim((string) ($validated['search'] ?? ''));
+        $perPage = (int) ($validated['per_page'] ?? 12);
+
+        $allowedStatuses = [
+            'active',
+            'all',
+            'draft',
+            'published',
+            'in_progress',
+            'completed',
+            'canceled',
+        ];
+
+        if (! in_array($status, $allowedStatuses, true)) {
+            $status = 'active';
+        }
+
+        $query = Operation::query()
+            ->with(['squadron.leader', 'creator.roles']);
+
+        if ($status === 'active') {
+            $query->whereIn('status', ['published', 'in_progress']);
+        } elseif ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $searchId = null;
+            if (preg_match('/^#?(\d+)$/', $search, $matches)) {
+                $searchId = (int) $matches[1];
+            }
+
+            $query->where(function ($q) use ($search, $searchId) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+
+                $q->orWhereHas('squadron', function ($squadronQuery) use ($search) {
+                    $squadronQuery->where('name', 'like', "%{$search}%");
+                });
+
+                $q->orWhereHas('creator', function ($creatorQuery) use ($search) {
+                    $creatorQuery->where('rsi_handle', 'like', "%{$search}%");
+                });
+
+                if ($searchId !== null) {
+                    $q->orWhere('id', $searchId);
+                }
+            });
+        }
+
+        $operations = $query
+            ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
+            ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $operations->setCollection(
+            $operations->getCollection()->map(
+                fn (Operation $op) => OperationPresenter::make($op)->summary()
+            )
+        );
 
         return response()->json($operations);
     }

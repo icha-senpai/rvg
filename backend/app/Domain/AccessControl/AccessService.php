@@ -370,21 +370,21 @@ class AccessService
     public function canPromoteLieutenant(User $user, Squadron $squadron): bool
     {
     // Directors override everything
-    if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
-        return true;
-    }
+        if ($this->hasRole($user, 'director') || $this->hasRole($user, 'tech_director')) {
+            return true;
+        }
 
     // Only squadron leader can promote
-    if ($squadron->leader_id !== $user->id) {
-        return false;
-    }
+        if ($squadron->leader_id !== $user->id) {
+            return false;
+        }
 
     // Enforce max 2 lieutenants
-    $lieutenantCount = $squadron->members()
-        ->where('role', SquadronMember::ROLE_LIEUTENANT)
-        ->count();
+        $lieutenantCount = $squadron->members()
+            ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->count();
 
-    return $lieutenantCount < 2;
+        return $lieutenantCount < 2;
     }
 
     /**

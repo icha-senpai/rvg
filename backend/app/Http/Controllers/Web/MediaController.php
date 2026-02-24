@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\Media;
-use App\Models\Squadron;
+use App\Domain\Media\MediaVisibility;
 use App\Domain\Media\MediaService;
 use App\Domain\Media\Presenters\MediaPresenter;
 use Illuminate\Http\Request;
@@ -18,7 +17,8 @@ class MediaController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        protected MediaService $service
+        protected MediaService $service,
+        protected MediaVisibility $visibility
     ) {}
 
     /* ============================================================
@@ -72,79 +72,18 @@ class MediaController extends Controller
             'search'     => trim((string) $request->query('search', '')),
             'mime_type'  => $request->query('mime_type'),
         ];
-
-        $user = $request->user();
-        $collection = (string) ($filters['collection'] ?? '');
         $squadronId = $request->query('squadron_id');
         $squadronId = $squadronId !== null ? (int) $squadronId : null;
 
-        $isDirectorLike = $user
-            ? ($user->hasRole('director') || $user->hasRole('tech_director'))
-            : false;
-
-        if ($user) {
-            $user->loadMissing('roles:id,slug');
+        $result = $this->visibility->applyListVisibility($request->user(), $filters, $squadronId);
+        if ($result->validationErrorMessage !== null) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $result->validationErrorMessage,
+            ], 422);
         }
 
-        $isOfficer = $user
-            ? (RoleHierarchy::userAtLeast($user, 'lieutenant') || (int) ($user->rank_level ?? 0) >= 2)
-            : false;
-
-        $canUseAdminCollections = $isOfficer;
-
-        if ($collection === Media::COLLECTION_SHIP_IMAGE
-            || $collection === Media::COLLECTION_SITE_ASSET) {
-            if (! $isDirectorLike && ! $canUseAdminCollections) {
-                abort(403);
-            }
-        }
-
-        if ($collection === Media::COLLECTION_SQUADRON_EMBLEM && ! $isDirectorLike) {
-            if (! $squadronId) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'squadron_id is required for squadron emblems.',
-                ], 422);
-            }
-
-            $squadron = Squadron::find($squadronId);
-            $canBrowseEmblems = $squadron
-                && $user
-                && (
-                    $user->isSquadronLeader($squadron)
-                    || (
-                        $isOfficer
-                        && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
-                    )
-                );
-
-            if (! $canBrowseEmblems) {
-                abort(403);
-            }
-        }
-
-        $canBrowseOperationImages = false;
-        if ($user) {
-            $canBrowseOperationImages = $isOfficer;
-        }
-
-        $publicCollections = [];
-
-        if (! $isDirectorLike) {
-            if (! $collection) {
-                $filters['uploaded_by'] = $user?->id;
-            } elseif ($collection === Media::COLLECTION_OPERATION_IMAGE) {
-                if (! $canBrowseOperationImages) {
-                    $filters['uploaded_by'] = $user?->id;
-                }
-            } elseif ($collection === Media::COLLECTION_SHIP_IMAGE
-                || $collection === Media::COLLECTION_SITE_ASSET) {
-            } elseif ($collection === Media::COLLECTION_SQUADRON_EMBLEM) {
-                // squadron leader may browse the emblem library
-            } elseif (! in_array($collection, $publicCollections, true)) {
-                $filters['uploaded_by'] = $user?->id;
-            }
-        }
+        $filters = $result->filters;
 
         $perPage = (int) $request->query('per_page', 24);
         $perPage = max(1, min(100, $perPage));
