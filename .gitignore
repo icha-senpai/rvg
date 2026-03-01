@@ -15,7 +15,6 @@ wordpress/
 # 🔐  ENV FILES / SECRETS
 ########################################
 .env
-.env.*
 *.key
 *.pem
 
@@ -25,16 +24,17 @@ wordpress/
 bots/horizon-bot/node_modules
 wordpress/wp-content/plugins/
 wordpress/wp-content/themes/
+
 ########################################
-# 🗑️  CACHE / LOGS / TEMP FILES
+#  CACHE / LOGS / TEMP FILES
 ########################################
-bootstrap/cache/
+/bootstrap/cache/
 /**/internal_data/
-internal_data/
-storage/
-cache/
-logs/
-tmp/
+/internal_data/
+/storage/
+/cache/
+/logs/
+/tmp/
 *.log
 *.tmp
 *.cache
@@ -50,8 +50,8 @@ count.txt
 ########################################
 # 🛠️  BUILD OUTPUT / TRANSPILED FILES
 ########################################
-public/build/
-public/hot
+/public/build/
+/public/hot
 dist/
 dist-ssr/
 .cache/
@@ -92,12 +92,9 @@ php_cs.cache
 ########################################
 # ⚙️  CMS / FRONTEND SPECIFIC
 ########################################
-composer.lock
-package-lock.json
-pnpm-lock.yaml
 LocalSettings.php
 config.php
-public/storage/
+/public/storage/
 extensions/*/vendor/
 .windsurf/
 .windsurf/*
