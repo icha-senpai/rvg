@@ -38,7 +38,7 @@
         >
           <div class="hz-row gap-3 min-w-0">
             <Link
-              :href="route('member.profile', u.id)"
+              :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
               class="shrink-0 block"
               title="View profile"
             >
@@ -58,7 +58,7 @@
 
             <div class="hz-stack-sm min-w-0">
               <Link
-                :href="route('member.profile', u.id)"
+                :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
                 class="hz-title-md inline-block hover:underline"
                 :style="userNameColor(u) ? { color: userNameColor(u) } : undefined"
               >

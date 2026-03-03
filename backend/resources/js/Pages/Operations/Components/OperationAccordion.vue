@@ -15,16 +15,22 @@
         </h3>
       </div>
 
-      <div class="shrink-0 self-center text-horizon-offwhite opacity-70">
-        <svg
-          class="h-12 w-12 transition-transform duration-200"
-          :class="open ? 'rotate-180' : 'rotate-0'"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
-        </svg>
+      <div class="shrink-0 self-center flex items-center gap-3">
+        <ProgressPill v-if="isJoinedByMe" variant="green">
+          Joined
+        </ProgressPill>
+
+        <div class="text-horizon-offwhite opacity-70">
+          <svg
+            class="h-12 w-12 transition-transform duration-200"
+            :class="open ? 'rotate-180' : 'rotate-0'"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -71,6 +77,12 @@
 
     <!-- EXPANDED DETAILS -->
     <div v-if="open" class="mt-6 space-y-4">
+
+      <div v-if="isJoinedByMe" class="hz-caption text-horizon-offwhite">
+        <ProgressPill variant="green">
+          Joined
+        </ProgressPill>
+      </div>
 
       <div class="space-y-1">
         <div class="hz-section-label">Description</div>
@@ -167,6 +179,7 @@
 import { computed, ref } from 'vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import ProgressPill from '@/Components/ProgressPill.vue'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -190,6 +203,14 @@ const displayTitle = computed(() => {
 });
 
 const open = ref(false);
+
+const isJoinedByMe = computed(() => {
+  const op = props.operation
+  if (!op) return false
+
+  if (typeof op.joined_by_me === 'boolean') return op.joined_by_me
+  return Number(op.joined_by_me ?? 0) > 0
+})
 
 const joinedCount = computed(() => {
   const op = props.operation;

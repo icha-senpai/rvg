@@ -58,6 +58,13 @@ const mySquadron = computed(() => {
   );
 });
 
+const profileHref = computed(() => {
+  if (!user.value) return null
+  if (user.value?.rsi_handle) return route('member.profile', user.value.rsi_handle)
+  if (user.value?.id) return `/user/${user.value.id}`
+  return null
+})
+
 const navItems = computed(() => {
   if (!user.value) return [];
 
@@ -98,8 +105,8 @@ const navItems = computed(() => {
       key: 'my_squadron',
       label: 'Squadron',
       routeName: 'squadrons.show',
-      params: mySquadron.value ? mySquadron.value.id : undefined,
-      isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.id}` : false,
+      params: mySquadron.value ? mySquadron.value.slug : undefined,
+      isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.slug}` : false,
       show: !!mySquadron.value,
     },
     {
@@ -240,7 +247,7 @@ onBeforeUnmount(() => {
         <div class="shrink-0 px-3 py-3 rounded-2xl bg-horizon-blue-dark border border-bg-hover">
           <div class="flex items-center gap-3">
             <Link
-              :href="route('member.profile', user.id)"
+              :href="profileHref"
               class="shrink-0 block"
               title="View your profile"
             >
@@ -330,7 +337,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex items-center gap-3">
             <Link
-              :href="route('member.profile', user.id)"
+              :href="profileHref"
               class="shrink-0 block"
               title="View your profile"
             >

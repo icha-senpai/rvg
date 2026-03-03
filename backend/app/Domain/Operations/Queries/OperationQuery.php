@@ -14,6 +14,9 @@ class OperationQuery
 
         return Operation::visibleToUser($user)
             ->withCount('participants')
+            ->withCount([
+                'participants as joined_by_me' => fn ($q) => $q->where('user_id', $user->id),
+            ])
             ->with(['squadron', 'creator.roles'])
             ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
             ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])

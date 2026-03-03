@@ -224,6 +224,16 @@ function parseDate(value) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function syncViewingOperationSummaryFromViewData(data) {
+  if (!viewingOperation.value || !data) return
+
+  viewingOperation.value.joined_by_me = data.currentParticipant ? 1 : 0
+
+  if (Array.isArray(data.participants)) {
+    viewingOperation.value.participants_count = data.participants.length
+  }
+}
+
 async function openViewModal(op) {
   viewingOperation.value = op
   viewLoading.value = true
@@ -235,6 +245,7 @@ async function openViewModal(op) {
       route('operations.showData', op.id)
     )
     viewData.value = data
+    syncViewingOperationSummaryFromViewData(data)
   } catch (e) {
     const status = e?.response?.status ?? null
 
@@ -267,6 +278,7 @@ async function reloadViewData() {
       route('operations.showData', viewingOperation.value.id)
     )
     viewData.value = data
+    syncViewingOperationSummaryFromViewData(data)
   } catch (err) {
     const status = err?.response?.status ?? null
 

@@ -38,7 +38,7 @@
           >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
               <Link
-                :href="route('member.profile', u.id)"
+                :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
                 class="shrink-0 block"
                 title="View profile"
               >
@@ -60,7 +60,7 @@
                 <div class="hz-row-between gap-3">
                   <div class="min-w-0 hz-stack-xs">
                     <Link
-                      :href="route('member.profile', u.id)"
+                      :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
                       class="hz-title-md inline-block hover:underline truncate"
                       :style="userNameColor(u) ? { color: userNameColor(u) } : undefined"
                     >
@@ -69,7 +69,7 @@
                   </div>
 
                   <Link
-                    :href="route('member.profile', u.id)"
+                    :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
                     class="shrink-0 px-3 py-2 rounded-xl text-sm font-semibold transition bg-bg-hover border border-bg-hover text-horizon-white hover:border-(--horizon-sunset-blue)!"
                   >
                     View

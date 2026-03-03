@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\MemberDirectoryController;
 use App\Http\Resources\MeResource;
+use App\Models\Squadron;
 use App\Models\User;
 
 // AUTH CONTROLLERS
@@ -54,11 +55,22 @@ Route::get('/login', function () {
 })->name('login');
 
 Route::get('/user/{user}', function (User $user) {
+    if ($user->rsi_handle) {
+        return redirect()->route('member.profile', ['user' => $user->rsi_handle]);
+    }
+
     return Inertia::render('Member/userpage', [
         'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
     ]);
 })
     ->whereNumber('user')
+    ->middleware(['auth', 'rsi.verified']);
+
+Route::get('/user/{user:rsi_handle}', function (User $user) {
+    return Inertia::render('Member/userpage', [
+        'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
+    ]);
+})
     ->middleware(['auth', 'rsi.verified'])
     ->name('member.profile');
 
@@ -67,7 +79,16 @@ Route::get('/members', [MemberDirectoryController::class, 'index'])
     ->name('members.index');
 
 Route::get('/me', function () {
-    return redirect()->route('member.profile', ['user' => Auth::id()]);
+    $user = Auth::user();
+    if (! $user) {
+        return redirect()->route('home');
+    }
+
+    if ($user->rsi_handle) {
+        return redirect()->route('member.profile', ['user' => $user->rsi_handle]);
+    }
+
+    return redirect()->to('/user/' . $user->id);
 })
     ->middleware(['auth', 'rsi.verified']);
 
@@ -173,8 +194,19 @@ Route::post('/squadrons/{squadron}/promote-lieutenant',
 )->name('squadrons.promoteLieutenant');
 
 
-Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'show'])
+Route::get('/squadrons/{squadron}', function (Squadron $squadron) {
+    if ($squadron->slug) {
+        return redirect()->route('squadrons.show', ['squadron' => $squadron->slug]);
+    }
+
+    return Inertia::render('Squadrons/Show', [
+        'squadronId' => $squadron->id,
+    ]);
+})
     ->whereNumber('squadron')
+    ->middleware(['auth', 'rsi.verified']);
+
+Route::get('/squadrons/{squadron:slug}', [SquadronPageController::class, 'show'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('squadrons.show');
 

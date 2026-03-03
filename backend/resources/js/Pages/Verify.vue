@@ -51,6 +51,7 @@ const verificationCode = ref('');
 const error = ref({ message: null, details: {} });
 const loadingCode = ref(false);
 const verifying = ref(false);
+const copiedCode = ref(false);
 
 if (initialErrorMessage) {
     error.value = { message: initialErrorMessage, details: {} };
@@ -119,6 +120,7 @@ const getCode = async () => {
             hzSkipErrorDialog: true,
         });
         verificationCode.value = res.data.data.verification_code;
+        copiedCode.value = false;
     } catch (e) {
         error.value = {
             message: e.response?.data?.message || "Couldn't generate verification code.",
@@ -162,6 +164,43 @@ const verifyRsi = async () => {
         };
     } finally {
         verifying.value = false;
+    }
+};
+
+const copyVerificationCode = async () => {
+    const text = verificationCode.value;
+    if (!text) return;
+
+    try {
+        if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.top = '0';
+            textarea.style.left = '0';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            const ok = document.execCommand('copy');
+            textarea.remove();
+
+            if (!ok) {
+                throw new Error('Copy failed');
+            }
+        }
+
+        copiedCode.value = true;
+        window.setTimeout(() => {
+            copiedCode.value = false;
+        }, 1400);
+    } catch (e) {
+        console.error(e);
+        window.hzNotifyError({ message: 'Failed to copy code. Please copy it manually.' });
     }
 };
 </script>
@@ -231,7 +270,19 @@ const verifyRsi = async () => {
                 <!-- Show code -->
                 <div v-if="verificationCode" class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm">
                     <p class="text-gray-400 mb-1">Paste this EXACTLY in your RSI bio:</p>
-                    <code class="font-mono text-lg tracking-widest">{{ verificationCode }}</code>
+                    <div class="flex items-center justify-between gap-3">
+                        <code class="font-mono text-lg tracking-widest">{{ verificationCode }}</code>
+                        <HorizonButton
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            :disabled="!verificationCode || copiedCode"
+                            @click="copyVerificationCode"
+                        >
+                            <span v-if="copiedCode">Copied</span>
+                            <span v-else>Copy</span>
+                        </HorizonButton>
+                    </div>
                 </div>
 
                 <!-- RSI handle input -->

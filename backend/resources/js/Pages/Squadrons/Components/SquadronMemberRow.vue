@@ -3,7 +3,7 @@
     <div class="hz-row gap-2">
       <Link
         v-if="member.user?.id"
-        :href="route('member.profile', member.user.id)"
+        :href="member.user?.rsi_handle ? route('member.profile', member.user.rsi_handle) : `/user/${member.user.id}`"
         class="hz-text-primary font-medium hover:underline"
         :style="nameColor ? { color: nameColor } : undefined"
       >
