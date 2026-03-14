@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
+use App\Http\Resources\MeResource;
 
 class UserController extends Controller
 {
@@ -28,7 +29,7 @@ class UserController extends Controller
     public function verified()
     {
         $users = User::whereNotNull('rsi_verified_at')
-            ->whereNotNull('discord_verified_at')
+            ->whereNotNull('discord_id')
             ->get();
 
         return ApiResponse::success(
@@ -43,7 +44,7 @@ class UserController extends Controller
     public function unverified()
     {
         $users = User::whereNull('rsi_verified_at')
-            ->orWhereNull('discord_verified_at')
+            ->orWhereNull('discord_id')
             ->get();
 
         return ApiResponse::success(
@@ -111,26 +112,27 @@ class UserController extends Controller
             );
         }
 
+        $user->loadMissing('roles');
+        $me = (new MeResource($user))->resolve($request);
+
         return ApiResponse::success(
             'Profile fetched successfully',
             [
                 'user' => [
-                    'id'                 => $user->id,
-                    'discord_id'         => $user->discord_id,
-                    'discord_username'   => $user->discord_username,
-                    'discord_global_name'=> $user->discord_global_name,
-                    'discord_avatar'     => $user->discord_avatar,
-                    'rsi_handle'         => $user->rsi_handle,
-                    'rsi_org'            => $user->rsi_org,
-                    'verified_rsi'       => (bool) $user->rsi_verified_at,
-                    'verified_discord'   => (bool) $user->discord_verified_at,
-                    'rank'               => $user->rank,
-                    'rank_level'         => $user->rank_level,
-                    'rank_name'          => $user->rank_name,
+                    'id'                 => $me['id'],
+                    'discord_id'         => $me['discord_id'],
+                    'discord_name'       => $me['discord_name'],
+                    'discord_avatar'     => $me['discord_avatar'],
+                    'rsi_handle'         => $me['rsi_handle'],
+                    'verified_rsi'       => $me['rsi_verified'],
+                    'verified_discord'   => ! is_null($me['discord_id']),
+                    'rank'               => $me['rank'],
+                    'rank_level'         => $me['rank_level'],
+                    'rank_name'          => $me['rank_name'],
                     'joined_at'          => $user->created_at,
                     'last_updated'       => $user->updated_at,
                 ],
             ]
-        );
+        )->header('X-Deprecated-Endpoint', '/api/v1/profile; use /api/v1/me');
     }
 }

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { usePage } from '@inertiajs/vue3'
-import axios from 'axios'
+import { router, usePage } from '@inertiajs/vue3'
 
 import SquadronPanelHeader from './SquadronPanelHeader.vue'
 import SquadronOverviewSection from './SquadronOverviewSection.vue'
@@ -56,6 +55,8 @@ const errorMessage = ref(null)
 const errorStatus = ref(null)
 
 const verifyUrl = 'https://horizoninterstellar.com/verify'
+const page = usePage()
+const activeSquadronPayload = computed(() => page.props?.activeSquadron ?? null)
 
 const isUnauthenticatedError = computed(() => {
   if (errorStatus.value === 401 || errorStatus.value === 419) return true
@@ -83,37 +84,28 @@ async function setEmblem(media) {
   if (emblemSaving.value) return
 
   emblemSaving.value = true
-  try {
-    await axios.put(`/api/v1/squadrons/${squadron.value.id}`, {
+  errorMessage.value = null
+
+  router.put(route('squadrons.emblem.select', { squadron: squadron.value.id }), {
       emblem_media_id: media?.id ?? null,
     }, {
-      headers: {
-        Accept: 'application/json',
+      preserveScroll: true,
+      onSuccess: (visitPage) => {
+        syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+        emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
       },
-      hzSkipErrorDialog: true,
+      onError: (errors) => {
+        const message = extractFirstErrorMessage(errors, 'Failed to update squadron emblem.')
+        errorMessage.value = message
+        window.hzNotifyError({
+          message,
+        })
+      },
+      onFinish: () => {
+        emblemSaving.value = false
+        closeEmblemPicker()
+      },
     })
-
-    await fetchSquadron()
-    emit('updated', squadron.value)
-  } catch (error) {
-    const status = error?.response?.status ?? null
-    if (status === 403) {
-      window.hzNotifyError({
-        message: 'You do not have permission to update the squadron emblem.',
-      })
-      return
-    }
-
-    window.hzNotifyError({
-      message:
-        error.response?.data?.message ??
-        error.message ??
-        'Failed to update squadron emblem.',
-    })
-  } finally {
-    emblemSaving.value = false
-    closeEmblemPicker()
-  }
 }
 
 async function clearEmblem() {
@@ -188,13 +180,11 @@ const editForm = ref({
   recruitment_propaganda: '',
 })
 
-const canEdit = computed(() =>
-  permissions.value?.can_manage_members === true
-)
-
-const page = usePage()
 const authUser = computed(() => page.props.auth?.user ?? null)
 const authRankLevel = computed(() => Number(authUser.value?.rank_level ?? 0))
+const canUpdateSquadron = computed(() =>
+  permissions.value?.can_update_squadron === true
+)
 
 const isDirectorLike = computed(() => {
   const roles = authUser.value?.roles ?? []
@@ -223,42 +213,32 @@ const lieutenantCount = computed(() =>
 
 const canPromoteLieutenant = computed(() => lieutenantCount.value < 2)
 
-/* -------------------------------------------------
-   Fetch squadron
-------------------------------------------------- */
-async function fetchSquadron() {
-  isLoading.value = true
-  errorMessage.value = null
-  errorStatus.value = null
+function extractFirstErrorMessage(errors, fallback) {
+  if (errors && typeof errors === 'object') {
+    const firstKey = Object.keys(errors)[0]
+    const firstValue = firstKey ? errors[firstKey] : null
+    const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue
 
-  try {
-    const { data } = await axios.get(
-      `/api/v1/squadrons/${props.squadronId}`
-    )
-
-    squadron.value = data.squadron
-    members.value = data.members
-    viewerMembership.value = data.viewer_membership
-    permissions.value = data.permissions
-
-    editForm.value.motto = data.squadron?.motto ?? ''
-    editForm.value.description = data.squadron?.description ?? ''
-    editForm.value.recruitment_propaganda = data.squadron?.recruitment_propaganda ?? ''
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to load squadron.'
-  } finally {
-    isLoading.value = false
+    if (firstMessage) return String(firstMessage)
   }
+
+  return fallback
+}
+
+function syncFromPayload(payload) {
+  squadron.value = payload?.squadron ?? null
+  members.value = Array.isArray(payload?.members) ? payload.members : []
+  viewerMembership.value = payload?.viewer_membership ?? null
+  permissions.value = payload?.permissions ?? {}
+
+  editForm.value.motto = squadron.value?.motto ?? ''
+  editForm.value.description = squadron.value?.description ?? ''
+  editForm.value.recruitment_propaganda = squadron.value?.recruitment_propaganda ?? ''
+}
+
+function handlePanelError(errors, fallback) {
+  errorStatus.value = null
+  errorMessage.value = extractFirstErrorMessage(errors, fallback)
 }
 
 /* -------------------------------------------------
@@ -267,24 +247,24 @@ async function fetchSquadron() {
 async function saveSettings() {
   if (!squadron.value) return
 
-  try {
-    await axios.post(
-      `/squadrons/${squadron.value.id}/settings`,
+  router.post(
+      route('squadrons.settings.update', { squadron: squadron.value.id }),
       editForm.value
-    )
-
-    isEditing.value = false
-    isRecruitingEditing.value = false
-    await fetchSquadron()
-
-    emit('updated', squadron.value)
-  } catch (error) {
-    window.hzNotifyError({
-      message:
-        error.response?.data?.message ??
-        'Failed to save squadron settings.',
-    })
-  }
+    , {
+      preserveScroll: true,
+      onSuccess: (visitPage) => {
+        syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+        isEditing.value = false
+        isRecruitingEditing.value = false
+        emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+      },
+      onError: (errors) => {
+        const message = extractFirstErrorMessage(errors, 'Failed to save squadron settings.')
+        errorMessage.value = message
+        window.hzNotifyError({ message })
+      },
+    }
+  )
 }
 
 function cancelEdit() {
@@ -306,24 +286,19 @@ async function applyToSquadron() {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.post(`/api/v1/squadrons/${squadron.value.id}/join`)
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to apply to squadron.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.join', { squadron: squadron.value.id }), {}, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to apply to squadron.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 async function leaveSquadron() {
@@ -333,24 +308,19 @@ async function leaveSquadron() {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.post(`/api/v1/squadrons/${squadron.value.id}/leave`)
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to leave squadron.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.leave', { squadron: squadron.value.id }), {}, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to leave squadron.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 async function acceptMember(member) {
@@ -360,29 +330,26 @@ async function acceptMember(member) {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.put(
-      `/api/v1/squadrons/${squadron.value.id}/members/${member.id}`,
+  router.post(
+      route('squadrons.members.update', { squadron: squadron.value.id }),
       {
+        id: member.id,
         membership_status: 'active',
       }
-    )
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
+    , {
+      preserveScroll: true,
+      onSuccess: (visitPage) => {
+        syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+        emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+      },
+      onError: (errors) => {
+        handlePanelError(errors, 'Failed to accept member.')
+      },
+      onFinish: () => {
+        activeAction.value = null
+      },
     }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to accept member.'
-  } finally {
-    activeAction.value = null
-  }
+  )
 }
 
 async function rejectMember(member) {
@@ -392,24 +359,21 @@ async function rejectMember(member) {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.delete(`/api/v1/squadrons/${squadron.value.id}/members/${member.id}`)
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to reject member.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.members.remove', { squadron: squadron.value.id }), {
+    id: member.id,
+  }, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to reject member.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 async function removeMember(member) {
@@ -419,24 +383,21 @@ async function removeMember(member) {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.delete(`/api/v1/squadrons/${squadron.value.id}/members/${member.id}`)
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to remove member.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.members.remove', { squadron: squadron.value.id }), {
+    id: member.id,
+  }, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to remove member.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 async function promoteLieutenant(targetUser) {
@@ -449,26 +410,21 @@ async function promoteLieutenant(targetUser) {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.post(
-      `/api/v1/squadrons/${squadron.value.id}/members/${userId}/promote-lieutenant`
-    )
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to promote member.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.promoteLieutenant', { squadron: squadron.value.id }), {
+    user_id: userId,
+  }, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to promote member.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 async function demoteLieutenant(memberOrUser) {
@@ -481,33 +437,28 @@ async function demoteLieutenant(memberOrUser) {
   errorMessage.value = null
   errorStatus.value = null
 
-  try {
-    await axios.post(
-      `/api/v1/squadrons/${squadron.value.id}/members/${userId}/demote-lieutenant`
-    )
-    await fetchSquadron()
-  } catch (error) {
-    errorStatus.value = error.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      error.message ??
-      'Failed to demote member.'
-  } finally {
-    activeAction.value = null
-  }
+  router.post(route('squadrons.demoteLieutenant', { squadron: squadron.value.id }), {
+    user_id: userId,
+  }, {
+    preserveScroll: true,
+    onSuccess: (visitPage) => {
+      syncFromPayload(visitPage?.props?.activeSquadron ?? null)
+      emit('updated', visitPage?.props?.activeSquadron?.squadron ?? squadron.value)
+    },
+    onError: (errors) => {
+      handlePanelError(errors, 'Failed to demote member.')
+    },
+    onFinish: () => {
+      activeAction.value = null
+    },
+  })
 }
 
 /* -------------------------------------------------
    Lifecycle
 ------------------------------------------------- */
 onMounted(() => {
-  fetchSquadron()
+  syncFromPayload(activeSquadronPayload.value)
 
   if (!isOverlay.value) return
 
@@ -523,10 +474,9 @@ onUnmounted(() => {
 })
 
 watch(
-  () => props.squadronId,
-  () => {
-    activeTab.value = 'recruiting'
-    fetchSquadron()
+  () => activeSquadronPayload.value,
+  (payload) => {
+    syncFromPayload(payload)
   }
 )
 
@@ -591,7 +541,7 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
+            v-if="(canUpdateSquadron || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
@@ -600,7 +550,7 @@ watch(
           </HorizonButton>
 
           <HorizonButton
-            v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+            v-if="canUpdateSquadron && !isTabLocked && activeTab === 'recruiting'"
             variant="ghost"
             size="sm"
             @click="startRecruitingEdit"
@@ -736,7 +686,7 @@ watch(
 
           <div class="hz-row gap-2">
             <HorizonButton
-              v-if="canEdit"
+              v-if="canUpdateSquadron"
               variant="primary"
               size="sm"
               @click="saveSettings"
@@ -769,11 +719,11 @@ watch(
           </div>
 
           <div
-            v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
+            v-if="(!isTabLocked || !canUpdateSquadron) && squadron?.recruitment_propaganda"
             class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
             v-html="squadron.recruitment_propaganda"
           />
-          <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
+          <div v-else-if="!isTabLocked || !canUpdateSquadron" class="hz-soft">
             No recruitment message provided.
           </div>
 
@@ -787,7 +737,7 @@ watch(
 
             <div class="hz-row gap-2">
               <HorizonButton
-                v-if="canEdit"
+                v-if="canUpdateSquadron"
                 variant="primary"
                 size="sm"
                 @click="saveSettings"
@@ -829,7 +779,7 @@ watch(
 
       <div class="hz-row gap-2">
         <HorizonButton
-          v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
+          v-if="(canUpdateSquadron || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
           variant="ghost"
           size="sm"
           @click="isEditing = true"
@@ -838,7 +788,7 @@ watch(
         </HorizonButton>
 
         <HorizonButton
-          v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+          v-if="canUpdateSquadron && !isTabLocked && activeTab === 'recruiting'"
           variant="ghost"
           size="sm"
           @click="startRecruitingEdit"
@@ -1004,7 +954,7 @@ watch(
 
             <div class="hz-row gap-2">
               <HorizonButton
-                v-if="canEdit"
+                v-if="canUpdateSquadron"
                 variant="primary"
                 size="sm"
                 @click="saveSettings"
@@ -1037,11 +987,11 @@ watch(
             </div>
 
             <div
-              v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
+              v-if="(!isTabLocked || !canUpdateSquadron) && squadron?.recruitment_propaganda"
               class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
               v-html="squadron.recruitment_propaganda"
             />
-            <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
+            <div v-else-if="!isTabLocked || !canUpdateSquadron" class="hz-soft">
               No recruitment message provided.
             </div>
 
@@ -1108,7 +1058,7 @@ watch(
 
         <div class="hz-row gap-2">
           <HorizonButton
-            v-if="(canEdit || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
+            v-if="(canUpdateSquadron || canEditEmblem) && !isTabLocked && activeTab === 'overview'"
             variant="ghost"
             size="sm"
             @click="isEditing = true"
@@ -1117,7 +1067,7 @@ watch(
           </HorizonButton>
 
           <HorizonButton
-            v-if="canEdit && !isTabLocked && activeTab === 'recruiting'"
+            v-if="canUpdateSquadron && !isTabLocked && activeTab === 'recruiting'"
             variant="ghost"
             size="sm"
             @click="startRecruitingEdit"
@@ -1284,7 +1234,7 @@ watch(
 
               <div class="hz-row gap-2">
                 <HorizonButton
-                  v-if="canEdit"
+                  v-if="canUpdateSquadron"
                   variant="primary"
                   size="sm"
                   @click="saveSettings"
@@ -1318,11 +1268,11 @@ watch(
               </div>
 
               <div
-                v-if="(!isTabLocked || !canEdit) && squadron?.recruitment_propaganda"
+                v-if="(!isTabLocked || !canUpdateSquadron) && squadron?.recruitment_propaganda"
                 class="hz-soft space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
                 v-html="squadron.recruitment_propaganda"
               />
-              <div v-else-if="!isTabLocked || !canEdit" class="hz-soft">
+              <div v-else-if="!isTabLocked || !canUpdateSquadron" class="hz-soft">
                 No recruitment message provided.
               </div>
 

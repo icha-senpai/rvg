@@ -65,7 +65,7 @@
         Promote to Lieutenant
       </HorizonButton>
       <HorizonButton
-        v-if="permissions.can_promote_lieutenant && member.is_lieutenant"
+        v-if="permissions.can_demote_lieutenant && member.is_lieutenant"
         variant="ghost"
         size="xs"
         @click="$emit('demote-lt', member)"

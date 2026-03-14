@@ -32,7 +32,6 @@ class Media extends Model
         'image/png',
         'image/webp',
         'image/gif',
-        'image/svg+xml',
     ];
 
     /* ------------------------------------------

@@ -17,7 +17,6 @@ class HandleInertiaRequests extends Middleware
     {
         // Pages that MUST NOT receive auth data
         $excluded = [
-            'verify*',
             'auth/discord*',
         ];
 
@@ -92,6 +91,11 @@ class HandleInertiaRequests extends Middleware
                     ? $user
                     : null,
                 'can' => $can,
+            ],
+            'flash' => [
+                'operation' => fn () => $request->session()->get('operation'),
+                'operationTemplate' => fn () => $request->session()->get('operationTemplate'),
+                'success' => fn () => $request->session()->get('success'),
             ],
         ]);
     }

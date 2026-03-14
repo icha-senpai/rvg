@@ -1,20 +1,15 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\Api\v1\RSIVerificationController;
-use App\Http\Controllers\Api\v1\VerificationCodeController;
 use App\Http\Controllers\Api\v1\UserController;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\ApiResponse;
-use App\Http\Controllers\Api\v1\AuthController;
 use App\Http\Controllers\Api\v1\SquadronController;
 use App\Http\Controllers\Api\v1\SquadronMemberController;
 use App\Http\Controllers\Api\v1\MeController;
 use App\Http\Controllers\Api\v1\MePreferenceController;
 use App\Http\Controllers\Api\v1\RsiHandleController;
-use App\Http\Controllers\Api\v1\TokenController;
 use App\Http\Controllers\Api\v1\OperationController;
 use App\Http\Controllers\Api\v1\OperationParticipantController;
 use App\Http\Controllers\Api\v1\DiscordIdentityController;
@@ -36,41 +31,6 @@ Route::get('/ping', function () {
         'status' => 'ok',
         'msg' => 'Organization Platform is online Commander'
     ]);
-});
-Route::post('/auth/login', function (Request $request) {
-    $redirect = url('/verify?error=discord_only');
-
-    if ($request->expectsJson()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Discord authentication required.',
-            'state' => 'DISCORD_ONLY',
-            'payload' => [
-                'redirect' => $redirect,
-            ],
-        ], 403);
-    }
-
-    return redirect('/verify?error=discord_only');
-})->middleware('throttle:5,1');
-
-Route::post('/auth/verify-discord', [AuthController::class, 'verifyDiscord'])
-    ->middleware('throttle:10,1');
-
-Route::post('/auth/logout', [AuthController::class, 'logout']);
-Route::post('/auth/refresh', [TokenController::class, 'refresh'])
-     ->middleware('throttle:20,1');
-
-// 🔐 These require Sanctum auth (token from Discord login)
-Route::middleware(['auth:sanctum'])->group(function () {
-
-    // Generate verification code (uses auth()->user())
-    Route::post('/generate-code', [VerificationCodeController::class, 'generate'])
-        ->middleware('throttle:10,1');
-
-    // Verify RSI handle + org membership + code
-    Route::post('/verify-rsi', [RSIVerificationController::class, 'verify'])
-        ->middleware('throttle:10,1');
 });
 
  Route::get('/discord/identity/{discordId}', [DiscordIdentityController::class, 'show']);

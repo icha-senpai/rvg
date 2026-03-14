@@ -97,7 +97,6 @@ class UploadMedia
             'image/jpg' => 'image/jpeg',
             'image/pjpeg' => 'image/jpeg',
             'image/x-png' => 'image/png',
-            'image/svg' => 'image/svg+xml',
         ];
 
         $serverMime = $file->getMimeType();
@@ -117,7 +116,6 @@ class UploadMedia
             'png' => 'image/png',
             'webp' => 'image/webp',
             'gif' => 'image/gif',
-            'svg' => 'image/svg+xml',
         ];
 
         $mime = null;
@@ -131,7 +129,7 @@ class UploadMedia
 
         if (! $mime) {
             throw ValidationException::withMessages([
-                'file' => 'File type not allowed. Allowed: JPEG, PNG, WebP, GIF, SVG.',
+                'file' => 'File type not allowed. Allowed: JPEG, PNG, WebP, GIF.',
             ]);
         }
 
@@ -200,9 +198,8 @@ class UploadMedia
      ------------------------------------------ */
 
     /**
-     * Only raster images get variants. SVGs and animated formats are
-     * served as-is (resizing SVGs is pointless; animated GIF/WebP
-     * resizing requires specialized tooling and can lose frames).
+     * Only non-animated raster images get variants. Animated GIF/WebP
+     * resizing requires specialized tooling and can lose frames.
      */
     protected function canGenerateVariants(string $mime): bool
     {

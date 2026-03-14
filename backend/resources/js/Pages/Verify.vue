@@ -1,208 +1,131 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import HorizonContainer from '@/Components/HorizonContainer.vue';
-import HorizonButton from '@/Components/HorizonButton.vue';
+import { computed, ref, watch } from 'vue'
+import { router, useForm, usePage } from '@inertiajs/vue3'
+import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonButton from '@/Components/HorizonButton.vue'
 
-// --- URL token from Discord OAuth callback ---
-const params = new URLSearchParams(window.location.search);
-const tokenFromUrl = params.get('token');
-const refreshTokenFromUrl = params.get('refresh_token');
-const errorFromUrl = params.get('error');
+// --- URL params from Discord OAuth callback ---
+const page = usePage()
+const params = new URLSearchParams(window.location.search)
+const errorFromUrl = params.get('error')
 
-let initialErrorMessage = null;
+const verification = computed(() => page.props?.verification ?? {})
+const pageErrors = computed(() => page.props?.errors ?? {})
+const flashSuccess = computed(() => page.props?.flash?.success ?? null)
+
+let initialErrorMessage = null
 
 if (errorFromUrl === 'not_in_guild') {
-    initialErrorMessage = 'Access denied. You must be in the org Discord before you can continue.';
+    initialErrorMessage = 'Access denied. You must be in the org Discord before you can continue.'
 } else if (errorFromUrl === 'discord_check_unavailable') {
-    initialErrorMessage = 'Discord verification is temporarily unavailable (guild check failed). Please try again in a few minutes.';
+    initialErrorMessage = 'Discord verification is temporarily unavailable (guild check failed). Please try again in a few minutes.'
 } else if (errorFromUrl === 'oauth') {
-    initialErrorMessage = 'Discord login failed. Please try again.';
+    initialErrorMessage = 'Discord login failed. Please try again.'
 } else if (errorFromUrl) {
-    initialErrorMessage = 'Discord verification failed. Please try again.';
+    initialErrorMessage = 'Discord verification failed. Please try again.'
 }
 
 if (errorFromUrl) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    window.history.replaceState({}, '', '/verify')
 }
 
-if (!errorFromUrl && tokenFromUrl) {
-    localStorage.setItem('access_token', tokenFromUrl);
-}
+const discordVerified = computed(() => Boolean(verification.value?.discordVerified))
+const rsiVerified = computed(() => Boolean(verification.value?.rsiVerified))
+const verificationCode = computed(() => verification.value?.code ?? '')
+const verificationCodeExpiresAt = computed(() => verification.value?.expiresAt ?? null)
 
-if (!errorFromUrl && refreshTokenFromUrl) {
-    localStorage.setItem('refresh_token', refreshTokenFromUrl);
-}
+const rsiForm = useForm({
+    rsi_handle: verification.value?.rsiHandle ?? '',
+})
 
-if (tokenFromUrl || refreshTokenFromUrl || errorFromUrl) {
-    window.history.replaceState({}, '', '/verify');
-}
+watch(
+    () => verification.value?.rsiHandle,
+    (nextValue) => {
+        rsiForm.rsi_handle = nextValue ?? ''
+    },
+    { immediate: true }
+)
 
-let accessToken = localStorage.getItem('access_token') || null;
+const loadingCode = ref(false)
+const copiedCode = ref(false)
 
-// Verification state
-const discordVerified = ref(false);
-const rsiVerified = ref(false);
+const inlineErrorMessage = computed(() => {
+    const verificationError = pageErrors.value?.verification
+    const handleError = pageErrors.value?.rsi_handle
 
-// RSI fields
-const rsiHandle = ref('');
-const verificationCode = ref('');
-const error = ref({ message: null, details: {} });
-const loadingCode = ref(false);
-const verifying = ref(false);
-const copiedCode = ref(false);
+    if (Array.isArray(verificationError) && verificationError[0]) return verificationError[0]
+    if (typeof verificationError === 'string' && verificationError.trim()) return verificationError
+    if (Array.isArray(handleError) && handleError[0]) return handleError[0]
+    if (typeof handleError === 'string' && handleError.trim()) return handleError
 
-if (initialErrorMessage) {
-    error.value = { message: initialErrorMessage, details: {} };
-}
+    return initialErrorMessage
+})
 
-// Auth header helper
-const authHeaders = () => ({
-    Authorization: `Bearer ${accessToken}`,
-});
+const rsiHandleFieldError = computed(() => {
+    const handleError = pageErrors.value?.rsi_handle
 
-// --- On mount: validate Discord + determine RSI verification state ---
-onMounted(async () => {
-    if (!accessToken) {
-        discordVerified.value = false;
-        return;
-    }
+    if (Array.isArray(handleError) && handleError[0]) return handleError[0]
+    if (typeof handleError === 'string' && handleError.trim()) return handleError
 
-    try {
-        const res = await axios.get('/api/v1/me', {
-            headers: authHeaders(),
-            hzSkipErrorDialog: true,
-        });
-
-        discordVerified.value = true;
-        rsiVerified.value = !!res.data.data.rsi_verified;
-
-        // If RSI is already verified, skip step completely
-        if (rsiVerified.value) {
-            window.location.href = '/';
-            return;
-        }
-
-    } catch (e) {
-        localStorage.removeItem('access_token');
-        accessToken = null;
-        discordVerified.value = false;
-
-        error.value = {
-            message: 'Your Discord session expired or became invalid. Please verify Discord again.',
-            details: {}
-        };
-    }
-});
-
-// --- Utility to clear errors ---
-const clearError = () => {
-    error.value = { message: null, details: {} };
-};
+    return null
+})
 
 // --- Generate RSI verification code ---
-const getCode = async () => {
-    clearError();
-    accessToken = localStorage.getItem('access_token') || null;
+const getCode = () => {
+    loadingCode.value = true
 
-    if (!accessToken) {
-        discordVerified.value = false;
-        error.value = { message: 'Missing access token. Please verify Discord again.', details: {} };
-        return;
-    }
-
-    loadingCode.value = true;
-
-    try {
-        const res = await axios.post('/api/v1/generate-code', {}, {
-            headers: authHeaders(),
-            hzSkipErrorDialog: true,
-        });
-        verificationCode.value = res.data.data.verification_code;
-        copiedCode.value = false;
-    } catch (e) {
-        error.value = {
-            message: e.response?.data?.message || "Couldn't generate verification code.",
-            details: e.response?.data?.data || {}
-        };
-    } finally {
-        loadingCode.value = false;
-    }
-};
+    router.post('/verify/code', {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            loadingCode.value = false
+            copiedCode.value = false
+        },
+    })
+}
 
 // --- Submit RSI verification ---
-const verifyRsi = async () => {
-    clearError();
-    accessToken = localStorage.getItem('access_token') || null;
-
-    if (!accessToken) {
-        discordVerified.value = false;
-        error.value = { message: 'Missing access token. Please verify Discord again.', details: {} };
-        return;
-    }
-
-    if (!rsiHandle.value) {
-        error.value = { message: 'Please enter your RSI handle.', details: { field: 'rsi_handle' } };
-        return;
-    }
-
-    verifying.value = true;
-
-    try {
-        await axios.post('/api/v1/verify-rsi', { rsi_handle: rsiHandle.value }, {
-            headers: authHeaders(),
-            hzSkipErrorDialog: true,
-        });
-
-        // Success = send them home
-        window.location.href = '/';
-    } catch (e) {
-        error.value = {
-            message: e.response?.data?.message || 'Verification failed',
-            details: e.response?.data?.data || {}
-        };
-    } finally {
-        verifying.value = false;
-    }
-};
+const verifyRsi = () => {
+    rsiForm.post('/verify/rsi', {
+        preserveScroll: true,
+    })
+}
 
 const copyVerificationCode = async () => {
-    const text = verificationCode.value;
-    if (!text) return;
+    const text = verificationCode.value
+    if (!text) return
 
     try {
         if (navigator?.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(text)
         } else {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.setAttribute('readonly', '');
-            textarea.style.position = 'fixed';
-            textarea.style.top = '0';
-            textarea.style.left = '0';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            textarea.setSelectionRange(0, textarea.value.length);
-            const ok = document.execCommand('copy');
-            textarea.remove();
+            const textarea = document.createElement('textarea')
+            textarea.value = text
+            textarea.setAttribute('readonly', '')
+            textarea.style.position = 'fixed'
+            textarea.style.top = '0'
+            textarea.style.left = '0'
+            textarea.style.opacity = '0'
+            document.body.appendChild(textarea)
+            textarea.focus()
+            textarea.select()
+            textarea.setSelectionRange(0, textarea.value.length)
+            const ok = document.execCommand('copy')
+            textarea.remove()
 
             if (!ok) {
-                throw new Error('Copy failed');
+                throw new Error('Copy failed')
             }
         }
 
-        copiedCode.value = true;
+        copiedCode.value = true
         window.setTimeout(() => {
-            copiedCode.value = false;
-        }, 1400);
+            copiedCode.value = false
+        }, 1400)
     } catch (e) {
-        console.error(e);
-        window.hzNotifyError({ message: 'Failed to copy code. Please copy it manually.' });
+        console.error(e)
+        window.hzNotifyError({ message: 'Failed to copy code. Please copy it manually.' })
     }
-};
+}
 </script>
 
 <template>
@@ -216,19 +139,17 @@ const copyVerificationCode = async () => {
 
             <!-- Error -->
             <div
-                v-if="error.message"
+                v-if="inlineErrorMessage"
                 class="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200"
             >
-                <div class="font-medium">{{ error.message }}</div>
+                <div class="font-medium">{{ inlineErrorMessage }}</div>
+            </div>
 
-                <div
-                    v-if="Object.keys(error.details).length"
-                    class="mt-2 pt-2 border-t border-red-500/20 text-xs opacity-80"
-                >
-                    <div v-for="(val, key) in error.details" :key="key">
-                        {{ key }}: {{ val }}
-                    </div>
-                </div>
+            <div
+                v-if="flashSuccess"
+                class="mb-4 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+            >
+                <div class="font-medium">{{ flashSuccess }}</div>
             </div>
 
             <!-- STEP 1: Discord -->
@@ -270,6 +191,7 @@ const copyVerificationCode = async () => {
                 <!-- Show code -->
                 <div v-if="verificationCode" class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm">
                     <p class="text-gray-400 mb-1">Paste this EXACTLY in your RSI bio:</p>
+                    <p v-if="verificationCodeExpiresAt" class="text-xs text-gray-500 mb-2">Expires at {{ new Date(verificationCodeExpiresAt).toLocaleString() }}</p>
                     <div class="flex items-center justify-between gap-3">
                         <code class="font-mono text-lg tracking-widest">{{ verificationCode }}</code>
                         <HorizonButton
@@ -291,12 +213,12 @@ const copyVerificationCode = async () => {
                         RSI Handle
                     </label>
                     <input
-                        v-model="rsiHandle"
+                        v-model="rsiForm.rsi_handle"
                         type="text"
                         placeholder=""
                         :class="[
                             'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2',
-                            error.details?.field === 'rsi_handle'
+                            rsiHandleFieldError
                                 ? 'bg-red-900/30 border-red-500 focus:ring-red-500'
                                 : 'bg-gray-800 border border-white/10 focus:ring-indigo-500'
                         ]"
@@ -309,9 +231,9 @@ const copyVerificationCode = async () => {
                     variant="primary"
                     size="sm"
                     @click="verifyRsi"
-                    :disabled="verifying"
+                    :disabled="rsiForm.processing"
                 >
-                    <span v-if="!verifying">Verify RSI</span>
+                    <span v-if="!rsiForm.processing">Verify RSI</span>
                     <span v-else>Verifying...</span>
                 </HorizonButton>
             </div>

@@ -244,25 +244,7 @@
         </div>
       </template>
 
-      <!-- BODY -->
-      <div
-        v-if="editHydrating"
-        class="p-10 text-center"
-      >
-        <div class="hz-caption hz-text-muted">
-          Loading editor…
-        </div>
-      </div>
-
-      <div
-        v-else-if="editHydrationError"
-        class="p-10 text-center text-red-400"
-      >
-        {{ editHydrationError }}
-      </div>
-
       <MissionEditorForm
-        v-else
         :embedded="true"
         :mission="editingMission"
         :squadron-id="editorSquadronId"
@@ -278,7 +260,7 @@
 
     <!-- MISSION VIEW MODAL -->
     <OperationModal
-      v-if="viewingOperation"
+      v-if="activeOperation"
       @close="closeViewModal"
     >
       <template #header>
@@ -292,33 +274,12 @@
         </div>
       </template>
 
-      <!-- LOADING -->
-      <div v-if="viewLoading" class="p-10 text-center">
-        <div class="hz-caption hz-text-muted">
-          Loading operation details…
-        </div>
-      </div>
-
-      <!-- ERROR -->
-      <div v-else-if="viewError" class="p-10 text-center text-red-400">
-        {{ viewError }}
-      </div>
-
-      <!-- CONTENT (guarded so we don't render until data exists) -->
-      <div v-else-if="!viewData" class="p-10 text-center">
-        <div class="hz-caption hz-text-muted">
-          Preparing…
-        </div>
-      </div>
-
       <MissionShowPanel
-        v-else
-        :operation="viewData.operation"
-        :participants="viewData.participants"
-        :participants-by-slot="viewData.participantsBySlot"
-        :unassigned-participants="viewData.unassignedParticipants"
-        :current-participant="viewData.currentParticipant"
-        @refresh="handleViewRefreshed"
+        :operation="activeOperation.operation"
+        :participants="activeOperation.participants"
+        :participants-by-slot="activeOperation.participantsBySlot"
+        :unassigned-participants="activeOperation.unassignedParticipants"
+        :current-participant="activeOperation.currentParticipant"
       />
     </OperationModal>
 
@@ -326,20 +287,19 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
-import axios from 'axios'
-import { route } from 'ziggy-js';
-import { Ziggy } from '../../ziggy';
+import { computed, ref, watch } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
+import { Ziggy } from '../../ziggy'
 
-import HorizonContainer from '@/Components/HorizonContainer.vue';
-import HorizonButton from '@/Components/HorizonButton.vue';
-import HorizonInput from '@/Components/HorizonInput.vue';
-import HorizonPanel from '@/Components/HorizonPanel.vue';
-import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
+import HorizonPanel from '@/Components/HorizonPanel.vue'
+import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
-import MissionGrid from '@/Components/MissionGrid.vue';
-import MissionCard from '@/Components/MissionCard.vue';
+import MissionGrid from '@/Components/MissionGrid.vue'
+import MissionCard from '@/Components/MissionCard.vue'
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
@@ -347,7 +307,7 @@ import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
-const page = usePage();
+const page = usePage()
 const props = defineProps({
   operations: {
     type: [Array, Object],
@@ -357,7 +317,7 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-});
+})
 
 const todayLabel = computed(() => {
   return new Date().toLocaleDateString(undefined, {
@@ -365,18 +325,21 @@ const todayLabel = computed(() => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  });
-});
+  })
+})
 
-const drawerOpen = ref(false)
-const editingMission = ref(null)
-const editorSquadronId = ref(null)
+const createDrawerOpen = ref(false)
+const createEditorSquadronId = ref(null)
 const editorPrefillTemplateId = ref(null)
-const editHydrating = ref(false)
-const editHydrationError = ref(null)
 
-const templates = ref([])
-const templatesLoading = ref(false)
+const templates = computed(() => page.props?.operationTemplates ?? [])
+const activeOperation = computed(() => page.props?.activeOperation ?? null)
+const editingOperation = computed(() => page.props?.editingOperation ?? null)
+const drawerOpen = computed(() => createDrawerOpen.value || editingOperation.value !== null)
+const editingMission = computed(() => editingOperation.value?.mission ?? null)
+const editorSquadronId = computed(() =>
+  editingOperation.value?.squadronId ?? createEditorSquadronId.value
+)
 const createTemplateId = ref('')
 
 const transitionProcessingIds = ref(new Set())
@@ -414,65 +377,30 @@ const templateOptions = computed(() => {
   })
 })
 
-async function fetchTemplates() {
-  if (templatesLoading.value) return
-  templatesLoading.value = true
-
-  try {
-    const { data } = await axios.get('/api/v1/operation-templates', {
-      headers: {
-        Accept: 'application/json',
-      },
-    })
-
-    templates.value = Array.isArray(data?.payload?.templates)
-      ? data.payload.templates
-      : []
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error('Failed to load templates', err)
-    }
-  } finally {
-    templatesLoading.value = false
-  }
-}
-
-async function handleTemplateSaved(template) {
+function handleTemplateSaved(template) {
   const newId = template?.id
-  await fetchTemplates()
   if (newId) {
     createTemplateId.value = newId
   }
 }
 
-async function handleTemplateUpdated(template) {
+function handleTemplateUpdated(template) {
   const id = template?.id
-  await fetchTemplates()
   if (id) {
     createTemplateId.value = id
   }
 }
 
-async function handleTemplateDeleted(payload) {
+function handleTemplateDeleted(payload) {
   const deletedId = payload?.id
-  await fetchTemplates()
 
   if (deletedId && Number(createTemplateId.value) === Number(deletedId)) {
     createTemplateId.value = ''
   }
 }
 
-/* ----------------------
-   VIEW MODAL STATE
----------------------- */
-const viewingOperation = ref(null)
-const viewData = ref(null)
-const viewLoading = ref(false)
-const viewError = ref(null)
-
 const modalHeaderOperation = computed(() => {
-  return viewData.value?.operation ?? viewingOperation.value
+  return activeOperation.value?.operation ?? null
 })
 
 function operationTitlePrefix(kind) {
@@ -490,16 +418,16 @@ function operationDisplayTitle(op) {
 }
 
 const operationsPaginator = computed(() => {
-  return Array.isArray(props.operations) ? null : props.operations;
-});
+  return Array.isArray(props.operations) ? null : props.operations
+})
 
 const operationsList = computed(() => {
   if (Array.isArray(props.operations)) {
-    return props.operations ?? [];
+    return props.operations ?? []
   }
 
-  return props.operations?.data ?? [];
-});
+  return props.operations?.data ?? []
+})
 
 function getCurrentQueryParams() {
   const url = new URL(window.location.href)
@@ -534,18 +462,30 @@ function refreshOperations({ resetPage = false } = {}) {
 }
 
 function goToUrl(url) {
-  if (!url) return;
+  if (!url) return
 
-  router.get(url, {}, { preserveScroll: true, preserveState: true });
+  router.get(url, {}, { preserveScroll: true, preserveState: true })
+}
+
+function visitDashboard(query, only = ['operations', 'activeOperation', 'editingOperation']) {
+  router.get(route('operations.index', {}, Ziggy), query, {
+    only,
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 
 function openCreateDrawer() {
-  editingMission.value = null
-  editorSquadronId.value = userSquadronId.value
+  createDrawerOpen.value = true
+  createEditorSquadronId.value = userSquadronId.value
   editorPrefillTemplateId.value = null
-  editHydrating.value = false
-  editHydrationError.value = null
-  drawerOpen.value = true
+
+  const query = {
+    ...getCurrentQueryParams(),
+  }
+
+  delete query.edit
+  visitDashboard(query, ['editingOperation'])
 }
 
 function openCreateDrawerFromTemplate() {
@@ -554,167 +494,134 @@ function openCreateDrawerFromTemplate() {
 
   const template = (templates.value ?? []).find(t => Number(t?.id) === Number(id))
 
-  editingMission.value = null
-  editorSquadronId.value = template?.squadron_id ?? userSquadronId.value
+  createDrawerOpen.value = true
+  createEditorSquadronId.value = template?.squadron_id ?? userSquadronId.value
   editorPrefillTemplateId.value = id
-  editHydrating.value = false
-  editHydrationError.value = null
-  drawerOpen.value = true
+
+  const query = {
+    ...getCurrentQueryParams(),
+  }
+
+  delete query.edit
+  visitDashboard(query, ['editingOperation'])
 }
 
-async function openEditDrawer(op) {
-  editingMission.value = op
-  editorSquadronId.value = op.squadron?.id ?? null
-  editHydrating.value = true
-  editHydrationError.value = null
-  drawerOpen.value = true
+function openEditDrawer(op) {
+  createDrawerOpen.value = false
+  createEditorSquadronId.value = null
+  editorPrefillTemplateId.value = null
 
-  try {
-    const { data } = await axios.get(
-      route('operations.editData', op.id, Ziggy)
-    )
-
-    editingMission.value = data?.payload?.mission ?? null
-    editorSquadronId.value = data?.payload?.squadronId ?? null
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      closeDrawer()
-      return
-    }
-
-    console.error(err)
-    editHydrationError.value = 'Failed to load editor data.'
-  } finally {
-    editHydrating.value = false
+  const query = {
+    ...getCurrentQueryParams(),
+    edit: op.id,
   }
+
+  delete query.operation
+  visitDashboard(query, ['editingOperation'])
 }
 
 function closeDrawer() {
-  drawerOpen.value = false
-  editingMission.value = null
-  editorSquadronId.value = null
+  createDrawerOpen.value = false
+  createEditorSquadronId.value = null
   editorPrefillTemplateId.value = null
-  editHydrating.value = false
-  editHydrationError.value = null
+
+  if (!editingOperation.value) return
+
+  const query = {
+    ...getCurrentQueryParams(),
+  }
+
+  delete query.edit
+  visitDashboard(query, ['editingOperation'])
 }
 
 function handleDrawerSaved(payload) {
   const operationId = payload?.id
-  closeDrawer()
-
-  refreshOperations()
-
   if (!operationId) return
 
-  setTimeout(() => {
-    openViewModal({ id: operationId })
-  }, 160)
+  createDrawerOpen.value = false
+  createEditorSquadronId.value = null
+  editorPrefillTemplateId.value = null
+
+  const query = {
+    ...getCurrentQueryParams(),
+    operation: operationId,
+  }
+
+  delete query.edit
+  visitDashboard(query)
 }
 
 function handleDrawerDeleted() {
-  closeDrawer()
-  refreshOperations()
-}
+  createDrawerOpen.value = false
+  createEditorSquadronId.value = null
+  editorPrefillTemplateId.value = null
 
-function handleViewRefreshed() {
-  if (viewingOperation.value) {
-    openViewModal(viewingOperation.value)
+  const query = {
+    ...getCurrentQueryParams(),
   }
 
-  refreshOperations()
+  delete query.edit
+  visitDashboard(query)
 }
 
-/* ----------------------
-   LAZY LOAD VIEW MODAL
----------------------- */
-async function openViewModal(op) {
-  viewingOperation.value = op
-  viewLoading.value = true
-  viewError.value = null
-  viewData.value = null
-
-  try {
-    const { data } = await axios.get(
-      route('operations.showData', op.id, Ziggy)
-    )
-
-    viewData.value = data
-    viewingOperation.value = data?.operation ?? viewingOperation.value
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      closeViewModal()
-      return
-    }
-
-    console.error(err)
-    viewError.value = 'Failed to load operation data.'
-  } finally {
-    viewLoading.value = false
+function openViewModal(op) {
+  const query = {
+    ...getCurrentQueryParams(),
+    operation: op.id,
   }
+
+  delete query.edit
+  visitDashboard(query, ['activeOperation'])
 }
 
 function closeViewModal() {
-  viewingOperation.value = null
-  viewData.value = null
-  viewError.value = null
+  const query = {
+    ...getCurrentQueryParams(),
+  }
+
+  delete query.operation
+  visitDashboard(query, ['activeOperation'])
 }
 
 /* ----------------------------------------
    USER + PERMISSIONS
 ---------------------------------------- */
 
-const user = computed(() => page.props.auth?.user ?? null);
+const user = computed(() => page.props.auth?.user ?? null)
 
 const userSquadronId = computed(() => {
-  const u = user.value;
-  if (!u?.squadrons?.length) return null;
+  const u = user.value
+  if (!u?.squadrons?.length) return null
 
-  const lt = u.squadrons.find(s => s.pivot?.role === 'lieutenant');
-  if (lt) return lt.id;
+  const lt = u.squadrons.find(s => s.pivot?.role === 'lieutenant')
+  if (lt) return lt.id
 
-  const leader = u.squadrons.find(s => s.pivot?.role === 'leader');
-  if (leader) return leader.id;
+  const leader = u.squadrons.find(s => s.pivot?.role === 'leader')
+  if (leader) return leader.id
 
-  return u.squadrons[0]?.id ?? null;
-});
-
-const isSquadronLeader = computed(() =>
-  user.value?.squadrons?.some(s => s.pivot?.role === 'leader')
-);
-
-const isSquadronLieutenant = computed(() =>
-  user.value?.squadrons?.some(s => s.pivot?.role === 'lieutenant')
-);
+  return u.squadrons[0]?.id ?? null
+})
 
 const isDirectorLike = computed(() => {
-  const roles = user.value?.roles ?? [];
-  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
-});
+  const roles = user.value?.roles ?? []
+  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+})
 
 const canCreateOperation = computed(() => {
-  if (isDirectorLike.value) return true;
+  if (isDirectorLike.value) return true
 
-  const roles = user.value?.roles ?? [];
-  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral'];
-  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true;
+  const roles = user.value?.roles ?? []
+  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
+  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true
 
-  return false;
-});
-
-onMounted(() => {
-  if (canCreateOperation.value) {
-    fetchTemplates()
-  }
+  return false
 })
 
 function canManageOperation(op) {
-  if (isDirectorLike.value) return true;
+  if (isDirectorLike.value) return true
 
-  const squadronId = op?.squadron?.id;
+  const squadronId = op?.squadron?.id
   if (!squadronId) {
     const creatorId = op?.creator?.id ?? op?.created_by ?? null
     if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
@@ -724,19 +631,19 @@ function canManageOperation(op) {
     return canCreateOperation.value
   }
 
-  const squadronLeaderId = op?.squadron?.leader?.id;
+  const squadronLeaderId = op?.squadron?.leader?.id
   if (squadronLeaderId && squadronLeaderId === user.value?.id) {
-    return true;
+    return true
   }
 
-  const membership = user.value?.squadrons?.find(s => s.id === squadronId);
-  if (!membership) return false;
+  const membership = user.value?.squadrons?.find(s => s.id === squadronId)
+  if (!membership) return false
 
-  const membershipStatus = membership.pivot?.membership_status;
-  if (membershipStatus && membershipStatus !== 'active') return false;
+  const membershipStatus = membership.pivot?.membership_status
+  if (membershipStatus && membershipStatus !== 'active') return false
 
-  const role = membership.pivot?.role;
-  return role === 'leader' || role === 'lieutenant';
+  const role = membership.pivot?.role
+  return role === 'leader' || role === 'lieutenant'
 }
 
 function creatorNameColor(op) {
@@ -751,18 +658,17 @@ async function startOperation(op) {
   if (!confirm('Start this operation?')) return
 
   setTransitionProcessing(op.id, true)
-  try {
-    await axios.post(route('operations.start', op.id, Ziggy), {})
-    refreshOperations()
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error(err)
+  router.post(route('operations.start', op.id, Ziggy), {}, {
+    preserveScroll: true,
+    preserveState: true,
+    only: ['operations', 'activeOperation'],
+    onError: () => {
       window.hzNotifyError({ message: 'Failed to start operation.' })
-    }
-  } finally {
-    setTransitionProcessing(op.id, false)
-  }
+    },
+    onFinish: () => {
+      setTransitionProcessing(op.id, false)
+    },
+  })
 }
 
 async function completeOperation(op, outcome) {
@@ -772,20 +678,19 @@ async function completeOperation(op, outcome) {
   if (!confirm('Mark this operation as completed?')) return
 
   setTransitionProcessing(op.id, true)
-  try {
-    await axios.post(route('operations.complete', op.id, Ziggy), {
-      outcome,
-    })
-    refreshOperations()
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error(err)
+  router.post(route('operations.complete', op.id, Ziggy), {
+    outcome,
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    only: ['operations', 'activeOperation'],
+    onError: () => {
       window.hzNotifyError({ message: 'Failed to complete operation.' })
-    }
-  } finally {
-    setTransitionProcessing(op.id, false)
-  }
+    },
+    onFinish: () => {
+      setTransitionProcessing(op.id, false)
+    },
+  })
 }
 
 async function cancelOperation(op) {
@@ -797,20 +702,19 @@ async function cancelOperation(op) {
   if (!confirm('Cancel this operation?')) return
 
   setTransitionProcessing(op.id, true)
-  try {
-    await axios.post(route('operations.cancel', op.id, Ziggy), {
-      reason: reason || null,
-    })
-    refreshOperations()
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error(err)
+  router.post(route('operations.cancel', op.id, Ziggy), {
+    reason: reason || null,
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    only: ['operations', 'activeOperation'],
+    onError: () => {
       window.hzNotifyError({ message: 'Failed to cancel operation.' })
-    }
-  } finally {
-    setTransitionProcessing(op.id, false)
-  }
+    },
+    onFinish: () => {
+      setTransitionProcessing(op.id, false)
+    },
+  })
 }
 
 /* ----------------------------------------
@@ -825,10 +729,10 @@ const statusFilters = [
   { label: 'In Progress', value: 'in_progress' },
   { label: 'Completed', value: 'completed' },
   { label: 'Canceled', value: 'canceled' },
-];
+]
 
-const statusFilter = ref(props.filters?.status ?? 'active');
-const search = ref(props.filters?.search ?? '');
+const statusFilter = ref(props.filters?.status ?? 'active')
+const search = ref(props.filters?.search ?? '')
 
 const filteredOperations = computed(() => {
   return operationsList.value.filter(op => {
@@ -837,20 +741,20 @@ const filteredOperations = computed(() => {
         ? true
         : statusFilter.value === 'active'
           ? ['published', 'in_progress'].includes(op.status)
-          : op.status === statusFilter.value;
+          : op.status === statusFilter.value
 
-    const q = search.value.toLowerCase();
+    const q = search.value.toLowerCase()
     const matchesSearch =
       !q ||
       String(op.id).toLowerCase().includes(q) ||
       op.title.toLowerCase().includes(q) ||
       (op.description || '').toLowerCase().includes(q) ||
       (op.squadron?.name ?? '').toLowerCase().includes(q) ||
-      (op.creator?.rsi_handle ?? '').toLowerCase().includes(q);
+      (op.creator?.rsi_handle ?? '').toLowerCase().includes(q)
 
-    return matchesStatus && matchesSearch;
-  });
-});
+    return matchesStatus && matchesSearch
+  })
+})
 
 let filterRefreshTimeout = null
 function queueRefreshOperations() {

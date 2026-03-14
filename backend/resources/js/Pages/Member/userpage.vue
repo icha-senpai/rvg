@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { usePage } from '@inertiajs/vue3'
-import axios from 'axios'
+import { router, usePage } from '@inertiajs/vue3'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonPanel from '@/Components/HorizonPanel.vue'
@@ -26,7 +25,6 @@ const isViewingOwnProfile = computed(() => {
 const canEditProfile = computed(() => isViewingOwnProfile.value)
 
 const me = ref(profileUser.value ?? inertiaUser.value)
-const isLoading = ref(false)
 const errorMessage = ref(null)
 
 const isEditing = ref(false)
@@ -540,15 +538,7 @@ const operationsStats = computed(() => {
   }
 })
 
-function extractApiErrorMessage(error, fallback) {
-  const status = error?.response?.status ?? null
-
-  if (status === 401 || status === 419) {
-    return 'Your session is missing/expired. Please verify again.'
-  }
-
-  const errors = error?.response?.data?.errors
-
+function extractFirstErrorMessage(errors, fallback) {
   if (errors && typeof errors === 'object') {
     const firstKey = Object.keys(errors)[0]
     const firstValue = firstKey ? errors[firstKey] : null
@@ -557,7 +547,7 @@ function extractApiErrorMessage(error, fallback) {
     if (firstMessage) return String(firstMessage)
   }
 
-  return error?.response?.data?.message ?? fallback
+  return fallback
 }
 
 function seedFormFromUser(user) {
@@ -577,35 +567,12 @@ function seedFormFromUser(user) {
   }
 }
 
-function extractMeFromApiPayload(payload) {
-  const maybe = payload?.data
-  if (!maybe) return null
-  if (maybe?.data && typeof maybe.data === 'object') return maybe.data
-  return maybe
-}
-
-async function fetchMe() {
-  isLoading.value = true
-  errorMessage.value = null
-
-  try {
-    const res = await axios.get('/api/v1/me')
-    me.value = extractMeFromApiPayload(res.data) ?? me.value
-    seedFormFromUser(me.value)
-  } catch (e) {
-    errorMessage.value = extractApiErrorMessage(e, 'Failed to load your profile.')
-  } finally {
-    isLoading.value = false
-  }
-}
-
 async function saveProfile() {
   if (!canEditProfile.value) return
   isSaving.value = true
   errorMessage.value = null
 
-  try {
-    const res = await axios.put('/api/v1/me', {
+  router.put(route('me.update'), {
       bio: form.value.bio,
       timezone: form.value.timezone,
       availability_status: form.value.availability_status,
@@ -618,16 +585,20 @@ async function saveProfile() {
       preferred_gameplay_style: form.value.preferred_gameplay_style,
       typical_op_commitment: form.value.typical_op_commitment,
       experience_ratings: form.value.experience_ratings,
+    }, {
+      preserveScroll: true,
+      onSuccess: (page) => {
+        me.value = page?.props?.profileUser ?? page?.props?.auth?.user ?? me.value
+        seedFormFromUser(me.value)
+        isEditing.value = false
+      },
+      onError: (errors) => {
+        errorMessage.value = extractFirstErrorMessage(errors, 'Failed to save profile.')
+      },
+      onFinish: () => {
+        isSaving.value = false
+      },
     })
-
-    me.value = extractMeFromApiPayload(res.data) ?? me.value
-    seedFormFromUser(me.value)
-    isEditing.value = false
-  } catch (e) {
-    errorMessage.value = extractApiErrorMessage(e, 'Failed to save profile.')
-  } finally {
-    isSaving.value = false
-  }
 }
 
 function startEdit() {
@@ -645,10 +616,6 @@ function cancelEdit() {
 
 onMounted(() => {
   seedFormFromUser(me.value)
-
-  if (isViewingOwnProfile.value) {
-    fetchMe()
-  }
 })
 
 watch(
@@ -658,10 +625,6 @@ watch(
     isEditing.value = false
     errorMessage.value = null
     seedFormFromUser(me.value)
-
-    if (isViewingOwnProfile.value) {
-      fetchMe()
-    }
   }
 )
 </script>
@@ -714,7 +677,6 @@ watch(
               variant="primary"
               size="sm"
               @click="startEdit"
-              :disabled="isLoading"
             >
               Edit
             </HorizonButton>
@@ -1156,7 +1118,6 @@ watch(
         </div>
       </HorizonPanel>
 
-      <div v-if="isLoading" class="hz-soft">Loading profile…</div>
     </div>
   </HorizonContainer>
 </template>

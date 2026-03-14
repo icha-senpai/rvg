@@ -111,7 +111,7 @@
           <input
             ref="fileInput"
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             class="hz-input"
             style="padding: 0.5rem;"
             @change="handleFileSelect"

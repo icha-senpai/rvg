@@ -53,7 +53,7 @@
     </div>
 
     <OperationModal
-      v-if="viewingOperation"
+      v-if="activeOperation"
       @close="closeViewModal"
     >
       <template #header>
@@ -67,24 +67,12 @@
         </div>
       </template>
 
-      <div v-if="viewLoading" class="p-10 text-center">
-        <div class="hz-caption hz-text-muted">
-          Loading operation details…
-        </div>
-      </div>
-
-      <div v-else-if="viewError" class="p-10 text-center text-red-400">
-        {{ viewError }}
-      </div>
-
       <MissionShowPanel
-        v-else
-        :operation="viewData.operation"
-        :participants="viewData.participants"
-        :participants-by-slot="viewData.participantsBySlot"
-        :unassigned-participants="viewData.unassignedParticipants"
-        :current-participant="viewData.currentParticipant"
-        @refresh="reloadViewData"
+        :operation="activeOperation.operation"
+        :participants="activeOperation.participants"
+        :participants-by-slot="activeOperation.participantsBySlot"
+        :unassigned-participants="activeOperation.unassignedParticipants"
+        :current-participant="activeOperation.currentParticipant"
       />
     </OperationModal>
 
@@ -93,11 +81,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { Ziggy } from '../../ziggy';
-import axios from 'axios'
 import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonContainer from '@/Components/HorizonContainer.vue';
@@ -105,13 +92,11 @@ import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
 import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 
-const viewingOperation = ref(null)
-const viewData = ref(null)
-const viewLoading = ref(false)
-const viewError = ref(null)
+const page = usePage()
+const activeOperation = computed(() => page.props?.activeOperation ?? null)
 
 const modalHeaderOperation = computed(() => {
-  return viewData.value?.operation ?? viewingOperation.value
+  return activeOperation.value?.operation ?? null
 })
 
 function operationKindLabel(kind) {
@@ -168,20 +153,21 @@ const operationsList = computed(() => {
   return props.operations?.data ?? [];
 });
 
-function goToPage(pageNumber) {
-  if (!pageNumber || pageNumber < 1) return;
-
-  router.get(
-    route('operations.member', {}, Ziggy),
-    { page: pageNumber },
-    { preserveScroll: true, preserveState: true }
-  );
-}
-
 function goToUrl(url) {
   if (!url) return;
 
   router.get(url, {}, { preserveScroll: true, preserveState: true });
+}
+
+function getCurrentQueryParams() {
+  const url = new URL(window.location.href)
+  const out = {}
+
+  for (const [key, value] of url.searchParams.entries()) {
+    out[key] = value
+  }
+
+  return out
 }
 
 // Most recent start time first
@@ -209,8 +195,6 @@ const sortedOperations = computed(() => {
     return bDate.getTime() - aDate.getTime();
   });
 });
-console.log("Raw starts_at:", operationsList.value.map(o => o.starts_at));
-console.log("Parsed starts_at:", operationsList.value.map(o => parseDate(o.starts_at)));
 function parseDate(value) {
   if (!value) return null;
 
@@ -224,74 +208,31 @@ function parseDate(value) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-function syncViewingOperationSummaryFromViewData(data) {
-  if (!viewingOperation.value || !data) return
-
-  viewingOperation.value.joined_by_me = data.currentParticipant ? 1 : 0
-
-  if (Array.isArray(data.participants)) {
-    viewingOperation.value.participants_count = data.participants.length
+function openViewModal(op) {
+  const query = {
+    ...getCurrentQueryParams(),
+    operation: op.id,
   }
-}
 
-async function openViewModal(op) {
-  viewingOperation.value = op
-  viewLoading.value = true
-  viewError.value = null
-  viewData.value = null
-
-  try {
-    const { data } = await axios.get(
-      route('operations.showData', op.id)
-    )
-    viewData.value = data
-    syncViewingOperationSummaryFromViewData(data)
-  } catch (e) {
-    const status = e?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      closeViewModal()
-      return
-    }
-
-    console.error(e)
-    viewError.value = 'Failed to load operation.'
-  } finally {
-    viewLoading.value = false
-  }
+  router.get(route('operations.member', {}, Ziggy), query, {
+    only: ['activeOperation'],
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 
 function closeViewModal() {
-  viewingOperation.value = null
-  viewData.value = null
-  viewError.value = null
-}
-
-async function reloadViewData() {
-  if (!viewingOperation.value) return
-
-  viewLoading.value = true
-  viewError.value = null
-
-  try {
-    const { data } = await axios.get(
-      route('operations.showData', viewingOperation.value.id)
-    )
-    viewData.value = data
-    syncViewingOperationSummaryFromViewData(data)
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      closeViewModal()
-      return
-    }
-
-    console.error(err)
-    viewError.value = 'Failed to refresh operation data.'
-  } finally {
-    viewLoading.value = false
+  const query = {
+    ...getCurrentQueryParams(),
   }
+
+  delete query.operation
+
+  router.get(route('operations.member', {}, Ziggy), query, {
+    only: ['activeOperation'],
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 
 </script>

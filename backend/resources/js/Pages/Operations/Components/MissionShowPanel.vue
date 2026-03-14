@@ -6,14 +6,9 @@ import ProgressPill from '@/Components/ProgressPill.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 import { ref, reactive, computed, watch } from 'vue'
-import axios from 'axios'
+import { router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../../ziggy'
-
-// ----------------------
-// EMITS
-// ----------------------
-const emit = defineEmits(['close', 'refresh'])
 
 // ----------------------
 // PROPS
@@ -196,10 +191,6 @@ watch(calendarChoice, (v) => {
 /* ============================================================
    FORMATTER
 ============================================================ */
-function asText(v) {
-  return v ? String(v) : 'TBD'
-}
-
 function formatFirstLetter(value) {
   if (!value) return ''
   const text = String(value).trim()
@@ -324,37 +315,30 @@ watch(
 const joinProcessing = ref(false)
 
 /* ============================================================
-   JOIN / LEAVE / UPDATE SLOT (NO NAVIGATION)
-   Uses axios so backend redirects do NOT move the browser.
+   JOIN / LEAVE / UPDATE SLOT
 ============================================================ */
 async function join() {
   if (joinProcessing.value) return
   joinProcessing.value = true
 
-  try {
-    await axios.post(
+  router.post(
       route('operations.join', operation.id, Ziggy),
       {
         slot: joinForm.slot,
         notes: joinForm.notes,
         operation_role_id: null,
+      },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => {
+          window.hzNotifyError({ message: 'Failed to join operation.' })
+        },
+        onFinish: () => {
+          joinProcessing.value = false
+        },
       }
     )
-
-    // Tell parent: re-fetch showData so modal updates.
-    emit('refresh')
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      return
-    }
-
-    console.error(err)
-    window.hzNotifyError({ message: 'Failed to join operation.' })
-  } finally {
-    joinProcessing.value = false
-  }
 }
 
 async function leave() {
@@ -362,25 +346,20 @@ async function leave() {
   if (joinProcessing.value) return
   joinProcessing.value = true
 
-  try {
-    await axios.post(
+  router.post(
       route('operations.leave', operation.id, Ziggy),
-      {}
+      {},
+      {
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => {
+          window.hzNotifyError({ message: 'Failed to leave operation.' })
+        },
+        onFinish: () => {
+          joinProcessing.value = false
+        },
+      }
     )
-
-    emit('refresh')
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      return
-    }
-
-    console.error(err)
-    window.hzNotifyError({ message: 'Failed to leave operation.' })
-  } finally {
-    joinProcessing.value = false
-  }
 }
 
 async function updateSlot() {
@@ -388,8 +367,7 @@ async function updateSlot() {
   if (joinProcessing.value) return
   joinProcessing.value = true
 
-  try {
-    await axios.post(
+  router.post(
       route('operations.participants.slot', {
         operation: operation.id,
         participant: currentParticipant.value.id,
@@ -397,22 +375,18 @@ async function updateSlot() {
       {
         slot: joinForm.slot,
         operation_role_id: null,
+      },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => {
+          window.hzNotifyError({ message: 'Failed to update role.' })
+        },
+        onFinish: () => {
+          joinProcessing.value = false
+        },
       }
     )
-
-    emit('refresh')
-  } catch (err) {
-    const status = err?.response?.status ?? null
-
-    if (status === 401 || status === 419) {
-      return
-    }
-
-    console.error(err)
-    window.hzNotifyError({ message: 'Failed to update role.' })
-  } finally {
-    joinProcessing.value = false
-  }
 }
 </script>
 

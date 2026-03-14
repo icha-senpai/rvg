@@ -17,12 +17,12 @@ use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\MemberDirectoryController;
+use App\Http\Controllers\Web\DiscordAuthController;
+use App\Http\Controllers\Web\VerifyController;
+use App\Http\Requests\UpdateMeRequest;
 use App\Http\Resources\MeResource;
 use App\Models\Squadron;
 use App\Models\User;
-
-// AUTH CONTROLLERS
-use App\Http\Controllers\Api\v1\DiscordAuthController;
 
 // ADMIN SUBCONTROLLERS
 use App\Http\Controllers\Admin\SquadronRankController;
@@ -44,7 +44,7 @@ Route::get('/', function () {
     return response()->view('og-shell');
 })->name('home');
 
-Route::get('/verify', fn() => Inertia::render('Verify'))->name('verify');
+Route::get('/verify', [VerifyController::class, 'show'])->name('verify');
 
 Route::get('/login', function () {
     if (Auth::check()) {
@@ -92,6 +92,39 @@ Route::get('/me', function () {
 })
     ->middleware(['auth', 'rsi.verified']);
 
+Route::put('/me', function (UpdateMeRequest $request) {
+    $user = $request->user();
+
+    $allowed = [
+        'bio',
+        'timezone',
+        'favorite_ships',
+        'favorite_guns',
+        'primary_role',
+        'secondary_role',
+        'experience_ratings',
+        'preferred_gameplay_style',
+        'callsign',
+        'typical_op_commitment',
+        'preferred_roles',
+        'notification_settings',
+        'availability_status',
+        'loa_note',
+        'personal_tags',
+    ];
+
+    $safeData = collect($request->validated())
+        ->only($allowed)
+        ->toArray();
+
+    $user->fill($safeData);
+    $user->save();
+
+    return back()->with('success', 'Profile updated.');
+})
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('me.update');
+
 /*
 |--------------------------------------------------------------------------
 | DISCORD OAUTH (MUST BE WEB ROUTES — NO API PREFIX)
@@ -102,6 +135,14 @@ Route::get('/auth/discord', [DiscordAuthController::class, 'redirect'])
 
 Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback'])
     ->name('discord.callback');
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/verify/code', [VerifyController::class, 'generateCode'])
+        ->name('verify.code');
+
+    Route::post('/verify/rsi', [VerifyController::class, 'verifyRsi'])
+        ->name('verify.rsi');
+});
 
 
 /*
@@ -142,14 +183,17 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::post('/operations', [OperationPageController::class, 'storeGlobal'])
         ->name('operations.storeGlobal');
 
+    Route::post('/operation-templates', [OperationPageController::class, 'storeTemplate'])
+        ->name('operations.templates.store');
+
+    Route::put('/operation-templates/{template}', [OperationPageController::class, 'updateTemplate'])
+        ->name('operations.templates.update');
+
+    Route::delete('/operation-templates/{template}', [OperationPageController::class, 'destroyTemplate'])
+        ->name('operations.templates.destroy');
+
     Route::post('/squadrons/{squadron}/operations', [OperationPageController::class, 'store'])
         ->name('operations.store');
-
-    Route::get('/operations/{operation}/show-data', [OperationPageController::class, 'showData'])
-        ->name('operations.showData');
-
-    Route::get('/operations/{operation}/edit-data', [OperationPageController::class, 'editData'])
-        ->name('operations.editData');
         
     Route::put('/operations/{operation}', [OperationPageController::class, 'update'])
         ->name('operations.update');
@@ -187,22 +231,14 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 */
 Route::post('/squadrons/{squadron}/leader', 
     [SquadronLeaderController::class, 'store']
-)->name('squadrons.assignLeader');
+)->middleware(['auth', 'rsi.verified'])->name('squadrons.assignLeader');
 
 Route::post('/squadrons/{squadron}/promote-lieutenant', 
     [SquadronPromotionController::class, 'promoteLieutenant']
-)->name('squadrons.promoteLieutenant');
+)->middleware(['auth', 'rsi.verified'])->name('squadrons.promoteLieutenant');
 
 
-Route::get('/squadrons/{squadron}', function (Squadron $squadron) {
-    if ($squadron->slug) {
-        return redirect()->route('squadrons.show', ['squadron' => $squadron->slug]);
-    }
-
-    return Inertia::render('Squadrons/Show', [
-        'squadronId' => $squadron->id,
-    ]);
-})
+Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'showById'])
     ->whereNumber('squadron')
     ->middleware(['auth', 'rsi.verified']);
 
@@ -221,6 +257,14 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
         [SquadronPageController::class, 'index']
     )->name('squadrons.index');
 
+    Route::post('/squadrons/{squadron}/join',
+        [SquadronManageController::class, 'join']
+    )->name('squadrons.join');
+
+    Route::post('/squadrons/{squadron}/leave',
+        [SquadronManageController::class, 'leave']
+    )->name('squadrons.leave');
+
     Route::post('/squadrons/{squadron}/members/update', 
         [SquadronManageController::class, 'updateMember']
     )->name('squadrons.members.update');
@@ -236,6 +280,14 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::post('/squadrons/{squadron}/emblem', 
         [SquadronManageController::class, 'uploadEmblem']
     )->name('squadrons.emblem.upload');
+
+    Route::put('/squadrons/{squadron}/emblem',
+        [SquadronManageController::class, 'selectEmblem']
+    )->name('squadrons.emblem.select');
+
+    Route::post('/squadrons/{squadron}/demote-lieutenant',
+        [SquadronManageController::class, 'demoteLieutenant']
+    )->name('squadrons.demoteLieutenant');
 });
 
 

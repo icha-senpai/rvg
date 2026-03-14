@@ -302,6 +302,7 @@
 
 .hz-animate-drawer-out {
   animation: hz-drawer-out var(--motion-normal) var(--ease-smooth);
+  animation-fill-mode: forwards;
 }
 
 .hz-animate-modal-in {
@@ -310,6 +311,7 @@
 
 .hz-animate-modal-out {
   animation: hz-modal-out var(--motion-normal) var(--ease-smooth);
+  animation-fill-mode: forwards;
 }
 
 .hz-animate-fade {

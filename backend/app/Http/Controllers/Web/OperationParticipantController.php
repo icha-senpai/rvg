@@ -33,9 +33,8 @@ class OperationParticipantController extends Controller
 
         $this->participants->join($operation, $request->user(), $data);
 
-        return redirect()
-            ->route('operations.show', $operation->id)
-            ->with('reload', true);
+        return back()
+            ->with('success', 'Joined operation.');
     }
 
     public function leave(Request $request, Operation $operation)
@@ -44,9 +43,8 @@ class OperationParticipantController extends Controller
 
         $this->participants->leave($operation, $request->user());
 
-        return redirect()
-            ->route('operations.show', $operation->id)
-            ->with('reload', true);
+        return back()
+            ->with('success', 'Left operation.');
     }
 
     public function updateSlot(
@@ -73,8 +71,7 @@ class OperationParticipantController extends Controller
 
         $this->participants->updateSlot($operation, $participant, $data);
 
-        return redirect()
-            ->route('operations.show', $operation->id)
-            ->with('reload', true);
+        return back()
+            ->with('success', 'Role updated.');
     }
 }

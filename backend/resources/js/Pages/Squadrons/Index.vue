@@ -1,73 +1,39 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { computed } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
-const squadrons = ref([])
-const isLoading = ref(false)
-const errorMessage = ref(null)
-const errorStatus = ref(null)
+const page = usePage()
 
-const isExpanded = ref(false)
-const activeSquadronId = ref(null)
-
-/* -------------------------------------------------
-   Fetch all squadrons
-------------------------------------------------- */
-async function fetchSquadrons() {
-  isLoading.value = true
-  errorMessage.value = null
-  errorStatus.value = null
-
-  try {
-    const { data } = await axios.get('/api/v1/squadrons')
-    squadrons.value = data
-  } catch (error) {
-    errorStatus.value = error?.response?.status ?? null
-
-    if (errorStatus.value === 401 || errorStatus.value === 419) {
-      errorMessage.value = null
-      return
-    }
-
-    errorMessage.value =
-      error.response?.data?.message ??
-      'Failed to load squadrons.'
-  } finally {
-    isLoading.value = false
-  }
-}
+const squadrons = computed(() => page.props?.squadrons ?? [])
+const activeSquadron = computed(() => page.props?.activeSquadron ?? null)
+const isExpanded = computed(() => !!activeSquadron.value)
+const activeSquadronId = computed(() => activeSquadron.value?.squadron?.id ?? null)
 
 /* -------------------------------------------------
    Panel controls
 ------------------------------------------------- */
-function openSquadron(squadronId) {
-  activeSquadronId.value = squadronId
-  isExpanded.value = true
+function openSquadron(squadron) {
+  router.get(
+    route('squadrons.index', { squadron: squadron?.slug ?? squadron?.id }),
+    {},
+    {
+      preserveScroll: true,
+      preserveState: true,
+      only: ['activeSquadron'],
+    }
+  )
 }
 
 function closePanel() {
-  isExpanded.value = false
-  activeSquadronId.value = null
-}
-
-/* -------------------------------------------------
-   Handle updates from expanded panel
-------------------------------------------------- */
-function handleSquadronUpdated(updated) {
-  const index = squadrons.value.findIndex(
-    s => s.id === updated.id
-  )
-
-  if (index !== -1) {
-    squadrons.value[index] = {
-      ...squadrons.value[index],
-      ...updated,
-    }
-  }
+  router.get(route('squadrons.index'), {}, {
+    preserveScroll: true,
+    preserveState: true,
+    only: ['activeSquadron'],
+  })
 }
 
 function leaderNameColor(squadron) {
@@ -98,10 +64,6 @@ function branchLogoSrc(branch) {
 
   return map[key] ?? null
 }
-
-onMounted(() => {
-  fetchSquadrons()
-})
 </script>
 
 <template>
@@ -110,20 +72,12 @@ onMounted(() => {
 
       <div class="hz-title-lg">Squadrons</div>
 
-      <div v-if="isLoading" class="hz-soft">
-        Loading squadrons…
-      </div>
-
-      <div v-if="errorMessage" class="hz-alert hz-alert-danger">
-        {{ errorMessage }}
-      </div>
-
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
           class="hz-card-soft hz-stack cursor-pointer overflow-hidden border! border-(--horizon-sunset-blue)! p-0! w-full max-w-64 sm:max-w-none mx-auto"
-          @click="openSquadron(squadron.id)"
+          @click="openSquadron(squadron)"
         >
           <div
             v-if="squadron.emblem_url"
@@ -173,7 +127,6 @@ onMounted(() => {
         :squadronId="activeSquadronId"
         :show-close-button="true"
         @close="closePanel"
-        @updated="handleSquadronUpdated"
       />
     </div>
   </HorizonContainer>

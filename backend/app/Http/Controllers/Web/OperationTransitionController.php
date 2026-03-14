@@ -35,6 +35,15 @@ class OperationTransitionController extends Controller
             ]);
         }
 
+        if ($request->boolean('stay_on_page')) {
+            return back()
+                ->with('success', 'Operation published successfully.')
+                ->with('operation', [
+                    'event' => 'published',
+                    'id' => $updated->id,
+                ]);
+        }
+
         return redirect()
             ->route('operations.show', $operation->id)
             ->with('success', 'Operation published successfully.');
@@ -55,8 +64,7 @@ class OperationTransitionController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('operations.show', $operation->id)
+        return back()
             ->with('success', 'Operation started.');
     }
 
@@ -79,8 +87,7 @@ class OperationTransitionController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('operations.show', $operation->id)
+        return back()
             ->with('success', 'Operation completed.');
     }
 
@@ -103,8 +110,7 @@ class OperationTransitionController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('operations.show', $operation->id)
+        return back()
             ->with('success', 'Operation canceled.');
     }
 }

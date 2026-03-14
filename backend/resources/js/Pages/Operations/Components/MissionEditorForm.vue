@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
-import axios from 'axios'
+import { computed, ref, watch } from 'vue'
+import { router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../../ziggy'
 
@@ -36,10 +35,12 @@ const props = defineProps({
   prefillTemplateId: { type: [Number, String], default: null },
 })
 
-const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+const page = usePage()
 
-const squadrons = ref([])
-const squadronsLoading = ref(false)
+const squadrons = computed(() => page.props?.squadrons ?? [])
+const templates = computed(() => page.props?.operationTemplates ?? [])
+const operationFlash = computed(() => page.props?.flash?.operation ?? null)
+const operationTemplateFlash = computed(() => page.props?.flash?.operationTemplate ?? null)
 
 const selectedSquadronNames = ref(
   typeof props.mission?.squadron_name === 'string' && props.mission.squadron_name.trim()
@@ -67,46 +68,35 @@ async function renameSelectedTemplate() {
   if (!nextName || !String(nextName).trim()) return
 
   templatesUpdating.value = true
-  try {
-    const { data } = await axios.put(
-      `/api/v1/operation-templates/${selectedTemplate.value.id}`,
+  router.put(
+      route('operations.templates.update', { template: selectedTemplate.value.id }, Ziggy),
       {
         name: String(nextName).trim(),
       },
       {
-        headers: {
-          Accept: 'application/json',
+        preserveScroll: true,
+        preserveState: true,
+        only: ['operationTemplates', 'flash'],
+        onSuccess: (visitPage) => {
+          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? selectedTemplate.value?.id
+          if (templateId) {
+            selectedTemplateId.value = templateId
+            const updatedTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
+            if (updatedTemplate) {
+              emit('template-updated', updatedTemplate)
+            }
+          }
         },
-        hzSkipErrorDialog: true,
+        onError: (errors) => {
+          window.hzNotifyError({
+            message: extractFirstFormError(errors, 'Template name is invalid.'),
+          })
+        },
+        onFinish: () => {
+          templatesUpdating.value = false
+        },
       }
     )
-
-    const updatedTemplate = data?.payload?.template
-    await fetchTemplates()
-
-    if (updatedTemplate?.id) {
-      selectedTemplateId.value = updatedTemplate.id
-      emit('template-updated', updatedTemplate)
-    }
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status === 403) {
-      window.hzNotifyError({ message: 'You do not have permission to edit that template.' })
-      return
-    }
-
-    if (status === 422) {
-      window.hzNotifyError({
-        message: extractFirstFormError(err?.response?.data?.errors, 'Template name is invalid.'),
-      })
-      return
-    }
-
-    console.error('Failed to rename template', err)
-    window.hzNotifyError({ message: 'Failed to rename template.' })
-  } finally {
-    templatesUpdating.value = false
-  }
 }
 
 async function updateSelectedTemplate() {
@@ -117,46 +107,35 @@ async function updateSelectedTemplate() {
   if (!ok) return
 
   templatesUpdating.value = true
-  try {
-    const { data } = await axios.put(
-      `/api/v1/operation-templates/${selectedTemplate.value.id}`,
+  router.put(
+      route('operations.templates.update', { template: selectedTemplate.value.id }, Ziggy),
       {
         payload: buildTemplatePayload(),
       },
       {
-        headers: {
-          Accept: 'application/json',
+        preserveScroll: true,
+        preserveState: true,
+        only: ['operationTemplates', 'flash'],
+        onSuccess: (visitPage) => {
+          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? selectedTemplate.value?.id
+          if (templateId) {
+            selectedTemplateId.value = templateId
+            const updatedTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
+            if (updatedTemplate) {
+              emit('template-updated', updatedTemplate)
+            }
+          }
         },
-        hzSkipErrorDialog: true,
+        onError: (errors) => {
+          window.hzNotifyError({
+            message: extractFirstFormError(errors, 'Template data is invalid.'),
+          })
+        },
+        onFinish: () => {
+          templatesUpdating.value = false
+        },
       }
     )
-
-    const updatedTemplate = data?.payload?.template
-    await fetchTemplates()
-
-    if (updatedTemplate?.id) {
-      selectedTemplateId.value = updatedTemplate.id
-      emit('template-updated', updatedTemplate)
-    }
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status === 403) {
-      window.hzNotifyError({ message: 'You do not have permission to edit that template.' })
-      return
-    }
-
-    if (status === 422) {
-      window.hzNotifyError({
-        message: extractFirstFormError(err?.response?.data?.errors, 'Template data is invalid.'),
-      })
-      return
-    }
-
-    console.error('Failed to update template', err)
-    window.hzNotifyError({ message: 'Failed to update template.' })
-  } finally {
-    templatesUpdating.value = false
-  }
 }
 
 async function deleteSelectedTemplate() {
@@ -167,31 +146,24 @@ async function deleteSelectedTemplate() {
   if (!ok) return
 
   templatesDeleting.value = true
-  try {
-    await axios.delete(`/api/v1/operation-templates/${selectedTemplate.value.id}`, {
-      headers: {
-        Accept: 'application/json',
-      },
-      hzSkipErrorDialog: true,
-    })
-
-    const deletedId = selectedTemplate.value.id
-
-    selectedTemplateId.value = ''
-    await fetchTemplates()
-    emit('template-deleted', { id: deletedId })
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status === 403) {
-      window.hzNotifyError({ message: 'You do not have permission to delete that template.' })
-      return
-    }
-
-    console.error('Failed to delete template', err)
-    window.hzNotifyError({ message: 'Failed to delete template.' })
-  } finally {
-    templatesDeleting.value = false
-  }
+  const deletedId = selectedTemplate.value.id
+  router.delete(route('operations.templates.destroy', { template: deletedId }, Ziggy), {
+    preserveScroll: true,
+    preserveState: true,
+    only: ['operationTemplates', 'flash'],
+    onSuccess: () => {
+      selectedTemplateId.value = ''
+      emit('template-deleted', { id: deletedId })
+    },
+    onError: (errors) => {
+      window.hzNotifyError({
+        message: extractFirstFormError(errors, 'Failed to delete template.'),
+      })
+    },
+    onFinish: () => {
+      templatesDeleting.value = false
+    },
+  })
 }
 
 const squadronOptions = computed(() => {
@@ -245,27 +217,6 @@ const startLocationOptions = [
   { label: 'Nyx / Gateway / Pyro', value: 'Nyx / Gateway / Pyro' },
 ]
 
-async function fetchSquadrons() {
-  squadronsLoading.value = true
-  try {
-    const { data } = await axios.get('/api/v1/squadrons')
-    squadrons.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error('Failed to load squadrons', err)
-    }
-  } finally {
-    squadronsLoading.value = false
-  }
-}
-
-onMounted(() => {
-  fetchSquadrons()
-  fetchTemplates()
-})
-
-const page = usePage()
 const authUser = computed(() => page.props.auth?.user ?? null)
 
 const isDirectorLike = computed(() => {
@@ -301,8 +252,6 @@ const canSaveSquadronTemplate = computed(() => {
   return roles.some(r => officerRoleSlugs.includes(r?.slug))
 })
 
-const templates = ref([])
-const templatesLoading = ref(false)
 const templatesSaving = ref(false)
 const templatesUpdating = ref(false)
 const templatesDeleting = ref(false)
@@ -328,39 +277,6 @@ const templateOptions = computed(() => {
     }
   })
 })
-
-async function fetchTemplates() {
-  if (templatesLoading.value) return
-  templatesLoading.value = true
-
-  try {
-    const { data } = await axios.get('/api/v1/operation-templates', {
-      headers: {
-        Accept: 'application/json',
-      },
-    })
-
-    templates.value = Array.isArray(data?.payload?.templates)
-      ? data.payload.templates
-      : []
-
-    if (props.prefillTemplateId && prefillAppliedId.value !== props.prefillTemplateId) {
-      const id = Number(props.prefillTemplateId)
-      if (Number.isFinite(id)) {
-        selectedTemplateId.value = id
-        applyTemplateById(id)
-        prefillAppliedId.value = props.prefillTemplateId
-      }
-    }
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status !== 401 && status !== 419) {
-      console.error('Failed to load templates', err)
-    }
-  } finally {
-    templatesLoading.value = false
-  }
-}
 
 function buildTemplatePayload() {
   const trimmedSquadrons = (selectedSquadronNames.value ?? [])
@@ -435,9 +351,8 @@ async function saveTemplate(scope) {
   const squadronId = scope === 'squadron' ? props.squadronId : null
 
   templatesSaving.value = true
-  try {
-    const { data } = await axios.post(
-      '/api/v1/operation-templates',
+  router.post(
+      route('operations.templates.store', {}, Ziggy),
       {
         name: String(name).trim(),
         scope,
@@ -445,67 +360,32 @@ async function saveTemplate(scope) {
         payload: buildTemplatePayload(),
       },
       {
-        headers: {
-          Accept: 'application/json',
+        preserveScroll: true,
+        preserveState: true,
+        only: ['operationTemplates', 'flash'],
+        onSuccess: (visitPage) => {
+          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? null
+          const createdTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
+
+          if (templateId) {
+            selectedTemplateId.value = templateId
+          }
+
+          if (createdTemplate) {
+            emit('template-saved', createdTemplate)
+          }
         },
-        hzSkipErrorDialog: true,
+        onError: (errors) => {
+          window.hzNotifyError({
+            message: extractFirstFormError(errors, 'Template data is invalid. Please check fields and try again.'),
+          })
+        },
+        onFinish: () => {
+          templatesSaving.value = false
+        },
       }
     )
-
-    const createdTemplate = data?.payload?.template
-    const newId = createdTemplate?.id
-    await fetchTemplates()
-
-    if (newId) {
-      selectedTemplateId.value = newId
-    }
-
-    if (createdTemplate) {
-      emit('template-saved', createdTemplate)
-    }
-  } catch (err) {
-    const status = err?.response?.status ?? null
-    if (status === 403) {
-      window.hzNotifyError({ message: 'You do not have permission to save that template.' })
-      return
-    }
-
-    if (status === 422) {
-      window.hzNotifyError({
-        message: extractFirstFormError(
-          err?.response?.data?.errors,
-          'Template data is invalid. Please check fields and try again.'
-        ),
-      })
-      return
-    }
-
-    console.error('Failed to save template', err)
-    window.hzNotifyError({ message: 'Failed to save template.' })
-  } finally {
-    templatesSaving.value = false
-  }
 }
-
-watch(
-  () => props.prefillTemplateId,
-  (id) => {
-    if (!id) return
-    if (prefillAppliedId.value === id) return
-
-    const numericId = Number(id)
-    if (!Number.isFinite(numericId)) return
-
-    if ((templates.value ?? []).length) {
-      selectedTemplateId.value = numericId
-      applyTemplateById(numericId)
-      prefillAppliedId.value = id
-      return
-    }
-
-    fetchTemplates()
-  }
-)
 
 // ----------------------
 // MODE
@@ -593,6 +473,52 @@ const form = useForm({
   squadron_name: props.mission?.squadron_name ?? '',
   media_id: props.mission?.media_image?.id ?? null,
 })
+
+watch(
+  () => props.prefillTemplateId,
+  (id) => {
+    if (!id) return
+    if (prefillAppliedId.value === id) return
+
+    const numericId = Number(id)
+    if (!Number.isFinite(numericId)) return
+
+    selectedTemplateId.value = numericId
+    applyTemplateById(numericId)
+    prefillAppliedId.value = id
+  }
+)
+
+watch(
+  () => templates.value,
+  () => {
+    if (!props.prefillTemplateId || prefillAppliedId.value === props.prefillTemplateId) return
+
+    const numericId = Number(props.prefillTemplateId)
+    if (!Number.isFinite(numericId)) return
+
+    selectedTemplateId.value = numericId
+    applyTemplateById(numericId)
+    prefillAppliedId.value = props.prefillTemplateId
+  },
+  { immediate: true }
+)
+
+watch(
+  () => operationTemplateFlash.value,
+  (flash) => {
+    if (!flash?.id) return
+
+    if (flash.event === 'deleted' && Number(selectedTemplateId.value) === Number(flash.id)) {
+      selectedTemplateId.value = ''
+      return
+    }
+
+    if (flash.event === 'created' || flash.event === 'updated') {
+      selectedTemplateId.value = flash.id
+    }
+  }
+)
 
 const quarterHourMinuteOptions = [0, 15, 30, 45]
 
@@ -804,72 +730,99 @@ async function submit(mode) {
     form.processing = true
     form.clearErrors()
 
-    try {
-      const headers = {
-        headers: {
-          Accept: 'application/json',
+    const onEmbeddedError = (errors) => {
+      form.setError(errors)
+      window.hzNotifyError({ message: extractFirstFormError(errors) })
+    }
+
+    if (isEdit.value) {
+      router.put(
+        route('operations.update', props.mission.id, Ziggy),
+        {
+          ...form.data(),
+          stay_on_page: true,
+        },
+        {
+          preserveScroll: true,
+          preserveState: true,
+          only: ['operations', 'activeOperation', 'editingOperation', 'flash'],
+          onSuccess: () => {
+            if (shouldPublishTransition && currentStatus === 'draft') {
+              router.post(
+                route('operations.publish', props.mission.id, Ziggy),
+                {
+                  stay_on_page: true,
+                },
+                {
+                  preserveScroll: true,
+                  preserveState: true,
+                  only: ['operations', 'activeOperation', 'editingOperation', 'flash'],
+                  onSuccess: () => {
+                    emit('saved', {
+                      id: props.mission.id,
+                      mode: 'edit',
+                    })
+                  },
+                  onError: onEmbeddedError,
+                  onFinish: () => {
+                    form.processing = false
+                  },
+                }
+              )
+
+              return
+            }
+
+            emit('saved', {
+              id: props.mission.id,
+              mode: 'edit',
+            })
+          },
+          onError: onEmbeddedError,
+          onFinish: () => {
+            if (!(shouldPublishTransition && currentStatus === 'draft')) {
+              form.processing = false
+            }
+          },
+        }
+      )
+
+      return
+    }
+
+    const storeUrl = props.squadronId
+      ? route('operations.store', { squadron: props.squadronId }, Ziggy)
+      : route('operations.storeGlobal', {}, Ziggy)
+
+    router.post(
+      storeUrl,
+      {
+        ...form.data(),
+        stay_on_page: true,
+      },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['operations', 'activeOperation', 'editingOperation', 'flash'],
+        onSuccess: (visitPage) => {
+          const newId = visitPage?.props?.flash?.operation?.id ?? operationFlash.value?.id ?? null
+
+          if (!newId) {
+            console.error('Could not resolve operation ID.')
+            return
+          }
+
+          emit('saved', {
+            id: newId,
+            mode: 'create',
+          })
+        },
+        onError: onEmbeddedError,
+        onFinish: () => {
+          form.processing = false
         },
       }
-
-      if (isEdit.value) {
-        const { data } = await axios.put(
-          route('operations.update', props.mission.id, Ziggy),
-          form.data(),
-          headers
-        )
-
-        const nextMedia = data?.payload?.operation?.media_image ?? null
-        selectedMedia.value = nextMedia
-        form.media_id = nextMedia?.id ?? null
-
-        if (shouldPublishTransition && currentStatus === 'draft') {
-          await axios.post(
-            route('operations.publish', props.mission.id, Ziggy),
-            {},
-            headers
-          )
-        }
-
-        emit('saved', {
-          id: props.mission.id,
-          mode: 'edit',
-        })
-
-        return
-      }
-
-      const storeUrl = props.squadronId
-        ? route('operations.store', { squadron: props.squadronId }, Ziggy)
-        : route('operations.storeGlobal', {}, Ziggy)
-
-      const { data } = await axios.post(storeUrl, form.data(), headers)
-      const newId = data?.payload?.operation?.id
-
-      const nextMedia = data?.payload?.operation?.media_image ?? null
-      selectedMedia.value = nextMedia
-      form.media_id = nextMedia?.id ?? null
-
-      if (!newId) {
-        console.error('Could not resolve operation ID.')
-        return
-      }
-
-      emit('saved', {
-        id: newId,
-        mode: 'create',
-      })
-    } catch (err) {
-      const errors = err?.response?.data?.errors
-      if (err?.response?.status === 422 && errors) {
-        form.setError(errors)
-        window.hzNotifyError({ message: extractFirstFormError(errors) })
-        return
-      }
-
-      console.error('EMBEDDED SAVE ERROR:', err)
-    } finally {
-      form.processing = false
-    }
+    )
 
     return
   }
@@ -882,13 +835,12 @@ async function submit(mode) {
       route('operations.update', props.mission.id, Ziggy),
       {
         preserveScroll: true,
-        async onSuccess() {
+        onSuccess() {
           if (shouldPublishTransition && currentStatus === 'draft') {
-            try {
-              await axios.post(route('operations.publish', props.mission.id, Ziggy))
-            } catch (err) {
-              console.error('Publish error:', err)
-            }
+            router.post(route('operations.publish', props.mission.id, Ziggy), {}, {
+              preserveScroll: true,
+            })
+            return
           }
 
           emit('saved', {
