@@ -2,44 +2,38 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePreferencesRequest;
 use App\Models\MemberPreference;
 use Illuminate\Http\Request;
 
+/**
+ * JSON API controller for the authenticated user's preference record.
+ */
 class MePreferenceController extends Controller
 {
     /**
-     * GET /api/v1/me/preferences
-     * Return the authenticated user's preferences, or create defaults if missing.
+     * Return the authenticated user's preferences, creating a default row when
+     * one does not exist yet.
      */
     public function show(Request $request)
     {
         $user = $request->user();
 
-        // Get existing preferences or create defaults
         $prefs = $user->preferences;
 
-        if (!$prefs) {
+        if (! $prefs) {
             $prefs = $user->preferences()->create(MemberPreference::defaults());
         }
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => null,
-            'data' => [
-                'status'          => $prefs->status,
-                'loa_until'       => $prefs->loa_until,
-                'preferred_times' => $prefs->preferred_times,
-                'focus'           => $prefs->focus,
-                'roles'           => $prefs->roles,
-                'notes'           => $prefs->notes,
-            ],
-        ]);
+        return ApiResponse::success(
+            null,
+            ['preferences' => $this->presentPreferences($prefs)]
+        );
     }
 
     /**
-     * PUT/PATCH /api/v1/me/preferences
      * Update the authenticated user's preferences.
      */
     public function update(UpdatePreferencesRequest $request)
@@ -48,13 +42,14 @@ class MePreferenceController extends Controller
 
         $prefs = $user->preferences;
 
-        if (!$prefs) {
+        if (! $prefs) {
             $prefs = $user->preferences()->create(MemberPreference::defaults());
         }
 
         $data = $request->validated();
 
-        // Only accept these keys
+        // Keep the saved payload restricted to the explicit preference fields
+        // supported by this endpoint.
         $allowed = [
             'status',
             'loa_until',
@@ -71,17 +66,24 @@ class MePreferenceController extends Controller
         $prefs->fill($safeData);
         $prefs->save();
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Preferences updated.',
-            'data' => [
-                'status'          => $prefs->status,
-                'loa_until'       => $prefs->loa_until,
-                'preferred_times' => $prefs->preferred_times,
-                'focus'           => $prefs->focus,
-                'roles'           => $prefs->roles,
-                'notes'           => $prefs->notes,
-            ],
-        ]);
+        return ApiResponse::success(
+            'Preferences updated.',
+            ['preferences' => $this->presentPreferences($prefs)]
+        );
+    }
+
+    /**
+     * Normalize the preference payload returned by both endpoints.
+     */
+    protected function presentPreferences(MemberPreference $prefs): array
+    {
+        return [
+            'status'          => $prefs->status,
+            'loa_until'       => $prefs->loa_until,
+            'preferred_times' => $prefs->preferred_times,
+            'focus'           => $prefs->focus,
+            'roles'           => $prefs->roles,
+            'notes'           => $prefs->notes,
+        ];
     }
 }

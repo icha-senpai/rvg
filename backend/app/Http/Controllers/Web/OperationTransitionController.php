@@ -10,6 +10,10 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Handles the focused web actions that move an operation between lifecycle
+ * states.
+ */
 class OperationTransitionController extends Controller
 {
     use AuthorizesRequests;
@@ -18,6 +22,12 @@ class OperationTransitionController extends Controller
         protected OperationService $service
     ) {}
 
+    /**
+     * Publish a draft operation.
+     *
+     * The action returns JSON for modal/editor flows and redirects for normal web
+     * form submissions.
+     */
     public function publish(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -49,6 +59,9 @@ class OperationTransitionController extends Controller
             ->with('success', 'Operation published successfully.');
     }
 
+    /**
+     * Start a published operation.
+     */
     public function start(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -68,6 +81,9 @@ class OperationTransitionController extends Controller
             ->with('success', 'Operation started.');
     }
 
+    /**
+     * Complete an operation with an explicit success or failure outcome.
+     */
     public function complete(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -91,6 +107,9 @@ class OperationTransitionController extends Controller
             ->with('success', 'Operation completed.');
     }
 
+    /**
+     * Cancel an operation with an optional cancellation reason.
+     */
     public function cancel(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);

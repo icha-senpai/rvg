@@ -12,6 +12,9 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
+/**
+ * Renders the public and authenticated squadron list and detail pages.
+ */
 class SquadronPageController extends Controller
 {
     use AuthorizesRequests;
@@ -20,6 +23,10 @@ class SquadronPageController extends Controller
         protected SquadronService $squadrons
     ) {}
 
+    /**
+     * Redirect numeric squadron routes to the canonical slug route when a slug
+     * exists, otherwise render the squadron page directly.
+     */
     public function showById(Request $request, Squadron $squadron)
     {
         if ($squadron->slug) {
@@ -29,11 +36,18 @@ class SquadronPageController extends Controller
         return $this->renderShowPage($request, $squadron);
     }
 
+    /**
+     * Render the squadron detail page.
+     */
     public function show(Request $request, Squadron $squadron)
     {
         return $this->renderShowPage($request, $squadron);
     }
 
+    /**
+     * Render the squadron index page, optionally expanding one active squadron
+     * when the query string requests it.
+     */
     public function index(Request $request)
     {
         $this->authorize('viewAny', Squadron::class);
@@ -48,6 +62,9 @@ class SquadronPageController extends Controller
         ]);
     }
 
+    /**
+     * Render the shared squadron detail payload for both slug and numeric routes.
+     */
     protected function renderShowPage(Request $request, Squadron $squadron)
     {
         return Inertia::render('Squadrons/Show', [
@@ -56,6 +73,12 @@ class SquadronPageController extends Controller
         ]);
     }
 
+    /**
+     * Resolve the active squadron requested from the index page query string.
+     *
+     * The frontend may send either a numeric id or a slug, so both are supported
+     * here before the record is presented.
+     */
     protected function resolveActiveSquadron(Request $request): ?Squadron
     {
         $identifier = trim((string) $request->query('squadron', ''));
@@ -71,6 +94,10 @@ class SquadronPageController extends Controller
         return Squadron::query()->where('slug', $identifier)->firstOrFail();
     }
 
+    /**
+     * Build the expanded squadron payload used by the list side panel and the
+     * dedicated squadron page.
+     */
     protected function presentActiveSquadron(Request $request, Squadron $squadron): array
     {
         $this->authorize('view', $squadron);
@@ -87,6 +114,8 @@ class SquadronPageController extends Controller
             $viewerMembership = $squadron->members->firstWhere('user_id', $user->id);
         }
 
+        // These permission flags keep the Vue layer simple by exposing the exact
+        // squadron actions the current viewer is allowed to take.
         return [
             'squadron' => SquadronPresenter::make($squadron),
             'members' => SquadronMemberPresenter::collection($squadron->members),

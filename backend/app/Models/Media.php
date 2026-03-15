@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Represents one uploaded media asset together with its derived variants and
+ * optional polymorphic attachment.
+ */
 class Media extends Model
 {
-    /* ------------------------------------------
-     | COLLECTION CONSTANTS
-     ------------------------------------------ */
     public const COLLECTION_AVATAR          = 'avatar';
     public const COLLECTION_SQUADRON_EMBLEM = 'squadron_emblem';
     public const COLLECTION_OPERATION_IMAGE = 'operation_image';
@@ -24,9 +25,6 @@ class Media extends Model
         self::COLLECTION_SITE_ASSET,
     ];
 
-    /* ------------------------------------------
-     | ALLOWED MIME TYPES
-     ------------------------------------------ */
     public const ALLOWED_MIMES = [
         'image/jpeg',
         'image/png',
@@ -34,14 +32,11 @@ class Media extends Model
         'image/gif',
     ];
 
-    /* ------------------------------------------
-     | SIZE LIMIT (50 MB in bytes)
-     ------------------------------------------ */
+    /**
+     * Maximum upload size in bytes.
+     */
     public const MAX_SIZE_BYTES = 52_428_800;
 
-    /* ------------------------------------------
-     | FILLABLE
-     ------------------------------------------ */
     protected $fillable = [
         'uploaded_by',
         'collection',
@@ -67,32 +62,33 @@ class Media extends Model
         'meta'   => 'array',
     ];
 
-    /* ------------------------------------------
-     | RELATIONSHIPS
-     ------------------------------------------ */
-
+    /**
+     * Return the user who uploaded this media record.
+     */
     public function uploader()
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
     /**
-     * Polymorphic parent: User, Squadron, Operation, etc.
+     * Return the polymorphic owner of this media asset when it is attached.
      */
     public function mediable()
     {
         return $this->morphTo();
     }
 
-    /* ------------------------------------------
-     | URL ACCESSORS
-     ------------------------------------------ */
-
+    /**
+     * Return the public URL for the original stored file.
+     */
     public function getUrlAttribute(): string
     {
         return Storage::disk($this->disk)->url($this->path);
     }
 
+    /**
+     * Return the public URL for the thumbnail variant when one exists.
+     */
     public function getThumbnailUrlAttribute(): ?string
     {
         if (! $this->thumbnail_path) {
@@ -102,6 +98,9 @@ class Media extends Model
         return Storage::disk($this->disk)->url($this->thumbnail_path);
     }
 
+    /**
+     * Return the public URL for the medium-size variant when one exists.
+     */
     public function getMediumUrlAttribute(): ?string
     {
         if (! $this->medium_path) {
@@ -120,53 +119,66 @@ class Media extends Model
         return $this->medium_url ?? $this->url;
     }
 
-    /* ------------------------------------------
-     | SCOPES
-     ------------------------------------------ */
-
+    /**
+     * Scope the query to one media collection.
+     */
     public function scopeInCollection($query, string $collection)
     {
         return $query->where('collection', $collection);
     }
 
+    /**
+     * Scope the query to media uploaded by one user.
+     */
     public function scopeUploadedBy($query, int $userId)
     {
         return $query->where('uploaded_by', $userId);
     }
 
+    /**
+     * Scope the query to media attached to the given polymorphic entity.
+     */
     public function scopeAttachedTo($query, Model $entity)
     {
         return $query->where('mediable_type', get_class($entity))
                      ->where('mediable_id', $entity->id);
     }
 
+    /**
+     * Scope the query to unattached media records.
+     */
     public function scopeUnattached($query)
     {
         return $query->whereNull('mediable_type')
                      ->whereNull('mediable_id');
     }
 
-    /* ------------------------------------------
-     | HELPERS
-     ------------------------------------------ */
-
+    /**
+     * Check whether the stored asset is an image-type file.
+     */
     public function isImage(): bool
     {
         return str_starts_with($this->mime_type, 'image/');
     }
 
+    /**
+     * Check whether this record refers to a legacy SVG asset.
+     */
     public function isSvg(): bool
     {
         return $this->mime_type === 'image/svg+xml';
     }
 
+    /**
+     * Check whether the image format may contain animation.
+     */
     public function isAnimated(): bool
     {
-        return in_array($this->mime_type, ['image/gif', 'image/webp']);
+        return in_array($this->mime_type, ['image/gif', 'image/webp'], true);
     }
 
     /**
-     * Human-readable file size.
+     * Return the stored file size in a human-readable format.
      */
     public function getHumanSizeAttribute(): string
     {

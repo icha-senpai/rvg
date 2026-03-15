@@ -19,6 +19,8 @@ use App\Policies\RsiChangeRequestPolicy;
 use App\Policies\AdminPolicy;
 use App\Policies\MediaPolicy;
 
+use App\Domain\AccessControl\AccessService;
+
 class AuthServiceProvider extends ServiceProvider
 {
     /**
@@ -43,12 +45,14 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::before(function ($user, string $ability) {
+            $access = app(AccessService::class);
+
             if (! $user) {
                 return null;
             }
 
             if (str_contains($ability, '.')) {
-                return $user->hasPermission($ability);
+                return $access->can($user, $ability);
             }
 
             return null;
@@ -56,8 +60,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // Admin panel access gate
         Gate::define('access-admin-panel', function (User $user) {
-            return $user->hasRole('director') 
-                || $user->hasRole('tech_director');
+            return app(AccessService::class)->isDirectorLike($user);
         });
     }
 }

@@ -7,18 +7,21 @@ use App\Http\Requests\UpdateMeRequest;
 use App\Http\Resources\MeResource;
 use Illuminate\Http\Request;
 
+/**
+ * JSON API controller for the authenticated user's own profile endpoints.
+ */
 class MeController extends Controller
 {
     /**
-     * GET /api/v1/me
-     * Return the authenticated user's profile + roles + verification states.
+     * Return the authenticated user's current profile, roles, and verification
+     * state.
      */
     public function show(Request $request)
     {
         $user = $request->user()->load('roles');
 
-        // Ensure RSI/Discord fields are present in the response payload
-        // by passing them explicitly into MeResource.
+        // The resource keeps the API payload shape centralized so this transport
+        // endpoint only needs to load the missing relationships.
         return response()->json([
             'status'  => 'success',
             'message' => null,
@@ -27,14 +30,14 @@ class MeController extends Controller
     }
 
     /**
-     * PUT /api/v1/me
-     * Update self-service fields for the authenticated user.
+     * Update the authenticated user's self-service profile fields.
      */
     public function update(UpdateMeRequest $request)
     {
         $user = $request->user();
 
-        // Strict extraction of allowed fields
+        // Keep the persisted payload restricted to the explicit self-service
+        // profile fields supported by this endpoint.
         $allowed = [
             'bio',
             'timezone',
@@ -57,7 +60,6 @@ class MeController extends Controller
             ->only($allowed)
             ->toArray();
 
-        // Update user profile
         $user->fill($safeData);
         $user->save();
 

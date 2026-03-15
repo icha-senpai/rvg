@@ -13,6 +13,34 @@ import HorizonSelect from '@/Components/HorizonSelect.vue'
 import HorizonDateTimePicker from '@/Components/HorizonDateTimePicker.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 
+// Shared auth and error helpers
+import {
+  canSaveSquadronTemplate as userCanSaveSquadronTemplate,
+  canUploadOperationImages as userCanUploadOperationImages,
+  isDirectorLike as userIsDirectorLike,
+} from '@/auth'
+import { notifyError, notifyErrorFromErrors } from '@/errors'
+import {
+  applyTemplatePayload as applySharedTemplatePayload,
+  buildDateTime,
+  buildTemplatePayload as buildSharedTemplatePayload,
+  computeRsvpPartsFromStart,
+  normalizeOperationSlots,
+  normalizeSquadronName,
+  parseSquadronNames,
+  resolveOperationIdFromResponse,
+  splitPickerValue,
+  splitUTC,
+  validateOperationSchedule,
+} from '@/operationForm'
+import {
+  createOperationTemplate,
+  deleteOperationTemplate,
+  renameOperationTemplate,
+  resolveOperationTemplateVisit,
+  updateOperationTemplate,
+} from '@/operationTemplateCrud'
+
 // ----------------------
 // EMITS
 // ----------------------
@@ -42,19 +70,12 @@ const templates = computed(() => page.props?.operationTemplates ?? [])
 const operationFlash = computed(() => page.props?.flash?.operation ?? null)
 const operationTemplateFlash = computed(() => page.props?.flash?.operationTemplate ?? null)
 
-const selectedSquadronNames = ref(
-  typeof props.mission?.squadron_name === 'string' && props.mission.squadron_name.trim()
-    ? props.mission.squadron_name.split(',').map(s => s.trim()).filter(Boolean)
-    : []
-)
+const selectedSquadronNames = ref(parseSquadronNames(props.mission?.squadron_name))
 
 watch(
   () => props.mission?.squadron_name,
   (next) => {
-    selectedSquadronNames.value =
-      typeof next === 'string' && next.trim()
-        ? next.split(',').map(s => s.trim()).filter(Boolean)
-        : []
+    selectedSquadronNames.value = parseSquadronNames(next)
 
     form.squadron_name = typeof next === 'string' ? next : ''
   }
@@ -68,35 +89,22 @@ async function renameSelectedTemplate() {
   if (!nextName || !String(nextName).trim()) return
 
   templatesUpdating.value = true
-  router.put(
-      route('operations.templates.update', { template: selectedTemplate.value.id }, Ziggy),
-      {
-        name: String(nextName).trim(),
-      },
-      {
-        preserveScroll: true,
-        preserveState: true,
-        only: ['operationTemplates', 'flash'],
-        onSuccess: (visitPage) => {
-          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? selectedTemplate.value?.id
-          if (templateId) {
-            selectedTemplateId.value = templateId
-            const updatedTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
-            if (updatedTemplate) {
-              emit('template-updated', updatedTemplate)
-            }
-          }
-        },
-        onError: (errors) => {
-          window.hzNotifyError({
-            message: extractFirstFormError(errors, 'Template name is invalid.'),
-          })
-        },
-        onFinish: () => {
-          templatesUpdating.value = false
-        },
-      }
-    )
+  renameOperationTemplate({
+    router,
+    route,
+    Ziggy,
+    templateId: selectedTemplate.value.id,
+    name: String(nextName).trim(),
+    onSuccess: (visitPage) => {
+      handleTemplateMutationSuccess(visitPage, 'template-updated', selectedTemplate.value?.id ?? null)
+    },
+    onError: (errors) => {
+      notifyErrorFromErrors(errors, 'Template name is invalid.')
+    },
+    onFinish: () => {
+      templatesUpdating.value = false
+    },
+  })
 }
 
 async function updateSelectedTemplate() {
@@ -107,35 +115,22 @@ async function updateSelectedTemplate() {
   if (!ok) return
 
   templatesUpdating.value = true
-  router.put(
-      route('operations.templates.update', { template: selectedTemplate.value.id }, Ziggy),
-      {
-        payload: buildTemplatePayload(),
-      },
-      {
-        preserveScroll: true,
-        preserveState: true,
-        only: ['operationTemplates', 'flash'],
-        onSuccess: (visitPage) => {
-          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? selectedTemplate.value?.id
-          if (templateId) {
-            selectedTemplateId.value = templateId
-            const updatedTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
-            if (updatedTemplate) {
-              emit('template-updated', updatedTemplate)
-            }
-          }
-        },
-        onError: (errors) => {
-          window.hzNotifyError({
-            message: extractFirstFormError(errors, 'Template data is invalid.'),
-          })
-        },
-        onFinish: () => {
-          templatesUpdating.value = false
-        },
-      }
-    )
+  updateOperationTemplate({
+    router,
+    route,
+    Ziggy,
+    templateId: selectedTemplate.value.id,
+    payload: buildSharedTemplatePayload(form, selectedSquadronNames.value),
+    onSuccess: (visitPage) => {
+      handleTemplateMutationSuccess(visitPage, 'template-updated', selectedTemplate.value?.id ?? null)
+    },
+    onError: (errors) => {
+      notifyErrorFromErrors(errors, 'Template data is invalid.')
+    },
+    onFinish: () => {
+      templatesUpdating.value = false
+    },
+  })
 }
 
 async function deleteSelectedTemplate() {
@@ -146,19 +141,17 @@ async function deleteSelectedTemplate() {
   if (!ok) return
 
   templatesDeleting.value = true
-  const deletedId = selectedTemplate.value.id
-  router.delete(route('operations.templates.destroy', { template: deletedId }, Ziggy), {
-    preserveScroll: true,
-    preserveState: true,
-    only: ['operationTemplates', 'flash'],
+  deleteOperationTemplate({
+    router,
+    route,
+    Ziggy,
+    templateId: selectedTemplate.value.id,
     onSuccess: () => {
       selectedTemplateId.value = ''
-      emit('template-deleted', { id: deletedId })
+      emit('template-deleted', { id: selectedTemplate.value.id })
     },
     onError: (errors) => {
-      window.hzNotifyError({
-        message: extractFirstFormError(errors, 'Failed to delete template.'),
-      })
+      notifyErrorFromErrors(errors, 'Failed to delete template.')
     },
     onFinish: () => {
       templatesDeleting.value = false
@@ -220,36 +213,15 @@ const startLocationOptions = [
 const authUser = computed(() => page.props.auth?.user ?? null)
 
 const isDirectorLike = computed(() => {
-  const roles = authUser.value?.roles ?? []
-  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+  return userIsDirectorLike(authUser.value)
 })
 
 const canUploadOperationImages = computed(() => {
-  if (isDirectorLike.value) return true
-
-  const roles = authUser.value?.roles ?? []
-  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
-  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true
-
-  return Number(authUser.value?.rank_level ?? 0) >= 2
+  return userCanUploadOperationImages(authUser.value)
 })
 
 const canSaveSquadronTemplate = computed(() => {
-  const squadronId = Number(props.squadronId)
-  if (!Number.isFinite(squadronId) || !squadronId) return false
-
-  if (isDirectorLike.value) return true
-
-  const memberships = authUser.value?.squadrons ?? []
-  const membership = memberships.find(s => Number(s?.id) === squadronId)
-  if (!membership) return false
-
-  const status = membership?.pivot?.membership_status ?? null
-  if (status !== 'active') return false
-
-  const roles = authUser.value?.roles ?? []
-  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
-  return roles.some(r => officerRoleSlugs.includes(r?.slug))
+  return userCanSaveSquadronTemplate(authUser.value, props.squadronId)
 })
 
 const templatesSaving = ref(false)
@@ -278,60 +250,6 @@ const templateOptions = computed(() => {
   })
 })
 
-function buildTemplatePayload() {
-  const trimmedSquadrons = (selectedSquadronNames.value ?? [])
-    .map(s => (typeof s === 'string' ? s.trim() : ''))
-    .filter(Boolean)
-
-  return {
-    title: form.title ?? '',
-    gameplay_type: form.gameplay_type ?? '',
-    description: form.description ?? '',
-    extended_description: form.extended_description ?? '',
-    visibility: form.visibility ?? 'open',
-    squadron_name: trimmedSquadrons.length ? trimmedSquadrons.join(', ') : null,
-    operation_type: form.operation_type ?? 'operation',
-    branch: form.branch ?? '',
-    operation_strictness: form.operation_strictness ?? '',
-    start_location: form.start_location ?? '',
-    operation_location: form.operation_location ?? '',
-    slots: Array.isArray(form.slots) ? form.slots : [],
-  }
-}
-
-function applyTemplatePayload(payload) {
-  if (!payload || typeof payload !== 'object') return
-
-  if ('title' in payload) form.title = payload.title ?? ''
-  if ('gameplay_type' in payload) form.gameplay_type = payload.gameplay_type ?? ''
-  else if ('type' in payload) form.gameplay_type = payload.type ?? ''
-  if ('description' in payload) form.description = payload.description ?? ''
-  if ('extended_description' in payload) form.extended_description = payload.extended_description ?? ''
-  else if ('notes' in payload) form.extended_description = payload.notes ?? ''
-
-  if ('visibility' in payload) form.visibility = payload.visibility ?? 'open'
-  if ('operation_type' in payload) form.operation_type = payload.operation_type ?? 'operation'
-  else if ('operation_kind' in payload) form.operation_type = payload.operation_kind ?? 'operation'
-  if ('branch' in payload) form.branch = payload.branch ?? ''
-  if ('operation_strictness' in payload) form.operation_strictness = payload.operation_strictness ?? ''
-  if ('start_location' in payload) form.start_location = payload.start_location ?? ''
-  if ('operation_location' in payload) form.operation_location = payload.operation_location ?? ''
-
-  if ('slots' in payload) {
-    form.slots = Array.isArray(payload.slots) ? [...payload.slots] : []
-  }
-
-  if ('squadron_name' in payload) {
-    const raw = payload.squadron_name
-    const names = typeof raw === 'string' && raw.trim()
-      ? raw.split(',').map(s => s.trim()).filter(Boolean)
-      : []
-
-    selectedSquadronNames.value = names
-    form.squadron_name = typeof raw === 'string' ? raw : ''
-  }
-}
-
 function applyTemplateById(id) {
   const template = (templates.value ?? []).find(t => Number(t?.id) === Number(id))
   if (!template) return
@@ -351,40 +269,42 @@ async function saveTemplate(scope) {
   const squadronId = scope === 'squadron' ? props.squadronId : null
 
   templatesSaving.value = true
-  router.post(
-      route('operations.templates.store', {}, Ziggy),
-      {
-        name: String(name).trim(),
-        scope,
-        squadron_id: squadronId,
-        payload: buildTemplatePayload(),
-      },
-      {
-        preserveScroll: true,
-        preserveState: true,
-        only: ['operationTemplates', 'flash'],
-        onSuccess: (visitPage) => {
-          const templateId = visitPage?.props?.flash?.operationTemplate?.id ?? null
-          const createdTemplate = (visitPage?.props?.operationTemplates ?? []).find(t => Number(t?.id) === Number(templateId))
+  createOperationTemplate({
+    router,
+    route,
+    Ziggy,
+    name: String(name).trim(),
+    scope,
+    squadronId,
+    payload: buildSharedTemplatePayload(form, selectedSquadronNames.value),
+    onSuccess: (visitPage) => {
+      handleTemplateMutationSuccess(visitPage, 'template-saved')
+    },
+    onError: (errors) => {
+      notifyErrorFromErrors(errors, 'Template data is invalid. Please check fields and try again.')
+    },
+    onFinish: () => {
+      templatesSaving.value = false
+    },
+  })
+}
 
-          if (templateId) {
-            selectedTemplateId.value = templateId
-          }
+function applyTemplatePayload(payload) {
+  applySharedTemplatePayload(form, (names) => {
+    selectedSquadronNames.value = names
+  }, payload)
+}
 
-          if (createdTemplate) {
-            emit('template-saved', createdTemplate)
-          }
-        },
-        onError: (errors) => {
-          window.hzNotifyError({
-            message: extractFirstFormError(errors, 'Template data is invalid. Please check fields and try again.'),
-          })
-        },
-        onFinish: () => {
-          templatesSaving.value = false
-        },
-      }
-    )
+function handleTemplateMutationSuccess(visitPage, eventName, fallbackTemplateId = null) {
+  const { templateId, template } = resolveOperationTemplateVisit(visitPage, fallbackTemplateId)
+
+  if (templateId) {
+    selectedTemplateId.value = templateId
+  }
+
+  if (template && eventName) {
+    emit(eventName, template)
+  }
 }
 
 // ----------------------
@@ -403,34 +323,6 @@ function openSlotWarning(message) {
 function closeSlotWarning() {
   slotWarningOpen.value = false
   slotWarningMessage.value = ''
-}
-
-// ----------------------
-// UTC HELPERS
-// ----------------------
-function splitUTC(iso) {
-  if (!iso) return { date: '', time: '' }
-  const clean = iso.replace('Z', '')
-  return {
-    date: clean.slice(0, 10),
-    time: clean.slice(11, 16),
-  }
-}
-
-function buildDateTime(date, time) {
-  if (!date || !time) return null
-  const normalizedTime = time.length === 5 ? `${time}:00` : time
-  return `${date} ${normalizedTime}`
-}
-
-function extractFirstFormError(errors, fallbackMessage = 'Please check the form and try again.') {
-  if (!errors || typeof errors !== 'object') return fallbackMessage
-
-  const firstKey = Object.keys(errors)[0]
-  const firstValue = firstKey ? errors[firstKey] : null
-  const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue
-
-  return firstMessage ? String(firstMessage) : fallbackMessage
 }
 
 // ----------------------
@@ -521,31 +413,6 @@ watch(
 )
 
 const quarterHourMinuteOptions = [0, 15, 30, 45]
-
-function splitPickerValue(value) {
-  if (!value) return { date: '', time: '' }
-  const [date, timeRaw] = String(value).split('T')
-  const time = (timeRaw ?? '').slice(0, 5)
-  return { date: date ?? '', time }
-}
-
-function computeRsvpPartsFromStart(startDate, startTime) {
-  if (!startDate || !startTime) return null
-  const [year, month, day] = String(startDate).split('-').map(Number)
-  const [hour, minute] = String(startTime).split(':').map(Number)
-  if (!year || !month || !day) return null
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
-
-  const startUtc = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
-  const rsvpUtc = new Date(startUtc.getTime() - 30 * 60 * 1000)
-
-  const pad = (n) => String(n).padStart(2, '0')
-
-  return {
-    date: `${rsvpUtc.getUTCFullYear()}-${pad(rsvpUtc.getUTCMonth() + 1)}-${pad(rsvpUtc.getUTCDate())}`,
-    time: `${pad(rsvpUtc.getUTCHours())}:${pad(rsvpUtc.getUTCMinutes())}`,
-  }
-}
 
 const rsvpAuto = ref(false)
 let rsvpAutoApplying = false
@@ -667,13 +534,7 @@ function removeSlot(index) {
 // SUBMIT HANDLER
 // ----------------------
 async function submit(mode) {
-  const trimmedSquadrons = (selectedSquadronNames.value ?? [])
-    .map(s => (typeof s === 'string' ? s.trim() : ''))
-    .filter(Boolean)
-
-  form.squadron_name = trimmedSquadrons.length
-    ? trimmedSquadrons.join(', ')
-    : null
+  form.squadron_name = normalizeSquadronName(selectedSquadronNames.value)
 
   const currentStatus = props.mission?.status ?? 'draft'
   const isPublishing = mode === 'published'
@@ -689,32 +550,19 @@ async function submit(mode) {
   form.ends_at = buildDateTime(form.end_date, form.end_time)
   form.rsvp_deadline = buildDateTime(form.rsvp_date, form.rsvp_time)
 
-  const re = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/
+  const scheduleValidationMessage = validateOperationSchedule({
+    startsAt: form.starts_at,
+    endsAt: form.ends_at,
+    rsvpDeadline: form.rsvp_deadline,
+  })
 
-  if (!re.test(form.starts_at)) {
-    window.hzNotifyError({ message: 'Start date and time are required.' })
-    return
-  }
-
-  if (form.ends_at && !re.test(form.ends_at)) {
-    window.hzNotifyError({ message: 'End time must include date and time.' })
-    return
-  }
-
-  if (form.rsvp_deadline && !re.test(form.rsvp_deadline)) {
-    window.hzNotifyError({ message: 'RSVP deadline must include date and time.' })
+  if (scheduleValidationMessage) {
+    notifyError({ message: scheduleValidationMessage })
     return
   }
 
   if (Array.isArray(form.slots) && form.slots.length) {
-    const trimmedSlots = form.slots.map(slot =>
-      typeof slot === 'string' ? slot.trim() : slot
-    )
-
-    const invalidIndexes = trimmedSlots
-      .map((slot, index) => ({ slot, index }))
-      .filter(({ slot }) => typeof slot !== 'string' || slot.length === 0)
-      .map(({ index }) => index + 1)
+    const { trimmedSlots, invalidIndexes } = normalizeOperationSlots(form.slots)
 
     if (invalidIndexes.length) {
       openSlotWarning(
@@ -732,7 +580,7 @@ async function submit(mode) {
 
     const onEmbeddedError = (errors) => {
       form.setError(errors)
-      window.hzNotifyError({ message: extractFirstFormError(errors) })
+      notifyErrorFromErrors(errors)
     }
 
     if (isEdit.value) {
@@ -805,10 +653,10 @@ async function submit(mode) {
         preserveState: true,
         only: ['operations', 'activeOperation', 'editingOperation', 'flash'],
         onSuccess: (visitPage) => {
-          const newId = visitPage?.props?.flash?.operation?.id ?? operationFlash.value?.id ?? null
+          const newId = resolveOperationIdFromResponse(visitPage, operationFlash.value?.id ?? null)
 
           if (!newId) {
-            console.error('Could not resolve operation ID.')
+            notifyErrorFromErrors(null, 'Operation was created, but the editor could not resolve its ID.')
             return
           }
 
@@ -849,7 +697,7 @@ async function submit(mode) {
           })
         },
         onError: (errors) => {
-          console.error('UPDATE ERROR:', errors)
+          notifyErrorFromErrors(errors, 'Failed to update operation.')
         },
       }
     )
@@ -866,21 +714,14 @@ async function submit(mode) {
     const response = await form.post(storeUrl, {
       preserveScroll: true,
       onError: (errors) => {
-        console.error('CREATE ERROR:', errors)
+        notifyErrorFromErrors(errors, 'Failed to create operation.')
       },
     })
 
-    let newId =
-      response?.props?.operation?.id ??
-      response?.operation?.id
-
-    if (!newId && response?.url) {
-      const match = response.url.match(/operations\/(\d+)/)
-      if (match) newId = match[1]
-    }
+    const newId = resolveOperationIdFromResponse(response, operationFlash.value?.id ?? null)
 
     if (!newId) {
-      console.error('Could not resolve operation ID.')
+      notifyErrorFromErrors(null, 'Operation was created, but the editor could not resolve its ID.')
       return
     }
 
@@ -890,7 +731,7 @@ async function submit(mode) {
     })
 
   } catch (err) {
-    console.error('CREATE ERROR:', err)
+    notifyErrorFromErrors(null, 'Failed to create operation.')
   }
 }
 

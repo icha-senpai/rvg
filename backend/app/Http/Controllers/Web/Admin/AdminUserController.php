@@ -9,12 +9,15 @@ use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Handles admin-only user mutation actions from the dashboard.
+ */
 class AdminUserController extends Controller
 {
     use AuthorizesRequests;
 
     /**
-     * UPDATE USER FIELDS
+     * Update the editable profile and status fields for one user.
      */
     public function update(Request $request)
     {
@@ -54,7 +57,10 @@ class AdminUserController extends Controller
     }
 
     /**
-     * UPDATE USER ROLES
+     * Replace the role assignments for one user.
+     *
+     * Role and permission caches are cleared immediately so the updated access
+     * state takes effect on the next request.
      */
     public function updateRoles(Request $request)
     {

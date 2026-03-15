@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * Handles the web action for promoting a squadron member to lieutenant.
+ */
 class SquadronPromotionController extends Controller
 {
     use AuthorizesRequests;
@@ -18,6 +21,12 @@ class SquadronPromotionController extends Controller
         protected MembershipService $membership
     ) {}
 
+    /**
+     * Promote the requested squadron member to lieutenant.
+     *
+     * Validation and authorization stay in the controller, while the membership
+     * service enforces squadron-level promotion rules and side effects.
+     */
     public function promoteLieutenant(Request $request, Squadron $squadron)
     {
         $this->authorize('promoteLieutenant', $squadron);

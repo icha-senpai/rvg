@@ -10,21 +10,30 @@ use App\Http\Requests\SquadronUpdateRequest;
 use App\Domain\Squadrons\SquadronService;
 use App\Domain\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Domain\AccessControl\AccessService;
 use App\Domain\Media\MediaService;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * JSON API controller for squadron listing, detail, mutation, and membership
+ * list endpoints.
+ */
 class SquadronController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
         protected SquadronService $squadrons,
-        protected MediaService $media
+        protected MediaService $media,
+        protected AccessService $access
     ) {}
 
-    /** GET /api/v1/squadrons */
+    /**
+     * Return the public squadron list, applying the normal policy when an
+     * authenticated viewer is present.
+     */
     public function index()
     {
         if (Auth::check()) {
@@ -38,7 +47,10 @@ class SquadronController extends Controller
         );
     }
 
-    /** GET /api/v1/squadrons/{squadron} */
+    /**
+     * Return the full squadron payload together with viewer-specific permission
+     * flags and the viewer's own membership record when present.
+     */
     public function show(Squadron $squadron)
     {
         $this->authorize('view', $squadron);
@@ -48,10 +60,12 @@ class SquadronController extends Controller
             $user = null;
         }
 
-        // Load full graph
+        // Load the related squadron graph once so the presenter and permission
+        // payload can reuse the same in-memory relationships.
         $squadron = $this->squadrons->show($squadron);
 
-        // Viewer membership (user can only be in one squadron anyway)
+        // The viewer can only have one membership row in this squadron, so the
+        // first matching member record is enough for the UI payload.
         $viewerMembership = null;
         if ($user) {
             $viewerMembership = $squadron->members
@@ -80,9 +94,10 @@ class SquadronController extends Controller
                     ? $user->can('promoteLieutenant', $squadron)
                     : false,
 
-                // derived UI permissions
+                // These convenience flags keep the frontend from having to repeat
+                // basic squadron membership-state checks.
                 'can_apply' => $user
-                    && !$viewerMembership
+                    && ! $viewerMembership
                     && $squadron->recruiting,
 
                 'can_leave' => $user
@@ -96,8 +111,9 @@ class SquadronController extends Controller
         ]);
     }
 
-
-    /** POST /api/v1/squadrons */
+    /**
+     * Create a new squadron.
+     */
     public function store(SquadronStoreRequest $request)
     {
         $this->authorize('create', Squadron::class);
@@ -110,7 +126,12 @@ class SquadronController extends Controller
         );
     }
 
-    /** PUT /api/v1/squadrons/{squadron} */
+    /**
+     * Update a squadron and optionally replace or clear its emblem media.
+     *
+     * Non-emblem updates use the normal squadron update policy. Emblem changes
+     * also require the specialized emblem-management capability check.
+     */
     public function update(SquadronUpdateRequest $request, Squadron $squadron)
     {
         $data = $request->validated();
@@ -133,13 +154,13 @@ class SquadronController extends Controller
                 abort(403);
             }
 
-            $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
-
-            $canUpdateEmblem = $isDirectorLike
-                || $user->isSquadronLeader($squadron)
+            // Emblem changes have their own authorization rule because some users
+            // may manage media without having full squadron-edit access.
+            $canUpdateEmblem = $this->access->isDirectorLike($user)
+                || $this->access->isSquadronLeader($user, $squadron)
                 || (
-                    (int) ($user->rank_level ?? 0) >= 2
-                    && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
+                    $this->access->isOfficer($user)
+                    && $this->access->isSquadronMember($user, $squadron)
                 );
 
             if (! $canUpdateEmblem) {
@@ -151,6 +172,8 @@ class SquadronController extends Controller
 
         if ($emblemKeyExists) {
             if ($emblemMediaId === null) {
+                // Clearing the emblem detaches the current emblem media without
+                // deleting the media record itself.
                 Media::where('mediable_type', Squadron::class)
                     ->where('mediable_id', $squadron->id)
                     ->where('collection', Media::COLLECTION_SQUADRON_EMBLEM)
@@ -160,13 +183,6 @@ class SquadronController extends Controller
                     ]);
             } else {
                 $media = Media::findOrFail((int) $emblemMediaId);
-
-                if ($media->collection !== Media::COLLECTION_SQUADRON_EMBLEM) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Selected media is not a squadron emblem.',
-                    ], 422);
-                }
 
                 if ($media->mediable_type && ! (
                     $media->mediable_type === Squadron::class
@@ -178,6 +194,8 @@ class SquadronController extends Controller
                     ], 422);
                 }
 
+                // Reuse the shared media attach flow so emblem replacement follows
+                // the same rules as the rest of the media domain.
                 $this->media->attach($media, $squadron, true);
             }
         }
@@ -189,7 +207,9 @@ class SquadronController extends Controller
         );
     }
 
-    /** DELETE /api/v1/squadrons/{squadron} */
+    /**
+     * Delete a squadron through the API.
+     */
     public function destroy(Squadron $squadron)
     {
         $this->authorize('delete', $squadron);
@@ -202,7 +222,9 @@ class SquadronController extends Controller
         ]);
     }
 
-    /** GET /api/v1/squadrons/{squadron}/members */
+    /**
+     * Return the presented member list for one squadron.
+     */
     public function members(Squadron $squadron)
     {
         $this->authorize('view', $squadron);

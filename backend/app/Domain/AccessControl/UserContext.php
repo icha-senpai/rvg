@@ -4,6 +4,7 @@ namespace App\Domain\AccessControl;
 
 use App\Models\User;
 use App\Models\Squadron;
+use App\Models\SquadronMember;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -70,11 +71,6 @@ class UserContext
 
     public function hasPermission(string $slug): bool
     {
-        // Delegate to your existing model logic + cached permissions
-        if (method_exists($this->user, 'hasPermission')) {
-            return $this->user->hasPermission($slug);
-        }
-
         return $this->permissions()->contains('slug', $slug);
     }
 
@@ -94,10 +90,6 @@ class UserContext
      */
     public function isDirectorLike(): bool
     {
-        if (method_exists($this->user, 'isDirector') && $this->user->isDirector()) {
-            return true;
-        }
-
         return $this->hasAnyRole(['director', 'tech_director']);
     }
 
@@ -107,20 +99,26 @@ class UserContext
 
     public function isSquadronLeader(Squadron $squadron): bool
     {
-        if (method_exists($this->user, 'isSquadronLeader')) {
-            return $this->user->isSquadronLeader($squadron);
-        }
+        $membership = SquadronMember::query()
+            ->where('user_id', $this->user->id)
+            ->where('squadron_id', $squadron->id)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
+            ->latest('joined_at')
+            ->first();
 
-        return false;
+        return $membership?->isLeader() ?? false;
     }
 
     public function isSquadronLieutenant(Squadron $squadron): bool
     {
-        if (method_exists($this->user, 'isSquadronLieutenant')) {
-            return $this->user->isSquadronLieutenant($squadron);
-        }
+        $membership = SquadronMember::query()
+            ->where('user_id', $this->user->id)
+            ->where('squadron_id', $squadron->id)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
+            ->latest('joined_at')
+            ->first();
 
-        return false;
+        return $membership?->isLieutenant() ?? false;
     }
 
     /**

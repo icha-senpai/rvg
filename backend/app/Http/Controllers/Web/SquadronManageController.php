@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Domain\Media\MediaService;
 use App\Models\Squadron;
-use App\Models\Media;
 use App\Models\SquadronMember;
 use App\Domain\Squadrons\MembershipService;
 use App\Domain\Squadrons\SquadronService;
@@ -15,20 +13,33 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Domain\AccessControl\AccessService;
 
+/**
+ * Handles the authenticated squadron management screens and form actions.
+ *
+ * The controller owns transport concerns like validation, redirects, and policy
+ * checks while the squadron and membership services enforce domain rules.
+ */
 class SquadronManageController extends Controller
 {
     public function __construct(
+        protected AccessService $access,
         protected MembershipService $membership,
-        protected SquadronService  $squadrons,
-        protected MediaService $media
+        protected SquadronService $squadrons
     ) {}
 
+    /**
+     * Render the squadron management page for leaders and lieutenants.
+     */
     public function index(Request $request, Squadron $squadron)
     {
         $user = $request->user();
 
-        if (! $user->isSquadronLeader($squadron) && ! $user->isSquadronLieutenant($squadron)) {
+        $isLeader = $this->access->isSquadronLeader($user, $squadron);
+        $isLieutenant = $this->access->isSquadronLieutenant($user, $squadron);
+
+        if (! $isLeader && ! $isLieutenant) {
             abort(403, "You cannot manage this squadron.");
         }
 
@@ -37,11 +48,14 @@ class SquadronManageController extends Controller
             'members'       => SquadronMemberPresenter::collection(
                 $this->squadrons->members($squadron)
             ),
-            'isLeader'      => $user->isSquadronLeader($squadron),
-            'isLieutenant'  => $user->isSquadronLieutenant($squadron),
+            'isLeader'      => $isLeader,
+            'isLieutenant'  => $isLieutenant,
         ]);
     }
 
+    /**
+     * Update one member's role and status from the management screen.
+     */
     public function updateMember(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -75,6 +89,9 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Member updated.');
     }
 
+    /**
+     * Remove a member from the squadron management screen.
+     */
     public function removeMember(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -91,21 +108,8 @@ class SquadronManageController extends Controller
 
         $member = SquadronMember::findOrFail($data['id']);
 
-        if (
-            $user instanceof User
-            && $user->isSquadronLieutenant($squadron)
-            && (
-                $member->user_id === $squadron->leader_id
-                || $member->role === SquadronMember::ROLE_LEADER
-            )
-        ) {
-            return back()->withErrors([
-                'member' => 'Lieutenants cannot remove the squadron leader.',
-            ]);
-        }
-
         try {
-            $this->membership->adminRemoveMember($squadron, $member);
+            $this->membership->removeMemberFromManage($squadron, $member, $user);
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
         }
@@ -113,6 +117,9 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Member removed.');
     }
 
+    /**
+     * Update squadron settings fields that are editable from the management page.
+     */
     public function updateSettings(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -137,6 +144,9 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Squadron settings updated.');
     }
 
+    /**
+     * Let the authenticated user apply to the squadron.
+     */
     public function join(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -150,6 +160,9 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Applied to squadron successfully.');
     }
 
+    /**
+     * Let the authenticated user leave the squadron.
+     */
     public function leave(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -163,6 +176,9 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Left squadron successfully.');
     }
 
+    /**
+     * Demote a lieutenant back to the regular member role.
+     */
     public function demoteLieutenant(Request $request, Squadron $squadron)
     {
         $user = $request->user();
@@ -192,11 +208,14 @@ class SquadronManageController extends Controller
         return back()->with('success', 'Lieutenant demoted successfully.');
     }
 
+    /**
+     * Choose an existing emblem media item as the squadron emblem.
+     */
     public function selectEmblem(Request $request, Squadron $squadron)
     {
         $user = $request->user();
 
-        if (! $this->canModifyEmblem($user, $squadron)) {
+        if (! $this->squadrons->canModifyEmblem($user, $squadron)) {
             return back()->withErrors([
                 'emblem_media_id' => 'You do not have permission to update the squadron emblem.',
             ]);
@@ -206,47 +225,26 @@ class SquadronManageController extends Controller
             'emblem_media_id' => ['nullable', 'integer', 'exists:media,id'],
         ]);
 
-        $emblemMediaId = $data['emblem_media_id'] ?? null;
-
-        if ($emblemMediaId === null) {
-            Media::where('mediable_type', Squadron::class)
-                ->where('mediable_id', $squadron->id)
-                ->where('collection', Media::COLLECTION_SQUADRON_EMBLEM)
-                ->update([
-                    'mediable_type' => null,
-                    'mediable_id' => null,
-                ]);
-
-            return back()->with('success', 'Squadron emblem updated.');
+        try {
+            $this->squadrons->selectEmblem(
+                $squadron,
+                isset($data['emblem_media_id']) ? (int) $data['emblem_media_id'] : null
+            );
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
         }
-
-        $media = Media::findOrFail((int) $emblemMediaId);
-
-        if ($media->collection !== Media::COLLECTION_SQUADRON_EMBLEM) {
-            return back()->withErrors([
-                'emblem_media_id' => 'Selected media is not a squadron emblem.',
-            ]);
-        }
-
-        if ($media->mediable_type && ! (
-            $media->mediable_type === Squadron::class
-            && (int) $media->mediable_id === (int) $squadron->id
-        )) {
-            return back()->withErrors([
-                'emblem_media_id' => 'Selected media is already attached to another record.',
-            ]);
-        }
-
-        $this->media->attach($media, $squadron, true);
 
         return back()->with('success', 'Squadron emblem updated.');
     }
 
+    /**
+     * Upload a new emblem image file for the squadron.
+     */
     public function uploadEmblem(Request $request, Squadron $squadron)
     {
         $user = $request->user();
 
-        if (! $this->canModifyEmblem($user, $squadron)) {
+        if (! $this->squadrons->canModifyEmblem($user, $squadron)) {
             return back()->withErrors([
                 'emblem' => 'You do not have permission to update the squadron emblem.',
             ]);
@@ -259,16 +257,5 @@ class SquadronManageController extends Controller
         $this->squadrons->uploadEmblem($squadron, $request->file('emblem'));
 
         return back()->with('success', 'Squadron emblem updated.');
-    }
-
-    protected function canModifyEmblem(User $user, Squadron $squadron): bool
-    {
-        return $user->isSquadronLeader($squadron)
-            || $user->hasRole('director')
-            || $user->hasRole('tech_director')
-            || (
-                (int) ($user->rank_level ?? 0) >= 2
-                && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
-            );
     }
 }

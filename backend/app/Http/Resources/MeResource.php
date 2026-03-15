@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Domain\AccessControl\RoleHierarchy;
+use App\Domain\AccessControl\AccessService;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class MeResource extends JsonResource
@@ -10,13 +10,11 @@ class MeResource extends JsonResource
     public function toArray($request)
     {
         $viewer = $request?->user();
-        $isDirectorLike = (bool) ($viewer && ($viewer->hasRole('director') || $viewer->hasRole('tech_director')));
-        if ($viewer) {
-            $viewer->loadMissing('roles:id,slug');
-        }
+        $access = app(AccessService::class);
+        $isDirectorLike = (bool) ($viewer && $access->isDirectorLike($viewer));
 
         $canViewRestrictedOperationStats = $isDirectorLike
-            || ($viewer && RoleHierarchy::userAtLeast($viewer, 'commander'));
+            || ($viewer && $access->atLeast($viewer, 'commander'));
 
         return [
             'id'                  => $this->id,

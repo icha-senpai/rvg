@@ -7,14 +7,23 @@ use App\Models\User;
 use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use App\Http\Resources\MeResource;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * JSON API controller for user listing, lookup, deletion, and the legacy
+ * authenticated profile endpoint.
+ */
 class UserController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Return all users.
      */
     public function index()
     {
+        $this->authorize('user.manage');
+
         $users = User::all();
 
         return ApiResponse::success(
@@ -24,10 +33,12 @@ class UserController extends Controller
     }
 
     /**
-     * Return all verified users.
+     * Return only users who have both Discord and RSI verification completed.
      */
     public function verified()
     {
+        $this->authorize('user.manage');
+
         $users = User::whereNotNull('rsi_verified_at')
             ->whereNotNull('discord_id')
             ->get();
@@ -39,10 +50,12 @@ class UserController extends Controller
     }
 
     /**
-     * Return all unverified users.
+     * Return users missing either RSI verification or a Discord identity.
      */
     public function unverified()
     {
+        $this->authorize('user.manage');
+
         $users = User::whereNull('rsi_verified_at')
             ->orWhereNull('discord_id')
             ->get();
@@ -54,10 +67,12 @@ class UserController extends Controller
     }
 
     /**
-     * Show a single user by Discord ID.
+     * Show a single user by Discord id.
      */
     public function show($discord_id)
     {
+        $this->authorize('user.manage');
+
         $user = User::where('discord_id', $discord_id)->first();
 
         if (! $user) {
@@ -75,10 +90,12 @@ class UserController extends Controller
     }
 
     /**
-     * Delete a user by Discord ID.
+     * Delete a user by Discord id.
      */
     public function destroy($discord_id)
     {
+        $this->authorize('user.manage');
+
         $user = User::where('discord_id', $discord_id)->first();
 
         if (! $user) {
@@ -98,7 +115,11 @@ class UserController extends Controller
     }
 
     /**
-     * Return the authenticated user's profile.
+     * Return the authenticated user's profile through the legacy `/profile`
+     * endpoint.
+     *
+     * This endpoint stays available for backward compatibility while pointing
+     * callers at `/api/v1/me` as the preferred replacement.
      */
     public function profile(Request $request)
     {

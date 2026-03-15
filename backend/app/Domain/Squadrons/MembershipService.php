@@ -5,117 +5,92 @@ namespace App\Domain\Squadrons;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
-use App\Models\Role;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\ValidationException;
 
+/**
+ * Public membership entry point used by controllers.
+ *
+ * This class stays intentionally small so web and API controllers can depend on
+ * one stable service while the real work is split into focused collaborators.
+ */
 class MembershipService
 {
+    public function __construct(
+        protected MembershipAdminService $admin,
+        protected MembershipLifecycleService $lifecycle,
+        protected MembershipPromotionService $promotion,
+    ) {}
+
     /**
      * Admin / director adds a member directly to a squadron.
      */
     public function adminAddMember(Squadron $squadron, int $userId): SquadronMember
     {
-        $exists = SquadronMember::where('user_id', $userId)
-            ->where('squadron_id', $squadron->id)
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'user_id' => 'User already in squadron.',
-            ]);
-        }
-
-        return SquadronMember::create([
-            'user_id'          => $userId,
-            'squadron_id'      => $squadron->id,
-            'membership_status'=> SquadronMember::STATUS_ACTIVE,
-            'joined_at'        => now(),
-        ]);
+        // Delegate the direct-add workflow to the admin-specific service so this
+        // facade stays easy to read and safe to evolve.
+        return $this->admin->adminAddMember($squadron, $userId);
     }
 
     /**
-     * Admin updates membership status.
+     * Create an active membership record from an admin context.
+     */
+    public function adminCreateMember(Squadron $squadron, int $userId): SquadronMember
+    {
+        return $this->admin->adminCreateMember($squadron, $userId);
+    }
+
+    /**
+     * Update only the member status from an admin flow.
      */
     public function adminUpdateStatus(Squadron $squadron, SquadronMember $member, string $status): SquadronMember
     {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
-
-        $member->update([
-            'membership_status' => $status,
-        ]);
-
-        return $member;
+        return $this->admin->adminUpdateStatus($squadron, $member, $status);
     }
 
     /**
-     * Admin removes a member (kick).
+     * Update a member's role and status from the admin panel.
+     */
+    public function adminUpdateMember(SquadronMember $member, ?string $role, string $status): SquadronMember
+    {
+        return $this->admin->adminUpdateMember($member, $role, $status);
+    }
+
+    /**
+     * Remove a member from a squadron from an admin flow.
      */
     public function adminRemoveMember(Squadron $squadron, SquadronMember $member): void
     {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
-
-        $member->update([
-            'left_at'           => now(),
-            'membership_status' => SquadronMember::STATUS_PENDING,
-        ]);
-
-        $member->delete();
+        $this->admin->adminRemoveMember($squadron, $member);
     }
 
     /**
-     * User joins a squadron themselves.
+     * Delete a membership record directly.
+     */
+    public function adminDeleteMember(SquadronMember $member): void
+    {
+        $this->admin->adminDeleteMember($member);
+    }
+
+    /**
+     * Let a user apply to or join a squadron through the self-service flow.
      */
     public function userJoin(Squadron $squadron, User $user): SquadronMember
     {
-        $already = SquadronMember::where('user_id', $user->id)->exists();
-
-        if ($already) {
-            throw ValidationException::withMessages([
-                'member' => 'Already in a squadron.',
-            ]);
-        }
-
-        return SquadronMember::create([
-            'user_id'          => $user->id,
-            'squadron_id'      => $squadron->id,
-            'membership_status'=> SquadronMember::STATUS_PENDING,
-            'joined_at'        => now(),
-        ]);
+        return $this->lifecycle->userJoin($squadron, $user);
     }
 
     /**
-     * User leaves their squadron.
+     * Let a user leave their current squadron through the self-service flow.
      */
     public function userLeave(Squadron $squadron, User $user): void
     {
-        $member = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->first();
-
-        if (!$member) {
-            throw ValidationException::withMessages([
-                'member' => 'Not a member of this squadron.',
-            ]);
-        }
-
-        $member->update([
-            'left_at' => now(),
-        ]);
-
-        $member->delete();
+        $this->lifecycle->userLeave($squadron, $user);
     }
 
     /**
-     * Used by the web manage screen to update role + status.
+     * Update role and status from the squadron management screen.
+     *
+     * This path applies extra guard rails around self-demotion rules because it
+     * is used by leaders and lieutenants inside the normal squadron UI.
      */
     public function updateMemberFromManage(
         Squadron $squadron,
@@ -124,129 +99,44 @@ class MembershipService
         string $status,
         User $actingUser
     ): SquadronMember {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
-
-        // Prevent leader from demoting themselves
-        if ($member->user_id === $actingUser->id && $role !== SquadronMember::ROLE_LEADER) {
-            throw ValidationException::withMessages([
-                'role' => 'You cannot demote yourself.',
-            ]);
-        }
-
-        $member->update([
-            'role'              => $role === 'null' ? null : $role,
-            'membership_status' => $status,
-        ]);
-
-        return $member->fresh();
+        return $this->admin->updateMemberFromManage(
+            $squadron,
+            $member,
+            $role,
+            $status,
+            $actingUser
+        );
     }
 
     /**
-     * Used by the manage screen to remove a member.
+     * Remove a member from the squadron management screen.
+     *
+     * The admin service enforces the "cannot remove yourself" and lieutenant vs
+     * leader protections so controllers do not have to duplicate those rules.
      */
     public function removeMemberFromManage(
         Squadron $squadron,
         SquadronMember $member,
         User $actingUser
     ): void {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
-
-        // Leaders cannot remove themselves
-        if ($member->user_id === $actingUser->id) {
-            throw ValidationException::withMessages([
-                'member' => 'You cannot remove yourself.',
-            ]);
-        }
-
-        $member->delete();
+        $this->admin->removeMemberFromManage($squadron, $member, $actingUser);
     }
 
     /**
-     * Promote a user to lieutenant, enforcing max 2.
+     * Promote a user to lieutenant while enforcing the squadron limit.
      */
     public function promoteLieutenant(Squadron $squadron, User $user): SquadronMember
     {
-        $member = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->firstOrFail();
-
-        $ltCount = SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->count();
-
-        if ($ltCount >= 2) {
-            throw ValidationException::withMessages([
-                'max_lt' => 'This squadron already has the maximum of two Lieutenants.',
-            ]);
-        }
-
-        $member->update([
-            'role'              => SquadronMember::ROLE_LIEUTENANT,
-            'membership_status' => SquadronMember::STATUS_ACTIVE,
-        ]);
-
-        $lieutenantRoleId = Role::where('slug', 'lieutenant')->value('id');
-        if ($lieutenantRoleId) {
-            $user->roles()->syncWithoutDetaching([$lieutenantRoleId]);
-        }
-
-        if ((int) ($user->rank_level ?? 0) < 2) {
-            $user->setRank('lieutenant');
-        }
-
-        Cache::forget("user_roles_{$user->id}");
-        Cache::forget("user_permissions_{$user->id}");
-
-        return $member->fresh();
+        // Promotions touch membership state, user roles, rank, and cached access
+        // data, so the side effects live in a dedicated promotion service.
+        return $this->promotion->promoteLieutenant($squadron, $user);
     }
+
     /**
-     * Demote a lieutenant back to member.
+     * Demote a lieutenant back to the regular member role.
      */
     public function demoteLieutenant(Squadron $squadron, User $user): SquadronMember
     {
-        $member = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->firstOrFail();
-
-        if ($member->role !== SquadronMember::ROLE_LIEUTENANT) {
-            throw ValidationException::withMessages([
-                'role' => 'User is not a lieutenant.',
-            ]);
-        }
-
-        $member->update([
-            'role' => SquadronMember::ROLE_MEMBER,
-        ]);
-
-        $lieutenantRoleIds = Role::where('slug', 'lieutenant')->pluck('id')->all();
-        if (!empty($lieutenantRoleIds)) {
-            $user->roles()->detach($lieutenantRoleIds);
-        }
-
-        $user->unsetRelation('roles');
-
-        $memberRoleId = Role::where('slug', 'member')->value('id');
-        if ($memberRoleId) {
-            $user->roles()->syncWithoutDetaching([$memberRoleId]);
-        }
-
-        if ((int) ($user->rank_level ?? 0) === 2 && $user->rank === 'lieutenant') {
-            $user->setRank('member');
-        }
-
-        Cache::forget("user_roles_{$user->id}");
-        Cache::forget("user_permissions_{$user->id}");
-
-        return $member->fresh();
+        return $this->promotion->demoteLieutenant($squadron, $user);
     }
-
 }

@@ -7,57 +7,18 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-use App\Models\Role;
-use App\Models\Permission;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Domain\AccessControl\Traits\HasRolesAndPermissions;
 use Illuminate\Support\Facades\Cache;
 
-
+/**
+ * Represents an authenticated application user together with their access,
+ * verification, squadron, preference, and media relationships.
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
-
-    /* --------------------------------------
-     |  ROLES / PERMISSIONS
-     -------------------------------------- */
-
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id')
-            ->withTimestamps();
-    }
-
-    public function permissions()
-    {
-        return Permission::whereHas('roles', function ($query) {
-            $query->whereIn('roles.id', $this->roles->pluck('id'));
-        })->get();
-    }
-
-    public function hasRole(string $roleSlug): bool
-    {
-        return $this->roles->contains('slug', $roleSlug);
-    }
-
-    public function hasPermission(string $permissionSlug): bool
-    {
-        if ($this->hasRole('director') || $this->hasRole('tech_director')) {
-            return true;
-        }
-
-        return $this->permissions()->contains('slug', $permissionSlug);
-    }
-
-    public function isDirector(): bool
-    {
-        return $this->hasRole('director');
-    }
-
-    /* --------------------------------------
-     | MASS ASSIGN / CASTS
-     -------------------------------------- */
 
     protected $fillable = [
         'name',
@@ -119,10 +80,9 @@ class User extends Authenticatable
         ];
     }
 
-    /* --------------------------------------
-     | RANK HELPERS
-     -------------------------------------- */
-
+    /**
+     * Set the stored rank slug and keep the legacy numeric rank level in sync.
+     */
     public function setRank(string $rank): void
     {
         $map = [
@@ -139,6 +99,9 @@ class User extends Authenticatable
         $this->save();
     }
 
+    /**
+     * Return the human-readable rank label for the stored rank level.
+     */
     public function getRankNameAttribute()
     {
         return [
@@ -151,15 +114,17 @@ class User extends Authenticatable
         ][$this->rank_level] ?? 'Unknown';
     }
 
-    /* --------------------------------------
-     | SQUADRON MEMBERSHIP LOGIC
-     -------------------------------------- */
-
+    /**
+     * Return all squadron membership rows for the user.
+     */
     public function squadronMemberships()
     {
         return $this->hasMany(SquadronMember::class);
     }
 
+    /**
+     * Return the squadrons related to the user through membership rows.
+     */
     public function squadrons()
     {
         return $this->belongsToMany(Squadron::class, 'squadron_members')
@@ -173,6 +138,9 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * Return the user's current active membership for the given squadron.
+     */
     public function squadronMembershipFor(Squadron $squadron): ?SquadronMember
     {
         return $this->squadronMemberships()
@@ -182,6 +150,9 @@ class User extends Authenticatable
             ->first();
     }
 
+    /**
+     * Check whether the user is the active leader of the given squadron.
+     */
     public function isSquadronLeader(Squadron $squadron): bool
     {
         $membership = $this->squadronMembershipFor($squadron);
@@ -189,6 +160,9 @@ class User extends Authenticatable
         return $membership?->isLeader() ?? false;
     }
 
+    /**
+     * Check whether the user is an active lieutenant of the given squadron.
+     */
     public function isSquadronLieutenant(Squadron $squadron): bool
     {
         $membership = $this->squadronMembershipFor($squadron);
@@ -198,24 +172,25 @@ class User extends Authenticatable
             && $membership->membership_status === SquadronMember::STATUS_ACTIVE;
     }
 
-    /* --------------------------------------
-     | USER PREFERENCES
-     -------------------------------------- */
-
+    /**
+     * Return the user's one-to-one preference record.
+     */
     public function preferences()
     {
         return $this->hasOne(MemberPreference::class);
     }
 
-    /* --------------------------------------
-     | MEDIA (polymorphic)
-     -------------------------------------- */
-
+    /**
+     * Return all polymorphic media attached to the user.
+     */
     public function media()
     {
         return $this->morphMany(\App\Models\Media::class, 'mediable');
     }
 
+    /**
+     * Return the user's most recent avatar media record.
+     */
     public function avatar()
     {
         return $this->morphOne(\App\Models\Media::class, 'mediable')
@@ -223,14 +198,14 @@ class User extends Authenticatable
             ->latest();
     }
 
-    /* --------------------------------------
-     | STATUS CONSTANTS
-     -------------------------------------- */
-
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE  = 'active';
     public const STATUS_BANNED  = 'banned';
 
+    /**
+     * Clear cached role and permission payloads whenever the user record is
+     * saved so downstream access checks see fresh state.
+     */
     protected static function booted()
     {
         static::saved(function (User $user) {

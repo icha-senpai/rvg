@@ -4,20 +4,32 @@ namespace App\Domain\Operations\Presenters;
 
 use App\Models\OperationParticipant;
 
+/**
+ * Shapes one operation participant record into the payload used by operation
+ * detail responses.
+ */
 class ParticipantPresenter
 {
     protected OperationParticipant $participant;
 
     public function __construct(OperationParticipant $participant)
     {
+        // Load the related user and slot role up front so the array output can be
+        // built without extra conditional fetch logic.
         $this->participant = $participant->load(['user', 'role']);
     }
 
+    /**
+     * Create a presenter instance for the given participant record.
+     */
     public static function make(OperationParticipant $participant): self
     {
         return new static($participant);
     }
 
+    /**
+     * Build the participant payload used by operation detail consumers.
+     */
     public function toArray(): array
     {
         return [

@@ -6,7 +6,6 @@ use App\Models\Media;
 use App\Models\Squadron;
 use App\Models\User;
 use App\Domain\AccessControl\AccessService;
-use App\Domain\AccessControl\RoleHierarchy;
 
 class MediaPolicy
 {
@@ -43,21 +42,18 @@ class MediaPolicy
                     return false;
                 }
 
-                if ($user->isSquadronLeader($squadron)) {
+                if ($this->access->isSquadronLeader($user, $squadron)) {
                     return true;
                 }
 
-                if (! $this->isOfficer($user)) {
+                if (! $this->access->isOfficer($user)) {
                     return false;
                 }
 
-                return $user->squadronMemberships()
-                    ->active()
-                    ->where('squadron_id', $squadron->id)
-                    ->exists();
+                return $this->access->isSquadronMember($user, $squadron);
             }
 
-            return $this->isOfficer($user);
+            return $this->access->isOfficer($user);
         }
 
         // Directors see everything
@@ -72,11 +68,11 @@ class MediaPolicy
 
         if ($media->collection === Media::COLLECTION_SHIP_IMAGE
             || $media->collection === Media::COLLECTION_SITE_ASSET) {
-            return $this->isOfficer($user);
+            return $this->access->isOfficer($user);
         }
 
         if ($media->collection === Media::COLLECTION_OPERATION_IMAGE) {
-            return $this->isOfficer($user);
+            return $this->access->isOfficer($user);
         }
 
         // Public collections are visible to all authenticated users
@@ -106,18 +102,15 @@ class MediaPolicy
                 return false;
             }
 
-            if ($user->isSquadronLeader($squadron)) {
+            if ($this->access->isSquadronLeader($user, $squadron)) {
                 return true;
             }
 
-            if (! $this->isOfficer($user)) {
+            if (! $this->access->isOfficer($user)) {
                 return false;
             }
 
-            return $user->squadronMemberships()
-                ->active()
-                ->where('squadron_id', $squadron->id)
-                ->exists();
+            return $this->access->isSquadronMember($user, $squadron);
         }
 
         // Directors and tech directors can upload to any collection (except emblems)
@@ -134,24 +127,16 @@ class MediaPolicy
 
             // Operation creators can attach images
             // (operation-level check happens in the controller)
-            Media::COLLECTION_OPERATION_IMAGE => $this->isOfficer($user),
+            Media::COLLECTION_OPERATION_IMAGE => $this->access->isOfficer($user),
 
             // Ship images: rank level 2+ (or director-like above)
-            Media::COLLECTION_SHIP_IMAGE => $this->isOfficer($user),
+            Media::COLLECTION_SHIP_IMAGE => $this->access->isOfficer($user),
 
             // Site assets: rank level 2+ (or director-like above)
-            Media::COLLECTION_SITE_ASSET => $this->isOfficer($user),
+            Media::COLLECTION_SITE_ASSET => $this->access->isOfficer($user),
 
             default => false,
         };
-    }
-
-    private function isOfficer(User $user): bool
-    {
-        $user->loadMissing('roles:id,slug');
-
-        return RoleHierarchy::userAtLeast($user, 'lieutenant')
-            || (int) ($user->rank_level ?? 0) >= 2;
     }
 
     /**

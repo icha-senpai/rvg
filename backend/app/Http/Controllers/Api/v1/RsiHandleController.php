@@ -2,24 +2,41 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RsiChangeRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * JSON API controller for RSI handle change requests and officer review
+ * actions.
+ */
 class RsiHandleController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Return the RSI handle change requests queue for officer review.
+     */
     public function index()
     {
-        // Officers only, enforced by route middleware
-        return RsiChangeRequest::with(['user', 'approver'])
-            ->latest()
-            ->get();
+        // Officer-only access is enforced by route middleware before the request
+        // reaches this transport controller.
+        return ApiResponse::success(
+            null,
+            [
+                'requests' => RsiChangeRequest::with(['user', 'approver'])
+                    ->latest()
+                    ->get(),
+            ]
+        );
     }
 
+    /**
+     * Create a new RSI handle change request for the authenticated user.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -32,10 +49,7 @@ class RsiHandleController extends Controller
             ->exists();
 
         if ($exists) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'You already have a pending request.'
-            ], 422);
+            return ApiResponse::error('You already have a pending request.', null, 422);
         }
 
         $requestModel = RsiChangeRequest::create([
@@ -44,18 +58,23 @@ class RsiHandleController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        return response()->json($requestModel, 201);
+        return ApiResponse::success(
+            'RSI handle change request created.',
+            ['request' => $requestModel],
+            201
+        );
     }
 
+    /**
+     * Approve a pending RSI handle change request and update the user's stored
+     * RSI handle.
+     */
     public function approve(Request $req, RsiChangeRequest $change)
     {
-        $this->authorize('user.manage'); // RBAC permission
+        $this->authorize('user.manage');
 
         if ($change->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Already processed',
-            ], 422);
+            return ApiResponse::error('Already processed', null, 422);
         }
 
         $change->update([
@@ -69,21 +88,18 @@ class RsiHandleController extends Controller
             'rsi_verified_at' => now(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'RSI handle updated',
-        ]);
+        return ApiResponse::success('RSI handle updated');
     }
 
+    /**
+     * Reject a pending RSI handle change request.
+     */
     public function reject(Request $req, RsiChangeRequest $change)
     {
         $this->authorize('user.manage');
 
         if ($change->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Already processed',
-            ], 422);
+            return ApiResponse::error('Already processed', null, 422);
         }
 
         $change->update([
@@ -92,9 +108,6 @@ class RsiHandleController extends Controller
             'resolved_at' => now(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Request rejected',
-        ]);
+        return ApiResponse::success('Request rejected');
     }
 }

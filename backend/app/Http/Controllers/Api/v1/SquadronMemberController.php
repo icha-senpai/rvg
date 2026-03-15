@@ -8,20 +8,29 @@ use App\Models\SquadronMember;
 use App\Http\Requests\SquadronMemberAddRequest;
 use App\Http\Requests\SquadronMemberUpdateStatusRequest;
 use App\Domain\Squadrons\MembershipService;
+use App\Domain\AccessControl\AccessService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
+/**
+ * JSON API controller for squadron membership management and self-service
+ * membership actions.
+ */
 class SquadronMemberController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
+        protected AccessService $access,
         protected MembershipService $membership
     ) {}
 
+    /**
+     * Add a user directly to the squadron through the API.
+     */
     public function store(SquadronMemberAddRequest $request, Squadron $squadron)
     {
         $this->authorize('manageMembers', $squadron);
@@ -43,6 +52,9 @@ class SquadronMemberController extends Controller
         );
     }
 
+    /**
+     * Update only the membership status for one squadron member.
+     */
     public function update(
         SquadronMemberUpdateStatusRequest $request,
         Squadron $squadron,
@@ -64,6 +76,12 @@ class SquadronMemberController extends Controller
         );
     }
 
+    /**
+     * Remove a member from the squadron through the API.
+     *
+     * Lieutenants are blocked from removing the leader even if they otherwise
+     * have access to member-management actions.
+     */
     public function destroy(Squadron $squadron, SquadronMember $member)
     {
         $user = Auth::user();
@@ -72,7 +90,7 @@ class SquadronMemberController extends Controller
 
         if (
             $user instanceof User
-            && $user->isSquadronLieutenant($squadron)
+            && $this->access->isSquadronLieutenant($user, $squadron)
             && (
                 $member->user_id === $squadron->leader_id
                 || $member->role === SquadronMember::ROLE_LEADER
@@ -93,6 +111,9 @@ class SquadronMemberController extends Controller
         ]);
     }
 
+    /**
+     * Let the authenticated user join the squadron through the API.
+     */
     public function join(Squadron $squadron)
     {
         $user = Auth::user();
@@ -114,6 +135,9 @@ class SquadronMemberController extends Controller
         );
     }
 
+    /**
+     * Let the authenticated user leave the squadron through the API.
+     */
     public function leave(Squadron $squadron)
     {
         $user = Auth::user();
@@ -132,6 +156,10 @@ class SquadronMemberController extends Controller
             'message' => 'Left squadron successfully',
         ]);
     }
+
+    /**
+     * Promote the given user to lieutenant through the API.
+     */
     public function promoteLieutenant(
         Squadron $squadron,
         User $user
@@ -162,6 +190,10 @@ class SquadronMemberController extends Controller
             ),
         ]);
     }
+
+    /**
+     * Demote the given lieutenant back to a regular member through the API.
+     */
     public function demoteLieutenant(Squadron $squadron, User $user)
     {
         $this->authorize('demoteLieutenant', $squadron);
@@ -184,7 +216,4 @@ class SquadronMemberController extends Controller
 
         return response()->noContent();
     }
-
-
-
 }

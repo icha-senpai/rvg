@@ -52,42 +52,20 @@ Route::get('/ping', function () {
 */
 
 Route::middleware(['auth:sanctum',])->group(function () {
+ 
+    // Legacy authenticated profile endpoint.
+    Route::get('/profile', [UserController::class, 'profile']);
 
-    // Rank 1+
-    Route::middleware(['rank:1'])->group(function () {
-        Route::get('/profile', [UserController::class, 'profile']);
-    });
+    // Legacy user-management endpoints now authorize inside the controller.
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/verified', [UserController::class, 'verified']);
+    Route::get('/users/unverified', [UserController::class, 'unverified']);
+    Route::get('/users/{discord_id}', [UserController::class, 'show']);
+    Route::delete('/users/{discord_id}', [UserController::class, 'destroy']);
 
-    // Rank 2+
-    Route::middleware(['rank:2'])->group(function () {
-        // Add rank 2+ routes here
-    });
-
-    // Rank 3+
-    Route::middleware(['rank:3'])->group(function () {
-        Route::get('/users', [UserController::class, 'index']);
-        Route::get('/users/verified', [UserController::class, 'verified']);
-        Route::get('/users/unverified', [UserController::class, 'unverified']);
-        Route::get('/users/{discord_id}', [UserController::class, 'show']);
-        Route::delete('/users/{discord_id}', [UserController::class, 'destroy']);
-    });
-
-    // Rank 4+
-    Route::middleware(['rank:4'])->group(function () {
-        // Add rank 4+ routes here
-    });
-
-    // Rank 5+
-    Route::middleware(['rank:5'])->group(function () {
-        // Add rank 5+ routes here
-    });
-
-    // Rank 6+
-    Route::middleware(['rank:6'])->group(function () {
-        Route::delete('/nuke-system', function () {
-            return ['warning' => 'System obliterated (simulation only)'];
-        });
-    });
+    Route::delete('/nuke-system', function () {
+        return ['warning' => 'System obliterated (simulation only)'];
+    })->middleware(['rank:6']);
 
     // Me
     Route::get('/me', [MeController::class, 'show']);

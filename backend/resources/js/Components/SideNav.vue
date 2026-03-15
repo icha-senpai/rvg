@@ -2,12 +2,12 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
+import { canCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 const page = usePage();
 
 const user = computed(() => page.props?.auth?.user ?? null);
-const roles = computed(() => user.value?.roles ?? []);
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0));
 const rankName = computed(() => {
   const existingRankName = user.value?.rank_name;
@@ -34,7 +34,7 @@ const userNameColor = computed(() => {
 })
 
 const isDirectorLike = computed(() => {
-  return roles.value.some(r => r?.slug === 'director' || r?.slug === 'tech_director');
+  return userIsDirectorLike(user.value);
 });
 
 const canSeeEverything = computed(() => {
@@ -42,10 +42,7 @@ const canSeeEverything = computed(() => {
 });
 
 const canSeeOperationsDashboard = computed(() => {
-  if (canSeeEverything.value) return true;
-
-  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral'];
-  return roles.value.some(r => officerRoleSlugs.includes(r?.slug));
+  return canCreateOperation(user.value);
 });
 
 const mySquadron = computed(() => {

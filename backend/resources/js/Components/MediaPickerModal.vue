@@ -47,6 +47,10 @@
           <HorizonButton variant="primary" size="sm" @click="loadMedia(1)">Search</HorizonButton>
         </div>
 
+        <div v-if="pickerError" class="hz-text-soft" style="color: var(--color-state-danger);">
+          {{ pickerError }}
+        </div>
+
         <!-- LOADING -->
         <div v-if="loading" class="hz-text-muted" style="text-align: center; padding: var(--space-lg);">
           Loading...
@@ -163,7 +167,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
@@ -178,6 +183,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'selected']);
+const page = usePage();
 
 /* ============================================================
    BROWSE STATE
@@ -191,38 +197,93 @@ const lastPage = ref(1);
 const selectedId = ref(null);
 const selectedItem = ref(null);
 
+const mediaPickerPayload = computed(() => {
+  const payload = page.props?.mediaPicker ?? null;
+  if (!payload) return null;
+  if (payload.collection !== props.collection) return null;
+
+  const payloadSquadronId = payload.squadronId === null || payload.squadronId === undefined
+    ? ''
+    : String(payload.squadronId);
+  const propSquadronId = props.squadronId === null || props.squadronId === undefined || String(props.squadronId) === ''
+    ? ''
+    : String(props.squadronId);
+
+  return payloadSquadronId === propSquadronId ? payload : null;
+});
+
+const flashMedia = computed(() => page.props?.flash?.media ?? null);
+const pickerError = computed(() => mediaPickerPayload.value?.error ?? null);
+
+function getCurrentQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  return Object.fromEntries(params.entries());
+}
+
+function applyPickerQuery(query, pageNumber = 1) {
+  query.media_picker = '1';
+  query.media_picker_collection = props.collection;
+
+  if (props.squadronId !== null && props.squadronId !== undefined && String(props.squadronId) !== '') {
+    query.media_picker_squadron_id = String(props.squadronId);
+  } else {
+    delete query.media_picker_squadron_id;
+  }
+
+  const trimmedSearch = String(search.value ?? '').trim();
+  if (trimmedSearch) {
+    query.media_picker_search = trimmedSearch;
+  } else {
+    delete query.media_picker_search;
+  }
+
+  if (pageNumber > 1) {
+    query.media_picker_page = String(pageNumber);
+  } else {
+    delete query.media_picker_page;
+  }
+
+  return query;
+}
+
+function clearPickerQuery() {
+  const query = getCurrentQueryParams();
+  delete query.media_picker;
+  delete query.media_picker_collection;
+  delete query.media_picker_squadron_id;
+  delete query.media_picker_search;
+  delete query.media_picker_page;
+
+  const nextSearch = new URLSearchParams(query).toString();
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash ?? ''}`;
+
+  if (window.history?.replaceState) {
+    window.history.replaceState(window.history.state, '', nextUrl);
+    return;
+  }
+
+  router.get(window.location.pathname, query, {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+    only: ['mediaPicker'],
+  });
+}
+
 async function loadMedia(page = 1) {
   loading.value = true;
 
-  const params = new URLSearchParams();
-  params.set('page', page);
-  params.set('collection', props.collection);
-  if (props.squadronId !== null && props.squadronId !== undefined && String(props.squadronId) !== '') {
-    params.set('squadron_id', String(props.squadronId));
-  }
-  if (search.value) params.set('search', search.value);
+  const query = applyPickerQuery(getCurrentQueryParams(), page);
 
-  try {
-    const res = await fetch(`/media/list?${params.toString()}`, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-    });
-
-    const json = await res.json();
-    const payload = json.payload?.media;
-
-    if (payload) {
-      items.value = payload.data || [];
-      currentPage.value = payload.current_page || 1;
-      lastPage.value = payload.last_page || 1;
-    }
-  } catch (err) {
-    console.error('MediaPicker: failed to load', err);
-  } finally {
-    loading.value = false;
-  }
+  router.get(window.location.pathname, query, {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+    only: ['mediaPicker', 'flash'],
+    onFinish: () => {
+      loading.value = false;
+    },
+  });
 }
 
 function selectItem(item) {
@@ -269,55 +330,41 @@ async function submitUpload() {
   uploading.value = true;
   uploadError.value = '';
 
-  const formData = new FormData();
-  formData.append('file', uploadFile.value);
-  formData.append('collection', props.collection);
+  const payload = {
+    file: uploadFile.value,
+    collection: props.collection,
+    alt_text: uploadAltText.value || null,
+  };
+
   if (props.squadronId !== null && props.squadronId !== undefined && String(props.squadronId) !== '') {
-    formData.append('squadron_id', String(props.squadronId));
+    payload.squadron_id = String(props.squadronId);
   }
-  if (uploadAltText.value) formData.append('alt_text', uploadAltText.value);
 
-  try {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    const res = await fetch('/media/upload', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-      },
-      body: formData,
-    });
-
-    const json = await res.json();
-
-    if (!res.ok) {
-      const errors = json.errors;
-      uploadError.value = errors
-        ? Object.values(errors).flat().join(' ')
-        : (json.message || 'Upload failed.');
-      return;
-    }
-
-    const newMedia = json.payload?.media;
-    if (newMedia) {
-      selectedId.value = newMedia.id;
-      selectedItem.value = newMedia;
+  router.post('/media/upload', payload, {
+    forceFormData: true,
+    preserveScroll: true,
+    preserveState: true,
+    only: ['mediaPicker', 'flash'],
+    onSuccess: () => {
       activeTab.value = 'browse';
-      loadMedia(1);
-    }
-  } catch (err) {
-    uploadError.value = 'Network error. Please try again.';
-  } finally {
-    uploading.value = false;
-  }
+    },
+    onError: (errors) => {
+      const firstKey = Object.keys(errors ?? {})[0];
+      const firstValue = firstKey ? errors[firstKey] : null;
+      const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue;
+      uploadError.value = firstMessage ? String(firstMessage) : 'Upload failed.';
+    },
+    onFinish: () => {
+      uploading.value = false;
+    },
+  });
 }
 
 /* ============================================================
    LIFECYCLE
 ============================================================ */
 function close() {
+  clearPickerQuery();
   emit('close');
 }
 
@@ -332,6 +379,34 @@ function resetState() {
   uploadPreview.value = null;
   uploadError.value = '';
 }
+
+watch(
+  () => mediaPickerPayload.value,
+  (payload) => {
+    items.value = Array.isArray(payload?.items) ? payload.items : [];
+    currentPage.value = Number(payload?.pagination?.currentPage ?? 1);
+    lastPage.value = Number(payload?.pagination?.lastPage ?? 1);
+
+    if (payload && typeof payload.search === 'string') {
+      search.value = payload.search;
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => flashMedia.value,
+  (flash) => {
+    if (!props.open) return;
+    if (!flash?.item?.id) return;
+    if (flash.item.collection !== props.collection) return;
+
+    selectedId.value = flash.item.id;
+    selectedItem.value = flash.item;
+    activeTab.value = 'browse';
+    uploadError.value = '';
+  }
+);
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {

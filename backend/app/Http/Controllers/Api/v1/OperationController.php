@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Domain\Operations\Queries\OperationQuery;
 use Illuminate\Http\Request;
 use App\Http\Requests\Operations\OperationIndexRequest;
 use App\Http\Requests\Operations\OperationStoreRequest;
@@ -14,19 +15,28 @@ use App\Domain\Operations\Services\OperationService;
 use App\Domain\Operations\Presenters\OperationPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * JSON API controller for operation listing, detail, lifecycle, and mutation
+ * actions.
+ *
+ * The controller stays thin: requests authorize and validate, domain services do
+ * the real work, and presenters shape the response payloads.
+ */
 class OperationController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected OperationService $service
+        protected OperationService $service,
+        protected OperationQuery $query,
     ) {}
 
+    /**
+     * Return a paginated list of operations matching the request query parameters.
+     */
     public function index(OperationIndexRequest $request)
     {
         $this->authorize('viewAny', Operation::class);
-
-        $now = now();
 
         $validated = $request->validated();
 
@@ -34,69 +44,14 @@ class OperationController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
         $perPage = (int) ($validated['per_page'] ?? 12);
 
-        $allowedStatuses = [
-            'active',
-            'all',
-            'draft',
-            'published',
-            'in_progress',
-            'completed',
-            'canceled',
-        ];
-
-        if (! in_array($status, $allowedStatuses, true)) {
-            $status = 'active';
-        }
-
-        $query = Operation::query()
-            ->with(['squadron.leader', 'creator.roles']);
-
-        if ($status === 'active') {
-            $query->whereIn('status', ['published', 'in_progress']);
-        } elseif ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($search !== '') {
-            $searchId = null;
-            if (preg_match('/^#?(\d+)$/', $search, $matches)) {
-                $searchId = (int) $matches[1];
-            }
-
-            $query->where(function ($q) use ($search, $searchId) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-
-                $q->orWhereHas('squadron', function ($squadronQuery) use ($search) {
-                    $squadronQuery->where('name', 'like', "%{$search}%");
-                });
-
-                $q->orWhereHas('creator', function ($creatorQuery) use ($search) {
-                    $creatorQuery->where('rsi_handle', 'like', "%{$search}%");
-                });
-
-                if ($searchId !== null) {
-                    $q->orWhere('id', $searchId);
-                }
-            });
-        }
-
-        $operations = $query
-            ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
-            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
-            ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $operations->setCollection(
-            $operations->getCollection()->map(
-                fn (Operation $op) => OperationPresenter::make($op)->summary()
-            )
-        );
+        $operations = $this->query->summaryList($status, $search, $perPage);
 
         return response()->json($operations);
     }
 
+    /**
+     * Return the full presented payload for a single operation.
+     */
     public function show(Operation $operation)
     {
         $this->authorize('view', $operation);
@@ -108,6 +63,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Create a squadron-scoped operation through the API.
+     */
     public function store(OperationStoreRequest $request, Squadron $squadron)
     {
         $this->authorize('create', [Operation::class, $squadron]);
@@ -120,6 +78,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Create a global operation that does not belong to a squadron.
+     */
     public function storeGlobal(OperationStoreRequest $request)
     {
         $this->authorize('create', Operation::class);
@@ -132,6 +93,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Update an existing operation and return the full refreshed payload.
+     */
     public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -143,6 +107,10 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Cancel the operation through the domain cancel flow and return a summary
+     * payload for list refreshes.
+     */
     public function destroy(Operation $operation)
     {
         $this->authorize('delete', $operation);
@@ -156,6 +124,9 @@ class OperationController extends Controller
         ]);
     }
 
+    /**
+     * Transition the operation to an explicitly requested status.
+     */
     public function updateStatus(OperationStatusUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -174,6 +145,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Convenience endpoint for moving an operation into the in-progress state.
+     */
     public function start(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -185,6 +159,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Complete an operation and require the completion outcome in the payload.
+     */
     public function complete(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -200,6 +177,9 @@ class OperationController extends Controller
         );
     }
 
+    /**
+     * Cancel an operation with an optional human-readable reason.
+     */
     public function cancel(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);

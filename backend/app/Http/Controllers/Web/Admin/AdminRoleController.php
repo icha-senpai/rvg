@@ -8,10 +8,16 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * Handles admin-only role mutation actions from the dashboard.
+ */
 class AdminRoleController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Create a new application role.
+     */
     public function store(Request $request)
     {
         $this->authorize('access-admin-panel');
@@ -31,6 +37,9 @@ class AdminRoleController extends Controller
             ->with('success', 'Role created.');
     }
 
+    /**
+     * Update an existing application role.
+     */
     public function update(Request $request)
     {
         $this->authorize('access-admin-panel');
@@ -57,6 +66,9 @@ class AdminRoleController extends Controller
             ->with('success', 'Role updated.');
     }
 
+    /**
+     * Delete a role after detaching related users and permissions.
+     */
     public function destroy(Request $request)
     {
         $this->authorize('access-admin-panel');

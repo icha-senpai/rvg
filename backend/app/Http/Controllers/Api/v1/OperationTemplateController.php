@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Domain\Operations\Services\OperationTemplateService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
@@ -9,56 +10,38 @@ use App\Models\OperationTemplate;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
+/**
+ * JSON API controller for operation template listing and mutation actions.
+ */
 class OperationTemplateController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        protected OperationTemplateService $templates
+    ) {}
+
+    /**
+     * Return the set of templates visible to the authenticated user.
+     */
     public function index(Request $request)
     {
         $user = $request->user();
 
         $this->authorize('viewAny', OperationTemplate::class);
 
-        $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
-
-        $activeSquadronIds = $user->squadrons
-            ->filter(fn ($s) => ($s->pivot?->membership_status ?? null) === 'active')
-            ->pluck('id')
-            ->values()
-            ->all();
-
-        $templates = OperationTemplate::query()
-            ->where(function ($q) use ($user, $activeSquadronIds, $isDirectorLike) {
-                $q->where(function ($qq) use ($user) {
-                    $qq->where('scope', OperationTemplate::SCOPE_PERSONAL)
-                        ->where('owner_user_id', $user->id);
-                });
-
-                $q->orWhere(function ($qq) use ($activeSquadronIds, $isDirectorLike) {
-                    $qq->where('scope', OperationTemplate::SCOPE_SQUADRON);
-
-                    if (! $isDirectorLike) {
-                        $qq->whereIn('squadron_id', $activeSquadronIds);
-                    }
-                });
-
-                $q->orWhere(function ($qq) {
-                    $qq->where('scope', OperationTemplate::SCOPE_GLOBAL);
-                });
-            })
-            ->orderBy('scope')
-            ->orderBy('name')
-            ->get();
-
         return response()->json([
             'status' => 'ok',
             'message' => null,
             'payload' => [
-                'templates' => $templates->map(fn (OperationTemplate $t) => $this->present($t))->values(),
+                'templates' => $this->templates->listVisibleFor($user),
             ],
         ]);
     }
 
+    /**
+     * Create a new operation template within the requested visibility scope.
+     */
     public function store(OperationTemplateStoreRequest $request)
     {
         $user = $request->user();
@@ -68,49 +51,44 @@ class OperationTemplateController extends Controller
 
         $this->authorize('create', [OperationTemplate::class, $scope, $squadronId]);
 
-        $template = OperationTemplate::create([
-            'name' => $request->validated('name'),
-            'scope' => $scope,
-            'owner_user_id' => $scope === OperationTemplate::SCOPE_PERSONAL ? $user->id : null,
-            'squadron_id' => $scope === OperationTemplate::SCOPE_SQUADRON ? (int) $squadronId : null,
-            'created_by' => $user->id,
-            'payload' => $this->sanitizePayload($request->validated('payload')),
-        ]);
+        $template = $this->templates->create(
+            $user,
+            $scope,
+            $scope === OperationTemplate::SCOPE_SQUADRON ? (int) $squadronId : null,
+            $request->validated('name'),
+            $request->validated('payload')
+        );
 
         return response()->json([
             'status' => 'ok',
             'message' => null,
             'payload' => [
-                'template' => $this->present($template),
+                'template' => $this->templates->present($template),
             ],
         ], 201);
     }
 
+    /**
+     * Update an existing operation template.
+     */
     public function update(OperationTemplateUpdateRequest $request, OperationTemplate $template)
     {
         $this->authorize('update', $template);
 
-        $data = $request->validated();
-
-        if (array_key_exists('name', $data)) {
-            $template->name = $data['name'];
-        }
-
-        if (array_key_exists('payload', $data)) {
-            $template->payload = $this->sanitizePayload($data['payload']);
-        }
-
-        $template->save();
+        $updated = $this->templates->update($template, $request->validated());
 
         return response()->json([
             'status' => 'ok',
             'message' => null,
             'payload' => [
-                'template' => $this->present($template->fresh()),
+                'template' => $this->templates->present($updated),
             ],
         ]);
     }
 
+    /**
+     * Delete an operation template.
+     */
     public function destroy(Request $request, OperationTemplate $template)
     {
         $this->authorize('delete', $template);
@@ -124,54 +102,5 @@ class OperationTemplateController extends Controller
                 'deleted' => true,
             ],
         ]);
-    }
-
-    protected function present(OperationTemplate $template): array
-    {
-        return [
-            'id' => $template->id,
-            'name' => $template->name,
-            'scope' => $template->scope,
-            'squadron_id' => $template->squadron_id,
-            'payload' => $template->payload,
-        ];
-    }
-
-    protected function sanitizePayload(array $payload): array
-    {
-        if (! array_key_exists('operation_type', $payload) && array_key_exists('operation_kind', $payload)) {
-            $payload['operation_type'] = $payload['operation_kind'];
-        }
-
-        if (! array_key_exists('gameplay_type', $payload) && array_key_exists('type', $payload)) {
-            $payload['gameplay_type'] = $payload['type'];
-        }
-
-        if (! array_key_exists('extended_description', $payload) && array_key_exists('notes', $payload)) {
-            $payload['extended_description'] = $payload['notes'];
-        }
-
-        $allowedKeys = [
-            'title',
-            'gameplay_type',
-            'description',
-            'extended_description',
-            'visibility',
-            'squadron_name',
-            'operation_type',
-            'branch',
-            'operation_strictness',
-            'start_location',
-            'operation_location',
-            'slots',
-        ];
-
-        $safe = array_intersect_key($payload, array_flip($allowedKeys));
-
-        if (array_key_exists('slots', $safe)) {
-            $safe['slots'] = is_array($safe['slots']) ? array_values($safe['slots']) : [];
-        }
-
-        return $safe;
     }
 }

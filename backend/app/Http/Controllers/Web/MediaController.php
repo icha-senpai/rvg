@@ -6,12 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Domain\Media\MediaVisibility;
 use App\Domain\Media\MediaService;
-use App\Domain\Media\Presenters\MediaPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
+/**
+ * Handles the admin media library screens and related JSON helper endpoints.
+ *
+ * This controller keeps authorization, filtering, redirects, and response shape
+ * concerns in one place while the media domain services own persistence and
+ * visibility rules.
+ */
 class MediaController extends Controller
 {
     use AuthorizesRequests;
@@ -21,10 +28,9 @@ class MediaController extends Controller
         protected MediaVisibility $visibility
     ) {}
 
-    /* ============================================================
-     | ADMIN MEDIA LIBRARY (paginated list for admin dashboard)
-     * ============================================================ */
-
+    /**
+     * Render the admin media library panel with the current filters and stats.
+     */
     public function index(Request $request)
     {
         $this->authorize('access-admin-panel');
@@ -35,25 +41,20 @@ class MediaController extends Controller
             'mime_type'  => $request->query('mime_type'),
         ];
 
-        $media = $this->service->list($filters, 24);
+        $page = max(1, (int) $request->query('page', 1));
 
-        $media->setCollection(
-            $media->getCollection()->map(
-                fn (Media $m) => MediaPresenter::make($m)->full()
-            )
-        );
-
-        // Gather summary stats for the dashboard header
-        $stats = [
-            'total'       => Media::count(),
-            'total_size'  => Media::sum('size'),
-            'by_collection' => Media::selectRaw('collection, COUNT(*) as count')
-                ->groupBy('collection')
-                ->pluck('count', 'collection'),
-        ];
+        $media = $this->service->listPresented($filters, 24, 'full', 'page', $page);
+        $stats = $this->service->mediaStats(true);
 
         return Inertia::render('Admin/Partials/MediaPanel', [
-            'media'   => $media,
+            'media'   => [
+                'data' => $media->items(),
+                'current_page' => $media->currentPage(),
+                'last_page' => $media->lastPage(),
+                'prev_page_url' => $media->previousPageUrl(),
+                'next_page_url' => $media->nextPageUrl(),
+                'total' => $media->total(),
+            ],
             'filters' => $filters,
             'stats'   => $stats,
             'collections' => Media::COLLECTIONS,
@@ -61,7 +62,7 @@ class MediaController extends Controller
     }
 
     /**
-     * Return media list as JSON (for AJAX panel refresh / picker modal).
+     * Return the media list as JSON for panel refreshes and picker modals.
      */
     public function list(Request $request)
     {
@@ -88,18 +89,8 @@ class MediaController extends Controller
         $perPage = (int) $request->query('per_page', 24);
         $perPage = max(1, min(100, $perPage));
 
-        $media = $this->service->list($filters, $perPage);
-
-        $media->setCollection(
-            $media->getCollection()->map(
-                fn (Media $m) => MediaPresenter::make($m)->summary()
-            )
-        );
-
-        $stats = [
-            'total' => Media::count(),
-            'total_size' => Media::sum('size'),
-        ];
+        $media = $this->service->listPresented($filters, $perPage);
+        $stats = $this->service->mediaStats();
 
         return response()->json([
             'status'  => 'ok',
@@ -110,14 +101,14 @@ class MediaController extends Controller
         ]);
     }
 
-    /* ============================================================
-     | UPLOAD
-     * ============================================================ */
-
+    /**
+     * Upload a new media file and return either JSON or a flashed redirect
+     * depending on the caller.
+     */
     public function upload(Request $request)
     {
         $data = $request->validate([
-            'file'       => ['required', 'file', 'max:51200'], // 50 MB in KB
+            'file'       => ['required', 'file', 'max:51200'],
             'collection' => ['required', 'string', 'in:' . implode(',', Media::COLLECTIONS)],
             'alt_text'   => ['nullable', 'string', 'max:255'],
             'squadron_id' => ['nullable', 'integer', 'exists:squadrons,id'],
@@ -127,7 +118,8 @@ class MediaController extends Controller
         $user = $request->user();
         $squadronId = $data['squadron_id'] ?? null;
 
-        // Policy check: can this user upload to this collection?
+        // Upload permissions depend on both the destination collection and the
+        // optional squadron scope attached to the upload.
         $this->authorize('upload', [Media::class, $collection, $squadronId]);
 
         $media = $this->service->upload(
@@ -142,17 +134,16 @@ class MediaController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'status'  => 'ok',
-                'payload' => ['media' => MediaPresenter::make($media)->full()],
+                'payload' => ['media' => $this->service->present($media, 'full')],
             ], 201);
         }
 
-        return back()->with('success', 'File uploaded.');
+        return $this->redirectWithMediaFlash($request, $media, 'uploaded', 'File uploaded.');
     }
 
-    /* ============================================================
-     | UPDATE METADATA (alt_text, collection)
-     * ============================================================ */
-
+    /**
+     * Update editable media metadata such as alt text or the display filename.
+     */
     public function update(Request $request, Media $media)
     {
         $this->authorize('update', $media);
@@ -162,26 +153,21 @@ class MediaController extends Controller
             'original_filename' => ['sometimes', 'string', 'max:255', 'regex:/\S/', 'not_regex:/[\\/\\\\]/'],
         ]);
 
-        if (array_key_exists('original_filename', $data)) {
-            $data['original_filename'] = trim((string) $data['original_filename']);
-        }
-
-        $media->update($data);
+        $media = $this->service->updateMetadata($media, $data);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'status'  => 'ok',
-                'payload' => ['media' => MediaPresenter::make($media->fresh())->full()],
+                'payload' => ['media' => $this->service->present($media, 'full')],
             ]);
         }
 
-        return back()->with('success', 'Media updated.');
+        return $this->redirectWithMediaFlash($request, $media, 'updated', 'Media updated.');
     }
 
-    /* ============================================================
-     | DELETE
-     * ============================================================ */
-
+    /**
+     * Delete a media record and adapt the response to JSON or a flashed redirect.
+     */
     public function destroy(Request $request, Media $media)
     {
         $this->authorize('delete', $media);
@@ -195,23 +181,31 @@ class MediaController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Media deleted.');
+        return back()
+            ->with('success', 'Media deleted.')
+            ->with('media', [
+                'event' => 'deleted',
+                'id' => $media->id,
+            ]);
     }
 
-    /* ============================================================
-     | SHOW SINGLE (JSON detail for modals / drawers)
-     * ============================================================ */
-
+    /**
+     * Return one fully presented media record for drawers, modals, or detail
+     * panels.
+     */
     public function show(Request $request, Media $media)
     {
         $this->authorize('view', $media);
 
         return response()->json([
             'status'  => 'ok',
-            'payload' => ['media' => MediaPresenter::make($media)->full()],
+            'payload' => ['media' => $this->service->present($media, 'full')],
         ]);
     }
 
+    /**
+     * Stream a media file download for admin users.
+     */
     public function download(Request $request, Media $media)
     {
         $this->authorize('access-admin-panel');
@@ -240,5 +234,19 @@ class MediaController extends Controller
         }, $filename, [
             'Content-Type' => $mime,
         ]);
+    }
+
+    /**
+     * Redirect back with the standard flashed media event payload used by the
+     * admin media UI.
+     */
+    protected function redirectWithMediaFlash(Request $request, Media $media, string $event, string $success): RedirectResponse
+    {
+        return back()
+            ->with('success', $success)
+            ->with('media', [
+                'event' => $event,
+                'item' => $this->service->present($media, 'full'),
+            ]);
     }
 }

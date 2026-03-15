@@ -3,7 +3,6 @@
 namespace App\Domain\Media;
 
 use App\Domain\AccessControl\AccessService;
-use App\Domain\AccessControl\RoleHierarchy;
 use App\Models\Media;
 use App\Models\Squadron;
 use App\Models\User;
@@ -18,10 +17,8 @@ class MediaVisibility
     {
         $collection = (string) ($filters['collection'] ?? '');
 
-        $user->loadMissing('roles:id,slug');
-
         $isDirectorLike = $this->access->isDirectorLike($user);
-        $isOfficer = RoleHierarchy::userAtLeast($user, 'lieutenant') || (int) ($user->rank_level ?? 0) >= 2;
+        $isOfficer = $this->access->isOfficer($user);
 
         if ($collection === Media::COLLECTION_SHIP_IMAGE
             || $collection === Media::COLLECTION_SITE_ASSET) {
@@ -39,10 +36,10 @@ class MediaVisibility
 
             $canBrowseEmblems = $squadron
                 && (
-                    $user->isSquadronLeader($squadron)
+                    $this->access->isSquadronLeader($user, $squadron)
                     || (
                         $isOfficer
-                        && $user->squadronMemberships()->active()->where('squadron_id', $squadron->id)->exists()
+                        && $this->access->isSquadronMember($user, $squadron)
                     )
                 );
 

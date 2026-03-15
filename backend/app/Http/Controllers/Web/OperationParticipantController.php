@@ -9,6 +9,10 @@ use App\Models\OperationParticipant;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
+/**
+ * Handles the web participation actions for joining, leaving, and adjusting a
+ * participant's selected slot.
+ */
 class OperationParticipantController extends Controller
 {
     use AuthorizesRequests;
@@ -17,6 +21,9 @@ class OperationParticipantController extends Controller
         protected ParticipantService $participants
     ) {}
 
+    /**
+     * Let the authenticated user join the operation from the web UI.
+     */
     public function join(Request $request, Operation $operation)
     {
         $this->authorize('view', $operation);
@@ -27,6 +34,8 @@ class OperationParticipantController extends Controller
             'operation_role_id' => 'nullable|exists:operation_roles,id',
         ]);
 
+        // Empty slot inputs are normalized to null so the participant service
+        // does not need to treat empty strings as a special case.
         if (array_key_exists('slot', $data) && $data['slot'] === '') {
             $data['slot'] = null;
         }
@@ -37,6 +46,9 @@ class OperationParticipantController extends Controller
             ->with('success', 'Joined operation.');
     }
 
+    /**
+     * Let the authenticated user leave the operation from the web UI.
+     */
     public function leave(Request $request, Operation $operation)
     {
         $this->authorize('view', $operation);
@@ -47,6 +59,9 @@ class OperationParticipantController extends Controller
             ->with('success', 'Left operation.');
     }
 
+    /**
+     * Update the participant's selected slot for the given operation.
+     */
     public function updateSlot(
         Request $request,
         Operation $operation,
@@ -65,6 +80,8 @@ class OperationParticipantController extends Controller
             'operation_role_id' => 'nullable|exists:operation_roles,id',
         ]);
 
+        // Empty slot inputs are normalized to null so the participant service
+        // can treat "cleared" and "unset" consistently.
         if (array_key_exists('slot', $data) && $data['slot'] === '') {
             $data['slot'] = null;
         }

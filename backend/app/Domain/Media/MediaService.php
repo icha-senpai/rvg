@@ -2,6 +2,7 @@
 
 namespace App\Domain\Media;
 
+use App\Domain\Media\Presenters\MediaPresenter;
 use App\Models\Media;
 use App\Models\User;
 use App\Domain\Media\Actions\UploadMedia;
@@ -56,6 +57,20 @@ class MediaService
     }
 
     /**
+     * Update metadata for a media record.
+     */
+    public function updateMetadata(Media $media, array $data): Media
+    {
+        if (array_key_exists('original_filename', $data)) {
+            $data['original_filename'] = trim((string) $data['original_filename']);
+        }
+
+        $media->update($data);
+
+        return $media->fresh();
+    }
+
+    /**
      * Replace the current media on a single-attachment entity.
      * Uploads the new file, attaches it, and deletes the old one.
      */
@@ -86,7 +101,7 @@ class MediaService
     /**
      * List media with optional filters.
      */
-    public function list(array $filters = [], int $perPage = 20)
+    public function list(array $filters = [], int $perPage = 20, string $pageName = 'page', ?int $page = null)
     {
         $query = Media::query()
             ->with([
@@ -119,6 +134,53 @@ class MediaService
             $query->unattached();
         }
 
-        return $query->paginate($perPage)->withQueryString();
+        return $query->paginate($perPage, ['*'], $pageName, $page)->withQueryString();
+    }
+
+    public function listPresented(
+        array $filters = [],
+        int $perPage = 20,
+        string $detail = 'summary',
+        string $pageName = 'page',
+        ?int $page = null
+    ) {
+        return $this->presentPaginator(
+            $this->list($filters, $perPage, $pageName, $page),
+            $detail
+        );
+    }
+
+    public function present(Media $media, string $detail = 'summary'): array
+    {
+        return $detail === 'full'
+            ? MediaPresenter::make($media)->full()
+            : MediaPresenter::make($media)->summary();
+    }
+
+    public function mediaStats(bool $includeCollectionCounts = false): array
+    {
+        $stats = [
+            'total' => Media::count(),
+            'total_size' => Media::sum('size'),
+        ];
+
+        if ($includeCollectionCounts) {
+            $stats['by_collection'] = Media::selectRaw('collection, COUNT(*) as count')
+                ->groupBy('collection')
+                ->pluck('count', 'collection');
+        }
+
+        return $stats;
+    }
+
+    protected function presentPaginator($media, string $detail = 'summary')
+    {
+        $media->setCollection(
+            $media->getCollection()->map(
+                fn (Media $item) => $this->present($item, $detail)
+            )
+        );
+
+        return $media;
     }
 }

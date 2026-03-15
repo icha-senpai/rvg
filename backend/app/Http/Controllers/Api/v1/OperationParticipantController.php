@@ -5,16 +5,26 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Operation;
 use App\Models\OperationParticipant;
-use App\Models\OperationRole;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Support\Facades\Auth;
+use App\Domain\Operations\Services\ParticipantService;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * JSON API controller for operation participation actions and participant
+ * updates.
+ */
 class OperationParticipantController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        protected ParticipantService $participants
+    ) {}
+
+    /**
+     * Join an operation with an optional requested slot or role.
+     */
     public function join(Request $request, Operation $operation)
     {
         $this->authorize('view', $operation);
@@ -25,83 +35,34 @@ class OperationParticipantController extends Controller
             'notes'             => 'nullable|string|max:500',
         ]);
 
-        // Prevent duplicate join
-        if ($operation->participants()
-            ->where('user_id', Auth::id())
-            ->exists()
-        ) {
+        try {
+            $participant = $this->participants->join($operation, $request->user(), $validated);
+        } catch (ValidationException $e) {
+            $message = $this->firstValidationMessage($e, 'Already joined this operation');
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Already joined this operation',
-                'error' => 'Already joined this operation',
+                'message' => $message,
+                'error' => $message,
             ], 422);
-        }
-
-        // Optional role validation
-        $roleId = $validated['operation_role_id'] ?? null;
-        if ($roleId) {
-            $role = OperationRole::findOrFail($roleId);
-            if ($role->operation_id !== $operation->id) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid role for this operation',
-                    'error' => 'Invalid role for this operation',
-                ], 422);
-            }
-
-            if ($role->capacity !== null) {
-                $filled = $role->participants()->count();
-                if ($filled >= $role->capacity) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Role is full',
-                        'error' => 'Role is full',
-                    ], 422);
-                }
-            }
-        }
-
-        $participant = $operation->participants()->create([
-            'user_id'           => Auth::id(),
-            'operation_role_id' => $roleId,
-            'slot'              => $validated['slot'] ?? null,
-            'attendance_status' => 'signed_up',
-            'notes'             => $validated['notes'] ?? null,
-            'stats'             => null,
-        ]);
-
-        if (Auth::id()) {
-            User::whereKey(Auth::id())->increment('operations_joined_count');
         }
 
         return response()->json($participant->load('role', 'user'), 201);
     }
 
-    public function leave(Operation $operation)
+    /**
+     * Leave an operation as the authenticated participant.
+     */
+    public function leave(Request $request, Operation $operation)
     {
-        $user = Auth::user();
-
-        $participant = $operation->participants()
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$participant) {
+        try {
+            $this->participants->leave($operation, $request->user());
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Not in operation',
             ], 404);
         }
-
-        if (
-            $user
-            && in_array($operation->status, ['draft', 'published'], true)
-            && $operation->starts_at
-            && now()->lt($operation->starts_at)
-        ) {
-            User::whereKey($user->id)->increment('operations_left_early_count');
-        }
-
-        $participant->delete();
 
         return response()->json([
             'status' => 'success',
@@ -109,34 +70,66 @@ class OperationParticipantController extends Controller
         ]);
     }
 
+    /**
+     * Update a participant's assigned slot or operation role.
+     *
+     * Participants may edit their own slot choice, while changes to another
+     * participant require the operation member-management permission.
+     */
     public function updateSlot(Request $request, Operation $operation, OperationParticipant $participant)
     {
         if ($participant->operation_id !== $operation->id) {
             abort(404);
         }
 
-        if ($participant->user_id !== Auth::id()) {
+        if ($participant->user_id !== $request->user()->id) {
             $this->authorize('manageMembers', $operation);
         }
 
-        $participant->update(
-            $request->validate([
-                'operation_role_id' => 'nullable|exists:operation_roles,id',
-                'slot'              => 'nullable|string|max:255',
-            ])
-        );
+        try {
+            $participant = $this->participants->updateSlot(
+                $operation,
+                $participant,
+                $request->validate([
+                    'operation_role_id' => 'nullable|exists:operation_roles,id',
+                    'slot'              => 'nullable|string|max:255',
+                ])
+            );
+        } catch (ValidationException $e) {
+            $message = $this->firstValidationMessage($e, 'Unable to update role');
 
-        return response()->json($participant->fresh()->load('role', 'user'));
+            return response()->json([
+                'status' => 'error',
+                'message' => $message,
+                'error' => $message,
+            ], 422);
+        }
+
+        return response()->json($participant->load('role', 'user'));
     }
 
+    /**
+     * Update the stored stats payload for one participant.
+     */
     public function updateStats(Request $request, Operation $operation, OperationParticipant $participant)
     {
         $this->authorize('adjustStats', $operation);
 
-        $participant->update([
-            'stats' => $request->input('stats', []),
-        ]);
+        $participant = $this->participants->updateStats(
+            $participant,
+            $request->input('stats', [])
+        );
 
         return response()->json($participant);
+    }
+
+    /**
+     * Extract the first validation error message for API-friendly error payloads.
+     */
+    protected function firstValidationMessage(ValidationException $e, string $fallback): string
+    {
+        return collect($e->errors())
+            ->flatten()
+            ->first() ?? $fallback;
     }
 }

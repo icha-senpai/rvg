@@ -4,6 +4,10 @@ namespace App\Domain\Media\Presenters;
 
 use App\Models\Media;
 
+/**
+ * Shapes media models into the payloads used by pickers, detail views, and
+ * embedded references inside other presenters.
+ */
 class MediaPresenter
 {
     protected Media $media;
@@ -60,6 +64,8 @@ class MediaPresenter
      */
     public function full(): array
     {
+        // Load uploader relations here so admin/detail payloads can include a
+        // richer uploader profile without requiring every caller to preload them.
         $this->media->loadMissing([
             'uploader:id,rsi_handle,discord_name,rank,rank_level',
             'uploader.roles:id,slug,name',
@@ -108,7 +114,8 @@ class MediaPresenter
     }
 
     /**
-     * Minimal shape for embedding in other presenters (e.g., squadron emblem, avatar).
+     * Minimal shape for embedding in other presenters, such as squadron emblems
+     * and similar lightweight media references.
      */
     public function embedded(): array
     {

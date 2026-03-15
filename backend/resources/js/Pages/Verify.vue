@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import { extractFirstErrorMessage, notifyError } from '@/errors'
 
 // --- URL params from Discord OAuth callback ---
 const page = usePage()
@@ -53,12 +54,16 @@ const inlineErrorMessage = computed(() => {
     const verificationError = pageErrors.value?.verification
     const handleError = pageErrors.value?.rsi_handle
 
-    if (Array.isArray(verificationError) && verificationError[0]) return verificationError[0]
-    if (typeof verificationError === 'string' && verificationError.trim()) return verificationError
-    if (Array.isArray(handleError) && handleError[0]) return handleError[0]
-    if (typeof handleError === 'string' && handleError.trim()) return handleError
+    const combinedErrors = {
+        ...(verificationError ? { verification: verificationError } : {}),
+        ...(handleError ? { rsi_handle: handleError } : {}),
+    }
 
-    return initialErrorMessage
+    if (Object.keys(combinedErrors).length === 0) {
+        return initialErrorMessage
+    }
+
+    return extractFirstErrorMessage(combinedErrors, initialErrorMessage)
 })
 
 const rsiHandleFieldError = computed(() => {
@@ -122,8 +127,7 @@ const copyVerificationCode = async () => {
             copiedCode.value = false
         }, 1400)
     } catch (e) {
-        console.error(e)
-        window.hzNotifyError({ message: 'Failed to copy code. Please copy it manually.' })
+        notifyError({ message: 'Failed to copy code. Please copy it manually.' })
     }
 }
 </script>

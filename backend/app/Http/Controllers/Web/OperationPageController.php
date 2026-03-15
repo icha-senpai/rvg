@@ -17,30 +17,41 @@ use App\Http\Requests\Operations\OperationUpdateRequest;
 use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
 
-// Services & Presenters
 use App\Domain\Operations\Services\OperationService;
 use App\Domain\Operations\Services\OperationMediaService;
 use App\Domain\Operations\Services\OperationShowDataService;
+use App\Domain\Operations\Services\OperationTemplateService;
 use App\Domain\Operations\Presenters\OperationPresenter;
 use App\Domain\Operations\Queries\OperationQuery;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * Web controller for the operations dashboard, operation detail screens, editor
+ * flows, and template management actions.
+ *
+ * The controller mainly coordinates authorization, request/response transport,
+ * and delegation into domain services that hold the business logic.
+ */
 class OperationPageController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected OperationService    $service,
-        protected OperationQuery      $query,
+        protected OperationService $service,
+        protected OperationQuery $query,
         protected OperationMediaService $operationMedia,
         protected OperationShowDataService $showData,
+        protected OperationTemplateService $templates,
         protected SquadronService $squadrons
     ) {}
 
-    /* ============================================================
-     | INDEX (ALL OPS)
-     * ============================================================ */
+    /**
+     * Render the operations dashboard for lieutenant-and-above users.
+     *
+     * The query returns both the summarized operations list and the normalized
+     * filter state so the dashboard can preserve the current search UI.
+     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -49,6 +60,8 @@ class OperationPageController extends Controller
             abort(403);
         }
 
+        // The dashboard uses role hierarchy rather than a single permission so the
+        // same lieutenant+ rule can stay consistent across the UI.
         $user->loadMissing('roles:id,slug');
 
         if (! RoleHierarchy::userAtLeast($user, 'lieutenant')) {
@@ -71,9 +84,9 @@ class OperationPageController extends Controller
         ]);
     }
 
-    /* ============================================================
-     | SHOW SINGLE OPERATION
-     * ============================================================ */
+    /**
+     * Render the dedicated operation detail page.
+     */
     public function show(Request $request, Operation $operation)
     {
         $this->authorize('view', $operation);
@@ -87,9 +100,9 @@ class OperationPageController extends Controller
         ]);
     }
 
-    /* ============================================================
-     | CREATE
-     * ============================================================ */
+    /**
+     * Render the editor for creating a global operation.
+     */
     public function createGlobal(Request $request)
     {
         $this->authorize('create', Operation::class);
@@ -102,6 +115,12 @@ class OperationPageController extends Controller
         ]);
     }
 
+    /**
+     * Create a new global operation from the web editor flow.
+     *
+     * The response shape adapts to JSON callers and Inertia form flows without
+     * changing the underlying domain logic.
+     */
     public function storeGlobal(OperationStoreRequest $request)
     {
         $this->authorize('create', Operation::class);
@@ -131,6 +150,9 @@ class OperationPageController extends Controller
         return Inertia::location(route('operations.show', $operation->id));
     }
 
+    /**
+     * Render the editor for creating a squadron-scoped operation.
+     */
     public function create(Request $request, $squadronId)
     {
         $this->authorize('create', [Operation::class, Squadron::findOrFail((int) $squadronId)]);
@@ -143,6 +165,9 @@ class OperationPageController extends Controller
         ]);
     }
 
+    /**
+     * Create a new operation attached to a specific squadron.
+     */
     public function store(OperationStoreRequest $request, Squadron $squadron)
     {
         $this->authorize('create', [Operation::class, $squadron]);
@@ -172,9 +197,9 @@ class OperationPageController extends Controller
         return Inertia::location(route('operations.show', $operation->id));
     }
 
-    /* ============================================================
-     | EDIT / UPDATE
-     * ============================================================ */
+    /**
+     * Render the editor for updating an existing operation.
+     */
     public function edit(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -187,6 +212,9 @@ class OperationPageController extends Controller
         ]);
     }
 
+    /**
+     * Create a reusable operation template for the current user or squadron scope.
+     */
     public function storeTemplate(OperationTemplateStoreRequest $request)
     {
         $user = $request->user();
@@ -195,14 +223,13 @@ class OperationPageController extends Controller
 
         $this->authorize('create', [OperationTemplate::class, $scope, $squadronId]);
 
-        $template = OperationTemplate::create([
-            'name' => $request->validated('name'),
-            'scope' => $scope,
-            'owner_user_id' => $scope === OperationTemplate::SCOPE_PERSONAL ? $user->id : null,
-            'squadron_id' => $scope === OperationTemplate::SCOPE_SQUADRON ? (int) $squadronId : null,
-            'created_by' => $user->id,
-            'payload' => $this->sanitizeOperationTemplatePayload($request->validated('payload')),
-        ]);
+        $template = $this->templates->create(
+            $user,
+            $scope,
+            $scope === OperationTemplate::SCOPE_SQUADRON ? (int) $squadronId : null,
+            $request->validated('name'),
+            $request->validated('payload')
+        );
 
         return back()
             ->with('operationTemplate', [
@@ -211,21 +238,14 @@ class OperationPageController extends Controller
             ]);
     }
 
+    /**
+     * Update a saved operation template.
+     */
     public function updateTemplate(OperationTemplateUpdateRequest $request, OperationTemplate $template)
     {
         $this->authorize('update', $template);
 
-        $data = $request->validated();
-
-        if (array_key_exists('name', $data)) {
-            $template->name = $data['name'];
-        }
-
-        if (array_key_exists('payload', $data)) {
-            $template->payload = $this->sanitizeOperationTemplatePayload($data['payload']);
-        }
-
-        $template->save();
+        $this->templates->update($template, $request->validated());
 
         return back()
             ->with('operationTemplate', [
@@ -234,6 +254,9 @@ class OperationPageController extends Controller
             ]);
     }
 
+    /**
+     * Delete an operation template and emit a small UI event payload.
+     */
     public function destroyTemplate(Request $request, OperationTemplate $template)
     {
         $this->authorize('delete', $template);
@@ -248,6 +271,9 @@ class OperationPageController extends Controller
             ]);
     }
 
+    /**
+     * Update an existing operation from the web editor flow.
+     */
     public function update(OperationUpdateRequest $request, Operation $operation)
     {
         $this->authorize('update', $operation);
@@ -279,14 +305,15 @@ class OperationPageController extends Controller
             ->with('success', 'Operation updated.');
     }
 
-    /* ============================================================
-     | MEMBER INDEX (visible ops)
-     * ============================================================ */
+    /**
+     * Render the member-facing operation list that shows only operations visible
+     * to the current user.
+     */
     public function memberIndex(Request $request)
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('operations.index');
         }
 
@@ -299,6 +326,10 @@ class OperationPageController extends Controller
         ]);
     }
 
+    /**
+     * Resolve the operation requested in the dashboard query string and return the
+     * fully prepared show payload for the side panel.
+     */
     protected function resolveActiveOperation(Request $request): ?array
     {
         $operationId = $request->query('operation');
@@ -316,6 +347,10 @@ class OperationPageController extends Controller
         );
     }
 
+    /**
+     * Resolve the operation currently being edited through the dashboard query
+     * string and return the editor payload.
+     */
     protected function resolveEditingOperation(Request $request): ?array
     {
         $operationId = $request->query('edit');
@@ -333,9 +368,9 @@ class OperationPageController extends Controller
         ];
     }
 
-    /* ============================================================
-     | DELETE
-     * ============================================================ */
+    /**
+     * Cancel an operation from the web UI and return to the previous page.
+     */
     public function destroy(Operation $operation)
     {
         $this->authorize('delete', $operation);
@@ -345,13 +380,11 @@ class OperationPageController extends Controller
         return back()->with('success', 'Operation canceled.');
     }
 
-    /* ============================================================
-     | MEDIA HELPER
-     * ============================================================ */
-
     /**
-     * If the request includes a media_id, attach that media to the operation.
-     * If media_id is explicitly null/0, detach any current operation image.
+     * Sync the optional operation image media referenced by the current request.
+     *
+     * Leaving the field out means "keep the current image". Sending an explicit
+     * empty value lets the media service detach the current image.
      */
     private function attachMediaIfProvided(Request $request, Operation $operation): void
     {
@@ -362,6 +395,9 @@ class OperationPageController extends Controller
         $this->operationMedia->syncOperationImage($operation, $request->input('media_id'));
     }
 
+    /**
+     * Return the operation templates visible to the current user.
+     */
     protected function operationTemplatesFor(?User $user): array
     {
         if (! $user instanceof User) {
@@ -370,88 +406,6 @@ class OperationPageController extends Controller
 
         $this->authorize('viewAny', OperationTemplate::class);
 
-        $user->loadMissing('squadrons');
-
-        $isDirectorLike = $user->hasRole('director') || $user->hasRole('tech_director');
-        $activeSquadronIds = $user->squadrons
-            ->filter(fn ($squadron) => ($squadron->pivot?->membership_status ?? null) === 'active')
-            ->pluck('id')
-            ->values()
-            ->all();
-
-        return OperationTemplate::query()
-            ->where(function ($query) use ($user, $activeSquadronIds, $isDirectorLike) {
-                $query->where(function ($nested) use ($user) {
-                    $nested->where('scope', OperationTemplate::SCOPE_PERSONAL)
-                        ->where('owner_user_id', $user->id);
-                });
-
-                $query->orWhere(function ($nested) use ($activeSquadronIds, $isDirectorLike) {
-                    $nested->where('scope', OperationTemplate::SCOPE_SQUADRON);
-
-                    if (! $isDirectorLike) {
-                        $nested->whereIn('squadron_id', $activeSquadronIds);
-                    }
-                });
-
-                $query->orWhere(function ($nested) {
-                    $nested->where('scope', OperationTemplate::SCOPE_GLOBAL);
-                });
-            })
-            ->orderBy('scope')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (OperationTemplate $template) => $this->presentOperationTemplate($template))
-            ->values()
-            ->all();
-    }
-
-    protected function presentOperationTemplate(OperationTemplate $template): array
-    {
-        return [
-            'id' => $template->id,
-            'name' => $template->name,
-            'scope' => $template->scope,
-            'squadron_id' => $template->squadron_id,
-            'payload' => $template->payload,
-        ];
-    }
-
-    protected function sanitizeOperationTemplatePayload(array $payload): array
-    {
-        if (! array_key_exists('operation_type', $payload) && array_key_exists('operation_kind', $payload)) {
-            $payload['operation_type'] = $payload['operation_kind'];
-        }
-
-        if (! array_key_exists('gameplay_type', $payload) && array_key_exists('type', $payload)) {
-            $payload['gameplay_type'] = $payload['type'];
-        }
-
-        if (! array_key_exists('extended_description', $payload) && array_key_exists('notes', $payload)) {
-            $payload['extended_description'] = $payload['notes'];
-        }
-
-        $allowedKeys = [
-            'title',
-            'gameplay_type',
-            'description',
-            'extended_description',
-            'visibility',
-            'squadron_name',
-            'operation_type',
-            'branch',
-            'operation_strictness',
-            'start_location',
-            'operation_location',
-            'slots',
-        ];
-
-        $safe = array_intersect_key($payload, array_flip($allowedKeys));
-
-        if (array_key_exists('slots', $safe)) {
-            $safe['slots'] = is_array($safe['slots']) ? array_values($safe['slots']) : [];
-        }
-
-        return $safe;
+        return $this->templates->listVisibleFor($user);
     }
 }

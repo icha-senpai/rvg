@@ -8,14 +8,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
+/**
+ * Renders the searchable member directory for active members.
+ */
 class MemberDirectoryController extends Controller
 {
+    /**
+     * Render the paginated member directory, optionally filtering by the search
+     * query across common profile fields.
+     */
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
-        $searchNeedle = $search !== '' ? '%'.mb_strtolower($search).'%' : null;
+        $searchNeedle = $search !== '' ? '%' . mb_strtolower($search) . '%' : null;
         $dbDriver = DB::connection()->getDriverName();
 
+        // Keep the directory payload intentionally lightweight while still
+        // exposing the profile fields that the directory cards and filters use.
         $users = User::query()
             ->select(
                 'id',
@@ -41,6 +50,9 @@ class MemberDirectoryController extends Controller
                     $q->orWhereRaw('LOWER(callsign) LIKE ?', [$searchNeedle])
                         ->orWhereRaw('LOWER(timezone) LIKE ?', [$searchNeedle]);
 
+                    // JSON-ish profile columns need driver-specific casting so the
+                    // same free-text search works across Postgres, SQLite, and the
+                    // local MySQL/MariaDB-style environments.
                     if ($dbDriver === 'pgsql') {
                         $q->orWhereRaw('CAST(favorite_ships AS TEXT) ILIKE ?', [$searchNeedle])
                             ->orWhereRaw('CAST(favorite_guns AS TEXT) ILIKE ?', [$searchNeedle])

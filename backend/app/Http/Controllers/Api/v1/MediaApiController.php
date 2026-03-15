@@ -6,10 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Domain\Media\MediaVisibility;
 use App\Domain\Media\MediaService;
-use App\Domain\Media\Presenters\MediaPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
+/**
+ * JSON API controller for media listing, detail, upload, and deletion.
+ *
+ * Visibility filtering and persistence stay in the media domain services while
+ * this controller handles authorization, validation, and response shape.
+ */
 class MediaApiController extends Controller
 {
     use AuthorizesRequests;
@@ -20,7 +25,7 @@ class MediaApiController extends Controller
     ) {}
 
     /**
-     * List media (filtered by collection, search, etc.)
+     * Return the media list after applying the caller's visibility rules.
      */
     public function index(Request $request)
     {
@@ -44,13 +49,7 @@ class MediaApiController extends Controller
 
         $filters = $result->filters;
 
-        $media = $this->service->list($filters, 24);
-
-        $media->setCollection(
-            $media->getCollection()->map(
-                fn (Media $m) => MediaPresenter::make($m)->summary()
-            )
-        );
+        $media = $this->service->listPresented($filters, 24);
 
         return response()->json([
             'status'  => 'ok',
@@ -60,7 +59,7 @@ class MediaApiController extends Controller
     }
 
     /**
-     * Show a single media record.
+     * Return one fully presented media record.
      */
     public function show(Media $media)
     {
@@ -69,12 +68,12 @@ class MediaApiController extends Controller
         return response()->json([
             'status'  => 'ok',
             'message' => null,
-            'payload' => ['media' => MediaPresenter::make($media)->full()],
+            'payload' => ['media' => $this->service->present($media, 'full')],
         ]);
     }
 
     /**
-     * Upload a file.
+     * Upload a new media file through the API.
      */
     public function upload(Request $request)
     {
@@ -85,6 +84,8 @@ class MediaApiController extends Controller
             'squadron_id' => ['nullable', 'integer', 'exists:squadrons,id'],
         ]);
 
+        // Upload permissions depend on the target collection and the optional
+        // squadron scope associated with the upload.
         $this->authorize('upload', [Media::class, $data['collection'], $data['squadron_id'] ?? null]);
 
         $media = $this->service->upload(
@@ -97,12 +98,12 @@ class MediaApiController extends Controller
         return response()->json([
             'status'  => 'ok',
             'message' => null,
-            'payload' => ['media' => MediaPresenter::make($media)->full()],
+            'payload' => ['media' => $this->service->present($media, 'full')],
         ], 201);
     }
 
     /**
-     * Delete a media record.
+     * Delete a media record through the API.
      */
     public function destroy(Media $media)
     {

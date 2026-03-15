@@ -2,29 +2,31 @@
 
 namespace App\Policies;
 
+use App\Domain\AccessControl\AccessService;
 use App\Models\RsiChangeRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
 class RsiChangeRequestPolicy
 {
+    public function __construct(
+        protected AccessService $access
+    ) {}
 
     public function viewAny(User $user)
     {
-        return $user->hasPermission('user.manage');
+        return $this->access->can($user, 'user.manage');
     }
 
     public function approve(User $user, RsiChangeRequest $req)
     {
-        return $user->hasPermission('user.manage');
+        return $this->access->can($user, 'user.manage');
     }
 
     public function reject(User $user, RsiChangeRequest $req)
     {
-    return $user->hasPermission('user.manage');
+        return $this->access->can($user, 'user.manage');
     }
-
-
 
     /**
      * Determine whether the user can view the model.

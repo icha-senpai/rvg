@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\DiscordGuildMembershipService;
 use App\Services\DiscordOAuthService;
+use App\Services\DiscordUserSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -149,15 +151,21 @@ class AuthFlowTest extends TestCase
 
         $discordUser = $this->fakeDiscordUser('discord-user-6', 'Discord User', 'Discord Nick');
 
-        $this->mock(DiscordOAuthService::class, function (MockInterface $mock) use ($discordUser, $user): void {
+        $this->mock(DiscordOAuthService::class, function (MockInterface $mock) use ($discordUser): void {
             $mock->shouldReceive('getUser')
                 ->once()
                 ->with(true)
                 ->andReturn($discordUser);
-            $mock->shouldReceive('checkGuildMembership')
+        });
+
+        $this->mock(DiscordGuildMembershipService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('checkMembership')
                 ->once()
                 ->with('discord-user-6')
                 ->andReturn(true);
+        });
+
+        $this->mock(DiscordUserSyncService::class, function (MockInterface $mock) use ($discordUser, $user): void {
             $mock->shouldReceive('syncBasicUser')
                 ->once()
                 ->with($discordUser)
@@ -182,16 +190,49 @@ class AuthFlowTest extends TestCase
                 ->once()
                 ->with(true)
                 ->andReturn($discordUser);
-            $mock->shouldReceive('checkGuildMembership')
+        });
+
+        $this->mock(DiscordGuildMembershipService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('checkMembership')
                 ->once()
                 ->with('discord-user-7')
                 ->andReturn(false);
+        });
+
+        $this->mock(DiscordUserSyncService::class, function (MockInterface $mock): void {
             $mock->shouldNotReceive('syncBasicUser');
         });
 
         $response = $this->get('/auth/discord/callback');
 
         $response->assertRedirect('/verify?error=not_in_guild');
+    }
+
+    public function test_discord_callback_redirects_to_verify_when_guild_check_is_unavailable(): void
+    {
+        $discordUser = $this->fakeDiscordUser('discord-user-8', 'Discord User', 'Discord Nick');
+
+        $this->mock(DiscordOAuthService::class, function (MockInterface $mock) use ($discordUser): void {
+            $mock->shouldReceive('getUser')
+                ->once()
+                ->with(true)
+                ->andReturn($discordUser);
+        });
+
+        $this->mock(DiscordGuildMembershipService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('checkMembership')
+                ->once()
+                ->with('discord-user-8')
+                ->andReturn(null);
+        });
+
+        $this->mock(DiscordUserSyncService::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('syncBasicUser');
+        });
+
+        $response = $this->get('/auth/discord/callback');
+
+        $response->assertRedirect('/verify?error=discord_check_unavailable');
     }
 
     private function fakeDiscordUser(string $id, string $name, ?string $nickname = null): object

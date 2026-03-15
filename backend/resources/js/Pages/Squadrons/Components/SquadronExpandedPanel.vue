@@ -9,6 +9,9 @@ import SquadronRoster from './SquadronRoster.vue'
 import HorizonButton from '@/Components/HorizonButton.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
+import { canEditSquadronEmblem as userCanEditSquadronEmblem } from '@/auth'
+import { extractFirstErrorMessage, notifyErrorFromErrors } from '@/errors'
+
 /* -------------------------------------------------
    Props
 ------------------------------------------------- */
@@ -97,9 +100,7 @@ async function setEmblem(media) {
       onError: (errors) => {
         const message = extractFirstErrorMessage(errors, 'Failed to update squadron emblem.')
         errorMessage.value = message
-        window.hzNotifyError({
-          message,
-        })
+        notifyErrorFromErrors(errors)
       },
       onFinish: () => {
         emblemSaving.value = false
@@ -181,24 +182,12 @@ const editForm = ref({
 })
 
 const authUser = computed(() => page.props.auth?.user ?? null)
-const authRankLevel = computed(() => Number(authUser.value?.rank_level ?? 0))
 const canUpdateSquadron = computed(() =>
   permissions.value?.can_update_squadron === true
 )
 
-const isDirectorLike = computed(() => {
-  const roles = authUser.value?.roles ?? []
-  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
-})
-
 const canEditEmblem = computed(() => {
-  if (isDirectorLike.value) return true
-  if (viewerMembership.value?.is_leader === true) return true
-
-  return (
-    authRankLevel.value >= 2
-    && viewerMembership.value?.membership_status === 'active'
-  )
+  return userCanEditSquadronEmblem(authUser.value, viewerMembership.value)
 })
 
 const activeMemberCount = computed(() =>
@@ -212,18 +201,6 @@ const lieutenantCount = computed(() =>
 )
 
 const canPromoteLieutenant = computed(() => lieutenantCount.value < 2)
-
-function extractFirstErrorMessage(errors, fallback) {
-  if (errors && typeof errors === 'object') {
-    const firstKey = Object.keys(errors)[0]
-    const firstValue = firstKey ? errors[firstKey] : null
-    const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue
-
-    if (firstMessage) return String(firstMessage)
-  }
-
-  return fallback
-}
 
 function syncFromPayload(payload) {
   squadron.value = payload?.squadron ?? null

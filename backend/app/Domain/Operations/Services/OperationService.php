@@ -2,23 +2,22 @@
 
 namespace App\Domain\Operations\Services;
 
+use App\Domain\Operations\Actions\CancelOperation;
+use App\Domain\Operations\Actions\CreateOperation;
+use App\Domain\Operations\Actions\TransitionOperation;
+use App\Domain\Operations\Actions\UpdateOperation;
 use App\Models\Operation;
 use App\Models\Squadron;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
 
-// NEW imports
-use App\Domain\Operations\Actions\{
-    CreateOperation,
-    UpdateOperation,
-    CancelOperation,
-    TransitionOperation
-};
-
+/**
+ * Coordinates operation actions while keeping shared normalization and error
+ * handling rules in one domain service.
+ */
 class OperationService
 {
     /**
-     * Create a new operation via Action.
+     * Create a new operation after applying shared defaults to the payload.
      */
     public function create(array $data, ?Squadron $squadron = null): Operation
     {
@@ -28,7 +27,8 @@ class OperationService
     }
 
     /**
-     * Update an existing operation.
+     * Update an existing operation after applying the same shared defaults used
+     * during creation.
      */
     public function update(Operation $operation, array $data): Operation
     {
@@ -38,7 +38,7 @@ class OperationService
     }
 
     /**
-     * Cancel an operation (soft delete).
+     * Cancel an operation through the dedicated cancel action.
      */
     public function cancel(Operation $operation, ?string $reason = null): Operation
     {
@@ -46,7 +46,8 @@ class OperationService
     }
 
     /**
-     * State machine transition using Action + wrapped error normalization.
+     * Transition an operation through the state machine and re-map low-level
+     * transition errors into a validation-style response shape.
      */
     public function transition(Operation $operation, string $status, ?string $reason = null, ?string $outcome = null): Operation
     {
@@ -60,12 +61,15 @@ class OperationService
     }
 
     /**
-     * Normalization layer stays — this belongs in the domain!
+     * Apply shared defaults so create and update flows behave the same way when
+     * optional fields are omitted.
      */
     protected function applyDefaults(array $data): array
     {
         $data['visibility'] = $data['visibility'] ?? 'open';
 
+        // Empty slot payloads are normalized to an array so downstream actions do
+        // not have to branch on null, empty string, or missing input.
         if (array_key_exists('slots', $data) && empty($data['slots'])) {
             $data['slots'] = [];
         }
@@ -74,7 +78,8 @@ class OperationService
     }
 
     /**
-     * Relationship hydration stays as a convenience method.
+     * Load the related records needed by full operation presenters and detail
+     * screens.
      */
     public function loadGraph(Operation $operation): Operation
     {

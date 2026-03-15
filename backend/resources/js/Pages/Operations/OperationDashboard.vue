@@ -304,6 +304,7 @@ import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
 import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
+import { canCreateOperation as userCanCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -604,18 +605,11 @@ const userSquadronId = computed(() => {
 })
 
 const isDirectorLike = computed(() => {
-  const roles = user.value?.roles ?? []
-  return roles.some(r => r?.slug === 'director' || r?.slug === 'tech_director')
+  return userIsDirectorLike(user.value)
 })
 
 const canCreateOperation = computed(() => {
-  if (isDirectorLike.value) return true
-
-  const roles = user.value?.roles ?? []
-  const officerRoleSlugs = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
-  if (roles.some(r => officerRoleSlugs.includes(r?.slug))) return true
-
-  return false
+  return userCanCreateOperation(user.value)
 })
 
 function canManageOperation(op) {

@@ -5,6 +5,10 @@ namespace App\Domain\Operations\Presenters;
 use App\Models\Operation;
 use App\Models\User;
 
+/**
+ * Shapes operation models into the payloads used by operation list pages,
+ * detail screens, and editor forms.
+ */
 class OperationPresenter
 {
     protected Operation $operation;
@@ -13,6 +17,8 @@ class OperationPresenter
     public function __construct(Operation $operation, ?User $viewer = null)
     {
         $this->operation = $operation;
+        // Load the baseline relations shared by every presenter shape so each
+        // output method can focus on transforming data rather than fetching it.
         $this->operation->loadMissing([
             'squadron',
             'squadron.leader',
@@ -28,9 +34,10 @@ class OperationPresenter
         return new self($operation, $viewer);
     }
 
-    // ------------------------------------------------------
-    // 🔹 SUMMARY (for index lists)
-    // ------------------------------------------------------
+    /**
+     * Build the lightweight summary payload used by operation index lists and
+     * dashboard cards.
+     */
     public function summary(): array
     {
         return [
@@ -74,9 +81,9 @@ class OperationPresenter
         ];
     }
 
-    // ------------------------------------------------------
-    // 🔹 FULL DETAIL (for MissionShow.vue)
-    // ------------------------------------------------------
+    /**
+     * Build the full detail payload used by the dedicated operation show screen.
+     */
     public function full(): array
     {
         $this->operation->loadMissing([
@@ -86,7 +93,8 @@ class OperationPresenter
             'creator.roles',
         ]);
 
-        // Get the primary operation image (most recent)
+        // The first image in the loaded collection is treated as the primary image
+        // exposed to the detail page.
         $primaryImage = $this->operation->images->first();
 
         return [
@@ -177,9 +185,9 @@ class OperationPresenter
         ];
     }
 
-    // ------------------------------------------------------
-    // 🔹 FORM SHAPE (for MissionEditor.vue)
-    // ------------------------------------------------------
+    /**
+     * Build the editor payload used to prefill the operation form.
+     */
     public function form(): array
     {
         $this->operation->loadMissing('images');
@@ -220,12 +228,15 @@ class OperationPresenter
         ];
     }
 
-    // ------------------------------------------------------
-    // 🔹 Helper
-    // ------------------------------------------------------
+    /**
+     * Truncate long free-form text for summary cards.
+     */
     protected function truncate(?string $text, int $limit): ?string
     {
-        if (!$text) return null;
+        if (! $text) {
+            return null;
+        }
+
         return strlen($text) > $limit ? substr($text, 0, $limit) . '…' : $text;
     }
 }

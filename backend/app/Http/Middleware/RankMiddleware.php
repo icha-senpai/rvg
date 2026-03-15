@@ -3,26 +3,29 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use App\Domain\AccessControl\RoleHierarchy;
+use App\Domain\AccessControl\AccessService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class RankMiddleware
 {
+    public function __construct(
+        protected AccessService $access
+    ) {}
+
     public function handle(Request $request, Closure $next, $requiredRank)
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
-        if ($user->hasRole('director') || $user->hasRole('tech_director')) {
+        if ($this->access->isDirectorLike($user)) {
             return $next($request);
         }
 
         $requiredRank = (int) $requiredRank;
-        $requiredRole = match($requiredRank) {
+        $requiredRole = match ($requiredRank) {
             1 => 'member',
             2 => 'lieutenant',
             3 => 'commander',
@@ -39,9 +42,7 @@ class RankMiddleware
             ], 500);
         }
 
-        $user->loadMissing('roles:id,slug');
-
-        if (! RoleHierarchy::userAtLeast($user, $requiredRole)) {
+        if (! $this->access->atLeast($user, $requiredRole)) {
             return response()->json([
                 'error' => 'Insufficient rank',
                 'required_rank_level' => $requiredRank,
@@ -58,7 +59,7 @@ class RankMiddleware
      */
     private function getRankName(int $level): string
     {
-        return match($level) {
+        return match ($level) {
             1 => 'Member',
             2 => 'Lieutenant',
             3 => 'Commander',

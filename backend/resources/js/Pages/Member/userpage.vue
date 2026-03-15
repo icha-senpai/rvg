@@ -7,6 +7,8 @@ import HorizonPanel from '@/Components/HorizonPanel.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonStat from '@/Components/HorizonStat.vue'
+import { isCommanderPlus } from '@/auth'
+import { extractFirstErrorMessage as extractSharedErrorMessage } from '@/errors'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -412,14 +414,7 @@ const displayNameColor = computed(() => {
 })
 
 const canViewRestrictedOperationStats = computed(() => {
-  const viewer = inertiaUser.value ?? {}
-  const roles = viewer?.roles ?? []
-  const roleSlugs = roles.map(r => r?.slug).filter(Boolean)
-
-  if (roleSlugs.includes('director') || roleSlugs.includes('tech_director')) return true
-
-  const commanderPlusRoleSlugs = ['commander', 'wing_commander', 'admiral', 'grand_admiral']
-  return roleSlugs.some(s => commanderPlusRoleSlugs.includes(s))
+  return isCommanderPlus(inertiaUser.value)
 })
 
 const favoriteShipsLabel = computed(() => {
@@ -539,15 +534,7 @@ const operationsStats = computed(() => {
 })
 
 function extractFirstErrorMessage(errors, fallback) {
-  if (errors && typeof errors === 'object') {
-    const firstKey = Object.keys(errors)[0]
-    const firstValue = firstKey ? errors[firstKey] : null
-    const firstMessage = Array.isArray(firstValue) ? firstValue[0] : firstValue
-
-    if (firstMessage) return String(firstMessage)
-  }
-
-  return fallback
+  return extractSharedErrorMessage(errors, fallback)
 }
 
 function seedFormFromUser(user) {
@@ -638,7 +625,7 @@ watch(
         {{ errorMessage }}
       </div>
 
-      <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
+      <HorizonPanel class="border! border-(--horizon-sunset-blue)!">
         <div class="hz-row-between gap-4">
           <div class="hz-row gap-4 min-w-0">
             <div class="shrink-0">
@@ -694,7 +681,7 @@ watch(
         </div>
       </HorizonPanel>
 
-      <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
+      <HorizonPanel class="border! border-(--horizon-sunset-blue)!">
         <div class="hz-stack-sm">
           <div class="hz-section-label">Operation Stats</div>
 
@@ -705,37 +692,37 @@ watch(
             <HorizonStat
               label="Operations Created"
               :value="operationsStats.created"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Canceled"
               :value="operationsStats.canceled"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Success"
               :value="operationsStats.success"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Failed"
               :value="operationsStats.failed"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Completed"
               :value="operationsStats.completed"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Joined"
               :value="operationsStats.joined"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Left Early"
               :value="operationsStats.leftEarly"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
           </div>
 
@@ -743,33 +730,33 @@ watch(
             <HorizonStat
               label="Operations Created"
               :value="operationsStats.created"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Canceled"
               :value="operationsStats.canceled"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Success"
               :value="operationsStats.success"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Failed"
               :value="operationsStats.failed"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
             <HorizonStat
               label="Operations Completed"
               :value="operationsStats.completed"
-              class="!border !border-[color:var(--horizon-sunset-blue)]"
+              class="border! border-(--horizon-sunset-blue)!"
             />
           </div>
         </div>
       </HorizonPanel>
 
-      <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
+      <HorizonPanel class="border! border-(--horizon-sunset-blue)!">
         <div class="hz-stack-sm">
           <div class="hz-section-label">About</div>
 
@@ -934,7 +921,7 @@ watch(
         </div>
       </HorizonPanel>
 
-      <HorizonPanel class="!border !border-[color:var(--horizon-sunset-blue)]">
+      <HorizonPanel class="border! border-(--horizon-sunset-blue)!">
         <div class="hz-section-label">Gameplay Profile</div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
@@ -1084,7 +1071,7 @@ watch(
 
       <HorizonPanel
         v-if="canEditProfile && inertiaSquadrons && inertiaSquadrons.length"
-        class="!border !border-[color:var(--horizon-sunset-blue)]"
+        class="border! border-(--horizon-sunset-blue)!"
       >
         <div class="hz-section-label">Squadrons</div>
 
@@ -1092,7 +1079,7 @@ watch(
           <div
             v-for="s in inertiaSquadrons"
             :key="s.id"
-            class="hz-card-soft hz-row-between !border !border-[color:var(--horizon-sunset-blue)]"
+            class="hz-card-soft hz-row-between border! border-(--horizon-sunset-blue)!"
           >
             <div class="hz-row gap-3 items-center">
               <div
@@ -1121,3 +1108,4 @@ watch(
     </div>
   </HorizonContainer>
 </template>
+

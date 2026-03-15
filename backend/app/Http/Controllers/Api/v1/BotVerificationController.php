@@ -4,14 +4,24 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DiscordGuildMembershipService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
+/**
+ * Bot-facing verification endpoints used by trusted internal Discord tooling.
+ *
+ * These endpoints intentionally return limited user data and treat unknown users
+ * as a normal 204 case for bot-safe polling behavior.
+ */
 class BotVerificationController extends Controller
 {
+    public function __construct(
+        protected DiscordGuildMembershipService $guilds,
+    ) {}
+
     /**
-     * Verify a Discord user (STRICT)
-     * Called during active verification flow
+     * Return the verification status for a known Discord user during an active
+     * bot-driven verification flow.
      */
     public function verify(Request $request)
     {
@@ -35,15 +45,17 @@ class BotVerificationController extends Controller
     }
 
     /**
-     * Get user information (BOT SAFE)
-     * Unknown users are normal → 204
+     * Return bot-safe user information for a Discord id.
+     *
+     * Unknown users are a normal result here, so the endpoint returns 204 rather
+     * than treating that case as an application error.
      */
     public function getUser($discordId)
     {
         $user = User::where('discord_id', $discordId)->first();
 
-        if (!$user) {
-            return response()->noContent(); // 204
+        if (! $user) {
+            return response()->noContent();
         }
 
         return response()->json([
@@ -61,17 +73,20 @@ class BotVerificationController extends Controller
     }
 
     /**
-     * Check if user is a member of the guild (BOT SAFE)
+     * Return whether the user is currently considered a guild member.
+     *
+     * The shared guild service uses tri-state behavior internally, but this bot
+     * endpoint intentionally collapses that into a strict boolean response.
      */
     public function checkGuildMembership($discordId)
     {
         $user = User::where('discord_id', $discordId)->first();
 
-        if (!$user) {
-            return response()->noContent(); // 204
+        if (! $user) {
+            return response()->noContent();
         }
 
-        $isMember = $this->checkDiscordGuildMembership($discordId);
+        $isMember = $this->guilds->checkMembership($discordId) === true;
 
         return response()->json([
             'status' => 'success',
@@ -80,21 +95,5 @@ class BotVerificationController extends Controller
             'user_id'    => $user->id,
             'discord_id' => $discordId,
         ]);
-    }
-
-    /**
-     * Check Discord guild membership
-     */
-    protected function checkDiscordGuildMembership($discordId)
-    {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bot ' . config('services.discord.bot_token'),
-        ])->get(
-            'https://discord.com/api/guilds/' .
-            config('services.discord.guild_id') .
-            "/members/{$discordId}"
-        );
-
-        return $response->successful();
     }
 }

@@ -8,6 +8,9 @@ use App\Models\Operation;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
+/**
+ * Serves downloadable calendar files for operations.
+ */
 class OperationCalendarController extends Controller
 {
     use AuthorizesRequests;
@@ -16,6 +19,12 @@ class OperationCalendarController extends Controller
         protected OperationCalendarService $calendar
     ) {}
 
+    /**
+     * Generate and download the ICS calendar file for an operation.
+     *
+     * Authenticated viewers use the normal operation view policy. Guests may
+     * download calendar files only for open operations.
+     */
     public function calendar(Request $request, Operation $operation)
     {
         if ($request->user()) {

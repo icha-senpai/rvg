@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 
+/**
+ * Handles media file uploads, variant generation, and creation of the stored
+ * media record.
+ */
 class UploadMedia
 {
     protected const THUMBNAIL_WIDTH = 200;
@@ -36,7 +40,8 @@ class UploadMedia
         $basePath = $this->buildBasePath($collection, $uploader->id);
         $uniqueName = $this->generateFilename($file);
 
-        // Store the original file
+        // Store the original file first so all later metadata and variant work is
+        // based on the final persisted asset.
         $originalPath = $file->storeAs($basePath, $uniqueName, $disk);
 
         if (! $originalPath) {
@@ -45,7 +50,8 @@ class UploadMedia
             ]);
         }
 
-        // Read image dimensions from the original
+        // Variant and dimension metadata are only available for image-like files
+        // that can safely be read and resized by the server.
         $width = null;
         $height = null;
         $thumbnailPath = null;
@@ -59,7 +65,8 @@ class UploadMedia
             $mediumPath = $this->generateVariant($disk, $originalPath, $basePath, $uniqueName, self::MEDIUM_WIDTH, 'medium');
         }
 
-        // Create the database record
+        // Persist the media row only after the storage work succeeds so the
+        // database always points at real files.
         $media = Media::create([
             'uploaded_by'       => $uploader->id,
             'collection'        => $collection,
@@ -81,10 +88,9 @@ class UploadMedia
         return $media;
     }
 
-    /* ------------------------------------------
-     | VALIDATION
-     ------------------------------------------ */
-
+    /**
+     * Validate the upload and resolve its canonical mime type.
+     */
     protected function validate(UploadedFile $file, string $collection): string
     {
         if (! in_array($collection, Media::COLLECTIONS, true)) {
@@ -93,6 +99,8 @@ class UploadMedia
             ]);
         }
 
+        // Normalize a few common browser/server mime aliases so the allow-list
+        // check is stable across environments.
         $mimeAliases = [
             'image/jpg' => 'image/jpeg',
             'image/pjpeg' => 'image/jpeg',
@@ -110,6 +118,8 @@ class UploadMedia
             ?: ($file->guessExtension() ?: '')
         );
 
+        // Extension fallback keeps uploads working when the server cannot infer a
+        // trustworthy mime type but the extension maps to an allowed type.
         $extensionToMime = [
             'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg',
@@ -133,6 +143,8 @@ class UploadMedia
             ]);
         }
 
+        // Image files are sanity-checked at the file-content level so renamed or
+        // malformed files do not slip through the upload pipeline.
         if (in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
             if (@getimagesize($file->getRealPath()) === false) {
                 throw ValidationException::withMessages([
@@ -151,10 +163,6 @@ class UploadMedia
         return $mime;
     }
 
-    /* ------------------------------------------
-     | PATH & NAMING
-     ------------------------------------------ */
-
     /**
      * Build a storage path like: media/avatars/42/ or media/site_assets/
      */
@@ -169,7 +177,8 @@ class UploadMedia
             default                           => 'misc',
         };
 
-        // User-scoped collections get a user subfolder
+        // User-scoped collections get their own uploader subfolder so files do
+        // not pile together under a shared flat directory.
         $userScoped = [
             Media::COLLECTION_AVATAR,
         ];
@@ -192,10 +201,6 @@ class UploadMedia
 
         return "{$timestamp}_{$random}.{$extension}";
     }
-
-    /* ------------------------------------------
-     | VARIANT GENERATION
-     ------------------------------------------ */
 
     /**
      * Only non-animated raster images get variants. Animated GIF/WebP
@@ -239,7 +244,7 @@ class UploadMedia
     ): ?string {
         $fullPath = Storage::disk($disk)->path($originalPath);
 
-        // Don't upscale: if original is smaller than target, skip this variant
+        // Do not upscale smaller originals just to satisfy a target width.
         $info = @getimagesize($fullPath);
         if ($info && $info[0] <= $maxWidth) {
             return null;
@@ -249,10 +254,12 @@ class UploadMedia
             $manager = new ImageManager(new GdDriver());
             $image = $manager->read($fullPath);
 
-            // Scale down maintaining aspect ratio
+            // Scale down while preserving aspect ratio so variant images stay
+            // visually consistent with the uploaded original.
             $image->scaleDown(width: $maxWidth);
 
-            // Build variant filename: 20260206_abc123_thumb.jpg
+            // Variant filenames stay close to the original name so related files
+            // are easy to inspect on disk.
             $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
             $nameWithoutExt = pathinfo($originalFilename, PATHINFO_FILENAME);
             $variantFilename = "{$nameWithoutExt}_{$suffix}.{$extension}";
@@ -270,7 +277,8 @@ class UploadMedia
 
             return $variantPath;
         } catch (\Throwable $e) {
-            // Variant generation is non-critical. Log and continue.
+            // Variant generation is best-effort. The original file can still be
+            // used even when a resized derivative fails.
             report($e);
             return null;
         }

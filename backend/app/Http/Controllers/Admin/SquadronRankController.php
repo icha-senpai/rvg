@@ -2,15 +2,30 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Squadrons\MembershipService;
 use App\Http\Controllers\Controller;
 use App\Models\Squadron;
-use App\Models\SquadronMember;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Handles the legacy admin endpoints for promoting or demoting squadron member
+ * ranks.
+ */
 class SquadronRankController extends Controller
 {
+    use AuthorizesRequests;
+
+    public function __construct(
+        protected MembershipService $membership
+    ) {}
+
+    /**
+     * Promote a squadron member to lieutenant.
+     */
     public function promote(Request $request)
     {
         $request->validate([
@@ -21,30 +36,26 @@ class SquadronRankController extends Controller
         $squadron = Squadron::findOrFail($request->squadron_id);
         $user = User::findOrFail($request->user_id);
 
-        Gate::authorize('manageRanks', $squadron);
+        $this->authorize('promoteLieutenant', $squadron);
 
-        // enforce squadron membership
-        $membership = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->firstOrFail();
-
-        // count current lieutenants
-        $currentLtCount = SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', 'lieutenant')
-            ->count();
-
-        if ($currentLtCount >= 2) {
+        try {
+            $this->membership->promoteLieutenant($squadron, $user);
+        } catch (ModelNotFoundException) {
             return response()->json([
-                'message' => 'This squadron already has the maximum of 2 lieutenants.'
+                'message' => 'User is not a member of this squadron.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? 'Cannot promote member.',
             ], 422);
         }
-
-        $membership->role = 'lieutenant';
-        $membership->save();
 
         return response()->json(['success' => true]);
     }
 
+    /**
+     * Demote a squadron member back to the default member rank.
+     */
     public function demote(Request $request)
     {
         $request->validate([
@@ -55,14 +66,19 @@ class SquadronRankController extends Controller
         $squadron = Squadron::findOrFail($request->squadron_id);
         $user = User::findOrFail($request->user_id);
 
-        Gate::authorize('manageRanks', $squadron);
+        $this->authorize('demoteLieutenant', $squadron);
 
-        $membership = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->firstOrFail();
-
-        $membership->role = 'member';
-        $membership->save();
+        try {
+            $this->membership->demoteLieutenant($squadron, $user);
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'message' => 'User is not a lieutenant in this squadron.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? 'Cannot demote member.',
+            ], 422);
+        }
 
         return response()->json(['success' => true]);
     }

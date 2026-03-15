@@ -2,12 +2,25 @@
 
 namespace App\Domain\Operations\Queries;
 
-use App\Domain\Operations\Presenters\OperationPresenter;
 use App\Models\Operation;
 use App\Models\User;
 
+/**
+ * Public query entry point for operation list screens and API consumers.
+ *
+ * This facade keeps a stable API for callers while the more specialized summary
+ * list behavior lives in a dedicated query collaborator.
+ */
 class OperationQuery
 {
+    public function __construct(
+        protected OperationSummaryListQuery $summary,
+    ) {}
+
+    /**
+     * Return the operation list visible to a specific user, including helper
+     * counts used by the member-facing operations page.
+     */
     public function forUser(User $user, int $perPage = 12)
     {
         $now = now();
@@ -24,6 +37,9 @@ class OperationQuery
             ->paginate($perPage);
     }
 
+    /**
+     * Return all operations that belong to one squadron in chronological order.
+     */
     public function forSquadron(int $squadronId)
     {
         return Operation::where('squadron_id', $squadronId)
@@ -31,79 +47,20 @@ class OperationQuery
             ->get();
     }
 
+    /**
+     * Return the summarized operation list payload used by API endpoints.
+     */
+    public function summaryList(string $status = 'active', string $search = '', int $perPage = 12)
+    {
+        return $this->summary->paginate($status, $search, $perPage)[0];
+    }
+
+    /**
+     * Return the dashboard-ready operation list together with the normalized
+     * filter state that the frontend should preserve in the UI.
+     */
     public function dashboardList(string $status = 'active', string $search = '', int $perPage = 12): array
     {
-        $now = now();
-
-        $status = (string) $status;
-        $search = trim((string) $search);
-
-        $allowedStatuses = [
-            'active',
-            'all',
-            'draft',
-            'published',
-            'in_progress',
-            'completed',
-            'canceled',
-        ];
-
-        if (! in_array($status, $allowedStatuses, true)) {
-            $status = 'active';
-        }
-
-        $query = Operation::query()
-            ->with(['squadron.leader', 'creator.roles']);
-
-        if ($status === 'active') {
-            $query->whereIn('status', ['published', 'in_progress']);
-        } elseif ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($search !== '') {
-            $searchId = null;
-            if (preg_match('/^#?(\d+)$/', $search, $matches)) {
-                $searchId = (int) $matches[1];
-            }
-
-            $query->where(function ($q) use ($search, $searchId) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-
-                $q->orWhereHas('squadron', function ($squadronQuery) use ($search) {
-                    $squadronQuery->where('name', 'like', "%{$search}%");
-                });
-
-                $q->orWhereHas('creator', function ($creatorQuery) use ($search) {
-                    $creatorQuery->where('rsi_handle', 'like', "%{$search}%");
-                });
-
-                if ($searchId !== null) {
-                    $q->orWhere('id', $searchId);
-                }
-            });
-        }
-
-        $operations = $query
-            ->orderByRaw('CASE WHEN starts_at IS NULL THEN 2 WHEN starts_at >= ? THEN 0 ELSE 1 END', [$now])
-            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$now])
-            ->orderByRaw('CASE WHEN starts_at < ? THEN starts_at END DESC', [$now])
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $operations->setCollection(
-            $operations->getCollection()->map(
-                fn (Operation $op) => OperationPresenter::make($op)->summary()
-            )
-        );
-
-        return [
-            $operations,
-            [
-                'status' => $status,
-                'search' => $search,
-            ],
-        ];
+        return $this->summary->paginate($status, $search, $perPage);
     }
 }
