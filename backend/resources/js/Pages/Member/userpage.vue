@@ -620,15 +620,15 @@ watch(
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Page header -->
-      <div class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/40 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(192,38,211,0.16),transparent_32%),linear-gradient(135deg,rgba(27,32,53,0.92),rgba(11,13,20,0.96))] p-6 shadow-[0_0_48px_rgba(56,189,248,0.14)]">
+      <div class="relative overflow-hidden rounded-4xl border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
         <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-cyan-300 to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent"></div>
+          <div class="absolute left-8 top-0 h-px w-48 bg-linear-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-linear-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
         <div class="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div class="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200/70">
+            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
               Horizon Personnel File
             </div>
 
@@ -669,25 +669,25 @@ watch(
       </div>
 
       <!-- Hero identity card -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(28,58,94,0.55),rgba(21,25,42,0.92)_42%,rgba(11,13,20,0.96))] p-6 shadow-[0_0_40px_rgba(56,189,248,0.10)]">
-        <div class="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,rgba(192,38,211,0.13),transparent_55%)]"></div>
+      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.24),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-6 shadow-[0_0_40px_rgba(30,64,175,0.16)]">
+        <div class="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,var(--horizon-glow-magenta),transparent_55%)]"></div>
 
         <div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
             <div class="relative shrink-0">
-              <div class="absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-cyan-300/30 via-transparent to-fuchsia-500/25 blur-xl"></div>
+              <div class="absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/35 via-transparent to-[color:var(--horizon-sunset-magenta)]/30 blur-xl"></div>
 
               <img
                 v-if="me?.discord_avatar"
                 :src="me.discord_avatar"
                 alt=""
-                class="relative h-32 w-32 rounded-[1.7rem] border border-cyan-300/30 object-cover shadow-[0_0_28px_rgba(56,189,248,0.22)]"
+                class="relative h-32 w-32 rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 object-cover shadow-[0_0_28px_rgba(67,56,202,0.24)]"
               />
 
               <div
                 v-else
                 :style="displayNameColor ? { color: displayNameColor } : undefined"
-                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-cyan-300/30 bg-bg-hover text-4xl font-black shadow-[0_0_28px_rgba(56,189,248,0.22)]"
+                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-bg-hover text-4xl font-black shadow-[0_0_28px_rgba(67,56,202,0.24)]"
               >
                 {{ String(displayName).slice(0, 1).toUpperCase() }}
               </div>
@@ -706,11 +706,11 @@ watch(
               </div>
 
               <div class="mt-3 flex flex-wrap gap-2">
-                <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   Rank {{ rankName }}
                 </span>
 
-                <span class="rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1 text-xs font-semibold text-fuchsia-100">
+                <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   {{ primaryRoleLabel }}
                 </span>
 
@@ -726,7 +726,7 @@ watch(
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 md:w-80">
+          <div class="grid grid-cols-2 gap-3 md:w-72">
             <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
@@ -749,10 +749,10 @@ watch(
       </section>
 
       <!-- Operation stats -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-bg-elevated/80 p-5 shadow-[0_0_32px_rgba(192,38,211,0.08)]">
+      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_32px_rgba(192,38,211,0.10)]">
         <div class="mb-5 flex items-center justify-between gap-4">
           <div>
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/70">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Operation Stats
             </div>
             <div class="mt-1 text-sm text-text-muted">
@@ -765,12 +765,12 @@ watch(
           v-if="canViewRestrictedOperationStats"
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
         >
-          <div class="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(56,189,248,0.12),rgba(255,255,255,0.025))] p-4">
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[linear-gradient(135deg,rgba(30,64,175,0.16),rgba(255,255,255,0.025))] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Created</div>
             <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.created }}</div>
           </div>
 
-          <div class="rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4">
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Canceled</div>
             <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.canceled }}</div>
           </div>
@@ -785,12 +785,12 @@ watch(
             <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.failed }}</div>
           </div>
 
-          <div class="rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4">
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Completed</div>
             <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.completed }}</div>
           </div>
 
-          <div class="rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4">
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Joined</div>
             <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.joined }}</div>
           </div>

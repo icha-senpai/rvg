@@ -31,7 +31,7 @@
     --color-horizon-alloy: #4A6C8E;
     --color-horizon-steel: #94A3B8;
     --color-horizon-gray: #6B7280;
-
+    --color-horizon-blue-soft: rgba(81, 162, 245, 0.1);
     --color-horizon-muted: var(--color-horizon-steel);
 
     --color-horizon-white: #FFFFFF;
