@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
+import HorizonButton from '@/Components/HorizonButton.vue';
 
 const props = defineProps({
   status: {
@@ -121,9 +122,9 @@ function goBack() {
               Return to Home
             </Link>
 
-            <button type="button" class="hz-btn hz-btn-ghost hz-btn-sm" @click="goBack">
+            <HorizonButton variant="ghost" size="sm" @click="goBack">
               Go Back
-            </button>
+            </HorizonButton>
 
             <a
               href="/verify"

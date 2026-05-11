@@ -7,6 +7,7 @@ import { Ziggy } from '../../../ziggy'
 // Horizon Components
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSection from '@/Components/HorizonSection.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
@@ -81,24 +82,44 @@ watch(
   }
 )
 
-async function renameSelectedTemplate() {
+const renameTemplateConfirmDialog = ref(null)
+const pendingRenameTemplate = ref(null)
+
+function askRenameTemplate() {
   if (!selectedTemplate.value) return
   if (templatesUpdating.value || templatesDeleting.value) return
 
-  const nextName = prompt('New template name:', selectedTemplate.value?.name ?? '')
-  if (!nextName || !String(nextName).trim()) return
+  pendingRenameTemplate.value = selectedTemplate.value
+  renameTemplateConfirmDialog.value?.show()
+}
+
+function confirmRenameTemplate({ close, finish, text }) {
+  const template = pendingRenameTemplate.value
+  if (!template) {
+    finish()
+    return
+  }
+
+  const nextName = text?.trim()
+  if (!nextName) {
+    finish()
+    return
+  }
 
   templatesUpdating.value = true
   renameOperationTemplate({
     router,
     route,
     Ziggy,
-    templateId: selectedTemplate.value.id,
-    name: String(nextName).trim(),
+    templateId: template.id,
+    name: nextName,
     onSuccess: (visitPage) => {
-      handleTemplateMutationSuccess(visitPage, 'template-updated', selectedTemplate.value?.id ?? null)
+      close()
+      pendingRenameTemplate.value = null
+      handleTemplateMutationSuccess(visitPage, 'template-updated', template?.id ?? null)
     },
     onError: (errors) => {
+      finish()
       notifyErrorFromErrors(errors, 'Template name is invalid.')
     },
     onFinish: () => {
@@ -107,22 +128,35 @@ async function renameSelectedTemplate() {
   })
 }
 
-async function updateSelectedTemplate() {
+const updateTemplateConfirmDialog = ref(null)
+const pendingUpdateTemplate = ref(null)
+
+function askUpdateTemplate() {
   if (!selectedTemplate.value) return
   if (templatesUpdating.value || templatesDeleting.value) return
 
-  const ok = confirm(`Overwrite template "${selectedTemplate.value?.name ?? ''}" with the current form values?`)
-  if (!ok) return
+  pendingUpdateTemplate.value = selectedTemplate.value
+  updateTemplateConfirmDialog.value?.show()
+}
+
+function confirmUpdateTemplate({ close }) {
+  const template = pendingUpdateTemplate.value
+  if (!template) {
+    close()
+    return
+  }
 
   templatesUpdating.value = true
   updateOperationTemplate({
     router,
     route,
     Ziggy,
-    templateId: selectedTemplate.value.id,
+    templateId: template.id,
     payload: buildSharedTemplatePayload(form, selectedSquadronNames.value),
     onSuccess: (visitPage) => {
-      handleTemplateMutationSuccess(visitPage, 'template-updated', selectedTemplate.value?.id ?? null)
+      close()
+      pendingUpdateTemplate.value = null
+      handleTemplateMutationSuccess(visitPage, 'template-updated', template?.id ?? null)
     },
     onError: (errors) => {
       notifyErrorFromErrors(errors, 'Template data is invalid.')
@@ -133,22 +167,35 @@ async function updateSelectedTemplate() {
   })
 }
 
-async function deleteSelectedTemplate() {
+const deleteTemplateConfirmDialog = ref(null)
+const pendingDeleteTemplate = ref(null)
+
+function askDeleteTemplate() {
   if (!selectedTemplate.value) return
   if (templatesDeleting.value || templatesUpdating.value) return
 
-  const ok = confirm(`Delete template "${selectedTemplate.value?.name ?? ''}"? This cannot be undone.`)
-  if (!ok) return
+  pendingDeleteTemplate.value = selectedTemplate.value
+  deleteTemplateConfirmDialog.value?.show()
+}
+
+function confirmDeleteTemplate({ close }) {
+  const template = pendingDeleteTemplate.value
+  if (!template) {
+    close()
+    return
+  }
 
   templatesDeleting.value = true
   deleteOperationTemplate({
     router,
     route,
     Ziggy,
-    templateId: selectedTemplate.value.id,
+    templateId: template.id,
     onSuccess: () => {
+      close()
+      pendingDeleteTemplate.value = null
       selectedTemplateId.value = ''
-      emit('template-deleted', { id: selectedTemplate.value.id })
+      emit('template-deleted', { id: template.id })
     },
     onError: (errors) => {
       notifyErrorFromErrors(errors, 'Failed to delete template.')
@@ -261,10 +308,24 @@ function applySelectedTemplate() {
   applyTemplateById(selectedTemplateId.value)
 }
 
-async function saveTemplate(scope) {
+const saveTemplateConfirmDialog = ref(null)
+const pendingSaveTemplateScope = ref(null)
+
+function askSaveTemplate(scope) {
   if (templatesSaving.value) return
-  const name = prompt('Template name:')
-  if (!name || !String(name).trim()) return
+
+  pendingSaveTemplateScope.value = scope
+  saveTemplateConfirmDialog.value?.show()
+}
+
+function confirmSaveTemplate({ close, finish, text }) {
+  const scope = pendingSaveTemplateScope.value
+  const name = text?.trim()
+
+  if (!name) {
+    finish()
+    return
+  }
 
   const squadronId = scope === 'squadron' ? props.squadronId : null
 
@@ -273,14 +334,17 @@ async function saveTemplate(scope) {
     router,
     route,
     Ziggy,
-    name: String(name).trim(),
+    name,
     scope,
     squadronId,
     payload: buildSharedTemplatePayload(form, selectedSquadronNames.value),
     onSuccess: (visitPage) => {
+      close()
+      pendingSaveTemplateScope.value = null
       handleTemplateMutationSuccess(visitPage, 'template-saved')
     },
     onError: (errors) => {
+      finish()
       notifyErrorFromErrors(errors, 'Template data is invalid. Please check fields and try again.')
     },
     onFinish: () => {
@@ -735,18 +799,28 @@ async function submit(mode) {
   }
 }
 
+const deleteOperationConfirmDialog = ref(null)
+
 // ----------------------
 // DELETE HANDLER
 // ----------------------
-async function destroyOperation() {
+function askDestroyOperation() {
   if (!props.mission) return
-  if (!confirm('Delete this operation? This cannot be undone.')) return
+  deleteOperationConfirmDialog.value?.show()
+}
 
-  await form.delete(
+function confirmDestroyOperation({ close }) {
+  if (!props.mission) {
+    close()
+    return
+  }
+
+  form.delete(
     route('operations.destroy', props.mission.id, Ziggy),
     {
       preserveScroll: true,
       onSuccess: () => {
+        close()
         emit('deleted', props.mission.id)
       },
     }
@@ -808,7 +882,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
-                @click="renameSelectedTemplate"
+                @click="askRenameTemplate"
               >
                 Rename
               </HorizonButton>
@@ -817,7 +891,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
-                @click="updateSelectedTemplate"
+                @click="askUpdateTemplate"
               >
                 Update
               </HorizonButton>
@@ -826,7 +900,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
-                @click="deleteSelectedTemplate"
+                @click="askDeleteTemplate"
               >
                 Delete
               </HorizonButton>
@@ -835,7 +909,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="templatesSaving"
-                @click="saveTemplate('personal')"
+                @click="askSaveTemplate('personal')"
               >
                 Save Personal
               </HorizonButton>
@@ -845,7 +919,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="templatesSaving"
-                @click="saveTemplate('squadron')"
+                @click="askSaveTemplate('squadron')"
               >
                 Save Squadron
               </HorizonButton>
@@ -855,7 +929,7 @@ async function destroyOperation() {
                 size="sm"
                 variant="ghost"
                 :disabled="templatesSaving"
-                @click="saveTemplate('global')"
+                @click="askSaveTemplate('global')"
               >
                 Save Global
               </HorizonButton>
@@ -1147,4 +1221,62 @@ async function destroyOperation() {
     </div>
 
   </HorizonContainer>
+
+  <HorizonConfirmDialog
+    ref="updateTemplateConfirmDialog"
+    title="Overwrite Template"
+    confirm-label="Overwrite"
+    cancel-label="Cancel"
+    variant="warning"
+    message="Overwrite this template with the current form values?"
+    @confirm="confirmUpdateTemplate"
+  />
+
+  <HorizonConfirmDialog
+    ref="deleteTemplateConfirmDialog"
+    title="Delete Template"
+    confirm-label="Delete"
+    cancel-label="Cancel"
+    variant="danger"
+    message="Delete this template? This cannot be undone."
+    @confirm="confirmDeleteTemplate"
+  />
+
+  <HorizonConfirmDialog
+    ref="deleteOperationConfirmDialog"
+    title="Delete Operation"
+    confirm-label="Delete"
+    cancel-label="Cancel"
+    variant="danger"
+    message="Delete this operation? This cannot be undone."
+    @confirm="confirmDestroyOperation"
+  />
+
+  <HorizonConfirmDialog
+    ref="renameTemplateConfirmDialog"
+    title="Rename Template"
+    confirm-label="Rename"
+    cancel-label="Cancel"
+    variant="default"
+    message="Enter a new name for this template."
+    :requires-text-input="true"
+    text-input-label="New template name"
+    text-input-placeholder="Enter name..."
+    :close-on-confirm="false"
+    @confirm="confirmRenameTemplate"
+  />
+
+  <HorizonConfirmDialog
+    ref="saveTemplateConfirmDialog"
+    title="Save Template"
+    confirm-label="Save"
+    cancel-label="Cancel"
+    variant="success"
+    message="Enter a name for this new template."
+    :requires-text-input="true"
+    text-input-label="Template name"
+    text-input-placeholder="Enter name..."
+    :close-on-confirm="false"
+    @confirm="confirmSaveTemplate"
+  />
 </template>

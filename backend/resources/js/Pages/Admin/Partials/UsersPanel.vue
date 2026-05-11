@@ -413,6 +413,16 @@
 
 
   </div>
+
+  <HorizonConfirmDialog
+    ref="unverifyConfirmDialog"
+    title="Unverify User"
+    confirm-label="Unverify"
+    cancel-label="Cancel"
+    variant="danger"
+    message="They will be forced back through verification and their API tokens will be revoked."
+    @confirm="confirmUnverifyUser"
+  />
 </template>
 
 <script setup>
@@ -420,6 +430,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -966,15 +977,22 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleRsiVerifiedAtViewportChanged, true);
 });
 
+const unverifyConfirmDialog = ref(null);
+
 /* ============================================================
    SAVE ACTIONS
 ============================================================ */
 function unverifyUser() {
-  const userId = form.value.id;
-  if (!userId) return;
+  if (!form.value.id) return;
+  unverifyConfirmDialog.value?.show();
+}
 
-  const ok = window.confirm('Unverify this user? They will be forced back through verification and their API tokens will be revoked.');
-  if (!ok) return;
+function confirmUnverifyUser({ close }) {
+  const userId = form.value.id;
+  if (!userId) {
+    close();
+    return;
+  }
 
   router.post(
     route('admin.users.unverify'),
@@ -982,6 +1000,7 @@ function unverifyUser() {
     {
       preserveScroll: true,
       onSuccess: () => {
+        close();
         closeUserEditor();
         router.visit(window.location.href, { preserveScroll: true });
       },

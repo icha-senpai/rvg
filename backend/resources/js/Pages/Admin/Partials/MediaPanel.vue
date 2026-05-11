@@ -48,17 +48,27 @@
       :uploader-name-color="uploaderNameColor"
       :format-date="formatDate"
       @close="closeDetailModal"
-      @save="saveAltText"
-      @delete="deleteMedia"
-      @copy="copyToClipboard"
-      @update:filename="updateDetailFilename"
       @update:alt-text="updateDetailAltText"
+      @update:filename="updateDetailFilename"
+      @save="saveAltText"
+      @delete="askDeleteMedia"
+    />
+
+    <HorizonConfirmDialog
+      ref="deleteConfirmDialog"
+      title="Delete Media"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      variant="danger"
+      message="Delete this media file? This cannot be undone."
+      @confirm="confirmDeleteMedia"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 import MediaPanelDetailModal from '@/Pages/Admin/Partials/MediaPanelDetailModal.vue'
 import MediaPanelFilters from '@/Pages/Admin/Partials/MediaPanelFilters.vue'
 import MediaPanelGrid from '@/Pages/Admin/Partials/MediaPanelGrid.vue'
@@ -389,8 +399,20 @@ async function saveAltText() {
   }
 }
 
-async function deleteMedia(id) {
-  if (!confirm('Delete this media file? This cannot be undone.')) return;
+const deleteConfirmDialog = ref(null);
+const pendingDeleteMediaId = ref(null);
+
+function askDeleteMedia(id) {
+  pendingDeleteMediaId.value = id;
+  deleteConfirmDialog.value?.show();
+}
+
+async function confirmDeleteMedia({ close }) {
+  const id = pendingDeleteMediaId.value;
+  if (!id) {
+    close();
+    return;
+  }
 
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -409,6 +431,8 @@ async function deleteMedia(id) {
       return;
     }
 
+    close();
+    pendingDeleteMediaId.value = null;
     closeDetailModal();
     loadMedia(pagination.value.currentPage);
     loadStats();

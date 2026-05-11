@@ -91,6 +91,16 @@
 
   </HorizonPanel>
   </div>
+
+  <HorizonConfirmDialog
+    ref="deleteConfirmDialog"
+    title="Delete Role"
+    confirm-label="Delete"
+    cancel-label="Cancel"
+    variant="danger"
+    message="This action cannot be undone."
+    @confirm="confirmDeleteRole"
+  />
 </template>
 
 <script setup>
@@ -100,6 +110,7 @@ import { route } from 'ziggy-js';
 
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 
 const props = defineProps({
   roles: Array,
@@ -174,12 +185,28 @@ function saveRole() {
   }
 }
 
+const deleteConfirmDialog = ref(null);
+const pendingDeleteRoleId = ref(null);
+
 /* DELETE */
 function deleteRole(id) {
-  if (!confirm('Delete this role?')) return;
+  pendingDeleteRoleId.value = id;
+  deleteConfirmDialog.value?.show();
+}
+
+function confirmDeleteRole({ close }) {
+  const id = pendingDeleteRoleId.value;
+  if (!id) {
+    close();
+    return;
+  }
 
   router.post(route('admin.roles.delete'), { id }, {
     preserveScroll: true,
+    onSuccess: () => {
+      close();
+      pendingDeleteRoleId.value = null;
+    },
   });
 }
 </script>

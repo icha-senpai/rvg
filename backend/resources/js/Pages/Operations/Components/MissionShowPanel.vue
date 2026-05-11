@@ -2,6 +2,7 @@
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonPanel from '@/Components/HorizonPanel.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import ProgressPill from '@/Components/ProgressPill.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
@@ -341,10 +342,15 @@ async function join() {
     )
 }
 
-async function leave() {
-  if (!confirm('Leave this operation?')) return
-  if (joinProcessing.value) return
-  joinProcessing.value = true
+const leaveConfirmDialog = ref(null);
+
+function askLeave() {
+  if (joinProcessing.value) return;
+  leaveConfirmDialog.value?.show();
+}
+
+function confirmLeave({ close }) {
+  joinProcessing.value = true;
 
   router.post(
       route('operations.leave', operation.id, Ziggy),
@@ -352,14 +358,17 @@ async function leave() {
       {
         preserveScroll: true,
         preserveState: true,
+        onSuccess: () => {
+          close();
+        },
         onError: () => {
-          window.hzNotifyError({ message: 'Failed to leave operation.' })
+          window.hzNotifyError({ message: 'Failed to leave operation.' });
         },
         onFinish: () => {
-          joinProcessing.value = false
+          joinProcessing.value = false;
         },
       }
-    )
+    );
 }
 
 async function updateSlot() {
@@ -661,7 +670,7 @@ async function updateSlot() {
               <HorizonButton
                 variant="outline"
                 class="flex-1"
-                @click="leave"
+                @click="askLeave"
                 :disabled="joinProcessing"
               >
                 Leave Operation
@@ -725,4 +734,14 @@ async function updateSlot() {
 
     </div>
   </HorizonContainer>
+
+  <HorizonConfirmDialog
+    ref="leaveConfirmDialog"
+    title="Leave Operation"
+    confirm-label="Leave"
+    cancel-label="Cancel"
+    variant="warning"
+    message="Leave this operation?"
+    @confirm="confirmLeave"
+  />
 </template>

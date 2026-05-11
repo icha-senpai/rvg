@@ -190,6 +190,16 @@
     </div>
   </HorizonPanel>
   </div>
+
+  <HorizonConfirmDialog
+    ref="deleteConfirmDialog"
+    title="Delete Squadron"
+    confirm-label="Delete"
+    cancel-label="Cancel"
+    variant="danger"
+    message="This action cannot be undone."
+    @confirm="confirmDeleteSquadron"
+  />
 </template>
 
 <script setup>
@@ -199,6 +209,7 @@ import { router } from '@inertiajs/vue3';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -373,12 +384,28 @@ function saveSquadron() {
   }
 }
 
+const deleteConfirmDialog = ref(null);
+const pendingDeleteSquadronId = ref(null);
+
 /* DELETE */
 function deleteSquadron(id) {
-  if (!confirm('Delete this squadron?')) return;
+  pendingDeleteSquadronId.value = id;
+  deleteConfirmDialog.value?.show();
+}
+
+function confirmDeleteSquadron({ close }) {
+  const id = pendingDeleteSquadronId.value;
+  if (!id) {
+    close();
+    return;
+  }
 
   router.post(route('admin.squadrons.delete'), { id }, {
     preserveScroll: true,
+    onSuccess: () => {
+      close();
+      pendingDeleteSquadronId.value = null;
+    },
   });
 }
 </script>

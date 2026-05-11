@@ -11,6 +11,7 @@ import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import { canEditSquadronEmblem as userCanEditSquadronEmblem } from '@/auth'
 import { extractFirstErrorMessage, notifyErrorFromErrors } from '@/errors'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 
 /* -------------------------------------------------
    Props
@@ -56,6 +57,23 @@ const isLoading = ref(false)
 const activeAction = ref(null)
 const errorMessage = ref(null)
 const errorStatus = ref(null)
+
+/* -------------------------------------------------
+   Confirm dialog refs + pending state
+------------------------------------------------- */
+const leaveConfirmDialog = ref(null)
+
+const removeConfirmDialog = ref(null)
+const pendingRemoveMember = ref(null)
+
+const rejectConfirmDialog = ref(null)
+const pendingRejectMember = ref(null)
+
+const demoteConfirmDialog = ref(null)
+const pendingDemoteMember = ref(null)
+
+const promoteConfirmDialog = ref(null)
+const pendingPromoteMember = ref(null)
 
 const verifyUrl = 'https://horizoninterstellar.com/verify'
 const page = usePage()
@@ -278,6 +296,10 @@ async function applyToSquadron() {
   })
 }
 
+function askLeaveSquadron() {
+  leaveConfirmDialog.value?.show()
+}
+
 async function leaveSquadron() {
   if (!squadron.value) return
 
@@ -312,6 +334,7 @@ async function acceptMember(member) {
       {
         id: member.id,
         membership_status: 'active',
+        role: null,
       }
     , {
       preserveScroll: true,
@@ -327,6 +350,11 @@ async function acceptMember(member) {
       },
     }
   )
+}
+
+function askRejectMember(member) {
+  pendingRejectMember.value = member
+  rejectConfirmDialog.value?.show()
 }
 
 async function rejectMember(member) {
@@ -353,6 +381,11 @@ async function rejectMember(member) {
   })
 }
 
+function askRemoveMember(member) {
+  pendingRemoveMember.value = member
+  removeConfirmDialog.value?.show()
+}
+
 async function removeMember(member) {
   if (!squadron.value || !member?.id) return
 
@@ -375,6 +408,11 @@ async function removeMember(member) {
       activeAction.value = null
     },
   })
+}
+
+function askPromoteLieutenant(targetUser) {
+  pendingPromoteMember.value = targetUser
+  promoteConfirmDialog.value?.show()
 }
 
 async function promoteLieutenant(targetUser) {
@@ -402,6 +440,11 @@ async function promoteLieutenant(targetUser) {
       activeAction.value = null
     },
   })
+}
+
+function askDemoteLieutenant(memberOrUser) {
+  pendingDemoteMember.value = memberOrUser
+  demoteConfirmDialog.value?.show()
 }
 
 async function demoteLieutenant(memberOrUser) {
@@ -685,7 +728,7 @@ watch(
           :isLoading="isLoading"
           :activeAction="activeAction"
           @apply="applyToSquadron"
-          @leave="leaveSquadron"
+          @leave="askLeaveSquadron"
         />
       </div>
 
@@ -736,10 +779,10 @@ watch(
           :canPromoteLieutenant="canPromoteLieutenant"
           :activeAction="activeAction"
           @accept-member="acceptMember"
-          @reject-member="rejectMember"
-          @promote-lt="promoteLieutenant"
-          @demote-lt="demoteLieutenant"
-          @remove-member="removeMember"
+          @reject-member="askRejectMember"
+          @promote-lt="askPromoteLieutenant"
+          @demote-lt="askDemoteLieutenant"
+          @remove-member="askRemoveMember"
         />
       </div>
     </template>
@@ -953,7 +996,7 @@ watch(
             :isLoading="isLoading"
             :activeAction="activeAction"
             @apply="applyToSquadron"
-            @leave="leaveSquadron"
+            @leave="askLeaveSquadron"
           />
         </div>
 
@@ -999,10 +1042,10 @@ watch(
             :canPromoteLieutenant="canPromoteLieutenant"
             :activeAction="activeAction"
             @accept-member="acceptMember"
-            @reject-member="rejectMember"
-            @promote-lt="promoteLieutenant"
-            @demote-lt="demoteLieutenant"
-            @remove-member="removeMember"
+            @reject-member="askRejectMember"
+            @promote-lt="askPromoteLieutenant"
+            @demote-lt="askDemoteLieutenant"
+            @remove-member="askRemoveMember"
           />
         </div>
       </template>
@@ -1234,7 +1277,7 @@ watch(
               :isLoading="isLoading"
               :activeAction="activeAction"
               @apply="applyToSquadron"
-              @leave="leaveSquadron"
+              @leave="askLeaveSquadron"
             />
           </div>
 
@@ -1281,10 +1324,10 @@ watch(
               :canPromoteLieutenant="canPromoteLieutenant"
               :activeAction="activeAction"
               @accept-member="acceptMember"
-              @reject-member="rejectMember"
-              @promote-lt="promoteLieutenant"
-              @demote-lt="demoteLieutenant"
-              @remove-member="removeMember"
+              @reject-member="askRejectMember"
+              @promote-lt="askPromoteLieutenant"
+              @demote-lt="askDemoteLieutenant"
+              @remove-member="askRemoveMember"
             />
           </div>
         </template>
@@ -1300,5 +1343,55 @@ watch(
     title="Select Squadron Emblem"
     @close="closeEmblemPicker"
     @selected="setEmblem"
+  />
+
+  <HorizonConfirmDialog
+    ref="leaveConfirmDialog"
+    title="Leave Squadron"
+    confirm-label="Leave"
+    cancel-label="Cancel"
+    variant="warning"
+    message="Leave this squadron? You will need to re-apply to rejoin."
+    @confirm="leaveSquadron"
+  />
+
+  <HorizonConfirmDialog
+    ref="removeConfirmDialog"
+    title="Remove Member"
+    confirm-label="Remove"
+    cancel-label="Cancel"
+    variant="danger"
+    message="Remove this member from the squadron?"
+    @confirm="() => { if (pendingRemoveMember) removeMember(pendingRemoveMember) }"
+  />
+
+  <HorizonConfirmDialog
+    ref="rejectConfirmDialog"
+    title="Reject Application"
+    confirm-label="Reject"
+    cancel-label="Cancel"
+    variant="danger"
+    message="Reject this member's application?"
+    @confirm="() => { if (pendingRejectMember) rejectMember(pendingRejectMember) }"
+  />
+
+  <HorizonConfirmDialog
+    ref="promoteConfirmDialog"
+    title="Promote to Lieutenant"
+    confirm-label="Promote"
+    cancel-label="Cancel"
+    variant="default"
+    message="Promote this member to Lieutenant?"
+    @confirm="() => { if (pendingPromoteMember) promoteLieutenant(pendingPromoteMember) }"
+  />
+
+  <HorizonConfirmDialog
+    ref="demoteConfirmDialog"
+    title="Demote Lieutenant"
+    confirm-label="Demote"
+    cancel-label="Cancel"
+    variant="warning"
+    message="Remove this member's Lieutenant rank?"
+    @confirm="() => { if (pendingDemoteMember) demoteLieutenant(pendingDemoteMember) }"
   />
 </template>

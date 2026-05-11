@@ -141,7 +141,7 @@
                       variant="primary"
                       class="w-20 hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
                       :disabled="isTransitionProcessing(op.id)"
-                      @click="startOperation(op)"
+                      @click="askStartOperation(op)"
                     >
                       Start
                     </HorizonButton>
@@ -159,7 +159,7 @@
                         variant="primary"
                         class="mt-2 w-full hover:bg-(--color-state-success)! hover:border-(--color-state-success)!"
                         :disabled="isTransitionProcessing(op.id) || !completionOutcomeByOpId[op.id]"
-                        @click="completeOperation(op, completionOutcomeByOpId[op.id])"
+                        @click="askCompleteOperation(op, completionOutcomeByOpId[op.id])"
                       >
                         End
                       </HorizonButton>
@@ -171,7 +171,7 @@
                       variant="danger"
                       class="w-20"
                       :disabled="isTransitionProcessing(op.id)"
-                      @click="cancelOperation(op)"
+                      @click="askCancelOperation(op)"
                     >
                       Cancel
                     </HorizonButton>
@@ -284,6 +284,42 @@
     </OperationModal>
 
   </HorizonContainer>
+
+  <HorizonConfirmDialog
+    ref="startConfirmDialog"
+    title="Start Operation"
+    confirm-label="Start Operation"
+    cancel-label="Back"
+    variant="success"
+    :message="startConfirmMessage"
+    :close-on-confirm="false"
+    @confirm="confirmStartOperation"
+  />
+
+  <HorizonConfirmDialog
+    ref="completeConfirmDialog"
+    title="Complete Operation"
+    confirm-label="Complete"
+    cancel-label="Back"
+    variant="success"
+    :message="completeConfirmMessage"
+    :close-on-confirm="false"
+    @confirm="confirmCompleteOperation"
+  />
+
+  <HorizonConfirmDialog
+    ref="cancelConfirmDialog"
+    title="Cancel Operation"
+    confirm-label="Cancel Operation"
+    cancel-label="Back"
+    variant="danger"
+    message="This action cannot be undone."
+    :close-on-confirm="false"
+    :requires-text-input="true"
+    text-input-label="Cancellation reason (optional):"
+    text-input-placeholder="Enter reason..."
+    @confirm="confirmCancelOperation"
+  />
 </template>
 
 <script setup>
@@ -294,6 +330,7 @@ import { Ziggy } from '../../ziggy'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonPanel from '@/Components/HorizonPanel.vue'
 import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue'
@@ -345,7 +382,37 @@ const createTemplateId = ref('')
 
 const transitionProcessingIds = ref(new Set())
 
+const startConfirmDialog = ref(null)
+const pendingStartOperation = ref(null)
+
+const completeConfirmDialog = ref(null)
+const pendingCompleteOperation = ref(null)
+const pendingCompleteOutcome = ref(null)
+
+const cancelConfirmDialog = ref(null)
+const pendingCancelOperation = ref(null)
+
 const completionOutcomeByOpId = ref({})
+
+const startConfirmMessage = computed(() => {
+  const op = pendingStartOperation.value
+
+  if (!op) {
+    return 'You are about to start this operation.'
+  }
+
+  return `You are about to mark "${op.title}" as In Progress.`
+})
+
+const completeConfirmMessage = computed(() => {
+  const op = pendingCompleteOperation.value
+
+  if (!op) {
+    return 'You are about to complete this operation.'
+  }
+
+  return `Mark "${op.title}" as completed?`
+})
 const completionOutcomeOptions = [
   { label: 'Success', value: 'success' },
   { label: 'Failed', value: 'failed' },
@@ -646,65 +713,122 @@ function creatorNameColor(op) {
   return getOrgRoleColor(slug)
 }
 
-async function startOperation(op) {
-  if (!op?.id) return
-  if (isTransitionProcessing(op.id)) return
-  if (!confirm('Start this operation?')) return
+function askStartOperation(op) {
+  pendingStartOperation.value = op
+  startConfirmDialog.value?.show()
+}
+
+function confirmStartOperation({ close, finish }) {
+  const op = pendingStartOperation.value
+
+  if (!op?.id) {
+    finish()
+    return
+  }
 
   setTransitionProcessing(op.id, true)
+
   router.post(route('operations.start', op.id, Ziggy), {}, {
     preserveScroll: true,
     preserveState: true,
     only: ['operations', 'activeOperation'],
+
+    onSuccess: () => {
+      close()
+      pendingStartOperation.value = null
+    },
+
     onError: () => {
       window.hzNotifyError({ message: 'Failed to start operation.' })
+      finish()
     },
+
     onFinish: () => {
       setTransitionProcessing(op.id, false)
     },
   })
 }
 
-async function completeOperation(op, outcome) {
+function askCompleteOperation(op, outcome) {
   if (!op?.id) return
   if (isTransitionProcessing(op.id)) return
   if (!outcome) return
-  if (!confirm('Mark this operation as completed?')) return
+
+  pendingCompleteOperation.value = op
+  pendingCompleteOutcome.value = outcome
+  completeConfirmDialog.value?.show()
+}
+
+function confirmCompleteOperation({ close, finish }) {
+  const op = pendingCompleteOperation.value
+  const outcome = pendingCompleteOutcome.value
+
+  if (!op?.id || !outcome) {
+    finish()
+    return
+  }
 
   setTransitionProcessing(op.id, true)
+
   router.post(route('operations.complete', op.id, Ziggy), {
     outcome,
   }, {
     preserveScroll: true,
     preserveState: true,
     only: ['operations', 'activeOperation'],
+
+    onSuccess: () => {
+      close()
+      pendingCompleteOperation.value = null
+      pendingCompleteOutcome.value = null
+    },
+
     onError: () => {
       window.hzNotifyError({ message: 'Failed to complete operation.' })
+      finish()
     },
+
     onFinish: () => {
       setTransitionProcessing(op.id, false)
     },
   })
 }
 
-async function cancelOperation(op) {
+function askCancelOperation(op) {
   if (!op?.id) return
   if (isTransitionProcessing(op.id)) return
 
-  const reason = prompt('Cancellation reason (optional):')
-  if (reason === null) return
-  if (!confirm('Cancel this operation?')) return
+  pendingCancelOperation.value = op
+  cancelConfirmDialog.value?.show()
+}
+
+function confirmCancelOperation({ close, finish, text }) {
+  const op = pendingCancelOperation.value
+
+  if (!op?.id) {
+    finish()
+    return
+  }
 
   setTransitionProcessing(op.id, true)
+
   router.post(route('operations.cancel', op.id, Ziggy), {
-    reason: reason || null,
+    reason: text || null,
   }, {
     preserveScroll: true,
     preserveState: true,
     only: ['operations', 'activeOperation'],
+
+    onSuccess: () => {
+      close()
+      pendingCancelOperation.value = null
+    },
+
     onError: () => {
       window.hzNotifyError({ message: 'Failed to cancel operation.' })
+      finish()
     },
+
     onFinish: () => {
       setTransitionProcessing(op.id, false)
     },

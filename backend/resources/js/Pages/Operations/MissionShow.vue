@@ -2,6 +2,7 @@
 import HorizonContainer from '@/Components/HorizonContainer.vue';
 import HorizonPanel from '@/Components/HorizonPanel.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 import ProgressPill from '@/Components/ProgressPill.vue';
 import HorizonSelect from '@/Components/HorizonSelect.vue';
 
@@ -333,12 +334,16 @@ async function join() {
   );
 }
 
+const leaveConfirmDialog = ref(null);
+
 /* ============================================================
    LEAVE (WEB)
 ============================================================ */
-async function leave() {
-  if (!confirm("Leave this operation?")) return;
+function askLeave() {
+  leaveConfirmDialog.value?.show();
+}
 
+function confirmLeave({ close }) {
   joinProcessing.value = true;
 
   router.post(
@@ -346,6 +351,9 @@ async function leave() {
     {},
     {
       preserveScroll: true,
+      onSuccess: () => {
+        close();
+      },
       onFinish: () => {
         joinProcessing.value = false;
         router.visit(window.location.href, { preserveScroll: true });
@@ -666,7 +674,7 @@ async function updateSlot() {
               <HorizonButton
                 variant="outline"
                 class="flex-1"
-                @click="leave"
+                @click="askLeave"
               >
                 Leave Operation
               </HorizonButton>
@@ -746,5 +754,15 @@ async function updateSlot() {
 
     </div>
   </HorizonContainer>
+
+  <HorizonConfirmDialog
+    ref="leaveConfirmDialog"
+    title="Leave Operation"
+    confirm-label="Leave"
+    cancel-label="Cancel"
+    variant="warning"
+    message="Leave this operation?"
+    @confirm="confirmLeave"
+  />
 </template>
 
