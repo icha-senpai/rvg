@@ -69,30 +69,57 @@ function branchLogoSrc(branch) {
 <template>
   <HorizonContainer class="space-y-10">
     <div class="mx-auto max-w-5xl hz-stack">
+      <div class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
 
-      <div class="hz-title-lg">Squadrons</div>
+        <div class="relative">
+          <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
+            Horizon Squadron Registry
+          </div>
+
+          <h1 class="mt-2 text-3xl font-bold tracking-tight text-horizon-white md:text-4xl">
+            Squadrons
+          </h1>
+
+          <p class="mt-2 max-w-2xl text-sm text-text-secondary">
+            Explore combat, logistics, frontier, and support units across Horizon Interstellar.
+          </p>
+        </div>
+      </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="squadron in squadrons"
           :key="squadron.id"
-          class="hz-card-soft hz-stack cursor-pointer overflow-hidden border! border-(--horizon-sunset-blue)! p-0! w-full max-w-64 sm:max-w-none mx-auto"
+          class="group relative mx-auto w-full max-w-64 cursor-pointer overflow-hidden rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-0 shadow-[0_0_32px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/45 hover:shadow-[0_0_42px_rgba(192,38,211,0.16)] sm:max-w-none"
           @click="openSquadron(squadron)"
         >
+          <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
+            <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+            <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+          </div>
+
           <div
             v-if="squadron.emblem_url"
-            class="w-full aspect-square bg-bg-surface"
+            class="relative aspect-square w-full bg-[color:var(--horizon-void-800)]"
           >
+            <div class="absolute inset-4 rounded-[1.25rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/10 via-transparent to-[color:var(--horizon-sunset-magenta)]/10 blur-xl"></div>
+
             <img
               :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
               :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-              class="w-full h-full object-contain"
+              class="relative h-full w-full object-contain p-4"
               loading="lazy"
             />
           </div>
 
-          <div class="hz-stack p-3! sm:p-6!">
-            <div class="hz-title-sm sm:hz-title-md">{{ squadron.name }}</div>
+          <div class="relative hz-stack p-3! sm:p-6!">
+            <div class="hz-title-sm sm:hz-title-md">
+              {{ squadron.name }}
+            </div>
 
             <div class="hz-caption text-horizon-muted">
               Leader:
@@ -106,7 +133,7 @@ function branchLogoSrc(branch) {
                 v-if="branchLogoSrc(squadron.branch)"
                 :src="branchLogoSrc(squadron.branch)"
                 :alt="`${formatTitle(squadron.branch)} logo`"
-                class="w-4 h-4 object-contain shrink-0"
+                class="h-4 w-4 shrink-0 object-contain"
                 loading="lazy"
               />
               <span>

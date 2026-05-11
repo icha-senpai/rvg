@@ -790,10 +790,10 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="w-full bg-bg-surface rounded-2xl shadow-2xl flex flex-col border! border-(--horizon-sunset-blue)!"
+    class="flex w-full flex-col rounded-[2rem] border! border-[color:var(--horizon-sunset-indigo)]/45! bg-[linear-gradient(135deg,rgba(30,64,175,0.16),var(--horizon-void-700)_42%,var(--horizon-void-900))] shadow-[0_0_42px_rgba(67,56,202,0.18)]"
   >
     <header
-      class="shrink-0 px-6 py-4 border-b border-white/10 flex items-start justify-between"
+      class="flex shrink-0 items-start justify-between border-b border-[color:var(--horizon-sunset-blue)]/20 px-6 py-4"
     >
       <SquadronPanelHeader :squadron="squadron" />
 

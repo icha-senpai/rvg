@@ -1,5 +1,5 @@
 <template>
-  <div class="hz-row-between">
+  <div class="hz-row-between rounded-xl border border-[color:var(--horizon-sunset-blue)]/15 bg-white/[0.025] px-3 py-2">
     <div class="hz-row gap-2">
       <Link
         v-if="member.user?.id"
