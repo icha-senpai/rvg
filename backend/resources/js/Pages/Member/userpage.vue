@@ -3,10 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
-import HorizonPanel from '@/Components/HorizonPanel.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
-import HorizonStat from '@/Components/HorizonStat.vue'
 import { isCommanderPlus } from '@/auth'
 import { extractFirstErrorMessage as extractSharedErrorMessage } from '@/errors'
 
@@ -429,6 +427,24 @@ const favoriteGunsLabel = computed(() => {
   return guns.join(', ')
 })
 
+function normalizeProfileArray(value) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map(item => String(item ?? '').trim())
+    .filter(Boolean)
+}
+
+function profilePreviewList(value, max = 8) {
+  const list = normalizeProfileArray(value)
+
+  return {
+    items: list.slice(0, max),
+    moreCount: Math.max(0, list.length - max),
+    hasItems: list.length > 0,
+  }
+}
+
 const primaryRoleLabel = computed(() => {
   const value = me.value?.primary_role
   const found = roleOptions.find(o => o.value === value)
@@ -619,29 +635,43 @@ watch(
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
-      <!-- Page header -->
-      <div class="relative overflow-hidden rounded-4xl border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+      <!-- Personnel command header -->
+      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
         <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-48 bg-linear-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-64 bg-linear-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
-              Horizon Personnel File
+              Horizon Personnel Dossier
             </div>
 
-            <h1 class="mt-2 text-3xl font-bold tracking-tight text-horizon-white md:text-4xl">
-              {{ canEditProfile ? 'My Profile' : 'User Profile' }}
+            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+              {{ canEditProfile ? 'My Profile' : 'Personnel File' }}
             </h1>
 
-            <p class="mt-2 max-w-2xl text-sm text-text-secondary">
-              Identity, readiness, preferred roles, operation history, and squadron assignment.
+            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
+              Identity, readiness, preferred roles, operation history, squadron assignment, and member profile data.
             </p>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ canEditProfile ? 'Editable Profile' : 'Read Only' }}
+              </span>
+
+              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ rankName }}
+              </span>
+
+              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                {{ rolesLabel }}
+              </span>
+            </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 lg:justify-end">
             <HorizonButton
               v-if="canEditProfile && !isEditing"
               variant="primary"
@@ -652,27 +682,43 @@ watch(
             </HorizonButton>
 
             <template v-else-if="canEditProfile">
-              <HorizonButton variant="secondary" size="sm" @click="cancelEdit" :disabled="isSaving">
+              <HorizonButton
+                variant="ghost"
+                size="sm"
+                :disabled="isSaving"
+                @click="cancelEdit"
+              >
                 Cancel
               </HorizonButton>
 
-              <HorizonButton variant="primary" size="sm" @click="saveProfile" :disabled="isSaving">
+              <HorizonButton
+                variant="primary"
+                size="sm"
+                :disabled="isSaving"
+                @click="saveProfile"
+              >
                 {{ isSaving ? 'Saving…' : 'Save Changes' }}
               </HorizonButton>
             </template>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div v-if="errorMessage" class="hz-alert hz-alert-danger">
+      <div
+        v-if="errorMessage"
+        class="rounded-[1.5rem] border border-red-300/25 bg-red-300/10 p-4 text-sm font-semibold text-red-100"
+      >
         {{ errorMessage }}
       </div>
 
-      <!-- Hero identity card -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.24),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-6 shadow-[0_0_40px_rgba(30,64,175,0.16)]">
-        <div class="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,var(--horizon-glow-magenta),transparent_55%)]"></div>
+      <!-- Identity dossier card -->
+      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-6 shadow-[0_0_40px_rgba(30,64,175,0.16)]">
+        <div class="pointer-events-none absolute inset-0 opacity-60">
+          <div class="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,var(--horizon-glow-magenta),transparent_55%)]"></div>
+          <div class="absolute left-10 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+        </div>
 
-        <div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
           <div class="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
             <div class="relative shrink-0">
               <div class="absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/35 via-transparent to-[color:var(--horizon-sunset-magenta)]/30 blur-xl"></div>
@@ -687,7 +733,7 @@ watch(
               <div
                 v-else
                 :style="displayNameColor ? { color: displayNameColor } : undefined"
-                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-bg-hover text-4xl font-black shadow-[0_0_28px_rgba(67,56,202,0.24)]"
+                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.04] text-4xl font-black shadow-[0_0_28px_rgba(67,56,202,0.24)]"
               >
                 {{ String(displayName).slice(0, 1).toUpperCase() }}
               </div>
@@ -699,7 +745,7 @@ watch(
               </div>
 
               <div
-                class="mt-2 truncate text-3xl font-black tracking-tight text-horizon-white md:text-4xl"
+                class="mt-2 truncate text-3xl font-black tracking-tight text-horizon-white md:text-5xl"
                 :style="displayNameColor ? { color: displayNameColor } : undefined"
               >
                 {{ displayName }}
@@ -726,13 +772,14 @@ watch(
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 md:w-72">
+          <div class="grid grid-cols-2 gap-3">
             <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
               </div>
+
               <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
-                {{ me?.callsign ?? 'Not set' }}
+                {{ me?.callsign || 'Not set' }}
               </div>
             </div>
 
@@ -740,23 +787,78 @@ watch(
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Style
               </div>
+
               <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
                 {{ gameplayStyleLabel }}
               </div>
             </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                Timezone
+              </div>
+
+              <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                {{ me?.timezone || 'Not set' }}
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                Availability
+              </div>
+
+              <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                {{ me?.availability_status || 'Not set' }}
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div
+          v-if="me?.bio"
+          class="relative mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4"
+        >
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Member Bio
+          </div>
+
+          <p class="mt-2 whitespace-pre-line text-sm leading-7 text-text-secondary">
+            {{ me.bio }}
+          </p>
         </div>
       </section>
 
-      <!-- Operation stats -->
+
+      <!-- Operation stats + readiness -->
       <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_32px_rgba(192,38,211,0.10)]">
-        <div class="mb-5 flex items-center justify-between gap-4">
+        <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Operation Stats
+              Operation Record
             </div>
-            <div class="mt-1 text-sm text-text-muted">
-              Mission activity and command contribution.
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Mission Activity
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Operation participation, command contribution, and mission outcome history.
+            </p>
+          </div>
+
+          <div
+            class="rounded-2xl border px-4 py-3"
+            :class="canViewRestrictedOperationStats
+              ? 'border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10'
+              : 'border-white/10 bg-white/[0.035]'"
+          >
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+              Visibility
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-horizon-white">
+              {{ canViewRestrictedOperationStats ? 'Officer View' : 'Member View' }}
             </div>
           </div>
         </div>
@@ -766,93 +868,531 @@ watch(
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
         >
           <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[linear-gradient(135deg,rgba(30,64,175,0.16),rgba(255,255,255,0.025))] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Created</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.created }}</div>
-          </div>
-
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Canceled</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.canceled }}</div>
-          </div>
-
-          <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Success</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.success }}</div>
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Created
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.created }}
+            </div>
           </div>
 
           <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Failed</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.failed }}</div>
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Canceled
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.canceled }}
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Success
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.success }}
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Failed
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.failed }}
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Completed
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.completed }}
+            </div>
           </div>
 
           <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Completed</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.completed }}</div>
-          </div>
-
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Joined</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.joined }}</div>
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Joined
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.joined }}
+            </div>
           </div>
 
           <div class="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Left Early</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.leftEarly }}</div>
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Left Early
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.leftEarly }}
+            </div>
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div class="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(56,189,248,0.12),rgba(255,255,255,0.025))] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Created</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.created }}</div>
-          </div>
-
-          <div class="rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Canceled</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.canceled }}</div>
+        <div
+          v-else
+          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Created
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.created }}
+            </div>
           </div>
 
           <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Success</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.success }}</div>
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Success
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.success }}
+            </div>
           </div>
 
-          <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Failed</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.failed }}</div>
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Completed
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.completed }}
+            </div>
           </div>
 
-          <div class="rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Completed</div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">{{ operationsStats.completed }}</div>
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Joined
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.joined }}
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Left Early
+            </div>
+            <div class="mt-2 text-3xl font-black text-horizon-white">
+              {{ operationsStats.leftEarly }}
+            </div>
           </div>
         </div>
       </section>
 
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <!-- About / readiness -->
-        <section class="rounded-[2rem] border border-cyan-300/20 bg-bg-elevated/80 p-6 shadow-[0_0_32px_rgba(56,189,248,0.08)]">
+      <!-- Readiness profile -->
+      <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
           <div class="mb-5">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/70">
-              About
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Readiness Profile
             </div>
-            <div class="mt-1 text-sm text-text-muted">
-              Personal notes, availability, and preferred equipment.
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Role + Experience
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Preferred roles, gameplay style, commitment level, and self-rated experience.
+            </p>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Primary Role
+              </div>
+              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                {{ primaryRoleLabel }}
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Secondary Role
+              </div>
+              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                {{ secondaryRoleLabel }}
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Gameplay Style
+              </div>
+              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                {{ gameplayStyleLabel }}
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Operation Commitment
+              </div>
+              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                {{ opCommitmentLabel }}
+              </div>
             </div>
           </div>
 
+          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div
+              v-for="(value, key) in experienceRatings"
+              :key="key"
+              class="rounded-2xl border border-white/10 bg-black/10 p-4"
+            >
+              <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                {{ key.replace(/_/g, ' ') }}
+              </div>
+
+              <div class="mt-2 text-2xl font-black text-horizon-white">
+                {{ value ?? '—' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="space-y-6">
+          <div class="rounded-[2rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Availability
+            </div>
+
+            <div class="mt-3 text-2xl font-black text-horizon-white">
+              {{ me?.availability_status || 'Not set' }}
+            </div>
+
+            <div class="mt-2 text-sm text-text-secondary">
+              Timezone:
+              <span class="font-semibold text-horizon-white">{{ me?.timezone || 'Not set' }}</span>
+            </div>
+
+            <div
+              v-if="me?.loa_note"
+              class="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+            >
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                LOA Note
+              </div>
+
+              <p class="mt-2 whitespace-pre-line text-sm leading-6 text-text-secondary">
+                {{ me.loa_note }}
+              </p>
+            </div>
+          </div>
+
+          <div class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Squadron Assignment
+            </div>
+
+            <div class="mt-4 space-y-2">
+              <div
+                v-for="squadron in inertiaSquadrons"
+                :key="squadron.id"
+                class="rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+              >
+                <div class="text-sm font-bold text-horizon-white">
+                  {{ squadron.name }}
+                </div>
+
+                <div class="mt-1 text-xs text-text-secondary">
+                  {{ squadron.pivot?.role ?? 'member' }}
+                  <span v-if="squadron.pivot?.membership_status">
+                    · {{ squadron.pivot.membership_status }}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                v-if="!inertiaSquadrons.length"
+                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+              >
+                No squadron assignment found.
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- Equipment preferences -->
+      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+        <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Equipment Profile
+            </div>
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Preferred Ships + Weapons
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Personal loadout preferences and favorite equipment for mission planning.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-3">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+              Loadout
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-horizon-white">
+              {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }} Ships · {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }} Guns
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <!-- Ships -->
+          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-5">
+            <div class="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Favorite Ships
+                </div>
+
+                <div class="mt-1 text-sm text-text-secondary">
+                  Preferred hulls and vehicle choices.
+                </div>
+              </div>
+
+              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+                {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }}
+              </div>
+            </div>
+
+            <template v-if="!isEditing">
+              <div
+                v-if="profilePreviewList(me?.favorite_ships).hasItems"
+                class="flex flex-wrap gap-2"
+              >
+                <span
+                  v-for="ship in profilePreviewList(me?.favorite_ships).items"
+                  :key="ship"
+                  class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                  :title="ship"
+                >
+                  {{ ship }}
+                </span>
+
+                <span
+                  v-if="profilePreviewList(me?.favorite_ships).moreCount > 0"
+                  class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-horizon-white"
+                >
+                  +{{ profilePreviewList(me?.favorite_ships).moreCount }} more
+                </span>
+              </div>
+
+              <div
+                v-else
+                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+              >
+                No favorite ships listed.
+              </div>
+            </template>
+
+            <div v-else class="space-y-4">
+              <input
+                v-model="favoriteShipSearch"
+                type="text"
+                class="hz-input"
+                placeholder="Search ships…"
+              />
+
+              <div v-if="form.favorite_ships?.length" class="flex flex-wrap gap-2">
+                <button
+                  v-for="ship in form.favorite_ships"
+                  :key="ship"
+                  type="button"
+                  class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-[color:var(--horizon-sunset-blue)]/20"
+                  :title="'Remove ' + ship"
+                  @click="removeFavoriteShip(ship)"
+                >
+                  {{ ship }} ✕
+                </button>
+              </div>
+
+              <div class="max-h-80 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div
+                  v-for="group in filteredFavoriteShipOptions"
+                  :key="group.label"
+                  class="mb-4 last:mb-0"
+                >
+                  <div class="mb-2 text-xs font-bold uppercase tracking-wide text-text-muted">
+                    {{ group.label }}
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-2">
+                    <button
+                      v-for="ship in group.options"
+                      :key="group.label + '::' + ship"
+                      type="button"
+                      class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
+                      :class="
+                        form.favorite_ships?.includes(ship)
+                          ? 'border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 text-horizon-white'
+                          : 'border-white/10 bg-white/[0.025] text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/25 hover:bg-white/[0.05] hover:text-horizon-white'
+                      "
+                      @click="toggleFavoriteShip(ship)"
+                    >
+                      <span class="truncate">{{ ship }}</span>
+                      <span v-if="form.favorite_ships?.includes(ship)" class="shrink-0 text-xs text-cyan-200">Selected</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="!filteredFavoriteShipOptions.length" class="text-sm text-text-muted">
+                  No ships match your search.
+                </div>
+              </div>
+
+              <div class="text-sm text-text-muted">
+                Tap to select/unselect. Tap a tag above to remove.
+              </div>
+            </div>
+          </div>
+
+          <!-- Guns -->
+          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-5">
+            <div class="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Favorite Guns
+                </div>
+
+                <div class="mt-1 text-sm text-text-secondary">
+                  Preferred personal weapons and combat tools.
+                </div>
+              </div>
+
+              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+                {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }}
+              </div>
+            </div>
+
+            <template v-if="!isEditing">
+              <div
+                v-if="profilePreviewList(me?.favorite_guns).hasItems"
+                class="flex flex-wrap gap-2"
+              >
+                <span
+                  v-for="gun in profilePreviewList(me?.favorite_guns).items"
+                  :key="gun"
+                  class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                  :title="gun"
+                >
+                  {{ gun }}
+                </span>
+
+                <span
+                  v-if="profilePreviewList(me?.favorite_guns).moreCount > 0"
+                  class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-horizon-white"
+                >
+                  +{{ profilePreviewList(me?.favorite_guns).moreCount }} more
+                </span>
+              </div>
+
+              <div
+                v-else
+                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+              >
+                No favorite guns listed.
+              </div>
+            </template>
+
+            <div v-else class="space-y-4">
+              <div class="flex gap-2">
+                <input
+                  v-model="newFavoriteGun"
+                  type="text"
+                  class="hz-input"
+                  placeholder="Type a gun name and press Enter…"
+                  @keydown.enter.prevent="addFavoriteGun"
+                />
+
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  @click="addFavoriteGun"
+                >
+                  Add
+                </HorizonButton>
+              </div>
+
+              <div v-if="form.favorite_guns?.length" class="flex flex-wrap gap-2">
+                <button
+                  v-for="gun in form.favorite_guns"
+                  :key="gun"
+                  type="button"
+                  class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-[color:var(--horizon-sunset-magenta)]/20"
+                  :title="'Remove ' + gun"
+                  @click="removeFavoriteGun(gun)"
+                >
+                  {{ gun }} ✕
+                </button>
+              </div>
+
+              <div class="text-sm text-text-muted">
+                Click a tag to remove it.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile edit console -->
+      <section
+        v-if="isEditing"
+        class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_0_32px_rgba(67,56,202,0.12)]"
+      >
+        <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Profile Edit Console
+            </div>
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Update Personnel Record
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Edit bio, availability, preferred roles, commitment, and experience ratings.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <HorizonButton
+              variant="ghost"
+              size="sm"
+              :disabled="isSaving"
+              @click="cancelEdit"
+            >
+              Cancel
+            </HorizonButton>
+
+            <HorizonButton
+              variant="primary"
+              size="sm"
+              :disabled="isSaving"
+              @click="saveProfile"
+            >
+              {{ isSaving ? 'Saving…' : 'Save Changes' }}
+            </HorizonButton>
+          </div>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div class="space-y-5">
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Bio
               </div>
 
-              <div v-if="!isEditing" class="whitespace-pre-wrap text-sm leading-7 text-text-secondary">
-                {{ me?.bio ?? 'No bio set.' }}
-              </div>
-
               <HorizonInput
-                v-else
                 v-model="form.bio"
                 type="textarea"
                 label=""
@@ -860,30 +1400,25 @@ watch(
               />
             </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Timezone
                 </div>
 
-                <div v-if="!isEditing" class="text-sm font-semibold text-horizon-white">
-                  {{ me?.timezone ?? 'Not set' }}
-                </div>
-
-                <HorizonInput v-else v-model="form.timezone" label="" placeholder="e.g. CST, UTC-6, America/Chicago" />
+                <HorizonInput
+                  v-model="form.timezone"
+                  label=""
+                  placeholder="e.g. CST, UTC-6, America/Chicago"
+                />
               </div>
 
-              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Availability
                 </div>
 
-                <div v-if="!isEditing" class="text-sm font-semibold text-horizon-white">
-                  {{ me?.availability_status ?? 'Not set' }}
-                </div>
-
                 <HorizonInput
-                  v-else
                   v-model="form.availability_status"
                   label=""
                   placeholder="e.g. Evenings, Weekends, On-call"
@@ -891,170 +1426,40 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Vacation Note
+            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Vacation / LOA Note
               </div>
 
-              <div v-if="!isEditing" class="whitespace-pre-wrap text-sm leading-7 text-text-secondary">
-                {{ me?.loa_note ?? 'None' }}
-              </div>
-
-              <HorizonInput v-else v-model="form.loa_note" type="textarea" label="" placeholder="Optional: leave of absence notes…" />
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Favorite Ships
-              </div>
-
-              <div v-if="!isEditing" class="text-sm leading-7 text-text-secondary">
-                {{ favoriteShipsLabel }}
-              </div>
-
-              <div v-else class="space-y-3">
-                <input
-                  v-model="favoriteShipSearch"
-                  type="text"
-                  class="hz-input"
-                  placeholder="Search ships…"
-                />
-
-                <div v-if="form.favorite_ships?.length" class="flex flex-wrap gap-2">
-                  <button
-                    v-for="ship in form.favorite_ships"
-                    :key="ship"
-                    type="button"
-                    class="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/20"
-                    @click="removeFavoriteShip(ship)"
-                    :title="'Remove ' + ship"
-                  >
-                    {{ ship }}
-                  </button>
-                </div>
-
-                <div class="max-h-72 overflow-auto rounded-2xl border border-white/10 bg-bg-base/50 p-3">
-                  <div
-                    v-for="group in filteredFavoriteShipOptions"
-                    :key="group.label"
-                    class="mb-4 last:mb-0"
-                  >
-                    <div class="mb-2 text-xs font-bold uppercase tracking-wide text-text-muted">
-                      {{ group.label }}
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-2">
-                      <button
-                        v-for="ship in group.options"
-                        :key="group.label + '::' + ship"
-                        type="button"
-                        class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
-                        :class="
-                          form.favorite_ships?.includes(ship)
-                            ? 'border-cyan-300/35 bg-cyan-300/10 text-horizon-white'
-                            : 'border-white/10 bg-white/[0.025] text-text-secondary hover:border-cyan-300/25 hover:bg-white/[0.05] hover:text-horizon-white'
-                        "
-                        @click="toggleFavoriteShip(ship)"
-                      >
-                        <span class="truncate">{{ ship }}</span>
-                        <span v-if="form.favorite_ships?.includes(ship)" class="shrink-0 text-xs text-cyan-200">Selected</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div v-if="!filteredFavoriteShipOptions.length" class="text-sm text-text-muted">
-                    No ships match your search.
-                  </div>
-                </div>
-
-                <div class="text-sm text-text-muted">
-                  Tap to select/unselect. Tap a tag above to remove.
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Favorite Guns
-              </div>
-
-              <div v-if="!isEditing" class="text-sm leading-7 text-text-secondary">
-                {{ favoriteGunsLabel }}
-              </div>
-
-              <div v-else class="space-y-3">
-                <div class="flex gap-2">
-                  <input
-                    v-model="newFavoriteGun"
-                    type="text"
-                    class="hz-input"
-                    placeholder="Type a gun name and press Enter…"
-                    @keydown.enter.prevent="addFavoriteGun"
-                  />
-
-                  <HorizonButton
-                    variant="secondary"
-                    size="sm"
-                    type="button"
-                    @click="addFavoriteGun"
-                  >
-                    Add
-                  </HorizonButton>
-                </div>
-
-                <div v-if="form.favorite_guns?.length" class="flex flex-wrap gap-2">
-                  <button
-                    v-for="gun in form.favorite_guns"
-                    :key="gun"
-                    type="button"
-                    class="rounded-full border border-fuchsia-300/25 bg-fuchsia-300/10 px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-300/20"
-                    @click="removeFavoriteGun(gun)"
-                    :title="'Remove ' + gun"
-                  >
-                    {{ gun }}
-                  </button>
-                </div>
-
-                <div class="text-sm text-text-muted">
-                  Click a tag to remove it.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Gameplay profile -->
-        <section class="rounded-[2rem] border border-fuchsia-300/20 bg-[linear-gradient(160deg,rgba(21,25,42,0.92),rgba(11,13,20,0.96))] p-6 shadow-[0_0_32px_rgba(192,38,211,0.08)]">
-          <div class="mb-5">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-fuchsia-200/70">
-              Gameplay Profile
-            </div>
-            <div class="mt-1 text-sm text-text-muted">
-              Role preference, playstyle, and skill confidence.
+              <HorizonInput
+                v-model="form.loa_note"
+                type="textarea"
+                label=""
+                placeholder="Optional: leave of absence notes…"
+              />
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-4">
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Callsign</div>
-
-              <div v-if="!isEditing" class="mt-2 text-lg font-bold text-horizon-white">
-                {{ me?.callsign ?? 'Not set' }}
+          <aside class="space-y-5">
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+              <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Callsign
               </div>
 
-              <HorizonInput v-else v-model="form.callsign" label="" placeholder="Your callsign" />
+              <HorizonInput
+                v-model="form.callsign"
+                label=""
+                placeholder="Your callsign"
+              />
             </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-1">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Primary Role</div>
-
-                <div v-if="!isEditing" class="mt-2 text-sm font-semibold text-horizon-white">
-                  {{ primaryRoleLabel }}
+            <div class="grid gap-4">
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Primary Role
                 </div>
 
                 <HorizonInput
-                  v-else
                   v-model="form.primary_role"
                   type="select"
                   label=""
@@ -1062,169 +1467,83 @@ watch(
                 />
               </div>
 
-              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Secondary Role</div>
-
-                <div v-if="!isEditing" class="mt-2 text-sm font-semibold text-horizon-white">
-                  {{ secondaryRoleLabel }}
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Secondary Role
                 </div>
 
                 <HorizonInput
-                  v-else
                   v-model="form.secondary_role"
                   type="select"
                   label=""
                   :options="roleOptions"
                 />
               </div>
-            </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Preferred Gameplay Style</div>
-
-              <div v-if="!isEditing" class="mt-2 text-sm font-semibold text-horizon-white">
-                {{ gameplayStyleLabel }}
-              </div>
-
-              <HorizonInput
-                v-else
-                v-model="form.preferred_gameplay_style"
-                type="select"
-                label=""
-                :options="gameplayStyleOptions"
-              />
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Typical Op Commitment</div>
-
-              <div v-if="!isEditing" class="mt-2 text-sm font-semibold text-horizon-white">
-                {{ opCommitmentLabel }}
-              </div>
-
-              <HorizonInput
-                v-else
-                v-model="form.typical_op_commitment"
-                type="select"
-                label=""
-                :options="opCommitmentOptions"
-              />
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div class="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Experience Ratings
-              </div>
-
-              <div class="space-y-4">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="text-sm text-text-secondary">Space Combat</div>
-                  <div class="flex gap-2">
-                    <button
-                      v-for="n in 5"
-                      :key="'space_combat_' + n"
-                      type="button"
-                      class="h-4 w-4 rounded-full border border-cyan-300/50 transition"
-                      :class="(isEditing ? form.experience_ratings?.space_combat : experienceRatings.space_combat) >= n ? 'bg-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.75)]' : 'bg-transparent'"
-                      @click="isEditing && setExperienceRating('space_combat', n)"
-                    />
-                  </div>
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Preferred Gameplay Style
                 </div>
 
-                <div class="flex items-center justify-between gap-4">
-                  <div class="text-sm text-text-secondary">Ground Combat</div>
-                  <div class="flex gap-2">
-                    <button
-                      v-for="n in 5"
-                      :key="'ground_combat_' + n"
-                      type="button"
-                      class="h-4 w-4 rounded-full border border-cyan-300/50 transition"
-                      :class="(isEditing ? form.experience_ratings?.ground_combat : experienceRatings.ground_combat) >= n ? 'bg-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.75)]' : 'bg-transparent'"
-                      @click="isEditing && setExperienceRating('ground_combat', n)"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-4">
-                  <div class="text-sm text-text-secondary">Logistics / Support</div>
-                  <div class="flex gap-2">
-                    <button
-                      v-for="n in 5"
-                      :key="'logistics_support_' + n"
-                      type="button"
-                      class="h-4 w-4 rounded-full border border-cyan-300/50 transition"
-                      :class="(isEditing ? form.experience_ratings?.logistics_support : experienceRatings.logistics_support) >= n ? 'bg-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.75)]' : 'bg-transparent'"
-                      @click="isEditing && setExperienceRating('logistics_support', n)"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-4">
-                  <div class="text-sm text-text-secondary">Medical</div>
-                  <div class="flex gap-2">
-                    <button
-                      v-for="n in 5"
-                      :key="'medical_' + n"
-                      type="button"
-                      class="h-4 w-4 rounded-full border border-cyan-300/50 transition"
-                      :class="(isEditing ? form.experience_ratings?.medical : experienceRatings.medical) >= n ? 'bg-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.75)]' : 'bg-transparent'"
-                      @click="isEditing && setExperienceRating('medical', n)"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="isEditing" class="mt-4 text-sm text-text-muted">
-                Click dots to set rating from 1–5.
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Squadrons -->
-      <section
-        v-if="canEditProfile && inertiaSquadrons && inertiaSquadrons.length"
-        class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-bg-elevated/80 p-6 shadow-[0_0_32px_rgba(56,189,248,0.08)]"
-      >
-        <div class="mb-5">
-          <div class="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/70">
-            Squadrons
-          </div>
-          <div class="mt-1 text-sm text-text-muted">
-            Active squadron membership and internal assignment.
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div
-            v-for="s in inertiaSquadrons"
-            :key="s.id"
-            class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-cyan-300/25 hover:bg-white/[0.05]"
-          >
-            <div class="flex min-w-0 items-center gap-4">
-              <div
-                v-if="s?.emblem_url"
-                class="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-bg-surface"
-              >
-                <img
-                  :src="s?.emblem?.thumbnail_url || s?.emblem?.medium_url || s?.emblem?.url || s?.emblem_url"
-                  :alt="s?.emblem?.alt_text || `${s?.name} emblem`"
-                  class="h-full w-full object-contain"
-                  loading="lazy"
+                <HorizonInput
+                  v-model="form.preferred_gameplay_style"
+                  type="select"
+                  label=""
+                  :options="gameplayStyleOptions"
                 />
               </div>
 
-              <div class="min-w-0">
-                <div class="truncate text-lg font-bold text-horizon-white">
-                  {{ s.name }}
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Typical Op Commitment
                 </div>
 
-                <div class="mt-1 text-sm text-text-muted">
-                  {{ s?.pivot?.membership_status ?? 'unknown' }} · {{ s?.pivot?.role ?? 'member' }}
-                </div>
+                <HorizonInput
+                  v-model="form.typical_op_commitment"
+                  type="select"
+                  label=""
+                  :options="opCommitmentOptions"
+                />
               </div>
             </div>
+          </aside>
+        </div>
+
+        <div class="mt-6 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+          <div class="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+            Experience Ratings
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div
+              v-for="item in [
+                { key: 'space_combat', label: 'Space Combat' },
+                { key: 'ground_combat', label: 'Ground Combat' },
+                { key: 'logistics_support', label: 'Logistics / Support' },
+                { key: 'medical', label: 'Medical' },
+              ]"
+              :key="item.key"
+              class="rounded-2xl border border-white/10 bg-black/10 p-4"
+            >
+              <div class="mb-3 text-sm font-semibold text-horizon-white">
+                {{ item.label }}
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  v-for="n in 5"
+                  :key="item.key + '_' + n"
+                  type="button"
+                  class="h-4 w-4 rounded-full border border-[color:var(--horizon-sunset-blue)]/50 transition"
+                  :class="(form.experience_ratings?.[item.key] ?? 0) >= n ? 'bg-[color:var(--horizon-sunset-blue)] shadow-[0_0_12px_rgba(30,64,175,0.75)]' : 'bg-transparent'"
+                  @click="setExperienceRating(item.key, n)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-sm text-text-muted">
+            Click dots to set rating from 1–5.
           </div>
         </div>
       </section>

@@ -1,100 +1,214 @@
 <template>
-  <div class="mx-auto max-w-5xl hz-stack">
+  <div class="mx-auto max-w-6xl space-y-6">
+    <!-- Search command panel -->
+    <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+      <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+            Personnel Search
+          </div>
 
-    <!-- SEARCH PANEL -->
-    <div class="hz-panel hz-stack !border !border-[color:var(--horizon-sunset-blue)]">
-      <div class="hz-title-lg">Search Users</div>
+          <h2 class="mt-1 text-xl font-black text-horizon-white">
+            User Administration
+          </h2>
 
-      <div class="hz-row">
+          <p class="mt-1 text-sm text-text-secondary">
+            Search users by name, RSI handle, Discord name, or internal ID.
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-3">
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+            Registry
+          </div>
+
+          <div class="mt-1 text-sm font-semibold text-horizon-white">
+            {{ totalUsers }} Users
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <input
           v-model="search"
-          @keyup.enter="applySearch"
           type="text"
           class="hz-input"
-          placeholder="Search by name, RSI handle, or ID..."
+          placeholder="Search by name, RSI handle, Discord name, or ID..."
+          @keyup.enter="applySearch"
         />
 
-        <HorizonButton variant="primary" size="sm" @click="applySearch">
-          Search
-        </HorizonButton>
+        <div class="flex flex-wrap gap-2">
+          <HorizonButton
+            variant="primary"
+            size="sm"
+            @click="applySearch"
+          >
+            Search
+          </HorizonButton>
 
-        <HorizonButton variant="primary" size="sm" @click="clearSearch">
-          Clear
-        </HorizonButton>
+          <HorizonButton
+            variant="ghost"
+            size="sm"
+            @click="clearSearch"
+          >
+            Clear
+          </HorizonButton>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- USERS LIST PANEL -->
-    <div class="hz-panel hz-stack !border !border-[color:var(--horizon-sunset-blue)]">
-      <div class="hz-title-lg">Users ({{ totalUsers }})</div>
+    <!-- Users command list -->
+    <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+      <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+            User Registry
+          </div>
 
-      <div class="hz-stack">
+          <h2 class="mt-1 text-xl font-black text-horizon-white">
+            {{ totalUsers }} User Records
+          </h2>
 
-        <!-- USER CARD -->
-        <div
+          <p class="mt-1 text-sm text-text-secondary">
+            Edit RSI handles, ranks, verification status, profile fields, and role assignments.
+          </p>
+        </div>
+
+        <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          Page {{ currentPage }} of {{ lastPage }}
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <article
           v-for="u in users.data"
           :key="u.id"
-          class="hz-card-soft hz-row-between !border !border-[color:var(--horizon-sunset-blue)]"
+          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40 hover:shadow-[0_0_42px_rgba(192,38,211,0.14)]"
         >
-          <div class="hz-row gap-3 min-w-0">
+          <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
+            <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+            <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+          </div>
+
+          <div class="relative grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+            <!-- Avatar -->
             <Link
               :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
-              class="shrink-0 block"
+              class="block shrink-0"
               title="View profile"
             >
               <img
                 v-if="u.discord_avatar"
                 :src="u.discord_avatar"
                 alt=""
-                class="h-20 w-20 rounded-xl object-cover border border-bg-hover"
+                class="h-20 w-20 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 object-cover shadow-[0_0_24px_rgba(30,64,175,0.14)]"
               />
+
               <div
                 v-else
-                class="h-20 w-20 rounded-xl bg-horizon-blue-dark border border-bg-hover flex items-center justify-center text-2xl leading-none font-semibold text-horizon-white"
+                class="flex h-20 w-20 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.04] text-2xl font-black text-horizon-white shadow-[0_0_24px_rgba(30,64,175,0.14)]"
               >
                 {{ String(u.rsi_handle || u.discord_name || 'M').slice(0, 1).toUpperCase() }}
               </div>
             </Link>
 
-            <div class="hz-stack-sm min-w-0">
-              <Link
-                :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
-                class="hz-title-md inline-block hover:underline"
-                :style="userNameColor(u) ? { color: userNameColor(u) } : undefined"
-              >
-                {{ u.rsi_handle || u.discord_name || 'Unknown' }}
-              </Link>
+            <!-- Main info -->
+            <div class="min-w-0 space-y-3">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  User Record #{{ u.id }}
+                </div>
 
-              <div class="hz-text-muted">
-                ID {{ u.id }} · Rank {{ formatRankLabel(u.rank) }} ({{ u.rank_level || '-' }})
+                <Link
+                  :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
+                  class="mt-1 block truncate text-2xl font-black tracking-tight text-horizon-white hover:underline"
+                  :style="userNameColor(u) ? { color: userNameColor(u) } : undefined"
+                >
+                  {{ u.rsi_handle || u.discord_name || 'Unknown' }}
+                </Link>
               </div>
 
-              <div class="hz-text-muted">
-                Verification Status: {{ formatGlobalStatusLabel(u.global_status) }}
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                  Rank {{ formatRankLabel(u.rank) }}
+                </span>
+
+                <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                  Level {{ u.rank_level || '-' }}
+                </span>
+
+                <span
+                  class="rounded-full border px-3 py-1 text-xs font-semibold"
+                  :class="u.global_status === 'active'
+                    ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+                    : 'border-amber-300/25 bg-amber-300/10 text-amber-100'"
+                >
+                  {{ formatGlobalStatusLabel(u.global_status) }}
+                </span>
               </div>
 
-              <div class="hz-text-muted">
-                Roles:
-                <span v-if="!u.roles?.length">None</span>
-                <span v-else class="hz-text-soft">{{ formatRoleList(u.roles) }}</span>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Roles
+                </div>
+
+                <div class="mt-1 text-sm text-text-secondary">
+                  <span v-if="!u.roles?.length">None</span>
+                  <span v-else class="text-horizon-white">{{ formatRoleList(u.roles) }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <HorizonButton
-            size="sm"
-            variant="primary"
-            @click="openUserEditor(u)"
-          >
-            Edit
-          </HorizonButton>
 
+            <!-- Actions -->
+            <div class="flex flex-wrap gap-2 lg:justify-end">
+              <Link
+                :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
+                class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white"
+              >
+                View
+              </Link>
+
+              <HorizonButton
+                size="sm"
+                variant="primary"
+                @click="openUserEditor(u)"
+              >
+                Edit
+              </HorizonButton>
+            </div>
+          </div>
+        </article>
+
+        <div
+          v-if="!users.data?.length"
+          class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-10 text-center"
+        >
+          <div class="text-2xl font-black text-horizon-white">
+            No Users Found
+          </div>
+
+          <p class="mx-auto mt-2 max-w-xl text-sm text-text-secondary">
+            Adjust the search query or clear the filter to return to the full admin registry.
+          </p>
+
+          <HorizonButton
+            class="mt-4"
+            variant="ghost"
+            size="sm"
+            @click="clearSearch"
+          >
+            Clear Search
+          </HorizonButton>
         </div>
       </div>
 
-      <!-- PAGINATION -->
-      <div class="flex items-center justify-center flex-wrap gap-3">
+      <!-- Pagination -->
+      <div
+        v-if="lastPage > 1"
+        class="mt-6 flex items-center justify-between border-t border-white/10 pt-5"
+      >
         <HorizonButton
-          variant="primary"
+          variant="ghost"
           size="sm"
           :disabled="!prevUrl"
           @click="goTo(prevUrl)"
@@ -102,12 +216,12 @@
           Previous
         </HorizonButton>
 
-        <div class="hz-text-soft">
-          Page {{ currentPage }} / {{ lastPage }}
+        <div class="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+          Page {{ currentPage }} of {{ lastPage }}
         </div>
 
         <HorizonButton
-          variant="primary"
+          variant="ghost"
           size="sm"
           :disabled="!nextUrl"
           @click="goTo(nextUrl)"
@@ -115,301 +229,556 @@
           Next
         </HorizonButton>
       </div>
-    </div>
-
+    </section>
     <!-- MODAL -->
-<div
-  v-if="editingUser"
-  class="hz-overlay flex items-center justify-center"
-  @click.self="closeUserEditor"
->
-
-  <div 
-    class="hz-modal hz-stack max-h-[85vh] overflow-y-auto hz-animate-pop"
-  >
-
-    <!-- HEADER -->
-    <div class="hz-row-between">
-      <div class="hz-title-lg">
-        Edit User ·
-        <span :style="userNameColor(editingUser) ? { color: userNameColor(editingUser) } : undefined">
-          {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
-        </span>
+    <div
+      v-if="editingUser"
+      class="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+      @click.self="closeUserEditor"
+    >
+      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="absolute left-1/4 top-10 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-blue)]/16 blur-3xl"></div>
+        <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
       </div>
 
-      <HorizonButton variant="primary" size="sm" @click="closeUserEditor">
-        ✕
-      </HorizonButton>
-    </div>
+      <div
+        class="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_72px_rgba(67,56,202,0.28)] hz-animate-pop"
+      >
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
 
-    <!-- FORM -->
-    <div class="hz-stack">
-
-      <div>
-        <label class="hz-text-soft">RSI Handle</label>
-        <input v-model="form.rsi_handle" class="hz-input" />
-      </div>
-
-      <div>
-        <label class="hz-text-soft">Rank</label>
-        <select v-model="form.rank" class="hz-input">
-          
-          <option v-for="opt in rankOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
-      </div>
-
-      <div>
-        <label class="hz-text-soft">Rank Level</label>
-        <input v-model.number="form.rank_level" type="number" class="hz-input" disabled />
-      </div>
-
-      <div>
-        <label class="hz-text-soft">Global Status</label>
-        <select v-model="form.global_status" class="hz-input">
-          
-          <option v-for="opt in globalStatusOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
-      </div>
-
-      <div>
-        <label class="hz-text-soft">RSI Verified At</label>
-        <div class="relative" ref="rsiVerifiedAtPickerContainer">
-          <button
-            type="button"
-            class="hz-input w-full text-left cursor-pointer flex items-center justify-between gap-3 bg-horizon-blue-dark"
-            @click="toggleRsiVerifiedAtPicker"
-          >
-            <span class="truncate">
-              {{ rsiVerifiedAtDisplay }}
-            </span>
-            <span class="text-xs text-[var(--color-text-secondary)] shrink-0">
-              Edit
-            </span>
-          </button>
-
-          <div
-            v-if="rsiVerifiedAtPickerOpen"
-            class="mt-2 w-full rounded-xl shadow-2xl overflow-visible
-                   bg-bg-surface border border-[color:var(--horizon-sunset-blue)]"
-          >
-            <div class="px-3 py-3 border-b border-white/10 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                class="px-2 py-1 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)]"
-                @click="goRsiVerifiedAtPrevMonth"
+        <!-- HEADER -->
+        <header class="relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] p-5">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex min-w-0 gap-4">
+              <Link
+                :href="editingUser.rsi_handle ? route('member.profile', editingUser.rsi_handle) : `/user/${editingUser.id}`"
+                class="block shrink-0"
+                title="View profile"
               >
-                ‹
-              </button>
+                <img
+                  v-if="editingUser.discord_avatar"
+                  :src="editingUser.discord_avatar"
+                  alt=""
+                  class="h-16 w-16 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/30 object-cover shadow-[0_0_20px_rgba(30,64,175,0.16)]"
+                />
 
-              <div class="text-sm font-semibold text-horizon-white">
-                {{ rsiVerifiedAtMonthLabel }} {{ rsiVerifiedAtPickerYear }}
-              </div>
-
-              <button
-                type="button"
-                class="px-2 py-1 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)]"
-                @click="goRsiVerifiedAtNextMonth"
-              >
-                ›
-              </button>
-            </div>
-
-            <div class="px-3 pt-3">
-              <div class="grid grid-cols-7 gap-1 text-[11px] text-[var(--color-text-secondary)]">
-                <div v-for="d in weekdayLabels" :key="d" class="text-center">
-                  {{ d }}
-                </div>
-              </div>
-
-              <div class="mt-2 grid grid-cols-7 gap-1">
-                <button
-                  v-for="cell in rsiVerifiedAtCalendarCells"
-                  :key="cell.key"
-                  type="button"
-                  class="h-9 w-9 rounded-lg text-sm flex items-center justify-center border border-transparent"
-                  :class="[
-                    cell.isBlank
-                      ? 'opacity-0 pointer-events-none'
-                      : (cell.isSelected
-                        ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                        : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'),
-                  ]"
-                  @click="!cell.isBlank && selectRsiVerifiedAtDay(cell.day)"
+                <div
+                  v-else
+                  class="flex h-16 w-16 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/30 bg-white/[0.04] text-2xl font-black text-horizon-white"
                 >
-                  {{ cell.day }}
+                  {{ String(editingUser.rsi_handle || editingUser.discord_name || 'M').slice(0, 1).toUpperCase() }}
+                </div>
+              </Link>
+
+              <div class="min-w-0">
+                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                  Admin User Editor
+                </div>
+
+                <div
+                  class="mt-1 truncate text-2xl font-black text-horizon-white md:text-3xl"
+                  :style="userNameColor(editingUser) ? { color: userNameColor(editingUser) } : undefined"
+                >
+                  {{ editingUser.rsi_handle || editingUser.discord_name || 'Unknown' }}
+                </div>
+
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                    ID {{ editingUser.id }}
+                  </span>
+
+                  <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                    {{ formatRankLabel(editingUser.rank) }}
+                  </span>
+
+                  <span
+                    class="rounded-full border px-3 py-1 text-xs font-semibold"
+                    :class="editingUser.global_status === 'active'
+                      ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+                      : 'border-amber-300/25 bg-amber-300/10 text-amber-100'"
+                  >
+                    {{ formatGlobalStatusLabel(editingUser.global_status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+              <Link
+                :href="editingUser.rsi_handle ? route('member.profile', editingUser.rsi_handle) : `/user/${editingUser.id}`"
+                class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white"
+              >
+                View Profile
+              </Link>
+
+              <button
+                type="button"
+                class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+                aria-label="Close user editor"
+                @click="closeUserEditor"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="relative flex-1 overflow-y-auto p-5">
+    <!-- FORM -->
+          <div class="space-y-6">
+            <!-- Identity + access -->
+            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)]">
+              <div class="mb-5">
+                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                  Identity + Access
+                </div>
+
+                <h3 class="mt-1 text-xl font-black text-horizon-white">
+                  Core User Record
+                </h3>
+
+                <p class="mt-1 text-sm text-text-secondary">
+                  Update the public RSI handle, rank, rank level, and global account state.
+                </p>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    RSI Handle
+                  </label>
+
+                  <input
+                    v-model="form.rsi_handle"
+                    class="hz-input"
+                    placeholder="RSI handle..."
+                  />
+                </div>
+
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Global Status
+                  </label>
+
+                  <select
+                    v-model="form.global_status"
+                    class="hz-input"
+                  >
+                    <option
+                      v-for="opt in globalStatusOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Rank
+                  </label>
+
+                  <select
+                    v-model="form.rank"
+                    class="hz-input"
+                  >
+                    <option
+                      v-for="opt in rankOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Rank Level
+                  </label>
+
+                  <input
+                    v-model.number="form.rank_level"
+                    type="number"
+                    class="hz-input"
+                    disabled
+                  />
+
+                  <p class="mt-2 text-xs text-text-muted">
+                    Rank level is calculated from the selected rank.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Verification -->
+            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+              <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                    Verification State
+                  </div>
+
+                  <h3 class="mt-1 text-xl font-black text-horizon-white">
+                    RSI Verification Timestamp
+                  </h3>
+
+                  <p class="mt-1 text-sm text-text-secondary">
+                    Set or clear the local verification timestamp used by Horizon.
+                  </p>
+                </div>
+
+                <div
+                  class="rounded-2xl border px-4 py-3"
+                  :class="rsiVerifiedAtLocal
+                    ? 'border-emerald-300/25 bg-emerald-300/10'
+                    : 'border-amber-300/25 bg-amber-300/10'"
+                >
+                  <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Status
+                  </div>
+
+                  <div class="mt-1 text-sm font-semibold text-horizon-white">
+                    {{ rsiVerifiedAtLocal ? 'Verified' : 'Not Verified' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative" ref="rsiVerifiedAtPickerContainer">
+                <button
+                  type="button"
+                  class="hz-input flex w-full cursor-pointer items-center justify-between gap-3 bg-[color:var(--horizon-void-800)] text-left"
+                  @click="toggleRsiVerifiedAtPicker"
+                >
+                  <span class="truncate">
+                    {{ rsiVerifiedAtDisplay }}
+                  </span>
+
+                  <span class="shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-xs text-[var(--color-text-secondary)]">
+                    Edit
+                  </span>
                 </button>
-              </div>
-            </div>
 
-            <div class="px-3 py-3 border-t border-white/10">
-              <div class="hz-stack-sm">
-                <div class="flex items-end gap-2">
-                  <div class="hz-stack-xs w-20">
-                    <div class="text-[11px] text-[var(--color-text-secondary)]">Hour</div>
+                <div
+                  v-if="rsiVerifiedAtPickerOpen"
+                  class="mt-3 w-full overflow-visible rounded-2xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-void-800)] shadow-2xl"
+                >
+                  <div class="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-3">
                     <button
                       type="button"
-                      ref="rsiVerifiedAtHourButton"
-                      class="hz-input bg-horizon-blue-dark w-20 text-left px-3 py-2 flex items-center justify-between"
-                      @click="toggleRsiVerifiedAtHourMenu"
+                      class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                      @click="goRsiVerifiedAtPrevMonth"
                     >
-                      <span>{{ String(rsiVerifiedAtHour).padStart(2, '0') }}</span>
-                      <span class="text-[10px] text-[var(--color-text-secondary)]">▾</span>
+                      ‹
                     </button>
 
-                    <div
-                      v-if="rsiVerifiedAtHourMenuOpen"
-                      class="fixed max-h-40 overflow-y-auto rounded-lg shadow-2xl
-                             bg-bg-surface border border-bg-hover p-1 z-50"
-                      :style="rsiVerifiedAtHourMenuStyle"
+                    <div class="text-sm font-semibold text-horizon-white">
+                      {{ rsiVerifiedAtMonthLabel }} {{ rsiVerifiedAtPickerYear }}
+                    </div>
+
+                    <button
+                      type="button"
+                      class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                      @click="goRsiVerifiedAtNextMonth"
                     >
-                      <button
-                        v-for="h in 24"
-                        :key="h"
-                        type="button"
-                        class="w-full px-2 py-1 rounded-md text-sm text-left"
-                        :class="(rsiVerifiedAtHour === (h - 1))
-                          ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                          : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
-                        @click="selectRsiVerifiedAtHour(h - 1)"
+                      ›
+                    </button>
+                  </div>
+
+                  <div class="px-3 pt-3">
+                    <div class="grid grid-cols-7 gap-1 text-[11px] text-[var(--color-text-secondary)]">
+                      <div
+                        v-for="d in weekdayLabels"
+                        :key="d"
+                        class="text-center"
                       >
-                        {{ String(h - 1).padStart(2, '0') }}
+                        {{ d }}
+                      </div>
+                    </div>
+
+                    <div class="mt-2 grid grid-cols-7 gap-1">
+                      <button
+                        v-for="cell in rsiVerifiedAtCalendarCells"
+                        :key="cell.key"
+                        type="button"
+                        class="flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-sm"
+                        :class="[
+                          cell.isBlank
+                            ? 'pointer-events-none opacity-0'
+                            : (cell.isSelected
+                              ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
+                              : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'),
+                        ]"
+                        @click="!cell.isBlank && selectRsiVerifiedAtDay(cell.day)"
+                      >
+                        {{ cell.day }}
                       </button>
                     </div>
                   </div>
 
-                  <div class="hz-stack-xs w-24">
-                    <div class="text-[11px] text-[var(--color-text-secondary)]">Minute</div>
-                    <button
-                      type="button"
-                      ref="rsiVerifiedAtMinuteButton"
-                      class="hz-input bg-horizon-blue-dark w-24 text-left px-3 py-2 flex items-center justify-between"
-                      @click="toggleRsiVerifiedAtMinuteMenu"
-                    >
-                      <span>{{ String(rsiVerifiedAtMinute).padStart(2, '0') }}</span>
-                      <span class="text-[10px] text-[var(--color-text-secondary)]">▾</span>
-                    </button>
+                  <div class="border-t border-white/10 px-3 py-3">
+                    <div class="space-y-3">
+                      <div class="flex flex-wrap items-end gap-2">
+                        <div class="w-20 space-y-1">
+                          <div class="text-[11px] text-[var(--color-text-secondary)]">
+                            Hour
+                          </div>
 
-                    <div
-                      v-if="rsiVerifiedAtMinuteMenuOpen"
-                      class="fixed max-h-40 overflow-y-auto rounded-lg shadow-2xl
-                             bg-bg-surface border border-bg-hover p-1 z-50"
-                      :style="rsiVerifiedAtMinuteMenuStyle"
-                    >
-                      <button
-                        v-for="m in 60"
-                        :key="m"
-                        type="button"
-                        class="w-full px-2 py-1 rounded-md text-sm text-left"
-                        :class="(rsiVerifiedAtMinute === (m - 1))
-                          ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                          : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
-                        @click="selectRsiVerifiedAtMinute(m - 1)"
-                      >
-                        {{ String(m - 1).padStart(2, '0') }}
-                      </button>
+                          <button
+                            ref="rsiVerifiedAtHourButton"
+                            type="button"
+                            class="hz-input flex w-20 items-center justify-between bg-[color:var(--horizon-void-900)] px-3 py-2 text-left"
+                            @click="toggleRsiVerifiedAtHourMenu"
+                          >
+                            <span>{{ String(rsiVerifiedAtHour).padStart(2, '0') }}</span>
+                            <span class="text-[10px] text-[var(--color-text-secondary)]">▾</span>
+                          </button>
+
+                          <div
+                            v-if="rsiVerifiedAtHourMenuOpen"
+                            class="fixed z-50 max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-[color:var(--horizon-void-800)] p-1 shadow-2xl"
+                            :style="rsiVerifiedAtHourMenuStyle"
+                          >
+                            <button
+                              v-for="h in 24"
+                              :key="h"
+                              type="button"
+                              class="w-full rounded-md px-2 py-1 text-left text-sm"
+                              :class="(rsiVerifiedAtHour === (h - 1))
+                                ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
+                                : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
+                              @click="selectRsiVerifiedAtHour(h - 1)"
+                            >
+                              {{ String(h - 1).padStart(2, '0') }}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="w-24 space-y-1">
+                          <div class="text-[11px] text-[var(--color-text-secondary)]">
+                            Minute
+                          </div>
+
+                          <button
+                            ref="rsiVerifiedAtMinuteButton"
+                            type="button"
+                            class="hz-input flex w-24 items-center justify-between bg-[color:var(--horizon-void-900)] px-3 py-2 text-left"
+                            @click="toggleRsiVerifiedAtMinuteMenu"
+                          >
+                            <span>{{ String(rsiVerifiedAtMinute).padStart(2, '0') }}</span>
+                            <span class="text-[10px] text-[var(--color-text-secondary)]">▾</span>
+                          </button>
+
+                          <div
+                            v-if="rsiVerifiedAtMinuteMenuOpen"
+                            class="fixed z-50 max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-[color:var(--horizon-void-800)] p-1 shadow-2xl"
+                            :style="rsiVerifiedAtMinuteMenuStyle"
+                          >
+                            <button
+                              v-for="m in 60"
+                              :key="m"
+                              type="button"
+                              class="w-full rounded-md px-2 py-1 text-left text-sm"
+                              :class="(rsiVerifiedAtMinute === (m - 1))
+                                ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
+                                : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
+                              @click="selectRsiVerifiedAtMinute(m - 1)"
+                            >
+                              {{ String(m - 1).padStart(2, '0') }}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="ml-auto flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                            @click="setRsiVerifiedAtNow"
+                          >
+                            Now
+                          </button>
+
+                          <button
+                            type="button"
+                            class="rounded-lg border border-red-300/20 bg-red-300/10 px-3 py-2 text-sm text-red-100 transition hover:bg-red-300/15"
+                            @click="clearRsiVerifiedAt"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="text-xs text-text-muted">
+                        Clearing this marks the user as not RSI verified.
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </section>
 
-                <div class="flex items-center justify-end gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    class="px-3 py-2 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)] text-sm"
-                    @click="setRsiVerifiedAtNow"
-                  >
-                    Now
-                  </button>
+            <!-- Profile fields -->
+            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)]">
+              <div class="mb-5">
+                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                  Profile Fields
+                </div>
 
-                  <button
-                    type="button"
-                    class="px-3 py-2 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)] text-sm"
-                    @click="clearRsiVerifiedAt"
-                  >
-                    Clear
-                  </button>
+                <h3 class="mt-1 text-xl font-black text-horizon-white">
+                  Availability + Biography
+                </h3>
+
+                <p class="mt-1 text-sm text-text-secondary">
+                  Update timezone, availability, LOA note, and public profile bio.
+                </p>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Timezone
+                  </label>
+
+                  <input
+                    v-model="form.timezone"
+                    class="hz-input"
+                    placeholder="America/Chicago, UTC, EU evening..."
+                  />
+                </div>
+
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Availability Status
+                  </label>
+
+                  <input
+                    v-model="form.availability_status"
+                    class="hz-input"
+                    placeholder="Available, limited, LOA..."
+                  />
+                </div>
+
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4 md:col-span-2">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    LOA Note
+                  </label>
+
+                  <textarea
+                    v-model="form.loa_note"
+                    class="hz-textarea min-h-28"
+                    placeholder="Leave of absence note..."
+                  ></textarea>
+                </div>
+
+                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4 md:col-span-2">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Bio
+                  </label>
+
+                  <textarea
+                    v-model="form.bio"
+                    class="hz-textarea min-h-36"
+                    placeholder="Member biography..."
+                  ></textarea>
                 </div>
               </div>
+            </section>
 
-              <div class="hz-text-muted mt-2">
-                Clearing this marks the user as not RSI verified.
+            <!-- Roles -->
+            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_28px_rgba(67,56,202,0.12)]">
+              <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                    Role Assignments
+                  </div>
+
+                  <h3 class="mt-1 text-xl font-black text-horizon-white">
+                    Platform Roles
+                  </h3>
+
+                  <p class="mt-1 text-sm text-text-secondary">
+                    Assign or remove user roles, then save role assignments separately.
+                  </p>
+                </div>
+
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  @click="saveUserRoles"
+                >
+                  Save Roles
+                </HorizonButton>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label
+                  v-for="role in sortedRoles"
+                  :key="role.id"
+                  class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3 transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.045]"
+                >
+                  <input
+                    v-model="form.role_ids"
+                    type="checkbox"
+                    :value="role.id"
+                    class="h-4 w-4 accent-[color:var(--horizon-sunset-blue)]"
+                  />
+
+                  <span class="text-sm font-semibold text-text-secondary">
+                    {{ role.name }}
+                  </span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <!-- ACTION ROW -->
+          <footer class="sticky bottom-0 z-20 mt-6 rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                  Finalize User Changes
+                </div>
+
+                <p class="mt-1 text-sm text-text-secondary">
+                  Save profile fields, save roles separately, or unverify the user if they must re-complete verification.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-2 lg:justify-end">
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  @click="closeUserEditor"
+                >
+                  Cancel
+                </HorizonButton>
+
+                <HorizonButton
+                  variant="danger"
+                  size="sm"
+                  @click="unverifyUser"
+                >
+                  Unverify User
+                </HorizonButton>
+
+                <HorizonButton
+                  variant="primary"
+                  size="sm"
+                  @click="saveUser"
+                >
+                  Save Changes
+                </HorizonButton>
               </div>
             </div>
-          </div>
+          </footer>
+
         </div>
       </div>
-
-      <div>
-        <label class="hz-text-soft">Timezone</label>
-        <input v-model="form.timezone" class="hz-input" />
-      </div>
-
-      <div>
-        <label class="hz-text-soft">Availability Status</label>
-        <input v-model="form.availability_status" class="hz-input" />
-      </div>
-
-      <div>
-        <label class="hz-text-soft">LOA Note</label>
-        <textarea v-model="form.loa_note" class="hz-textarea"></textarea>
-      </div>
-
-      <div>
-        <label class="hz-text-soft">Bio</label>
-        <textarea v-model="form.bio" class="hz-textarea"></textarea>
-      </div>
-
-      <!-- ROLES -->
-      <div class="hz-stack-sm">
-        <label class="hz-text-soft">Roles</label>
-
-        <div class="hz-card hz-stack-sm">
-          <div
-            v-for="role in sortedRoles"
-            :key="role.id"
-            class="hz-row"
-          >
-            <input
-              type="checkbox"
-              :value="role.id"
-              v-model="form.role_ids"
-            />
-            <span class="hz-text-soft">{{ role.name }}</span>
-          </div>
-        </div>
-
-        <HorizonButton
-          variant="secondary"
-          size="sm"
-          @click="saveUserRoles"
-        >
-          Save Roles
-        </HorizonButton>
-      </div>
     </div>
-
-    <!-- ACTION ROW -->
-    <div class="hz-row-between pt-2">
-      <HorizonButton variant="primary" size="sm" @click="closeUserEditor">
-        Cancel
-      </HorizonButton>
-
-      <div class="hz-row gap-2">
-        <HorizonButton variant="danger" size="sm" @click="unverifyUser">
-          Unverify User
-        </HorizonButton>
-
-        <HorizonButton variant="primary" size="sm" @click="saveUser">
-          Save Changes
-        </HorizonButton>
-      </div>
-    </div>
-
-  </div>
-</div>
 
 
   </div>
