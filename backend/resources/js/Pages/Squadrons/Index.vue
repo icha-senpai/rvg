@@ -1,40 +1,13 @@
 <script setup>
 import { computed } from 'vue'
-import { router, usePage } from '@inertiajs/vue3'
-import SquadronExpandedPanel from './Components/SquadronExpandedPanel.vue'
-import HorizonContainer from '@/Components/HorizonContainer.vue'
+import { Link, usePage } from '@inertiajs/vue3'
 
+import HorizonContainer from '@/Components/HorizonContainer.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 const page = usePage()
 
 const squadrons = computed(() => page.props?.squadrons ?? [])
-const activeSquadron = computed(() => page.props?.activeSquadron ?? null)
-const isExpanded = computed(() => !!activeSquadron.value)
-const activeSquadronId = computed(() => activeSquadron.value?.squadron?.id ?? null)
-
-/* -------------------------------------------------
-   Panel controls
-------------------------------------------------- */
-function openSquadron(squadron) {
-  router.get(
-    route('squadrons.index', { squadron: squadron?.slug ?? squadron?.id }),
-    {},
-    {
-      preserveScroll: true,
-      preserveState: true,
-      only: ['activeSquadron'],
-    }
-  )
-}
-
-function closePanel() {
-  router.get(route('squadrons.index'), {}, {
-    preserveScroll: true,
-    preserveState: true,
-    only: ['activeSquadron'],
-  })
-}
 
 function leaderNameColor(squadron) {
   const leader = squadron?.leader ?? null
@@ -44,12 +17,12 @@ function leaderNameColor(squadron) {
 
 function formatTitle(value) {
   const raw = String(value ?? '').trim()
-  if (!raw) return ''
+  if (!raw) return 'Not set'
 
   return raw
     .replace(/[_-]+/g, ' ')
     .split(' ')
-    .map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .map(word => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
     .join(' ')
 }
 
@@ -64,12 +37,21 @@ function branchLogoSrc(branch) {
 
   return map[key] ?? null
 }
+
+function squadronHref(squadron) {
+  if (squadron?.slug) {
+    return route('squadrons.show', squadron.slug)
+  }
+
+  return `/squadrons/${squadron.id}`
+}
 </script>
 
 <template>
-  <HorizonContainer class="space-y-10">
-    <div class="mx-auto max-w-5xl hz-stack">
-      <div class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+  <HorizonContainer class="py-8 md:py-10">
+    <div class="mx-auto max-w-6xl space-y-8">
+      <!-- Page header -->
+      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -80,81 +62,121 @@ function branchLogoSrc(branch) {
             Horizon Squadron Registry
           </div>
 
-          <h1 class="mt-2 text-3xl font-bold tracking-tight text-horizon-white md:text-4xl">
+          <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
             Squadrons
           </h1>
 
-          <p class="mt-2 max-w-2xl text-sm text-text-secondary">
-            Explore combat, logistics, frontier, and support units across Horizon Interstellar.
+          <p class="mt-2 max-w-2xl text-sm text-text-secondary md:text-base">
+            Browse Horizon Interstellar units, review their mission profiles, and enter full squadron dossiers.
           </p>
         </div>
-      </div>
+      </section>
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div
+      <!-- Empty state -->
+      <section
+        v-if="!squadrons.length"
+        class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
+      >
+        No squadrons are currently listed.
+      </section>
+
+      <!-- Squadron registry grid -->
+      <section v-else class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <Link
           v-for="squadron in squadrons"
           :key="squadron.id"
-          class="group relative mx-auto w-full max-w-64 cursor-pointer overflow-hidden rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-0 shadow-[0_0_32px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/45 hover:shadow-[0_0_42px_rgba(192,38,211,0.16)] sm:max-w-none"
-          @click="openSquadron(squadron)"
+          :href="squadronHref(squadron)"
+          class="group relative flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] shadow-[0_0_32px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/45 hover:shadow-[0_0_42px_rgba(192,38,211,0.16)]"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
             <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
           </div>
 
-          <div
-            v-if="squadron.emblem_url"
-            class="relative aspect-square w-full bg-[color:var(--horizon-void-800)]"
-          >
-            <div class="absolute inset-4 rounded-[1.25rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/10 via-transparent to-[color:var(--horizon-sunset-magenta)]/10 blur-xl"></div>
+          <!-- Emblem area -->
+          <div class="relative aspect-square w-full overflow-hidden bg-[color:var(--horizon-void-800)]">
+            <div class="absolute inset-6 rounded-[1.5rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/10 via-transparent to-[color:var(--horizon-sunset-magenta)]/10 blur-xl"></div>
 
             <img
+              v-if="squadron.emblem_url"
               :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
               :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-              class="relative h-full w-full object-contain p-4"
+              class="relative h-full w-full object-contain p-5 transition duration-200 group-hover:scale-[1.03]"
               loading="lazy"
             />
-          </div>
 
-          <div class="relative hz-stack p-3! sm:p-6!">
-            <div class="hz-title-sm sm:hz-title-md">
-              {{ squadron.name }}
-            </div>
-
-            <div class="hz-caption text-horizon-muted">
-              Leader:
-              <span :style="leaderNameColor(squadron) ? { color: leaderNameColor(squadron) } : undefined">
-                {{ squadron.leader?.rsi_handle ?? squadron.leader?.display_name ?? 'None' }}
-              </span>
-            </div>
-
-            <div v-if="squadron.branch" class="hz-caption text-horizon-muted flex items-center gap-2">
-              <img
-                v-if="branchLogoSrc(squadron.branch)"
-                :src="branchLogoSrc(squadron.branch)"
-                :alt="`${formatTitle(squadron.branch)} logo`"
-                class="h-4 w-4 shrink-0 object-contain"
-                loading="lazy"
-              />
-              <span>
-                {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
-              </span>
-            </div>
-
-            <div class="hz-text-soft">
-              {{ squadron.motto ?? 'No motto provided.' }}
+            <div
+              v-else
+              class="relative flex h-full w-full items-center justify-center text-5xl font-black text-[color:var(--horizon-text-primary)]"
+            >
+              {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
             </div>
           </div>
-        </div>
-      </div>
 
-      <SquadronExpandedPanel
-        v-if="isExpanded && activeSquadronId"
-        variant="modal"
-        :squadronId="activeSquadronId"
-        :show-close-button="true"
-        @close="closePanel"
-      />
+          <!-- Card body -->
+          <div class="relative flex flex-1 flex-col gap-4 p-5">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <h2 class="min-w-0 text-xl font-black tracking-tight text-horizon-white">
+                  {{ squadron.name }}
+                </h2>
+
+                <span
+                  class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                  :class="squadron.recruiting
+                    ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+                    : 'border border-white/10 bg-white/[0.04] text-text-secondary'"
+                >
+                  {{ squadron.recruiting ? 'Open' : 'Closed' }}
+                </span>
+              </div>
+
+              <p class="mt-2 line-clamp-2 text-sm text-text-secondary">
+                {{ squadron.motto ?? 'No motto provided.' }}
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 text-sm text-text-secondary">
+                <span class="text-text-muted">Leader:</span>
+                <span
+                  class="font-semibold"
+                  :style="leaderNameColor(squadron) ? { color: leaderNameColor(squadron) } : undefined"
+                >
+                  {{ squadron.leader?.rsi_handle ?? squadron.leader?.display_name ?? 'None' }}
+                </span>
+              </div>
+
+              <div
+                v-if="squadron.branch"
+                class="flex items-center gap-2 text-sm text-text-secondary"
+              >
+                <img
+                  v-if="branchLogoSrc(squadron.branch)"
+                  :src="branchLogoSrc(squadron.branch)"
+                  :alt="`${formatTitle(squadron.branch)} logo`"
+                  class="h-4 w-4 shrink-0 object-contain"
+                  loading="lazy"
+                />
+
+                <span>
+                  {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <div class="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                View Dossier
+              </div>
+
+              <div class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)] transition group-hover:border-[color:var(--horizon-sunset-magenta)]/35 group-hover:bg-[color:var(--horizon-sunset-magenta)]/10">
+                Open →
+              </div>
+            </div>
+          </div>
+        </Link>
+      </section>
     </div>
   </HorizonContainer>
 </template>

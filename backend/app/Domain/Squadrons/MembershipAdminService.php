@@ -113,7 +113,8 @@ class MembershipAdminService
      * Update a member from the normal squadron management screen.
      *
      * This route protects leaders from accidentally removing their own leadership
-     * role through the UI.
+     * role through the UI while still allowing a pending self-application to be
+     * accepted into an active non-leader membership.
      */
     public function updateMemberFromManage(
         Squadron $squadron,
@@ -124,17 +125,30 @@ class MembershipAdminService
     ): SquadronMember {
         $this->assertMemberBelongsToSquadron($squadron, $member);
 
-        // The acting user may edit other members, but they cannot demote themselves
-        // out of leadership through the manage screen.
-        if ($member->user_id === $actingUser->id && $role !== SquadronMember::ROLE_LEADER) {
+        $normalizedRole = $this->normalizeRole($role);
+
+        $isSelf = $member->user_id === $actingUser->id;
+        $isSelfAcceptance = $isSelf
+            && $member->membership_status === SquadronMember::STATUS_PENDING
+            && $status === SquadronMember::STATUS_ACTIVE;
+
+        $isSelfDemotion = $isSelf
+            && ! $isSelfAcceptance
+            && $member->role === SquadronMember::ROLE_LEADER
+            && $normalizedRole !== SquadronMember::ROLE_LEADER;
+
+        if ($isSelfDemotion) {
             throw ValidationException::withMessages([
                 'role' => 'You cannot demote yourself.',
             ]);
         }
 
         $member->update([
-            'role' => $this->normalizeRole($role),
+            'role' => $normalizedRole,
             'membership_status' => $status,
+            'joined_at' => $status === SquadronMember::STATUS_ACTIVE && ! $member->joined_at
+                ? now()
+                : $member->joined_at,
         ]);
 
         return $member->fresh();
@@ -179,6 +193,18 @@ class MembershipAdminService
     /**
      * Fail fast when a controller passes a member record from a different squadron.
      */
+    protected function assertMemberBelongsToSquron(Squadron $squadron, SquadronMember $member): void
+    {
+        if ($member->squadron_id !== $squadron->id) {
+            throw ValidationException::withMessages([
+                'member' => 'Member does not belong to this squadron.',
+            ]);
+        }
+    }
+
+    /**
+     * Fail fast when a controller passes a member record from a different squadron.
+     */
     protected function assertMemberBelongsToSquadron(Squadron $squadron, SquadronMember $member): void
     {
         if ($member->squadron_id !== $squadron->id) {
@@ -192,8 +218,12 @@ class MembershipAdminService
      * Convert the literal string "null" from some form payloads into a real null
      * so Eloquent stores the absence of a role consistently.
      */
-    protected function normalizeRole(?string $role): ?string
+    protected function normalizeRole(?string $role): string
     {
-        return $role === 'null' ? null : $role;
+        if ($role === null || $role === '' || $role === 'null') {
+            return SquadronMember::ROLE_MEMBER;
+        }
+
+        return $role;
     }
 }

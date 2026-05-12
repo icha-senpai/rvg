@@ -1,31 +1,22 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// ----------------------
-// EMITS
-// ----------------------
 const emit = defineEmits(['close'])
 
-// ----------------------
-// CLOSE STATE
-// ----------------------
 const closing = ref(false)
 
 function requestClose() {
   if (closing.value) return
+
   closing.value = true
 
-  // wait for close animation to finish
   setTimeout(() => {
     emit('close')
-  }, 140) // matches --motion-fast
+  }, 160)
 }
 
-// ----------------------
-// ESC KEY HANDLING
-// ----------------------
-function onKeydown(e) {
-  if (e.key === 'Escape') {
+function onKeydown(event) {
+  if (event.key === 'Escape') {
     requestClose()
   }
 }
@@ -42,43 +33,65 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- ROOT OVERLAY -->
   <div class="fixed inset-0 z-40 flex justify-end">
-
-    <!-- BACKDROP -->
+    <!-- Backdrop -->
     <div
-      class="absolute inset-0 backdrop-blur-sm"
+      class="absolute inset-0 bg-black/70 backdrop-blur-md"
       @click.self="requestClose"
-    />
+    ></div>
 
-    <!-- DRAWER -->
+    <!-- Ambient glow -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute right-24 top-8 h-80 w-80 rounded-full bg-[color:var(--horizon-sunset-blue)]/18 blur-3xl"></div>
+      <div class="absolute bottom-10 right-8 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
+    </div>
+
+    <!-- Drawer -->
     <aside
       :class="[
-        'relative z-50 h-full w-full md:w-[70%] bg-[var(--color-bg-surface)] shadow-2xl flex flex-col !border !border-[color:var(--horizon-sunset-blue)]',
-        closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in'
+        'relative z-50 flex h-full w-full flex-col overflow-hidden',
+        'border-l border-[color:var(--horizon-sunset-indigo)]/45',
+        'bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]',
+        'shadow-[0_0_72px_rgba(67,56,202,0.28)]',
+        'md:w-[78%] xl:w-[68%] 2xl:w-[58%]',
+        closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in',
       ]"
+      role="dialog"
+      aria-modal="true"
     >
-      <!-- HEADER -->
-      <header class="shrink-0 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <slot name="header" />
+      <!-- Decorative scanlines -->
+      <div class="pointer-events-none absolute inset-0 opacity-40">
+        <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+        <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+      </div>
 
-        <button
-          class="text-horizon-offwhite hover:text-horizon-white transition"
-          @click="requestClose"
-        >
-          ✕
-        </button>
+      <!-- Header -->
+      <header class="relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] px-5 py-4 md:px-6">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 flex-1">
+            <slot name="header" />
+          </div>
+
+          <button
+            type="button"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+            aria-label="Close operation drawer"
+            @click="requestClose"
+          >
+            ✕
+          </button>
+        </div>
       </header>
 
-      <!-- BODY -->
-      <section class="flex-1 overflow-y-auto px-6 py-6">
+      <!-- Body -->
+      <section class="relative flex-1 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
         <slot />
       </section>
 
-      <!-- FOOTER -->
+      <!-- Footer -->
       <footer
         v-if="$slots.footer"
-        class="shrink-0 border-t border-white/10 px-6 py-4"
+        class="relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] px-5 py-4 md:px-6"
       >
         <slot name="footer" />
       </footer>

@@ -568,6 +568,7 @@ function openMediaPicker() {
 function handleMediaSelected(media) {
   selectedMedia.value = media
   form.media_id = media.id
+  mediaPickerOpen.value = false
 }
 
 function clearSelectedMedia() {
@@ -829,49 +830,170 @@ function confirmDestroyOperation({ close }) {
 </script>
 
 <template>
-  <HorizonContainer class="space-y-10">
-
-    <!-- Header -->
-    <div class="mx-auto max-w-5xl flex items-center justify-between mb-4">
-      <div class="hz-stack-sm">
-        <div class="hz-section-label">
-          {{ isEdit ? 'Update Operation' : 'New Operation' }}
+  <HorizonContainer class="py-0">
+    <div class="mx-auto max-w-5xl space-y-6">
+      <!-- Editor command hero -->
+      <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <h1 class="hz-title-lg text-horizon-white">
-          {{ isEdit ? 'Edit Operation' : 'Create Operation' }}
-        </h1>
-      </div>
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
+              {{ isEdit ? 'Operation Edit Console' : 'Operation Creation Console' }}
+            </div>
 
-      <HorizonButton
-        variant="ghost"
-        @click="embedded ? emit('cancel') : $inertia.visit(route('operations.index'))"
-      >
-        Cancel
-      </HorizonButton>
-    </div>
+            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+              {{ isEdit ? 'Edit Operation' : 'Create Operation' }}
+            </h1>
 
-    <!-- Main Layout -->
-    <div class="mx-auto max-w-5xl space-y-10">
-      <div class="text-sm text-horizon-offwhite mt-2 opacity-80">
-        Uses UTC for all calculations.<br />
-        Automatically converts to your local timezone in the operation card.
-      </div>
-      <!-- LEFT SIDE -->
+            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
+              Build the mission identity, schedule, briefing, media, role slots, and template payload from one command surface.
+            </p>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ isEdit ? 'Editing Existing Operation' : 'New Draft' }}
+              </span>
+
+              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                UTC Schedule Engine
+              </span>
+
+              <span
+                v-if="selectedTemplate"
+                class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+              >
+                Template: {{ selectedTemplate.name }}
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 lg:min-w-40">
+            <HorizonButton
+              variant="ghost"
+              class="w-full"
+              @click="embedded ? emit('cancel') : $inertia.visit(route('operations.index'))"
+            >
+              Cancel
+            </HorizonButton>
+          </div>
+        </div>
+      </section>
+
+      <!-- Editor status strip -->
+      <section class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Mode
+          </div>
+
+          <div class="mt-2 text-2xl font-black text-horizon-white">
+            {{ isEdit ? 'Update' : 'Create' }}
+          </div>
+
+          <div class="mt-1 text-sm text-text-secondary">
+            {{ isEdit ? 'Saving changes to an existing operation.' : 'Building a new operation draft.' }}
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(67,56,202,0.10)]">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            RSVP Logic
+          </div>
+
+          <div class="mt-2 text-2xl font-black text-horizon-white">
+            {{ rsvpAuto ? 'Auto' : 'Manual' }}
+          </div>
+
+          <div class="mt-1 text-sm text-text-secondary">
+            RSVP defaults from the start time unless manually overridden.
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Templates
+          </div>
+
+          <div class="mt-2 text-2xl font-black text-horizon-white">
+            {{ templates.length }}
+          </div>
+
+          <div class="mt-1 text-sm text-text-secondary">
+            Available operation templates.
+          </div>
+        </div>
+      </section>
+
+      <!-- UTC warning -->
+      <section class="rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4">
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Time Handling
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              This editor uses UTC for saved operation calculations. Operation cards and dossiers convert the schedule to the viewer’s local time.
+            </p>
+          </div>
+
+          <div class="shrink-0 rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-text-primary)]">
+            UTC Source of Truth
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Layout -->
       <div class="space-y-6">
+        <!-- Templates command section -->
+        <section class="relative z-40 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Template Console
+              </div>
 
-        <HorizonSection title="Templates">
-          <div class="hz-stack">
-            <HorizonSelect
-              label="Load Template"
-              v-model="selectedTemplateId"
-              :options="templateOptions"
-            />
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                Operation Templates
+              </h2>
 
-            <div class="flex flex-wrap gap-3">
+              <p class="mt-1 text-sm text-text-secondary">
+                Load reusable mission structures, update saved templates, or save this operation setup for later.
+              </p>
+            </div>
+
+            <div
+              v-if="selectedTemplate"
+              class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-3"
+            >
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Selected
+              </div>
+
+              <div class="mt-1 max-w-60 truncate text-sm font-semibold text-horizon-white">
+                {{ selectedTemplate.name }}
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div class="relative z-[9999] min-w-0">
+              <HorizonSelect
+                label="Load Template"
+                v-model="selectedTemplateId"
+                :options="templateOptions"
+              />
+            </div>
+
+            <div class="grid gap-2 sm:grid-cols-2 lg:min-w-[26rem]">
               <HorizonButton
                 size="sm"
-                variant="ghost"
+                variant="primary"
+                class="w-full"
                 :disabled="!selectedTemplateId"
                 @click="applySelectedTemplate"
               >
@@ -881,6 +1003,7 @@ function confirmDestroyOperation({ close }) {
               <HorizonButton
                 size="sm"
                 variant="ghost"
+                class="w-full"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
                 @click="askRenameTemplate"
               >
@@ -890,6 +1013,7 @@ function confirmDestroyOperation({ close }) {
               <HorizonButton
                 size="sm"
                 variant="ghost"
+                class="w-full"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
                 @click="askUpdateTemplate"
               >
@@ -899,12 +1023,27 @@ function confirmDestroyOperation({ close }) {
               <HorizonButton
                 size="sm"
                 variant="ghost"
+                class="w-full"
                 :disabled="!selectedTemplateId || templatesUpdating || templatesDeleting"
                 @click="askDeleteTemplate"
               >
                 Delete
               </HorizonButton>
+            </div>
+          </div>
 
+          <div class="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <div class="mb-3">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Save Current Setup
+              </div>
+
+              <p class="mt-1 text-sm text-text-secondary">
+                Save the current form values as a reusable template scope.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
               <HorizonButton
                 size="sm"
                 variant="ghost"
@@ -935,71 +1074,500 @@ function confirmDestroyOperation({ close }) {
               </HorizonButton>
             </div>
           </div>
-        </HorizonSection>
+        </section>
 
-        <!-- Operation Details -->
-        <HorizonSection title="Operation Details">
-          <div class="hz-stack">
-            <HorizonInput
-              v-model="form.title"
-              label="Title"
-              placeholder="Convoy Escort - Stanton Corridor"
-            />
+                <!-- Operation Details -->
+        <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(67,56,202,0.10)]">
+          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Operation Identity
+              </div>
 
-            <HorizonInput
-              label="Gameplay Type"
-              placeholder="Escort / Recon / Patrol / Meeting / Other"
-              v-model="form.gameplay_type"
-            />
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                Core Mission Details
+              </h2>
+
+              <p class="mt-1 text-sm text-text-secondary">
+                Define what this operation is, who it belongs to, and how it should appear across Horizon.
+              </p>
+            </div>
+
+            <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-3">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Current Status
+              </div>
+
+              <div class="mt-1 text-sm font-semibold text-horizon-white">
+                {{ form.status ? form.status.replace(/[_-]+/g, ' ') : 'draft' }}
+              </div>
+            </div>
           </div>
-        </HorizonSection>
 
-        <!-- Timing -->
-        <HorizonSection title="Scheduling">
-          <div class="grid md:grid-cols-2 gap-4">
-            <HorizonDateTimePicker
-              label="Start (UTC)"
-              v-model="startDateTime"
-              :minute-options="quarterHourMinuteOptions"
-            />
+          <div class="space-y-5">
+            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <HorizonInput
+                v-model="form.title"
+                label="Title"
+                placeholder="Operation name..."
+              />
 
-            <HorizonDateTimePicker
-              label="End (UTC) (optional)"
-              v-model="endDateTime"
-              :clearable="true"
-              :minute-options="quarterHourMinuteOptions"
-            />
+              <p
+                v-if="form.errors.title"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.title }}
+              </p>
+            </div>
 
-            <HorizonDateTimePicker
-              label="Sign Up Deadline (UTC) (optional)"
-              v-model="rsvpDateTime"
-              :clearable="true"
-              :minute-options="quarterHourMinuteOptions"
-            />
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div class="relative z-[9999] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonSelect
+                  v-model="form.operation_type"
+                  label="Operation Type"
+                  :options="[
+                    { label: 'Operation', value: 'operation' },
+                    { label: 'Squadron Training', value: 'squadron_training' },
+                    { label: 'Wing Training', value: 'wing_training' },
+                    { label: 'Roleplay', value: 'roleplay' },
+                    { label: 'Meeting', value: 'meeting' },
+                    { label: 'Event', value: 'event' },
+                  ]"
+                />
+
+                <p
+                  v-if="form.errors.operation_type"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.operation_type }}
+                </p>
+              </div>
+
+              <div class="relative z-[9998] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonSelect
+                  v-model="form.branch"
+                  label="Branch"
+                  :options="[
+                    { label: 'No Branch / General', value: '' },
+                    { label: 'Defence', value: 'defence' },
+                    { label: 'Frontiers', value: 'frontiers' },
+                    { label: 'Industries', value: 'industries' },
+                    { label: 'Lifelines', value: 'lifelines' },
+                  ]"
+                />
+
+                <p
+                  v-if="form.errors.branch"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.branch }}
+                </p>
+              </div>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonInput
+                  v-model="form.gameplay_type"
+                  label="Gameplay Type"
+                  placeholder="Mining, escort, salvage, recon, logistics..."
+                />
+
+                <p
+                  v-if="form.errors.gameplay_type"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.gameplay_type }}
+                </p>
+              </div>
+
+              <div class="relative z-[9997] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonSelect
+                  v-model="selectedSquadronNames"
+                  label="Squadron Assignment"
+                  :options="squadronOptions"
+                  :multiple="true"
+                />
+
+                <p class="mt-2 text-xs text-text-muted">
+                  Leave empty for a global operation, or select one or more squadrons.
+                </p>
+
+                <p
+                  v-if="form.errors.squadron_name"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.squadron_name }}
+                </p>
+              </div>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-3">
+              <div class="relative z-[9996] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonSelect
+                  v-model="form.visibility"
+                  label="Visibility"
+                  :options="[
+                    { label: 'Open', value: 'open' },
+                    { label: 'Squadron Only', value: 'squadron_only' },
+                    { label: 'Private', value: 'private' },
+                  ]"
+                />
+
+                <p
+                  v-if="form.errors.visibility"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.visibility }}
+                </p>
+              </div>
+
+              <div class="relative z-[9995] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonSelect
+                  v-model="form.operation_strictness"
+                  label="Comms Strictness"
+                  :options="[
+                    { label: 'Default', value: '' },
+                    { label: 'Casual', value: 'casual' },
+                    { label: 'Normal', value: 'normal' },
+                    { label: 'Strict', value: 'strict' },
+                    { label: 'Roleplay', value: 'roleplay' },
+                  ]"
+                />
+
+                <p
+                  v-if="form.errors.operation_strictness"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.operation_strictness }}
+                </p>
+              </div>
+
+              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                <HorizonInput
+                  v-model="form.difficulty"
+                  label="Difficulty"
+                  placeholder="Optional difficulty..."
+                />
+
+                <p
+                  v-if="form.errors.difficulty"
+                  class="mt-2 text-sm text-red-300"
+                >
+                  {{ form.errors.difficulty }}
+                </p>
+              </div>
+            </div>
+
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Identity Preview
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                  {{ form.operation_type ? form.operation_type.replace(/[_-]+/g, ' ') : 'operation' }}
+                </span>
+
+                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                  {{ form.branch ? form.branch.replace(/[_-]+/g, ' ') : 'general' }}
+                </span>
+
+                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                  {{ form.visibility ? form.visibility.replace(/[_-]+/g, ' ') : 'open' }}
+                </span>
+
+                <span
+                  v-if="form.gameplay_type"
+                  class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
+                >
+                  {{ form.gameplay_type }}
+                </span>
+              </div>
+            </div>
           </div>
-        </HorizonSection>
+        </section>
 
-        <!-- Description -->
-        <HorizonSection title="Operation Briefing">
-          <textarea
-            v-model="form.description"
-            rows="6"
-            class="hz-textarea w-full"
-            maxlength="510"
-            placeholder="Operation overview (max 510 characters). Be Creative! It's for Discord."
-          ></textarea>
-        </HorizonSection>
+                <!-- Schedule -->
+        <section class="relative z-20 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Schedule Engine
+              </div>
 
-        <!-- Notes -->
-        <HorizonSection title="Operation Extended Briefing">
-          <textarea
-            v-model="form.extended_description"
-            rows="6"
-            class="hz-textarea w-full"
-            maxlength="5000"
-            placeholder="Expanded detail (max 5000 characters). Write your heart out!"
-          ></textarea>
-        </HorizonSection>
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                Time Windows
+              </h2>
+
+              <p class="mt-1 text-sm text-text-secondary">
+                Set the operation start, optional end window, and RSVP deadline. Saved values are calculated in UTC.
+              </p>
+            </div>
+
+            <div
+              class="rounded-2xl border px-4 py-3"
+              :class="rsvpAuto
+                ? 'border-emerald-300/25 bg-emerald-300/10'
+                : 'border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10'"
+            >
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                RSVP Mode
+              </div>
+
+              <div class="mt-1 text-sm font-semibold text-horizon-white">
+                {{ rsvpAuto ? 'Auto Calculated' : 'Manual Override' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <div class="relative z-[9999] rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+              <HorizonDateTimePicker
+                v-model="startDateTime"
+                label="Start Time"
+                :minute-options="quarterHourMinuteOptions"
+              />
+
+              <p class="mt-2 text-xs text-text-muted">
+                Required. This is the main launch window.
+              </p>
+
+              <p
+                v-if="form.errors.starts_at || form.errors.start_date || form.errors.start_time"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.starts_at || form.errors.start_date || form.errors.start_time }}
+              </p>
+            </div>
+
+            <div class="relative z-[9998] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <HorizonDateTimePicker
+                v-model="endDateTime"
+                label="End Time"
+                :minute-options="quarterHourMinuteOptions"
+              />
+
+              <p class="mt-2 text-xs text-text-muted">
+                Optional. Leave empty if the operation has no planned end.
+              </p>
+
+              <p
+                v-if="form.errors.ends_at || form.errors.end_date || form.errors.end_time"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.ends_at || form.errors.end_date || form.errors.end_time }}
+              </p>
+            </div>
+
+            <div class="relative z-[9997] rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+              <HorizonDateTimePicker
+                v-model="rsvpDateTime"
+                label="RSVP Deadline"
+                :minute-options="quarterHourMinuteOptions"
+              />
+
+              <p class="mt-2 text-xs text-text-muted">
+                Auto-follows the start time until manually changed.
+              </p>
+
+              <p
+                v-if="form.errors.rsvp_deadline || form.errors.rsvp_date || form.errors.rsvp_time"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.rsvp_deadline || form.errors.rsvp_date || form.errors.rsvp_time }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Schedule Notes
+            </div>
+
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+              <div class="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Start
+                </div>
+                <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                  {{ startDateTime || 'Not set' }}
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  End
+                </div>
+                <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                  {{ endDateTime || 'Optional' }}
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  RSVP
+                </div>
+                <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                  {{ rsvpDateTime || 'Not set' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+                <!-- Locations -->
+        <section class="relative z-10 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="mb-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Deployment Geography
+            </div>
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Start + Operation Locations
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Define where members should gather and where the actual operation takes place.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div class="relative z-[9996] rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <HorizonSelect
+                v-model="form.start_location"
+                label="Start Location"
+                :options="[
+                  { label: 'No Start Location', value: '' },
+                  ...startLocationOptions,
+                ]"
+              />
+
+              <p class="mt-2 text-xs text-text-muted">
+                Rally point, station, city, or gateway.
+              </p>
+
+              <p
+                v-if="form.errors.start_location"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.start_location }}
+              </p>
+            </div>
+
+            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <HorizonInput
+                v-model="form.operation_location"
+                label="Operation Location"
+                placeholder="Target location, route, AO, moon, bunker, belt..."
+              />
+
+              <p class="mt-2 text-xs text-text-muted">
+                The actual mission area or target zone.
+              </p>
+
+              <p
+                v-if="form.errors.operation_location"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.operation_location }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Location Preview
+            </div>
+
+            <div class="mt-3 grid gap-3 md:grid-cols-2">
+              <div class="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Rally Point
+                </div>
+
+                <div class="mt-1 text-sm font-semibold text-horizon-white">
+                  {{ form.start_location || 'Not set' }}
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Area of Operation
+                </div>
+
+                <div class="mt-1 text-sm font-semibold text-horizon-white">
+                  {{ form.operation_location || 'Not set' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+                <!-- Briefings -->
+        <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+          <div class="mb-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Mission Writing
+            </div>
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Briefing Text
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Write the visible mission summary and optional extended briefing notes.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+              <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Public Briefing
+              </label>
+
+              <textarea
+                v-model="form.description"
+                rows="9"
+                class="hz-input min-h-52 resize-y"
+                placeholder="Short public-facing operation briefing..."
+              ></textarea>
+
+              <p class="mt-2 text-xs text-text-muted">
+                This appears on cards and the operation dossier.
+              </p>
+
+              <p
+                v-if="form.errors.description"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.description }}
+              </p>
+            </div>
+
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+              <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Extended Briefing
+              </label>
+
+              <textarea
+                v-model="form.extended_description"
+                rows="9"
+                class="hz-input min-h-52 resize-y"
+                placeholder="Longer briefing, tactical notes, roleplay context, or extra instructions..."
+              ></textarea>
+
+              <p class="mt-2 text-xs text-text-muted">
+                Optional deeper context for the full mission view.
+              </p>
+
+              <p
+                v-if="form.errors.extended_description"
+                class="mt-2 text-sm text-red-300"
+              >
+                {{ form.errors.extended_description }}
+              </p>
+            </div>
+          </div>
+        </section>
 
       </div>
 
@@ -1007,140 +1575,121 @@ function confirmDestroyOperation({ close }) {
      
       <div class="space-y-6">
 
-        <!-- Meta -->
-        <HorizonSection title="Meta Information">
-          <div class="hz-stack">
-
-            <HorizonSelect
-              label="Visibility"
-              v-model="form.visibility"
-              :options="[
-                { label: 'Open', value: 'open' },
-                { label: 'Squadron Only', value: 'squadron' },
-              ]"
-            />
-
-            <HorizonSelect
-              label="Squadrons"
-              v-model="selectedSquadronNames"
-              :options="squadronOptions"
-              :multiple="true"
-            />
-
-            <HorizonSelect
-              label="Operation Type"
-              v-model="form.operation_type"
-              :options="[
-                { label: 'Operation', value: 'operation' },
-                { label: 'Squadron Training', value: 'squadron_training' },
-                { label: 'Wing Training', value: 'wing_training' },
-                { label: 'Roleplay', value: 'roleplay' },
-                { label: 'Meeting', value: 'meeting' },
-                { label: 'Event', value: 'event' },
-              ]"
-            />
-
-            <HorizonSelect
-              label="Branch"
-              v-model="form.branch"
-              :options="[
-                { label: 'None', value: '' },
-                { label: 'Industries', value: 'industries' },
-                { label: 'Defence', value: 'defence' },
-                { label: 'Frontiers', value: 'frontiers' },
-                { label: 'Lifelines', value: 'lifelines' },
-              ]"
-            />
-
-            <HorizonSelect
-              label="Comms Strictness"
-              v-model="form.operation_strictness"
-              :options="[
-                { label: 'Default', value: '' },
-                { label: 'Casual', value: 'casual' },
-                { label: 'Normal', value: 'normal' },
-                { label: 'Strict', value: 'strict' },
-                { label: 'Roleplay', value: 'roleplay' }
-              ]"
-            />
-
-            <HorizonSelect
-              label="Start Location"
-              v-model="form.start_location"
-              :options="startLocationOptions"
-            />
-
-            <HorizonInput
-              label="Operation Location"
-              v-model="form.operation_location"
-              placeholder="e.g. Hurston / MicroTech / etc."
-            />
 
 
+                <!-- Media -->
+        <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Mission Visual
+              </div>
 
-          </div>
-        </HorizonSection>
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                Operation Image
+              </h2>
 
-        <!-- Media -->
-        <HorizonSection title="Operation Image">
-          <div class="hz-stack">
+              <p class="mt-1 text-sm text-text-secondary">
+                Attach an operation image from the media library for cards, modals, and dossiers.
+              </p>
+            </div>
 
-            <!-- SELECTED IMAGE PREVIEW -->
-            <div v-if="selectedMedia" class="hz-stack-sm">
-              <div
-                style="border-radius: var(--radius-sm); overflow: hidden; background: var(--color-bg-elevated);"
+            <div class="flex flex-wrap gap-2">
+              <HorizonButton
+                v-if="canUploadOperationImages"
+                size="sm"
+                variant="primary"
+                @click="openMediaPicker"
               >
-                <img
-                  :src="selectedMedia.medium_url || selectedMedia.url"
-                  :alt="selectedMedia.alt_text || selectedMedia.original_filename"
-                  style="width: 100%; max-height: 240px; object-fit: cover;"
-                />
-              </div>
-
-              <div class="hz-row-between">
-                <div class="hz-text-muted" style="font-size: var(--text-tiny); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  {{ selectedMedia.original_filename }}
-                </div>
-
-                <div class="hz-row">
-                  <HorizonButton size="xs" variant="ghost" @click="openMediaPicker">
-                    Change
-                  </HorizonButton>
-                  <HorizonButton size="xs" variant="ghost" @click="clearSelectedMedia">
-                    Remove
-                  </HorizonButton>
-                </div>
-              </div>
-            </div>
-
-            <!-- NO IMAGE SELECTED -->
-            <div v-else>
-              <HorizonButton variant="ghost" @click="openMediaPicker">
-                Select Image
+                Choose Image
               </HorizonButton>
-              <div class="hz-text-muted" style="font-size: var(--text-tiny); margin-top: var(--space-xs);">
-                Browse the media library or upload a new image.
+
+              <HorizonButton
+                v-if="selectedMedia"
+                size="sm"
+                variant="ghost"
+                @click="clearSelectedMedia"
+              >
+                Clear
+              </HorizonButton>
+            </div>
+          </div>
+
+          <div
+            v-if="selectedMedia"
+            class="overflow-hidden rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-800)]"
+          >
+            <img
+              :src="selectedMedia.medium_url || selectedMedia.url"
+              :alt="selectedMedia.alt_text || selectedMedia.name || 'Operation image'"
+              class="max-h-96 w-full object-contain"
+              loading="lazy"
+            />
+
+            <div class="border-t border-white/10 bg-white/[0.025] p-4">
+              <div class="text-sm font-semibold text-horizon-white">
+                {{ selectedMedia.name || 'Selected media' }}
+              </div>
+
+              <div class="mt-1 text-xs text-text-muted">
+                Media ID: {{ selectedMedia.id }}
               </div>
             </div>
           </div>
-        </HorizonSection>
 
-        <!-- Media Picker Modal -->
-        <MediaPickerModal
-          :open="mediaPickerOpen"
-          collection="operation_image"
-          :allowUpload="canUploadOperationImages"
-          title="Select Operation Image"
-          @close="mediaPickerOpen = false"
-          @selected="handleMediaSelected"
-        />
+          <div
+            v-else
+            class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-8 text-center"
+          >
+            <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
+              No Image Selected
+            </div>
 
-        <!-- Roles -->
-        <HorizonSection title="Roles">
-          <div class="flex justify-between items-center mb-3">
-            <div class="hz-section-label">Roles</div>
+            <p class="mx-auto mt-2 max-w-xl text-sm text-text-secondary">
+              This operation will use text-only presentation until an image is selected.
+            </p>
 
-            <HorizonButton size="sm" variant="ghost" @click="addSlot">
+            <HorizonButton
+              v-if="canUploadOperationImages"
+              size="sm"
+              variant="ghost"
+              class="mt-4"
+              @click="openMediaPicker"
+            >
+              Open Media Picker
+            </HorizonButton>
+          </div>
+
+          <p
+            v-if="form.errors.media_id"
+            class="mt-2 text-sm text-red-300"
+          >
+            {{ form.errors.media_id }}
+          </p>
+        </section>
+
+               <!-- Role Slots -->
+        <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_32px_rgba(67,56,202,0.12)]">
+          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Deployment Roles
+              </div>
+
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                Role Slots
+              </h2>
+
+              <p class="mt-1 text-sm text-text-secondary">
+                Define optional sign-up roles such as Pilot, Security, Medic, Scout, Cargo, or Lead.
+              </p>
+            </div>
+
+            <HorizonButton
+              size="sm"
+              variant="primary"
+              @click="addSlot"
+            >
               Add Role
             </HorizonButton>
           </div>
@@ -1149,50 +1698,96 @@ function confirmDestroyOperation({ close }) {
             <div
               v-for="(slot, index) in form.slots"
               :key="index"
-              class="flex items-center gap-3"
+              class="grid gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"
             >
               <HorizonInput
                 v-model="form.slots[index]"
-                placeholder="Escort / Medic / Lead"
+                :label="`Role Slot ${index + 1}`"
+                placeholder="Pilot, Medic, Gunner, Salvage Lead..."
               />
 
               <HorizonButton
-                size="xs"
-                variant="outline"
+                size="sm"
+                variant="ghost"
+                class="md:mb-0.5"
                 @click="removeSlot(index)"
               >
-                ✕
+                Remove
               </HorizonButton>
             </div>
           </div>
 
-          <p v-else class="hz-caption hz-text-muted">
-            No roles defined. Operation allows freeform participation.
+          <div
+            v-else
+            class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-6 text-center"
+          >
+            <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
+              No Role Slots
+            </div>
+
+            <p class="mx-auto mt-2 max-w-xl text-sm text-text-secondary">
+              Members can still join with “No Role.” Add slots if this operation needs structured assignments.
+            </p>
+          </div>
+
+          <p
+            v-if="form.errors.slots"
+            class="mt-2 text-sm text-red-300"
+          >
+            {{ form.errors.slots }}
           </p>
-        </HorizonSection>
+        </section>
 
 
-        <!-- ACTION BUTTONS -->
-        <div class="flex gap-4 pt-4">
-          <HorizonButton
-            variant="primary"
-            class="flex-1"
-            :disabled="form.processing"
-            @click="submit('published')"
-          >
-            {{ isEdit ? 'Save Changes' : 'Publish Operation' }}
-          </HorizonButton>
+               <!-- Form Actions -->
+        <section class="sticky bottom-0 z-30 rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Finalize Operation
+              </div>
 
-          <HorizonButton
-            variant="outline"
-            class="flex-1"
-            :disabled="form.processing"
-            @click="submit('draft')"
-          >
-            Save as Draft
-          </HorizonButton>
-        </div>
+              <p class="mt-1 text-sm text-text-secondary">
+                Save as draft, publish to the operation board, or cancel editing.
+              </p>
+            </div>
 
+            <div class="flex flex-wrap gap-2">
+              <HorizonButton
+                variant="ghost"
+                :disabled="form.processing"
+                @click="embedded ? emit('cancel') : $inertia.visit(route('operations.index'))"
+              >
+                Cancel
+              </HorizonButton>
+
+              <HorizonButton
+                v-if="isEdit"
+                variant="danger"
+                :disabled="form.processing"
+                @click="askDestroyOperation"
+              >
+                Delete
+              </HorizonButton>
+
+              <HorizonButton
+                variant="ghost"
+                :disabled="form.processing"
+                @click="submit('draft')"
+              >
+                {{ form.processing ? 'Saving…' : 'Save Draft' }}
+              </HorizonButton>
+
+              <HorizonButton
+                variant="primary"
+                :disabled="form.processing"
+                @click="submit('published')"
+              >
+                {{ form.processing ? 'Publishing…' : (isEdit ? 'Save / Publish' : 'Publish Operation') }}
+              </HorizonButton>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -1221,7 +1816,14 @@ function confirmDestroyOperation({ close }) {
     </div>
 
   </HorizonContainer>
-
+  <MediaPickerModal
+    :open="mediaPickerOpen"
+    collection="operation_image"
+    title="Choose Operation Image"
+    :allow-upload="canUploadOperationImages"
+    @close="mediaPickerOpen = false"
+    @selected="handleMediaSelected"
+  />
   <HorizonConfirmDialog
     ref="updateTemplateConfirmDialog"
     title="Overwrite Template"

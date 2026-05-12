@@ -1,102 +1,90 @@
-<template>
-  <HorizonContainer class="space-y-10">
-
-    <div class="mx-auto max-w-5xl space-y-6">
-
-      <!-- HEADER -->
-      <HorizonSectionHeader
-        label=""
-        title="Operations"
-      />
-
-      <div class="hz-caption hz-text-muted">
-        Today: {{ todayLabel }}
-      </div>
-
-      <!-- LIST -->
-      <div class="space-y-4">
-        <OperationAccordion
-          v-for="op in sortedOperations"
-          :key="op.id"
-          :operation="op"
-          @view="openViewModal"
-        />
-      </div>
-
-      <div
-        v-if="operationsPaginator && operationsPaginator.last_page > 1"
-        class="pt-8 flex items-center justify-between"
-      >
-        <HorizonButton
-          size="sm"
-          variant="ghost"
-          :disabled="!operationsPaginator.prev_page_url"
-          @click="goToUrl(operationsPaginator.prev_page_url)"
-        >
-          Prev
-        </HorizonButton>
-
-        <div class="hz-caption hz-text-muted">
-          Page {{ operationsPaginator.current_page }} of {{ operationsPaginator.last_page }}
-        </div>
-
-        <HorizonButton
-          size="sm"
-          variant="ghost"
-          :disabled="!operationsPaginator.next_page_url"
-          @click="goToUrl(operationsPaginator.next_page_url)"
-        >
-          Next
-        </HorizonButton>
-      </div>
-
-    </div>
-
-    <OperationModal
-      v-if="activeOperation"
-      @close="closeViewModal"
-    >
-      <template #header>
-        <div class="hz-stack-xs">
-          <div class="hz-section-label">
-            {{ operationKindLabel(modalHeaderOperation?.operation_type ?? modalHeaderOperation?.operation_kind) }}
-          </div>
-          <div class="hz-title-md text-horizon-white">
-            {{ operationDisplayTitle(modalHeaderOperation) }}
-          </div>
-        </div>
-      </template>
-
-      <MissionShowPanel
-        :operation="activeOperation.operation"
-        :participants="activeOperation.participants"
-        :participants-by-slot="activeOperation.participantsBySlot"
-        :unassigned-participants="activeOperation.unassignedParticipants"
-        :current-participant="activeOperation.currentParticipant"
-      />
-    </OperationModal>
-
-
-  </HorizonContainer>
-</template>
-
 <script setup>
-import { computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
-import { Ziggy } from '../../ziggy';
-import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue';
-import HorizonButton from '@/Components/HorizonButton.vue';
-import HorizonContainer from '@/Components/HorizonContainer.vue';
-import HorizonSectionHeader from '@/Components/HorizonSectionHeader.vue';
+import { computed } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
+import { Ziggy } from '../../ziggy'
+
+import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue'
+import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonContainer from '@/Components/HorizonContainer.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
 import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 
+const props = defineProps({
+  operations: {
+    type: [Array, Object],
+    required: true,
+  },
+})
+
 const page = usePage()
+
 const activeOperation = computed(() => page.props?.activeOperation ?? null)
 
 const modalHeaderOperation = computed(() => {
   return activeOperation.value?.operation ?? null
+})
+
+const operationsPaginator = computed(() => {
+  return Array.isArray(props.operations) ? null : props.operations
+})
+
+const operationsList = computed(() => {
+  if (Array.isArray(props.operations)) {
+    return props.operations ?? []
+  }
+
+  return props.operations?.data ?? []
+})
+
+const todayLabel = computed(() => {
+  return new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+})
+
+const operationStats = computed(() => {
+  const list = operationsList.value ?? []
+
+  return {
+    total: list.length,
+    joined: list.filter(op => {
+      if (typeof op.joined_by_me === 'boolean') return op.joined_by_me
+      return Number(op.joined_by_me ?? 0) > 0
+    }).length,
+    upcoming: list.filter(op => {
+      const date = parseDate(op.starts_at)
+      return date && date.getTime() >= Date.now()
+    }).length,
+  }
+})
+
+const sortedOperations = computed(() => {
+  const now = new Date()
+
+  return [...(operationsList.value ?? [])].sort((a, b) => {
+    const aDate = parseDate(a.starts_at)
+    const bDate = parseDate(b.starts_at)
+
+    if (!aDate && !bDate) return 0
+    if (!aDate) return 1
+    if (!bDate) return -1
+
+    const aIsUpcoming = aDate.getTime() >= now.getTime()
+    const bIsUpcoming = bDate.getTime() >= now.getTime()
+
+    if (aIsUpcoming && !bIsUpcoming) return -1
+    if (!aIsUpcoming && bIsUpcoming) return 1
+
+    if (aIsUpcoming && bIsUpcoming) {
+      return aDate.getTime() - bDate.getTime()
+    }
+
+    return bDate.getTime() - aDate.getTime()
+  })
 })
 
 function operationKindLabel(kind) {
@@ -125,38 +113,28 @@ function operationDisplayTitle(op) {
   return prefix ? `${prefix}: ${title}` : title
 }
 
-const todayLabel = computed(() => {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-});
+function parseDate(value) {
+  if (!value) return null
 
-const props = defineProps({
-  operations: {
-    type: [Array, Object],
-    required: true,
-  },
-});
+  let v = String(value).trim()
+  v = v.replace(' ', 'T')
+  v = v.replace(/\.(\d{3})\d+Z$/i, '.$1Z')
+  v = v.replace(/\.(\d{3})\d+$/i, '.$1')
 
-const operationsPaginator = computed(() => {
-  return Array.isArray(props.operations) ? null : props.operations;
-});
+  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(v)
+  if (!hasTimezone) v = `${v}Z`
 
-const operationsList = computed(() => {
-  if (Array.isArray(props.operations)) {
-    return props.operations ?? [];
-  }
-
-  return props.operations?.data ?? [];
-});
+  const d = new Date(v)
+  return Number.isNaN(d.getTime()) ? null : d
+}
 
 function goToUrl(url) {
-  if (!url) return;
+  if (!url) return
 
-  router.get(url, {}, { preserveScroll: true, preserveState: true });
+  router.get(url, {}, {
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 
 function getCurrentQueryParams() {
@@ -168,44 +146,6 @@ function getCurrentQueryParams() {
   }
 
   return out
-}
-
-// Most recent start time first
-const sortedOperations = computed(() => {
-  const now = new Date();
-
-  return [...(operationsList.value ?? [])].sort((a, b) => {
-    const aDate = parseDate(a.starts_at);
-    const bDate = parseDate(b.starts_at);
-
-    if (!aDate && !bDate) return 0;
-    if (!aDate) return 1; 
-    if (!bDate) return -1;
-
-    const aIsUpcoming = aDate.getTime() >= now.getTime();
-    const bIsUpcoming = bDate.getTime() >= now.getTime();
-
-    if (aIsUpcoming && !bIsUpcoming) return -1;
-    if (!aIsUpcoming && bIsUpcoming) return 1;
-
-    if (aIsUpcoming && bIsUpcoming) {
-      return aDate.getTime() - bDate.getTime();
-    }
-
-    return bDate.getTime() - aDate.getTime();
-  });
-});
-function parseDate(value) {
-  if (!value) return null;
-
-  // Normalize format for JS (remove microseconds, ensure Z)
-  let v = value.replace(/\.\d+Z$/, 'Z').replace(/\.\d+$/, 'Z');
-
-  // If no timezone exists, assume UTC
-  if (!v.endsWith('Z') && !v.includes('+')) v = v + 'Z';
-
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
 }
 
 function openViewModal(op) {
@@ -234,6 +174,178 @@ function closeViewModal() {
     preserveState: true,
   })
 }
-
 </script>
 
+<template>
+  <HorizonContainer class="py-8 md:py-10">
+    <div class="mx-auto max-w-6xl space-y-8">
+      <!-- Command header -->
+      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
+
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
+              Horizon Operations Command
+            </div>
+
+            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+              Operations
+            </h1>
+
+            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
+              Review active briefings, upcoming missions, squadron trainings, meetings, and field operations.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-4 py-3 text-right">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Today
+            </div>
+            <div class="mt-1 text-sm font-semibold text-horizon-white">
+              {{ todayLabel }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status strip -->
+      <section class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Listed
+          </div>
+          <div class="mt-2 text-3xl font-black text-horizon-white">
+            {{ operationStats.total }}
+          </div>
+          <div class="mt-1 text-sm text-text-secondary">
+            Operations in this view
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(67,56,202,0.10)]">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Upcoming
+          </div>
+          <div class="mt-2 text-3xl font-black text-horizon-white">
+            {{ operationStats.upcoming }}
+          </div>
+          <div class="mt-1 text-sm text-text-secondary">
+            Still ahead of current time
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Joined
+          </div>
+          <div class="mt-2 text-3xl font-black text-horizon-white">
+            {{ operationStats.joined }}
+          </div>
+          <div class="mt-1 text-sm text-text-secondary">
+            Missions you are signed up for
+          </div>
+        </div>
+      </section>
+
+      <!-- Operations list shell -->
+      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+        <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Mission Board
+            </div>
+
+            <h2 class="mt-1 text-xl font-black text-horizon-white">
+              Operation Briefings
+            </h2>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Upcoming operations sort first. Completed or past operations fall behind them.
+            </p>
+          </div>
+
+          <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+            {{ sortedOperations.length }} visible
+          </div>
+        </div>
+
+        <div v-if="sortedOperations.length" class="space-y-4">
+          <OperationAccordion
+            v-for="op in sortedOperations"
+            :key="op.id"
+            :operation="op"
+            @view="openViewModal"
+          />
+        </div>
+
+        <div
+          v-else
+          class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-8 text-center"
+        >
+          <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
+            No Operations Found
+          </div>
+          <p class="mx-auto mt-2 max-w-xl text-sm text-text-secondary">
+            There are no operations in this view yet. Once missions are published, they will appear here.
+          </p>
+        </div>
+
+        <div
+          v-if="operationsPaginator && operationsPaginator.last_page > 1"
+          class="mt-6 flex items-center justify-between border-t border-white/10 pt-5"
+        >
+          <HorizonButton
+            size="sm"
+            variant="ghost"
+            :disabled="!operationsPaginator.prev_page_url"
+            @click="goToUrl(operationsPaginator.prev_page_url)"
+          >
+            Prev
+          </HorizonButton>
+
+          <div class="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+            Page {{ operationsPaginator.current_page }} of {{ operationsPaginator.last_page }}
+          </div>
+
+          <HorizonButton
+            size="sm"
+            variant="ghost"
+            :disabled="!operationsPaginator.next_page_url"
+            @click="goToUrl(operationsPaginator.next_page_url)"
+          >
+            Next
+          </HorizonButton>
+        </div>
+      </section>
+
+      <OperationModal
+        v-if="activeOperation"
+        @close="closeViewModal"
+      >
+        <template #header>
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-text-secondary)]">
+              {{ operationKindLabel(modalHeaderOperation?.operation_type ?? modalHeaderOperation?.operation_kind) }}
+            </div>
+
+            <div class="mt-1 truncate text-2xl font-black text-horizon-white">
+              {{ operationDisplayTitle(modalHeaderOperation) }}
+            </div>
+          </div>
+        </template>
+
+        <MissionShowPanel
+          :operation="activeOperation.operation"
+          :participants="activeOperation.participants"
+          :participants-by-slot="activeOperation.participantsBySlot"
+          :unassigned-participants="activeOperation.unassignedParticipants"
+          :current-participant="activeOperation.currentParticipant"
+        />
+      </OperationModal>
+    </div>
+  </HorizonContainer>
+</template>

@@ -1,13 +1,12 @@
 <script setup>
-import HorizonContainer from '@/Components/HorizonContainer.vue';
-import HorizonPanel from '@/Components/HorizonPanel.vue';
-import HorizonButton from '@/Components/HorizonButton.vue';
-import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
-import ProgressPill from '@/Components/ProgressPill.vue';
-import HorizonSelect from '@/Components/HorizonSelect.vue';
+import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
+import ProgressPill from '@/Components/ProgressPill.vue'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 
-import { ref, reactive, computed, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, reactive, computed, watch } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
   operation: Object,
@@ -15,96 +14,112 @@ const props = defineProps({
   participantsBySlot: Object,
   unassignedParticipants: Array,
   currentParticipant: Object,
-});
+})
 
-const operation = props.operation;
-const currentParticipant = computed(() => props.currentParticipant ?? null);
+const operation = props.operation ?? {}
 
-const calendarChoice = ref('');
+const currentParticipant = computed(() => props.currentParticipant ?? null)
+const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
+const participantsBySlotSafe = computed(() => props.participantsBySlot ?? {})
+const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassignedParticipants) ? props.unassignedParticipants : [])
+
+const calendarChoice = ref('')
 const calendarOptions = [
   { label: 'Add to Calendar', value: '' },
   { label: 'Apple / Outlook / Proton (.ics)', value: 'ics' },
   { label: 'Google Calendar', value: 'google' },
   { label: 'Outlook Web', value: 'outlook' },
-];
+]
 
-const canAddToCalendar = computed(() => !!operation?.starts_at);
+const canAddToCalendar = computed(() => !!operation?.starts_at)
 
 function operationKindLabel(kind) {
   switch (kind) {
-    case 'operation': return 'Operation';
-    case 'squadron_training': return 'Squadron Training';
-    case 'wing_training': return 'Wing Training';
-    case 'roleplay': return 'Roleplay';
-    case 'meeting': return 'Meeting';
-    case 'event': return 'Event';
-    default: return 'Operation';
+    case 'operation': return 'Operation'
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    case 'roleplay': return 'Roleplay'
+    case 'meeting': return 'Meeting'
+    case 'event': return 'Event'
+    default: return 'Operation'
   }
 }
 
 function operationTitlePrefix(kind) {
   switch (kind) {
-    case 'squadron_training': return 'Squadron Training';
-    case 'wing_training': return 'Wing Training';
-    default: return '';
+    case 'squadron_training': return 'Squadron Training'
+    case 'wing_training': return 'Wing Training'
+    default: return ''
   }
 }
 
 const displayTitle = computed(() => {
-  const title = operation?.title ?? '';
-  const prefix = operationTitlePrefix(operation?.operation_type ?? operation?.operation_kind);
-  return prefix ? `${prefix}: ${title}` : title;
-});
+  const title = operation?.title ?? ''
+  const prefix = operationTitlePrefix(operation?.operation_type ?? operation?.operation_kind)
 
-function toCalendarUtcStamp(d) {
-  if (!d) return null;
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/i, 'Z');
+  return prefix ? `${prefix}: ${title}` : title
+})
+
+function toCalendarUtcStamp(date) {
+  if (!date) return null
+
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.(\d{3})Z$/i, 'Z')
 }
 
 const calendarBody = computed(() => {
   const parts = [
     operation?.description,
     operation?.extended_description ?? operation?.notes,
-    window?.location?.href,
-  ].filter(Boolean);
-  return parts.join('\n\n');
-});
+    typeof window !== 'undefined' ? window.location.href : null,
+  ].filter(Boolean)
 
-const startDate = computed(() => toDate(operation?.starts_at));
+  return parts.join('\n\n')
+})
+
+const startDate = computed(() => toDate(operation?.starts_at))
+
 const endDate = computed(() => {
-  const end = toDate(operation?.ends_at);
-  if (end) return end;
-  if (startDate.value) return new Date(startDate.value.getTime() + 60 * 60 * 1000);
-  return null;
-});
+  const end = toDate(operation?.ends_at)
+
+  if (end) return end
+  if (startDate.value) return new Date(startDate.value.getTime() + 60 * 60 * 1000)
+
+  return null
+})
 
 const icsUrl = computed(() => {
-  const id = operation?.id;
-  if (!id) return null;
+  const id = operation?.id
+  if (!id) return null
+
   try {
-    return route('operations.calendar', id);
-  } catch (e) {
+    return route('operations.calendar', id)
+  } catch (error) {
     if (typeof window !== 'undefined' && window?.location?.origin) {
-      return `${window.location.origin}/operations/${id}/calendar`;
+      return `${window.location.origin}/operations/${id}/calendar`
     }
-    return `/operations/${id}/calendar`;
+
+    return `/operations/${id}/calendar`
   }
-});
+})
 
 const googleCalendarUrl = computed(() => {
-  if (!startDate.value || !endDate.value) return null;
-  const dates = `${toCalendarUtcStamp(startDate.value)}/${toCalendarUtcStamp(endDate.value)}`;
+  if (!startDate.value || !endDate.value) return null
+
+  const dates = `${toCalendarUtcStamp(startDate.value)}/${toCalendarUtcStamp(endDate.value)}`
+
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: operation?.title ?? `Operation #${operation?.id ?? ''}`,
     details: calendarBody.value,
     dates,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-});
+  })
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+})
 
 const outlookWebUrl = computed(() => {
-  if (!startDate.value || !endDate.value) return null;
+  if (!startDate.value || !endDate.value) return null
+
   const params = new URLSearchParams({
     path: '/calendar/action/compose',
     rru: 'addevent',
@@ -112,213 +127,219 @@ const outlookWebUrl = computed(() => {
     body: calendarBody.value,
     startdt: startDate.value.toISOString(),
     enddt: endDate.value.toISOString(),
-  });
-  return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`;
-});
+  })
+
+  return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`
+})
 
 function acquireExternalOpenLock(kind) {
-  const id = operation?.id;
-  if (!id) return true;
+  const id = operation?.id
+  if (!id) return true
 
-  const now = Date.now();
-  const key = `operation-${id}-${kind}`;
-  const locks = (window.__externalOpenLocks ||= {});
+  const now = Date.now()
+  const key = `operation-${id}-${kind}`
+  const locks = (window.__externalOpenLocks ||= {})
 
   if (locks[key] && now - locks[key] < 1500) {
-    return false;
+    return false
   }
 
-  locks[key] = now;
-  return true;
+  locks[key] = now
+  return true
 }
 
 function openUrl(url) {
-  if (!url) return;
-  window.open(url, '_blank', 'noopener,noreferrer');
+  if (!url) return
+
+  const win = window.open(url, '_blank', 'noopener,noreferrer')
+  if (win) win.focus()
 }
 
 function acquireIcsDownloadLock() {
-  const id = operation?.id;
-  if (!id) return true;
+  const id = operation?.id
+  if (!id) return true
 
-  const now = Date.now();
-  const key = `operation-${id}`;
-  const locks = (window.__icsDownloadLocks ||= {});
+  const now = Date.now()
+  const key = `operation-${id}`
+  const locks = (window.__icsDownloadLocks ||= {})
 
   if (locks[key] && now - locks[key] < 1500) {
-    return false;
+    return false
   }
 
-  locks[key] = now;
-  return true;
+  locks[key] = now
+  return true
 }
 
-let downloadingIcs = false;
-async function downloadIcs(url) {
-  if (!url) return;
-  if (downloadingIcs) return;
-  if (!acquireIcsDownloadLock()) return;
-  downloadingIcs = true;
+let downloadingIcs = false
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.rel = 'noopener noreferrer';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+async function downloadIcs(url) {
+  if (!url) return
+  if (downloadingIcs) return
+  if (!acquireIcsDownloadLock()) return
+
+  downloadingIcs = true
+
+  const a = document.createElement('a')
+  a.href = url
+  a.rel = 'noopener noreferrer'
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 
   setTimeout(() => {
-    downloadingIcs = false;
-  }, 1200);
+    downloadingIcs = false
+  }, 1200)
 }
 
-watch(calendarChoice, (v) => {
-  if (!v) return;
+watch(calendarChoice, (value) => {
+  if (!value) return
 
-  if (v === 'ics') downloadIcs(icsUrl.value);
-  if (v === 'google' && acquireExternalOpenLock('google')) openUrl(googleCalendarUrl.value);
-  if (v === 'outlook' && acquireExternalOpenLock('outlook')) openUrl(outlookWebUrl.value);
+  if (value === 'ics') downloadIcs(icsUrl.value)
+  if (value === 'google' && acquireExternalOpenLock('google')) openUrl(googleCalendarUrl.value)
+  if (value === 'outlook' && acquireExternalOpenLock('outlook')) openUrl(outlookWebUrl.value)
 
-  calendarChoice.value = '';
-});
+  calendarChoice.value = ''
+})
 
-/* ============================================================
-   FORMATTER
-============================================================ */
-function asText(v) {
-  return v ? String(v) : "TBD";
+function formatTitle(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return 'Not set'
+
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+    .join(' ')
 }
 
-function formatFirstLetter(value) {
-  if (!value) return '';
-  const text = String(value).trim();
-  if (!text) return '';
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+function formatUTC(value) {
+  if (!value) return 'TBD'
 
-function formatUTC(dt) {
-  if (!dt) return 'TBD';
+  const date = toDate(value)
+  if (!date) return String(value)
 
-  const d = toDate(dt);
-  if (!d) return String(dt);
-
-  const date = new Intl.DateTimeFormat('en-GB', {
+  const dateText = new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(d);
+  }).format(date)
 
-  const time = new Intl.DateTimeFormat('en-GB', {
+  const timeText = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
     timeZone: 'UTC',
-  }).format(d);
+  }).format(date)
 
-  return `${date} ${time} UTC`;
+  return `${dateText} ${timeText} UTC`
 }
 
-function formatLocal(dt) {
-  if (!dt) return 'TBD';
+function formatLocal(value) {
+  if (!value) return 'TBD'
 
-  const d = toDate(dt);
-  if (!d) return String(dt);
+  const date = toDate(value)
+  if (!date) return String(value)
 
-  const date = new Intl.DateTimeFormat('en-GB', {
+  const dateText = new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(d);
+  }).format(date)
 
   const timeParts = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-  }).formatToParts(d);
+  }).formatToParts(date)
 
-  const hour = timeParts.find(p => p.type === 'hour')?.value;
-  const minute = timeParts.find(p => p.type === 'minute')?.value;
-  const dayPeriod = (timeParts.find(p => p.type === 'dayPeriod')?.value ?? '').toLowerCase();
+  const hour = timeParts.find(part => part.type === 'hour')?.value
+  const minute = timeParts.find(part => part.type === 'minute')?.value
+  const dayPeriod = (timeParts.find(part => part.type === 'dayPeriod')?.value ?? '').toLowerCase()
 
-  const time = hour && minute && dayPeriod
+  const timeText = hour && minute && dayPeriod
     ? `${hour}:${minute} ${dayPeriod}`
     : new Intl.DateTimeFormat('en-GB', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
-      }).format(d);
+      }).format(date)
 
-  return `${date} ${time}`;
+  return `${dateText} ${timeText}`
 }
 
 function toDate(value) {
-  if (!value) return null;
+  if (!value) return null
 
-  let v = String(value).trim();
-  v = v.replace(' ', 'T');
+  let normalized = String(value).trim()
 
-  v = v.replace(/\.(\d{3})\d+Z$/i, '.$1Z');
-  v = v.replace(/\.(\d{3})\d+$/i, '.$1');
+  normalized = normalized.replace(' ', 'T')
+  normalized = normalized.replace(/\.(\d{3})\d+Z$/i, '.$1Z')
+  normalized = normalized.replace(/\.(\d{3})\d+$/i, '.$1')
 
-  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(v);
-  if (!hasTimezone) v = `${v}Z`;
+  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(normalized)
+  if (!hasTimezone) normalized = `${normalized}Z`
 
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
+  const date = new Date(normalized)
+
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
-/* ============================================================
-   STATUS PILL VARIANT
-============================================================ */
 const statusVariant = computed(() => {
   switch (operation.status) {
-    case "draft": return "neutral";
-    case "published": return "info";
-    case "in_progress": return "primary";
-    case "completed": return "success";
-    case "canceled": return "danger";
-    default: return "neutral";
+    case 'draft': return 'neutral'
+    case 'published': return 'info'
+    case 'in_progress': return 'primary'
+    case 'completed': return 'success'
+    case 'canceled': return 'danger'
+    default: return 'neutral'
   }
-});
+})
 
-/* ============================================================
-   JOIN FORM + PREFILL
-============================================================ */
 const joinForm = reactive({
-  slot: "",
-  notes: "",
-});
+  slot: '',
+  notes: '',
+})
 
 const slotOptions = computed(() => {
-  const slots = (operation.slots || []).map((slot) => ({ label: slot, value: slot }));
-  return [{ label: 'No Role', value: '' }, ...slots];
-});
+  const slots = (operation.slots || []).map(slot => ({
+    label: slot,
+    value: slot,
+  }))
+
+  return [
+    { label: 'No Role', value: '' },
+    ...slots,
+  ]
+})
 
 watch(
   currentParticipant,
-  (p) => {
-    if (p) {
-      joinForm.slot = p.slot ?? "";
-      joinForm.notes = p.notes ?? "";
+  (participant) => {
+    if (participant) {
+      joinForm.slot = participant.slot ?? ''
+      joinForm.notes = participant.notes ?? ''
+    } else {
+      joinForm.slot = ''
+      joinForm.notes = ''
     }
   },
   { immediate: true }
-);
+)
 
-const joinProcessing = ref(false);
+const joinProcessing = ref(false)
 
-/* ============================================================
-   JOIN (WEB)
-============================================================ */
 async function join() {
-  joinProcessing.value = true;
+  if (joinProcessing.value) return
+
+  joinProcessing.value = true
 
   router.post(
-    route("operations.join", operation.id),
+    route('operations.join', operation.id),
     {
       slot: joinForm.slot,
       notes: joinForm.notes,
@@ -326,52 +347,57 @@ async function join() {
     },
     {
       preserveScroll: true,
+      onError: () => {
+        window.hzNotifyError?.({ message: 'Failed to join operation.' })
+      },
       onFinish: () => {
-        joinProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
+        joinProcessing.value = false
+        router.reload({ preserveScroll: true })
       },
     }
-  );
+  )
 }
 
-const leaveConfirmDialog = ref(null);
+const leaveConfirmDialog = ref(null)
 
-/* ============================================================
-   LEAVE (WEB)
-============================================================ */
 function askLeave() {
-  leaveConfirmDialog.value?.show();
+  if (joinProcessing.value) return
+
+  leaveConfirmDialog.value?.show()
 }
 
 function confirmLeave({ close }) {
-  joinProcessing.value = true;
+  if (joinProcessing.value) return
+
+  joinProcessing.value = true
 
   router.post(
-    route("operations.leave", operation.id),
+    route('operations.leave', operation.id),
     {},
     {
       preserveScroll: true,
       onSuccess: () => {
-        close();
+        close()
+      },
+      onError: () => {
+        window.hzNotifyError?.({ message: 'Failed to leave operation.' })
       },
       onFinish: () => {
-        joinProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
+        joinProcessing.value = false
+        router.reload({ preserveScroll: true })
       },
     }
-  );
+  )
 }
 
-/* ============================================================
-   UPDATE SLOT (WEB)
-============================================================ */
 async function updateSlot() {
-  if (!currentParticipant.value) return;
+  if (!currentParticipant.value) return
+  if (joinProcessing.value) return
 
-  joinProcessing.value = true;
+  joinProcessing.value = true
 
   router.post(
-    route("operations.participants.slot", {
+    route('operations.participants.slot', {
       operation: operation.id,
       participant: currentParticipant.value.id,
     }),
@@ -381,377 +407,632 @@ async function updateSlot() {
     },
     {
       preserveScroll: true,
+      onError: () => {
+        window.hzNotifyError?.({ message: 'Failed to update role.' })
+      },
       onFinish: () => {
-        joinProcessing.value = false;
-        router.visit(window.location.href, { preserveScroll: true });
+        joinProcessing.value = false
+        router.reload({ preserveScroll: true })
       },
     }
-  );
+  )
 }
+
+function userName(user) {
+  return user?.rsi_handle ?? user?.display_name ?? user?.name ?? 'Unknown'
+}
+
+function participantName(participant) {
+  return userName(participant?.user)
+}
+
+function participantAvatar(participant) {
+  return participant?.user?.discord_avatar
+    ?? participant?.user?.avatar
+    ?? null
+}
+
+function participantInitial(participant) {
+  return String(participantName(participant) ?? 'U').slice(0, 1).toUpperCase()
+}
+
+function creatorName() {
+  return operation.creator?.rsi_handle
+    ?? operation.creator?.display_name
+    ?? operation.creator?.name
+    ?? 'TBD'
+}
+
+function creatorAvatar() {
+  return operation.creator?.discord_avatar
+    ?? operation.creator?.avatar
+    ?? null
+}
+
+function creatorInitial() {
+  return String(creatorName() ?? 'C').slice(0, 1).toUpperCase()
+}
+
+function branchLogoSrc(branch) {
+  switch (branch) {
+    case 'defence': return '/images/Horizon_Defence_Logo.png'
+    case 'frontiers': return '/images/Horizon_Frontiers_Logo.png'
+    case 'industries': return '/images/Horizon_Industries_logo.png'
+    case 'lifelines': return '/images/Horizon_Lifeline_logo.png'
+    default: return null
+  }
+}
+
+const operationImageSrc = computed(() => {
+  return operation?.media_image?.medium_url
+    ?? operation?.media_image?.url
+    ?? null
+})
+
+const hasMetaInformation = computed(() => {
+  return !!(
+    operation.start_location
+    || operation.operation_location
+    || operation.branch
+    || operation.squadron_name
+    || operation.gameplay_type
+    || operation.type
+  )
+})
 </script>
 
-
-
 <template>
-  <HorizonContainer class="space-y-10">
-
-    <!-- HEADER -->
-    <div class="mx-auto max-w-5xl mb-4">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div class="hz-section-label">
-          {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
+  <HorizonContainer class="py-8 md:py-10">
+    <div class="mx-auto max-w-6xl space-y-8">
+      <!-- Hero -->
+      <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <ProgressPill :variant="statusVariant">
-            {{ operation.status }}
-          </ProgressPill>
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div class="min-w-0">
+            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
+              {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }} Dossier
+            </div>
 
-          <div v-if="canAddToCalendar" class="w-56">
+            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+              {{ displayTitle }}
+            </h1>
+
+            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
+              Full operation briefing, deployment slots, participant roster, and calendar actions.
+            </p>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <ProgressPill :variant="statusVariant">
+                {{ formatTitle(operation.status) }}
+              </ProgressPill>
+
+              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ formatTitle(operation.visibility ?? 'open') }}
+              </span>
+
+              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ participantsList.length }} Participants
+              </span>
+            </div>
+          </div>
+
+          <div class="relative z-[9999] flex flex-col gap-3 lg:min-w-64">
+            <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-4 py-3">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Local Start
+              </div>
+              <div class="mt-1 text-sm font-semibold text-horizon-white">
+                {{ formatLocal(operation.starts_at) }}
+              </div>
+            </div>
+
             <HorizonSelect
+              v-if="canAddToCalendar"
               v-model="calendarChoice"
               :options="calendarOptions"
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      <h1 class="hz-title-lg text-horizon-white mt-2">
-        {{ displayTitle }}
-      </h1>
-    </div>
+      <!-- Operation image -->
+      <section
+        v-if="operationImageSrc"
+        class="relative z-0 overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-void-800)] shadow-[0_0_32px_rgba(30,64,175,0.12)]"
+      >
+        <img
+          :src="operationImageSrc"
+          :alt="operation.media_image?.alt_text || operation.title"
+          class="max-h-[560px] w-full object-contain"
+          loading="lazy"
+        />
+      </section>
 
-    <!-- OPERATION IMAGE -->
-    <div
-      v-if="operation.media_image"
-      class="mx-auto max-w-5xl bg-[var(--color-bg-surface)]"
-      style="border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--horizon-sunset-blue);"
-    >
-      <img
-        :src="operation.media_image.medium_url || operation.media_image.url"
-        :alt="operation.media_image.alt_text || operation.title"
-        style="width: 100%; max-height: min(60vh, 520px); object-fit: contain; display: block;"
-      />
-    </div>
+      <!-- Main layout -->
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <main class="space-y-6">
+          <!-- Time command strip -->
+          <section class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Start Window
+              </div>
 
-    <!-- MAIN GRID -->
-    <div class="mb-20 mx-auto max-w-5xl space-y-10">
+              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                {{ formatUTC(operation.starts_at) }}
+              </div>
 
-     
-      <section class="space-y-6">
+              <div class="mt-1 text-xs text-text-secondary">
+                {{ formatLocal(operation.starts_at) }} local
+              </div>
 
-        <!-- META PANEL -->
-        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
-          <div class="grid md:grid-cols-2 gap-6">
-
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Time Window</div>
-              <div class="hz-body-strong">
-                <div>
-                  {{ formatUTC(operation.starts_at) }}
-                </div>
-                <div class="hz-caption text-horizon-offwhite opacity-70">
-                  {{ formatLocal(operation.starts_at) }} (local)
+              <div v-if="operation.ends_at" class="mt-4 border-t border-white/10 pt-4">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  End Window
                 </div>
 
-                <div class="mt-2" v-if="operation.ends_at">
-                  <div>
-                    {{ formatUTC(operation.ends_at) }}
-                  </div>
-                  <div class="hz-caption text-horizon-offwhite opacity-70">
-                    {{ formatLocal(operation.ends_at) }} (local)
-                  </div>
+                <div class="mt-2 text-sm font-semibold text-horizon-white">
+                  {{ formatUTC(operation.ends_at) }}
                 </div>
-                <!--div v-else class="mt-2">
-                  TBD
-                </div-->
+
+                <div class="mt-1 text-xs text-text-secondary">
+                  {{ formatLocal(operation.ends_at) }} local
+                </div>
               </div>
             </div>
 
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Creator</div>
-              <div class="hz-body-strong">
-                {{ operation.creator?.rsi_handle ?? 'TBD' }}
+            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Sign Up Deadline
               </div>
-            </div>
 
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Visibility</div>
-              <div class="hz-body-strong">
-                {{ formatFirstLetter(operation.visibility ?? 'open') }}
-              </div>
-            </div>
-
-
-            <div class="hz-stack-xs">
-              <div class="hz-section-label">Comms Strictness</div>
-              <div class="hz-body-strong">
-                {{ formatFirstLetter(operation.operation_strictness ?? 'normal') }}
-              </div>
-            </div>
-
-            <div v-if="operation.rsvp_deadline" class="hz-stack-xs">
-              <div class="hz-section-label">Sign up Deadline</div>
-              <div class="hz-body-strong">
-                <div>
+              <template v-if="operation.rsvp_deadline">
+                <div class="mt-2 text-sm font-semibold text-horizon-white">
                   {{ formatUTC(operation.rsvp_deadline) }}
                 </div>
-                <div class="hz-caption text-horizon-offwhite opacity-70">
-                  {{ formatLocal(operation.rsvp_deadline) }} (local)
+
+                <div class="mt-1 text-xs text-text-secondary">
+                  {{ formatLocal(operation.rsvp_deadline) }} local
                 </div>
+              </template>
+
+              <div v-else class="mt-2 text-sm text-text-secondary">
+                No sign up deadline set.
               </div>
             </div>
+          </section>
 
-            <div v-if="operation.gameplay_type || operation.type" class="hz-stack-xs">
-              <div class="hz-section-label">Gameplay Type</div>
-              <div class="hz-body-strong">
-                {{ operation.gameplay_type ?? operation.type }}
-              </div>
-            </div>
-
-          </div>
-        </HorizonPanel>
-
-        <!-- BRIEFING -->
-        <HorizonPanel
-          v-if="operation.description"
-          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
-        >
-          <div class="hz-section-label mb-2">Operaton Briefing</div>
-          <p class="hz-body whitespace-pre-line">{{ operation.description }}</p>
-        </HorizonPanel>
-
-        <!-- NOTES -->
-        <HorizonPanel
-          v-if="operation.extended_description || operation.notes"
-          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
-        >
-          <div class="hz-section-label mb-2">Operation Extended Briefing</div>
-          <p class="hz-body whitespace-pre-line">{{ operation.extended_description ?? operation.notes }}</p>
-        </HorizonPanel>
-
-        <!-- META INFORMATION -->
-        <HorizonPanel
-          v-if="operation.start_location || operation.operation_location || operation.branch || operation.squadron_name"
-          class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]"
-        >
-          <div class="hz-section-label mb-3">Meta Information</div>
-
-          <div class="grid md:grid-cols-2 gap-6">
-            <div v-if="operation.start_location" class="hz-stack-xs">
-              <div class="hz-section-label">Start Location</div>
-              <div class="hz-body-strong">
-                {{ operation.start_location }}
-              </div>
-            </div>
-
-            <div v-if="operation.operation_location" class="hz-stack-xs">
-              <div class="hz-section-label">Operation Location</div>
-              <div class="hz-body-strong">
-                {{ operation.operation_location }}
-              </div>
-            </div>
-
-            <div v-if="operation.branch" class="hz-stack-xs">
-              <div class="hz-section-label">Branch</div>
-              <div class="hz-body-strong">
-                {{ formatFirstLetter(operation.branch) }}
-              </div>
-            </div>
-
-            <div v-if="operation.squadron_name" class="hz-stack-xs">
-              <div class="hz-section-label">Squadrons</div>
-              <div class="hz-body-strong">
-                {{ operation.squadron_name }}
-              </div>
-            </div>
-          </div>
-        </HorizonPanel>
-
-        <!-- ROLES -->
-        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
-
-          <div class="hz-section-label mb-3">Roles</div>
-
-          <!-- Roles exist -->
-          <div
-            v-if="(operation.slots || []).length"
-            class="flex flex-col gap-4"
+          <!-- Briefing -->
+          <section
+            v-if="operation.description"
+            class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-6 shadow-[0_0_28px_rgba(30,64,175,0.10)]"
           >
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Operation Briefing
+            </div>
 
-            <div
-              v-for="slotName in operation.slots"
-              :key="slotName"
-              class="p-4 rounded-xl bg-bg-elevated/60 hz-inset hz-stack-xs shadow"
-            >
+            <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">
+              {{ operation.description }}
+            </p>
+          </section>
 
-              <div class="flex justify-between items-center">
-                <div class="hz-body-strong">{{ slotName }}</div>
-                <div class="hz-caption opacity-70">
-                  {{ (participantsBySlot[slotName] || []).length }} participants
+          <!-- Extended briefing -->
+          <section
+            v-if="operation.extended_description || operation.notes"
+            class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6"
+          >
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Extended Briefing
+            </div>
+
+            <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">
+              {{ operation.extended_description ?? operation.notes }}
+            </p>
+          </section>
+
+          <!-- Meta information -->
+          <section
+            v-if="hasMetaInformation"
+            class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6"
+          >
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Mission Metadata
+            </div>
+
+            <div class="mt-5 grid gap-4 md:grid-cols-2">
+              <div v-if="operation.start_location" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Start Location
+                </div>
+                <div class="mt-1 font-semibold text-horizon-white">
+                  {{ operation.start_location }}
                 </div>
               </div>
 
-              <ul class="hz-caption hz-stack-2xs">
-                <li
-                  v-for="p in participantsBySlot[slotName] || []"
-                  :key="p.id"
+              <div v-if="operation.operation_location" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Operation Location
+                </div>
+                <div class="mt-1 font-semibold text-horizon-white">
+                  {{ operation.operation_location }}
+                </div>
+              </div>
+
+              <div v-if="operation.branch" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Branch
+                </div>
+                <div class="mt-2 flex items-center gap-2 font-semibold text-horizon-white">
+                  <img
+                    v-if="branchLogoSrc(operation.branch)"
+                    :src="branchLogoSrc(operation.branch)"
+                    :alt="`${formatTitle(operation.branch)} branch logo`"
+                    class="h-5 w-5 object-contain"
+                    loading="lazy"
+                  />
+                  {{ formatTitle(operation.branch) }}
+                </div>
+              </div>
+
+              <div v-if="operation.squadron_name" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Squadron
+                </div>
+                <div class="mt-1 font-semibold text-horizon-white">
+                  {{ operation.squadron_name }}
+                </div>
+              </div>
+
+              <div v-if="operation.gameplay_type || operation.type" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Gameplay Type
+                </div>
+                <div class="mt-1 font-semibold text-horizon-white">
+                  {{ formatTitle(operation.gameplay_type ?? operation.type) }}
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Comms Strictness
+                </div>
+                <div class="mt-1 font-semibold text-horizon-white">
+                  {{ formatTitle(operation.operation_strictness ?? 'normal') }}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Roles -->
+          <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-void-700)]/80 p-6 shadow-[0_0_32px_rgba(67,56,202,0.12)]">
+            <div class="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                  Role Assignments
+                </div>
+                <h2 class="mt-1 text-xl font-black text-horizon-white">
+                  Deployment Slots
+                </h2>
+              </div>
+
+              <div class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)]">
+                {{ participantsList.length }} total
+              </div>
+            </div>
+
+            <div v-if="(operation.slots || []).length" class="grid gap-4 md:grid-cols-2">
+              <article
+                v-for="slotName in operation.slots"
+                :key="slotName"
+                class="rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="font-bold text-horizon-white">
+                    {{ slotName }}
+                  </div>
+
+                  <div class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                    {{ (participantsBySlotSafe[slotName] || []).length }}
+                  </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                  <div
+                    v-for="participant in participantsBySlotSafe[slotName] || []"
+                    :key="participant.id"
+                    class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2"
+                  >
+                    <div class="flex min-w-0 items-center gap-2">
+                      <img
+                        v-if="participantAvatar(participant)"
+                        :src="participantAvatar(participant)"
+                        alt=""
+                        class="h-7 w-7 shrink-0 rounded-lg object-cover"
+                        loading="lazy"
+                      />
+
+                      <div
+                        v-else
+                        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
+                      >
+                        {{ participantInitial(participant) }}
+                      </div>
+
+                      <span class="truncate text-sm font-semibold text-horizon-white">
+                        {{ participantName(participant) }}
+                      </span>
+                    </div>
+
+                    <span class="shrink-0 text-xs text-text-muted">
+                      {{ formatTitle(participant.attendance_status) }}
+                    </span>
+                  </div>
+
+                  <div
+                    v-if="!(participantsBySlotSafe[slotName] || []).length"
+                    class="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-text-muted"
+                  >
+                    No one assigned yet.
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary">
+              No roles defined. Participants join as “No Role”.
+            </div>
+
+            <div v-if="unassignedParticipantsSafe.length" class="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                No Role
+              </div>
+
+              <div class="mt-3 grid gap-2 md:grid-cols-2">
+                <div
+                  v-for="participant in unassignedParticipantsSafe"
+                  :key="participant.id"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2"
                 >
-                  • {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
-                  <span class="opacity-60">
-                    ({{ p.attendance_status }})
+                  <div class="flex min-w-0 items-center gap-2">
+                    <img
+                      v-if="participantAvatar(participant)"
+                      :src="participantAvatar(participant)"
+                      alt=""
+                      class="h-7 w-7 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+
+                    <div
+                      v-else
+                      class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
+                    >
+                      {{ participantInitial(participant) }}
+                    </div>
+
+                    <span class="truncate text-sm font-semibold text-horizon-white">
+                      {{ participantName(participant) }}
+                    </span>
+                  </div>
+
+                  <span class="shrink-0 text-xs text-text-muted">
+                    {{ formatTitle(participant.attendance_status) }}
                   </span>
-                </li>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
 
-                <li
-                  v-if="!(participantsBySlot[slotName] || []).length"
-                  class="opacity-60"
+        <aside class="space-y-6">
+          <!-- Your status -->
+          <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Your Status
+            </div>
+
+            <template v-if="currentParticipant">
+              <div class="mt-3 text-2xl font-black text-horizon-white">
+                Joined
+              </div>
+
+              <p class="mt-2 text-sm text-text-secondary">
+                You are signed up as
+                <strong class="text-horizon-white">{{ currentParticipant.slot ?? 'No Role' }}</strong>
+                with status
+                <strong class="text-horizon-white">{{ formatTitle(currentParticipant.attendance_status) }}</strong>.
+              </p>
+
+              <div class="mt-4 space-y-3">
+                <HorizonSelect
+                  label="Role"
+                  v-model="joinForm.slot"
+                  :options="slotOptions"
+                />
+
+                <div class="grid gap-2">
+                  <HorizonButton
+                    variant="primary"
+                    class="w-full"
+                    :disabled="joinProcessing"
+                    @click="updateSlot"
+                  >
+                    {{ joinProcessing ? 'Updating…' : 'Update Role' }}
+                  </HorizonButton>
+
+                  <HorizonButton
+                    variant="outline"
+                    class="w-full"
+                    :disabled="joinProcessing"
+                    @click="askLeave"
+                  >
+                    Leave Operation
+                  </HorizonButton>
+                </div>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="mt-3 text-2xl font-black text-horizon-white">
+                Not Joined
+              </div>
+
+              <p class="mt-2 text-sm text-text-secondary">
+                Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }} with an optional role.
+              </p>
+
+              <div class="mt-4 space-y-3">
+                <HorizonSelect
+                  label="Role (optional)"
+                  v-model="joinForm.slot"
+                  :options="slotOptions"
+                />
+
+                <HorizonButton
+                  variant="primary"
+                  class="w-full"
+                  :disabled="joinProcessing"
+                  @click="join"
                 >
-                  No one assigned yet.
-                </li>
-              </ul>
+                  {{ joinProcessing ? 'Joining…' : 'Join Operation' }}
+                </HorizonButton>
+              </div>
+            </template>
+          </section>
 
+          <!-- Quick facts -->
+          <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Quick Facts
             </div>
 
-          </div>
-
-          <!-- No roles -->
-          <div v-else class="hz-caption hz-text-muted">
-            No roles defined. Participants join as “No Role”.
-          </div>
-
-          <!-- Unassigned -->
-          <div v-if="unassignedParticipants.length" class="mt-6">
-            <div class="hz-section-label mb-1">No Role</div>
-
-            <ul class="hz-caption hz-stack-2xs">
-              <li
-                v-for="p in unassignedParticipants"
-                :key="p.id"
-              >
-                • {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
-                <span class="opacity-60">
-                  ({{ p.attendance_status }})
+            <div class="mt-4 space-y-3">
+              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <span class="text-sm text-text-muted">Status</span>
+                <span class="text-sm font-semibold text-horizon-white">
+                  {{ formatTitle(operation.status) }}
                 </span>
-              </li>
-            </ul>
-          </div>
+              </div>
 
-        </HorizonPanel>
+              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <span class="text-sm text-text-muted">Visibility</span>
+                <span class="text-sm font-semibold text-horizon-white">
+                  {{ formatTitle(operation.visibility ?? 'open') }}
+                </span>
+              </div>
 
-      </section>
+              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <span class="text-sm text-text-muted">Participants</span>
+                <span class="text-sm font-semibold text-horizon-white">
+                  {{ participantsList.length }}
+                </span>
+              </div>
 
-     
-      <section class="space-y-6">
-
-        <!-- USER STATUS -->
-        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
-          <div class="hz-section-label mb-3">Your Status</div>
-
-          <!-- Already joined -->
-          <template v-if="currentParticipant">
-            <p class="hz-body mb-3">
-              You are signed up as
-              <strong>{{ currentParticipant.slot ?? 'No Role' }}</strong>
-              ({{ currentParticipant.attendance_status }}).
-            </p>
-
-            <HorizonSelect
-              label="Role"
-              v-model="joinForm.slot"
-              :options="slotOptions"
-            />
-
-            <div class="flex gap-3">
-              <HorizonButton
-                variant="primary"
-                class="flex-1"
-                @click="updateSlot"
-              >
-                Update Role
-              </HorizonButton>
-
-              <HorizonButton
-                variant="outline"
-                class="flex-1"
-                @click="askLeave"
-              >
-                Leave Operation
-              </HorizonButton>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm text-text-muted">Creator</span>
+                <span class="text-sm font-semibold text-horizon-white">
+                  {{ creatorName() }}
+                </span>
+              </div>
             </div>
-          </template>
+          </section>
 
-          <!-- Not joined -->
-          <template v-else>
-            <p class="hz-body mb-4">
-              Join this {{ operation.operation_type ?? operation.operation_kind }} with an optional role.
-            </p>
+          <!-- Creator -->
+          <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+              Operation Creator
+            </div>
 
-            <div class="hz-stack">
-              <HorizonSelect
-                label="Role (optional)"
-                v-model="joinForm.slot"
-                :options="slotOptions"
+            <div class="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+              <img
+                v-if="creatorAvatar()"
+                :src="creatorAvatar()"
+                alt=""
+                class="h-11 w-11 shrink-0 rounded-xl object-cover"
+                loading="lazy"
               />
 
-
-              <!-- Notes 
-              <div class="hz-stack-xs">
-                <label class="hz-section-label">Notes (optional)</label>
-                <textarea
-                  v-model="joinForm.notes"
-                  rows="3"
-                  class="hz-textarea w-full"
-                  placeholder="Ship, role preference, or context..."
-                ></textarea>
-              </div> -->
-
-              <HorizonButton
-                variant="primary"
-                class="w-full"
-                @click="join"
-                :disabled="joinProcessing"
+              <div
+                v-else
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-sm font-black text-horizon-white"
               >
-                Join Operation
-              </HorizonButton>
+                {{ creatorInitial() }}
+              </div>
 
+              <div class="min-w-0">
+                <div class="truncate font-semibold text-horizon-white">
+                  {{ creatorName() }}
+                </div>
+                <div class="text-xs uppercase tracking-wide text-text-muted">
+                  Mission author
+                </div>
+              </div>
             </div>
-          </template>
+          </section>
 
-        </HorizonPanel>
+          <!-- Participants -->
+          <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                Participants
+              </div>
 
-        <!-- PARTICIPANTS -->
-        <HorizonPanel class="rounded-xl shadow-lg !border !border-[color:var(--horizon-sunset-blue)]">
-          <div class="hz-section-label mb-3">Participants</div>
+              <span class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-bold text-text-secondary">
+                {{ participantsList.length }}
+              </span>
+            </div>
 
-          <p class="hz-body mb-3">
-            {{ participants.length }} total.
-          </p>
+            <div class="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+              <div
+                v-for="participant in participantsList"
+                :key="participant.id"
+                class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2"
+              >
+                <div class="flex min-w-0 items-center gap-2">
+                  <img
+                    v-if="participantAvatar(participant)"
+                    :src="participantAvatar(participant)"
+                    alt=""
+                    class="h-8 w-8 shrink-0 rounded-lg object-cover"
+                    loading="lazy"
+                  />
 
-          <ul class="hz-caption max-h-48 overflow-auto hz-stack-2xs">
-            <li
-              v-for="p in participants"
-              :key="p.id"
-              class="flex justify-between"
-            >
-              <span>
-                {{ p.user?.rsi_handle ?? p.user?.display_name ?? p.user?.name ?? 'Unknown' }}
+                  <div
+                    v-else
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
+                  >
+                    {{ participantInitial(participant) }}
+                  </div>
 
-                <span class="opacity-60">
-                  ({{ p.slot ?? 'No Role' }})
+                  <div class="min-w-0">
+                    <div class="truncate text-sm font-semibold text-horizon-white">
+                      {{ participantName(participant) }}
+                    </div>
+
+                    <div class="truncate text-xs text-text-muted">
+                      {{ participant.slot ?? 'No Role' }}
+                    </div>
+                  </div>
+                </div>
+
+                <span class="shrink-0 text-xs text-text-muted">
+                  {{ formatTitle(participant.attendance_status) }}
                 </span>
-              </span>
-              <span class="opacity-60">
-                {{ p.attendance_status }}
-              </span>
-            </li>
-          </ul>
-        </HorizonPanel>
+              </div>
 
-       
-
-      </section>
-
+              <div
+                v-if="!participantsList.length"
+                class="rounded-xl border border-dashed border-white/15 bg-white/[0.025] px-3 py-4 text-center text-sm text-text-secondary"
+              >
+                No participants have joined yet.
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   </HorizonContainer>
 
@@ -765,4 +1046,3 @@ async function updateSlot() {
     @confirm="confirmLeave"
   />
 </template>
-

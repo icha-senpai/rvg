@@ -39,7 +39,7 @@ class SquadronManageController extends Controller
         $isLeader = $this->access->isSquadronLeader($user, $squadron);
         $isLieutenant = $this->access->isSquadronLieutenant($user, $squadron);
 
-        if (! $isLeader && ! $isLieutenant) {
+        if (! $isLeader && ! $isLieutenant && ! $this->access->isDirectorLike($user)) {
             abort(403, "You cannot manage this squadron.");
         }
 
@@ -68,7 +68,7 @@ class SquadronManageController extends Controller
 
         $data = $request->validate([
             'id'                => ['required', 'exists:squadron_members,id'],
-            'role'              => ['nullable', 'string', 'in:leader,lieutenant,null'],
+            'role'              => ['nullable', 'string', 'in:leader,lieutenant,member,null'],
             'membership_status' => ['required', 'string', 'in:active,pending,banned'],
         ]);
 
@@ -78,7 +78,7 @@ class SquadronManageController extends Controller
             $this->membership->updateMemberFromManage(
                 $squadron,
                 $member,
-                $data['role'],
+                $data['role'] ?? SquadronMember::ROLE_MEMBER,
                 $data['membership_status'],
                 $user
             );
@@ -131,12 +131,12 @@ class SquadronManageController extends Controller
         }
 
         $data = $request->validate([
-            'motto'           => ['nullable', 'string', 'max:255'],
-            'description'     => ['nullable', 'string'],
+            'motto'                  => ['nullable', 'string', 'max:255'],
+            'description'            => ['nullable', 'string'],
             'recruitment_propaganda' => ['nullable', 'string'],
-            'primary_color'   => ['nullable', 'string', 'max:20'],
-            'secondary_color' => ['nullable', 'string', 'max:20'],
-            'recruiting'      => ['boolean'],
+            'primary_color'          => ['nullable', 'string', 'max:20'],
+            'secondary_color'        => ['nullable', 'string', 'max:20'],
+            'recruiting'             => ['boolean'],
         ]);
 
         $this->squadrons->updateSettings($squadron, $data);
