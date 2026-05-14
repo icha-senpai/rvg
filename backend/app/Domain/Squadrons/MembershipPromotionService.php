@@ -32,6 +32,7 @@ class MembershipPromotionService
 
         $ltCount = SquadronMember::where('squadron_id', $squadron->id)
             ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
             ->count();
 
         if ($ltCount >= 2) {

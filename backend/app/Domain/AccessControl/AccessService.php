@@ -541,7 +541,7 @@ class AccessService
         }
 
         // Squadron leaders always manage their own roster.
-        if ($squadron->leader_id === $user->id) {
+        if ($this->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id) {
             return true;
         }
 
@@ -549,6 +549,7 @@ class AccessService
         return $squadron->members()
             ->where('user_id', $user->id)
             ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
             ->exists();
     }
 
@@ -563,7 +564,7 @@ class AccessService
         }
 
         // Outside director-like roles, only the squadron leader may promote.
-        if ($squadron->leader_id !== $user->id) {
+        if (! $this->isSquadronLeader($user, $squadron) && $squadron->leader_id !== $user->id) {
             return false;
         }
 
@@ -571,6 +572,7 @@ class AccessService
         // count, matching the membership domain rule.
         $lieutenantCount = $squadron->members()
             ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
             ->count();
 
         return $lieutenantCount < 2;
@@ -587,6 +589,6 @@ class AccessService
         }
 
         // Otherwise only the current squadron leader may demote lieutenants.
-        return $squadron->leader_id === $user->id;
+        return $this->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id;
     }
 }

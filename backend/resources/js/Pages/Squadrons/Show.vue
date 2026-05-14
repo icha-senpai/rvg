@@ -518,7 +518,7 @@ function acceptMember(member) {
     {
       id: member.id,
       membership_status: 'active',
-      role: member,
+      role: 'member',
     },
     {
       preserveScroll: true,

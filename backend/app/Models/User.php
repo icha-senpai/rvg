@@ -70,6 +70,7 @@ class User extends Authenticatable
             'operations_canceled_count' => 'integer',
             'operations_success_count' => 'integer',
             'operations_failed_count' => 'integer',
+            'verification_expires_at' => 'datetime',
             'rsi_verified_at'       => 'datetime',
             'favorite_ships'         => 'array',
             'favorite_guns'          => 'array',
