@@ -30,7 +30,7 @@ class ForceDiscordAuth
 
         // If user is NOT logged in → send them to Discord OAuth
         if (!Auth::check()) {
-            return redirect()->to('/auth/discord');
+            return redirect()->to('/verify');
         }
 
         $user = $request->user();
