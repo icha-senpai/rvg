@@ -1243,21 +1243,7 @@ function confirmDestroyOperation({ close }) {
                 </p>
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
-                <HorizonInput
-                  v-model="form.difficulty"
-                  label="Difficulty"
-                  placeholder="Optional difficulty..."
-                />
-
-                <p
-                  v-if="form.errors.difficulty"
-                  class="mt-2 text-sm text-red-300"
-                >
-                  {{ form.errors.difficulty }}
-                </p>
               </div>
-            </div>
 
             <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -1570,6 +1556,7 @@ function confirmDestroyOperation({ close }) {
         </section>
 
       </div>
+      
 
 
      
