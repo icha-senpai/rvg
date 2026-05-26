@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\OperationPageController;
 use App\Http\Controllers\Web\OperationCalendarController;
 use App\Http\Controllers\Web\OperationParticipantController;
 use App\Http\Controllers\Web\OperationTransitionController;
+use App\Http\Controllers\Web\ArchiveController;
 use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\SquadronLeaderController;
 use App\Http\Controllers\Web\SquadronPromotionController;
@@ -226,6 +227,21 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| ARCHIVE ROUTES (Authenticated verified members)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'rsi.verified'])
+    ->prefix('archive')
+    ->name('archive.')
+    ->group(function () {
+        Route::get('/', [ArchiveController::class, 'index'])->name('index');
+        Route::get('/{topic:slug}', [ArchiveController::class, 'topic'])->name('topic');
+        Route::get('/{topic:slug}/{entry:slug}', [ArchiveController::class, 'entry'])->name('entry');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
 | SQUADRON PROMOTIONS (Leader functions)
 |--------------------------------------------------------------------------
 */
@@ -408,7 +424,6 @@ Route::middleware(['auth', 'can:access-admin-panel'])
 
         Route::post('/roles/delete', [AdminRoleController::class, 'destroy'])
             ->name('admin.roles.delete');
-
         /*
         |-----------------------
         | RANK PROMOTIONS (Admin)
