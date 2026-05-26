@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
   topics: { type: Array, default: () => [] },
@@ -133,6 +134,9 @@ function deleteTopic(topic) {
               <textarea v-model="createForm.description" rows="4" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
             </div>
 
+            <ArchiveMediaPicker v-model="createForm.card_image_path" label="Topic Card Image" />
+            <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Topic Banner Image" />
+
             <div class="grid gap-4 sm:grid-cols-2">
               <div>
                 <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
@@ -215,6 +219,11 @@ function deleteTopic(topic) {
                       <option v-for="option in rankOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
                     </select>
                   </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <ArchiveMediaPicker v-model="editForm.card_image_path" label="Topic Card Image" />
+                  <ArchiveMediaPicker v-model="editForm.banner_image_path" label="Topic Banner Image" />
                 </div>
 
                 <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
