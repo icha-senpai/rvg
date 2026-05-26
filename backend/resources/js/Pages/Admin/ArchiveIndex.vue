@@ -9,9 +9,11 @@ import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 const props = defineProps({
   topics: { type: Array, default: () => [] },
   rankOptions: { type: Array, default: () => [] },
+  previewRankLevel: { type: [Number, null], default: null },
 })
 
 const editingTopicId = ref(null)
+const previewRank = ref(props.previewRankLevel)
 
 const blankTopic = {
   title: '',
@@ -29,6 +31,18 @@ const createForm = useForm({ ...blankTopic })
 const editForm = useForm({ ...blankTopic })
 
 const sortedTopics = computed(() => props.topics ?? [])
+const previewOptions = computed(() => props.rankOptions ?? [])
+const previewLabel = computed(() => previewOptions.value.find(option => option.value === previewRank.value)?.label ?? 'All verified members')
+
+function changePreviewRank() {
+  router.get(route('admin.archive.index'), {
+    preview_rank_level: previewRank.value ?? '',
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+  })
+}
 
 function startEdit(topic) {
   editingTopicId.value = topic.id
@@ -80,36 +94,39 @@ function deleteTopic(topic) {
       <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
-              Director Tools
-            </div>
-            <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">
-              Archive Management
-            </h1>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Director Tools</div>
+            <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">Archive Management</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
               Create and manage Archive topic cards. Use Manage Entries to add the actual documents inside each topic, or manage Categories & Tags to organize entries across the library.
             </p>
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">
-              Manage Categories & Tags
-            </Link>
-            <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">
-              View Archive
-            </Link>
-            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">
-              Admin Dashboard
-            </Link>
+            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Manage Categories & Tags</Link>
+            <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
+            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
+            <p class="mt-1 text-sm text-text-secondary">Currently previewing topic visibility as <span class="font-bold text-horizon-white">{{ previewLabel }}</span>.</p>
+          </div>
+
+          <div class="flex gap-2">
+            <select v-model="previewRank" class="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white" @change="changePreviewRank">
+              <option v-for="option in previewOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
+            </select>
           </div>
         </div>
       </section>
 
       <section class="grid gap-6 lg:grid-cols-[24rem_minmax(0,1fr)]">
         <form class="rounded-3xl border border-white/10 bg-white/[0.035] p-5" @submit.prevent="submitCreate">
-          <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">
-            New Topic
-          </div>
+          <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">New Topic</div>
 
           <div class="mt-4 space-y-4">
             <div>
@@ -142,7 +159,6 @@ function deleteTopic(topic) {
                 <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
                 <input v-model="createForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
               </div>
-
               <div>
                 <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Minimum Rank</label>
                 <select v-model="createForm.minimum_rank_level" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
@@ -152,13 +168,10 @@ function deleteTopic(topic) {
             </div>
 
             <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
-              <input v-model="createForm.is_published" type="checkbox" />
-              Published
+              <input v-model="createForm.is_published" type="checkbox" /> Published
             </label>
 
-            <button type="submit" class="w-full rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25" :disabled="createForm.processing">
-              Create Topic
-            </button>
+            <button type="submit" class="w-full rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25" :disabled="createForm.processing">Create Topic</button>
           </div>
         </form>
 
@@ -172,6 +185,9 @@ function deleteTopic(topic) {
                     <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.minimum_rank_label }}</span>
                     <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="topic.is_published ? 'text-emerald-300' : 'text-red-300'">{{ topic.is_published ? 'Published' : 'Draft' }}</span>
                     <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.entries_count }} entries</span>
+                    <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="topic.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                      {{ topic.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
+                    </span>
                   </div>
 
                   <h2 class="mt-3 text-2xl font-black text-horizon-white">{{ topic.title }}</h2>
@@ -227,8 +243,7 @@ function deleteTopic(topic) {
                 </div>
 
                 <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
-                  <input v-model="editForm.is_published" type="checkbox" />
-                  Published
+                  <input v-model="editForm.is_published" type="checkbox" /> Published
                 </label>
 
                 <div class="flex flex-wrap gap-2">
@@ -239,9 +254,7 @@ function deleteTopic(topic) {
             </article>
           </div>
 
-          <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
-            No archive topics exist yet.
-          </div>
+          <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No archive topics exist yet.</div>
         </div>
       </section>
     </div>
