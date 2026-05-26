@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\Admin\AdminArchiveAuditController;
 use App\Http\Controllers\Web\Admin\AdminArchiveController;
 use App\Http\Controllers\Web\Admin\AdminArchiveEntryController;
 use App\Http\Controllers\Web\Admin\AdminArchiveTaxonomyController;
@@ -10,6 +11,7 @@ Route::middleware(['auth', 'can:access-admin-panel'])
     ->name('admin.archive.')
     ->group(function () {
         Route::get('/', [AdminArchiveController::class, 'index'])->name('index');
+        Route::get('/audit', [AdminArchiveAuditController::class, 'index'])->name('audit.index');
 
         Route::get('/taxonomy', [AdminArchiveTaxonomyController::class, 'index'])->name('taxonomy.index');
         Route::post('/taxonomy/categories', [AdminArchiveTaxonomyController::class, 'storeCategory'])->name('taxonomy.categories.store');
