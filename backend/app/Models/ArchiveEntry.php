@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ArchiveEntry extends Model
 {
@@ -40,6 +41,26 @@ class ArchiveEntry extends Model
     public function topic(): BelongsTo
     {
         return $this->belongsTo(ArchiveTopic::class, 'archive_topic_id');
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ArchiveCategory::class,
+            'archive_category_entry',
+            'archive_entry_id',
+            'archive_category_id'
+        )->withTimestamps();
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ArchiveTag::class,
+            'archive_entry_tag',
+            'archive_entry_id',
+            'archive_tag_id'
+        )->withTimestamps();
     }
 
     public function creator(): BelongsTo
