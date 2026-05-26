@@ -2,7 +2,9 @@
 import { ref, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
+import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
   topic: Object,
@@ -11,12 +13,10 @@ const props = defineProps({
 })
 
 const search = ref(props.filters?.search ?? '')
-
 let searchTimer = null
 
 watch(search, value => {
   clearTimeout(searchTimer)
-
   searchTimer = setTimeout(() => {
     const trimmed = String(value ?? '').trim()
 
@@ -69,27 +69,15 @@ function clearSearch() {
       </section>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-4 md:p-5">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Search Topic</div>
             <p class="mt-1 text-sm text-text-secondary">Search only within the entries you are allowed to see.</p>
           </div>
 
-          <div class="flex w-full gap-2 md:w-[28rem]">
-            <input
-              v-model="search"
-              type="search"
-              placeholder="Search entries..."
-              class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-sm text-horizon-white outline-none placeholder:text-text-muted focus:border-[color:var(--horizon-sunset-blue)]/45"
-            />
-            <button
-              v-if="search"
-              type="button"
-              class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white"
-              @click="clearSearch"
-            >
-              Clear
-            </button>
+          <div class="flex w-full gap-2 md:w-[28rem] md:items-end">
+            <HorizonInput v-model="search" type="search" placeholder="Search entries..." class="min-w-0 flex-1" />
+            <HorizonButton v-if="search" type="button" variant="ghost" @click="clearSearch">Clear</HorizonButton>
           </div>
         </div>
       </section>
@@ -107,31 +95,15 @@ function clearSearch() {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2">
-          <Link
-            v-for="entry in entries"
-            :key="entry.id"
-            :href="entry.href"
-            class="group rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]"
-          >
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
             <div class="flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">
-                {{ entry.minimum_rank_label }}
-              </span>
-              <span v-for="category in entry.categories" :key="`category-${entry.id}-${category.id}`" class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
-                {{ category.name }}
-              </span>
-              <span v-for="tag in entry.tags" :key="`tag-${entry.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">
-                #{{ tag.name }}
-              </span>
+              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
+              <span v-for="category in entry.categories" :key="`category-${entry.id}-${category.id}`" class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">{{ category.name }}</span>
+              <span v-for="tag in entry.tags" :key="`tag-${entry.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
             </div>
 
-            <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">
-              {{ entry.title }}
-            </h3>
-
-            <p class="mt-2 text-sm leading-6 text-text-secondary">
-              {{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}
-            </p>
+            <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">{{ entry.title }}</h3>
+            <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
           </Link>
         </div>
 
