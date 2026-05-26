@@ -205,12 +205,12 @@ watch(search, value => {
             </div>
 
             <div class="relative space-y-4">
-              <div class="flex min-h-36 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
+              <div class="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3">
                 <img
                   v-if="topic.card_image_path"
                   :src="topic.card_image_path"
                   :alt="topic.title"
-                  class="h-36 w-full rounded-2xl object-cover"
+                  class="h-full w-full rounded-xl object-contain"
                 />
                 <div v-else class="px-4 text-center text-5xl text-[color:var(--horizon-sunset-blue)]/80">◫</div>
               </div>
