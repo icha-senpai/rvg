@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArchiveTopic;
+use App\Models\AuthAuditLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,15 @@ class AdminArchiveController extends Controller
         $data['updated_by'] = $request->user()?->id;
         $data['published_at'] = ($data['is_published'] ?? false) ? now() : null;
 
-        ArchiveTopic::create($data);
+        $topic = ArchiveTopic::create($data);
+
+        $this->logArchiveAction($request, 'archive.topic.created', [
+            'topic_id' => $topic->id,
+            'title' => $topic->title,
+            'slug' => $topic->slug,
+            'minimum_rank_level' => $topic->minimum_rank_level,
+            'is_published' => $topic->is_published,
+        ]);
 
         return redirect()
             ->route('admin.archive.index')
@@ -56,6 +65,19 @@ class AdminArchiveController extends Controller
     public function update(Request $request, ArchiveTopic $topic): RedirectResponse
     {
         $this->authorize('access-admin-panel');
+
+        $before = $topic->only([
+            'title',
+            'slug',
+            'description',
+            'category_label',
+            'card_image_path',
+            'banner_image_path',
+            'sort_order',
+            'minimum_rank_level',
+            'is_published',
+            'published_at',
+        ]);
 
         $data = $this->validateTopic($request, $topic);
         $data['slug'] = $this->normalizeSlug($data['slug'] ?? $data['title']);
@@ -71,16 +93,35 @@ class AdminArchiveController extends Controller
 
         $topic->update($data);
 
+        $this->logArchiveAction($request, 'archive.topic.updated', [
+            'topic_id' => $topic->id,
+            'title' => $topic->title,
+            'slug' => $topic->slug,
+            'changed_fields' => array_keys($topic->getChanges()),
+            'before' => $before,
+            'after' => $topic->only(array_keys($before)),
+        ]);
+
         return redirect()
             ->route('admin.archive.index')
             ->with('success', 'Archive topic updated.');
     }
 
-    public function destroy(ArchiveTopic $topic): RedirectResponse
+    public function destroy(Request $request, ArchiveTopic $topic): RedirectResponse
     {
         $this->authorize('access-admin-panel');
 
+        $snapshot = [
+            'topic_id' => $topic->id,
+            'title' => $topic->title,
+            'slug' => $topic->slug,
+            'minimum_rank_level' => $topic->minimum_rank_level,
+            'is_published' => $topic->is_published,
+        ];
+
         $topic->delete();
+
+        $this->logArchiveAction($request, 'archive.topic.deleted', $snapshot);
 
         return redirect()
             ->route('admin.archive.index')
@@ -163,6 +204,17 @@ class AdminArchiveController extends Controller
         }
 
         return (int) $topic->minimum_rank_level <= $rankLevel;
+    }
+
+    protected function logArchiveAction(Request $request, string $action, array $meta): void
+    {
+        AuthAuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => $action,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'meta' => $meta,
+        ]);
     }
 
     protected function rankOptions(): array
