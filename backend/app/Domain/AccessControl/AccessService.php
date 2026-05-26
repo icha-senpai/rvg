@@ -352,15 +352,15 @@ class AccessService
                 && $this->atLeast($user, 'lieutenant');
         }
 
-        // Squadron operation creators may edit their own record only while they
-        // still hold a leader/lieutenant role in that squadron.
+        // Squadron operation creators may edit their own record while they still
+        // satisfy the same squadron-scoped create rule used for new operations.
         $squadron = Squadron::find($operation->squadron_id);
         if (! $squadron) {
             return false;
         }
 
-        if ($operation->created_by === $user->id
-            && ($this->isSquadronLeader($user, $squadron) || $this->isSquadronLieutenant($user, $squadron))
+        if ((int) $operation->created_by === (int) $user->id
+            && $this->canCreateOperation($user, $squadron)
         ) {
             return true;
         }

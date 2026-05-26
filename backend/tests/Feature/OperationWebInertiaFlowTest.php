@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Operation;
 use App\Models\OperationParticipant;
 use App\Models\Role;
+use App\Models\Squadron;
+use App\Models\SquadronMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -86,6 +88,39 @@ class OperationWebInertiaFlowTest extends TestCase
         ]);
     }
 
+    public function test_cit_creator_can_open_dashboard_editor_for_owned_squadron_operation(): void
+    {
+        $user = $this->actingAsCit();
+
+        $squadron = Squadron::create([
+            'name' => 'Nova Squadron',
+            'slug' => 'nova-squadron',
+            'status' => 'active',
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $user->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_MEMBER,
+            'joined_at' => now(),
+        ]);
+
+        $operation = $this->makeOperation($user, [
+            'squadron_id' => $squadron->id,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/operations/dashboard?edit=' . $operation->id);
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Operations/OperationDashboard')
+            ->where('editingOperation.mission.id', $operation->id)
+            ->where('editingOperation.squadronId', $squadron->id)
+        );
+    }
+
     public function test_join_and_update_slot_redirect_back_to_member_page_context(): void
     {
         /** @var User $viewer */
@@ -156,6 +191,29 @@ class OperationWebInertiaFlowTest extends TestCase
         ], $attributes));
 
         $user->roles()->attach($directorRole->id);
+        $user->load('roles');
+
+        return $user;
+    }
+
+    private function actingAsCit(array $attributes = []): User
+    {
+        $citRole = Role::create([
+            'name' => 'Commander in Training',
+            'slug' => 'cit',
+            'description' => 'Test CIT role',
+            'is_system' => true,
+        ]);
+
+        /** @var User $user */
+        $user = User::factory()->create(array_merge([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+            'rank' => 'cit',
+            'rank_level' => 3,
+        ], $attributes));
+
+        $user->roles()->attach($citRole->id);
         $user->load('roles');
 
         return $user;

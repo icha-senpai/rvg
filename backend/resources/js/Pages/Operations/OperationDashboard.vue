@@ -404,11 +404,16 @@ function canManageOperation(op) {
     return true
   }
 
-  const membership = user.value?.squadrons?.find(squadron => squadron.id === squadronId)
+  const creatorId = op?.creator?.id ?? op?.created_by ?? null
+  const membership = user.value?.squadrons?.find(squadron => Number(squadron?.id) === Number(squadronId))
   if (!membership) return false
 
   const membershipStatus = membership.pivot?.membership_status
   if (membershipStatus && membershipStatus !== 'active') return false
+
+  if (creatorId && Number(creatorId) === Number(user.value?.id)) {
+    return canCreateOperation.value
+  }
 
   const role = membership.pivot?.role
 
