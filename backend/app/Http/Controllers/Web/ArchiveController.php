@@ -79,6 +79,7 @@ class ArchiveController extends Controller
         $entriesQuery = $topic->entries()
             ->published()
             ->visibleTo($user)
+            ->with('topic:id,title,slug,minimum_rank_level')
             ->orderBy('sort_order')
             ->orderBy('title');
 
@@ -107,11 +108,14 @@ class ArchiveController extends Controller
         abort_unless($this->topicIsVisibleTo($topic, $user), 404);
         abort_unless($this->entryIsVisibleTo($entry, $user), 404);
 
+        $entry->loadMissing('topic:id,title,slug,minimum_rank_level');
+
         $relatedEntries = ArchiveEntry::query()
             ->published()
             ->visibleTo($user)
             ->where('archive_topic_id', $topic->id)
             ->whereKeyNot($entry->id)
+            ->with('topic:id,title,slug,minimum_rank_level')
             ->orderBy('sort_order')
             ->orderBy('title')
             ->limit(4)
@@ -196,6 +200,8 @@ class ArchiveController extends Controller
 
     protected function presentEntryCard(ArchiveEntry $entry): array
     {
+        $entry->loadMissing('topic:id,title,slug,minimum_rank_level');
+
         return [
             'id' => $entry->id,
             'title' => $entry->title,
@@ -208,7 +214,7 @@ class ArchiveController extends Controller
             'updated_at' => $entry->updated_at?->toISOString(),
             'published_label' => $entry->published_at?->format('M j, Y'),
             'updated_label' => $entry->updated_at?->format('M j, Y'),
-            'topic' => $entry->relationLoaded('topic') && $entry->topic ? [
+            'topic' => $entry->topic ? [
                 'title' => $entry->topic->title,
                 'slug' => $entry->topic->slug,
                 'href' => route('archive.topic', $entry->topic),
