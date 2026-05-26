@@ -7,6 +7,7 @@ use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
 use App\Models\ArchiveTag;
 use App\Models\ArchiveTopic;
+use App\Models\AuthAuditLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,18 @@ class AdminArchiveEntryController extends Controller
         $entry->categories()->sync($categoryIds);
         $entry->tags()->sync($tagIds);
 
+        $this->logArchiveAction($request, 'archive.entry.created', [
+            'topic_id' => $topic->id,
+            'topic_title' => $topic->title,
+            'entry_id' => $entry->id,
+            'title' => $entry->title,
+            'slug' => $entry->slug,
+            'minimum_rank_level' => $entry->minimum_rank_level,
+            'is_published' => $entry->is_published,
+            'category_ids' => array_values($categoryIds),
+            'tag_ids' => array_values($tagIds),
+        ]);
+
         return redirect()
             ->route('admin.archive.topics.entries.index', $topic)
             ->with('success', 'Archive entry created.');
@@ -70,6 +83,22 @@ class AdminArchiveEntryController extends Controller
     {
         $this->authorize('access-admin-panel');
         $this->assertEntryBelongsToTopic($topic, $entry);
+
+        $entry->loadMissing(['categories:id', 'tags:id']);
+
+        $before = $entry->only([
+            'title',
+            'slug',
+            'excerpt',
+            'body',
+            'banner_image_path',
+            'sort_order',
+            'minimum_rank_level',
+            'is_published',
+            'published_at',
+        ]);
+        $beforeCategoryIds = $entry->categories->pluck('id')->values()->all();
+        $beforeTagIds = $entry->tags->pluck('id')->values()->all();
 
         $data = $this->validateEntry($request, $topic, $entry);
         $categoryIds = Arr::pull($data, 'category_ids', []);
@@ -90,17 +119,50 @@ class AdminArchiveEntryController extends Controller
         $entry->categories()->sync($categoryIds);
         $entry->tags()->sync($tagIds);
 
+        $this->logArchiveAction($request, 'archive.entry.updated', [
+            'topic_id' => $topic->id,
+            'topic_title' => $topic->title,
+            'entry_id' => $entry->id,
+            'title' => $entry->title,
+            'slug' => $entry->slug,
+            'changed_fields' => array_keys($entry->getChanges()),
+            'before' => array_merge($before, [
+                'category_ids' => $beforeCategoryIds,
+                'tag_ids' => $beforeTagIds,
+            ]),
+            'after' => array_merge($entry->only(array_keys($before)), [
+                'category_ids' => array_values($categoryIds),
+                'tag_ids' => array_values($tagIds),
+            ]),
+        ]);
+
         return redirect()
             ->route('admin.archive.topics.entries.index', $topic)
             ->with('success', 'Archive entry updated.');
     }
 
-    public function destroy(ArchiveTopic $topic, ArchiveEntry $entry): RedirectResponse
+    public function destroy(Request $request, ArchiveTopic $topic, ArchiveEntry $entry): RedirectResponse
     {
         $this->authorize('access-admin-panel');
         $this->assertEntryBelongsToTopic($topic, $entry);
 
+        $entry->loadMissing(['categories:id', 'tags:id']);
+
+        $snapshot = [
+            'topic_id' => $topic->id,
+            'topic_title' => $topic->title,
+            'entry_id' => $entry->id,
+            'title' => $entry->title,
+            'slug' => $entry->slug,
+            'minimum_rank_level' => $entry->minimum_rank_level,
+            'is_published' => $entry->is_published,
+            'category_ids' => $entry->categories->pluck('id')->values()->all(),
+            'tag_ids' => $entry->tags->pluck('id')->values()->all(),
+        ];
+
         $entry->delete();
+
+        $this->logArchiveAction($request, 'archive.entry.deleted', $snapshot);
 
         return redirect()
             ->route('admin.archive.topics.entries.index', $topic)
@@ -240,6 +302,17 @@ class AdminArchiveEntryController extends Controller
         }
 
         return (int) $entry->minimum_rank_level <= $rankLevel;
+    }
+
+    protected function logArchiveAction(Request $request, string $action, array $meta): void
+    {
+        AuthAuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => $action,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'meta' => $meta,
+        ]);
     }
 
     protected function categoryOptions(): array
