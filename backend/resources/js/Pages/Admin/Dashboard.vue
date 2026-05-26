@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { Link } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
@@ -52,6 +54,23 @@ const tabItems = computed(() => [
     description: 'Inspect uploaded media and administrative media tools.',
     count: null,
     tone: 'cyan',
+  },
+])
+
+const commandLinks = computed(() => [
+  {
+    label: 'Archive Management',
+    eyebrow: 'Knowledge Hub',
+    description: 'Create topics, manage entries, and control rank-gated archive visibility.',
+    href: route('admin.archive.index'),
+    tone: 'magenta',
+  },
+  {
+    label: 'Public Archive',
+    eyebrow: 'Member View',
+    description: 'Open the member-facing Archive exactly as verified users see it.',
+    href: route('archive.index'),
+    tone: 'blue',
   },
 ])
 
@@ -134,6 +153,16 @@ function tabCardClass(tab) {
   return 'border-white/10 bg-white/[0.025] hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.045]'
 }
 
+function commandCardClass(link) {
+  switch (link.tone) {
+    case 'magenta':
+      return 'border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 hover:border-[color:var(--horizon-sunset-magenta)]/55 hover:bg-[color:var(--horizon-sunset-magenta)]/15'
+    case 'blue':
+    default:
+      return 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 hover:border-[color:var(--horizon-sunset-blue)]/55 hover:bg-[color:var(--horizon-sunset-blue)]/15'
+  }
+}
+
 watch(
   () => activeTab.value,
   (tab, prevTab) => {
@@ -185,7 +214,7 @@ onBeforeUnmount(() => {
             </h1>
 
             <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-              Manage personnel, squadrons, access roles, and administrative media systems from one command surface.
+              Manage personnel, squadrons, access roles, administrative media systems, and the Archive knowledge hub from one command surface.
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
@@ -217,6 +246,35 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- Admin command links -->
+      <section class="grid gap-4 md:grid-cols-2">
+        <Link
+          v-for="link in commandLinks"
+          :key="link.label"
+          :href="link.href"
+          class="group rounded-[1.5rem] border p-5 transition duration-200 hover:-translate-y-0.5"
+          :class="commandCardClass(link)"
+        >
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            {{ link.eyebrow }}
+          </div>
+
+          <div class="mt-2 flex items-center justify-between gap-3">
+            <div class="text-2xl font-black text-horizon-white">
+              {{ link.label }}
+            </div>
+
+            <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+              Open
+            </div>
+          </div>
+
+          <p class="mt-3 text-sm leading-6 text-text-secondary">
+            {{ link.description }}
+          </p>
+        </Link>
       </section>
 
       <!-- Admin tab cards -->
