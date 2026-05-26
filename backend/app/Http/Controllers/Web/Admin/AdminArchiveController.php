@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArchiveTopic;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class AdminArchiveController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index(Request $request): Response
     {
         $this->authorize('access-admin-panel');
