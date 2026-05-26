@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
@@ -17,6 +18,8 @@ const props = defineProps({
 
 const editingTopicId = ref(null)
 const previewRank = ref(props.previewRankLevel)
+const deleteTopicDialog = ref(null)
+const topicPendingDelete = ref(null)
 
 const blankTopic = {
   title: '',
@@ -80,13 +83,20 @@ function submitEdit(topic) {
   })
 }
 
-function deleteTopic(topic) {
-  if (!window.confirm(`Delete archive topic "${topic.title}"? This also deletes its entries.`)) {
-    return
-  }
+function askDeleteTopic(topic) {
+  topicPendingDelete.value = topic
+  deleteTopicDialog.value?.show()
+}
 
-  router.delete(route('admin.archive.topics.destroy', topic.id), {
+function confirmDeleteTopic({ close }) {
+  if (!topicPendingDelete.value) return
+
+  router.delete(route('admin.archive.topics.destroy', topicPendingDelete.value.id), {
     preserveScroll: true,
+    onFinish: () => {
+      topicPendingDelete.value = null
+      close()
+    },
   })
 }
 </script>
@@ -184,7 +194,7 @@ function deleteTopic(topic) {
                   <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
                   <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                   <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
-                  <HorizonButton type="button" variant="danger" size="sm" @click="deleteTopic(topic)">Delete</HorizonButton>
+                  <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTopic(topic)">Delete</HorizonButton>
                 </div>
               </div>
 
@@ -222,6 +232,17 @@ function deleteTopic(topic) {
           <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No archive topics exist yet.</div>
         </div>
       </section>
+
+      <HorizonConfirmDialog
+        ref="deleteTopicDialog"
+        title="Delete Archive Topic"
+        confirm-label="Delete Topic"
+        cancel-label="Cancel"
+        variant="danger"
+        close-on-confirm="false"
+        :message="`Delete archive topic '${topicPendingDelete?.title ?? ''}'? This also deletes its entries and cannot be undone.`"
+        @confirm="confirmDeleteTopic"
+      />
     </div>
   </HorizonContainer>
 </template>
