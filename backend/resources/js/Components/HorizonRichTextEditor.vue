@@ -1,12 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import { Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
+import BaseImage from '@tiptap/extension-image'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
@@ -26,12 +27,7 @@ const FontSize = Extension.create({
           fontSize: {
             default: null,
             parseHTML: element => element.style.fontSize || null,
-            renderHTML: attributes => {
-              if (!attributes.fontSize) return {}
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              }
-            },
+            renderHTML: attributes => attributes.fontSize ? { style: `font-size: ${attributes.fontSize}` } : {},
           },
         },
       },
@@ -39,33 +35,36 @@ const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ chain }) => {
-        return chain().setMark('textStyle', { fontSize }).run()
+      setFontSize: (fontSize) => ({ chain }) => chain().setMark('textStyle', { fontSize }).run(),
+      unsetFontSize: () => ({ chain }) => chain().setMark('textStyle', { fontSize: null }).run(),
+    }
+  },
+})
+
+const WrappedImage = BaseImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: 'hz-rich-image hz-rich-image-center',
+        parseHTML: element => element.getAttribute('class') || 'hz-rich-image hz-rich-image-center',
+        renderHTML: attributes => attributes.class ? { class: attributes.class } : {},
       },
-      unsetFontSize: () => ({ chain }) => {
-        return chain().setMark('textStyle', { fontSize: null }).run()
+      'data-align': {
+        default: 'center',
+        parseHTML: element => element.getAttribute('data-align') || 'center',
+        renderHTML: attributes => ({ 'data-align': attributes['data-align'] || 'center' }),
       },
     }
   },
 })
 
 const props = defineProps({
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  placeholder: {
-    type: String,
-    default: '',
-  },
-  rows: {
-    type: Number,
-    default: 6,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
+  modelValue: { type: String, default: '' },
+  placeholder: { type: String, default: '' },
+  rows: { type: Number, default: 6 },
+  disabled: { type: Boolean, default: false },
+  uploadCollection: { type: String, default: 'site_asset' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -74,6 +73,10 @@ const isFocused = ref(false)
 const isEditorEmpty = ref(true)
 const lastSelection = ref(null)
 const toolbarTick = ref(0)
+const uploadInput = ref(null)
+const pendingImageAlign = ref('center')
+const isUploadingImage = ref(false)
+const uploadError = ref('')
 
 function bumpToolbar() {
   toolbarTick.value += 1
@@ -96,62 +99,42 @@ const isBoldActive = computed(() => {
   toolbarTick.value
   return editor?.isActive('bold') ?? false
 })
-
 const isItalicActive = computed(() => {
   toolbarTick.value
   return editor?.isActive('italic') ?? false
 })
-
 const isUnderlineActive = computed(() => {
   toolbarTick.value
   return editor?.isActive('underline') ?? false
 })
-
-const isHeading2Active = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('heading', { level: 2 }) ?? false
-})
-
-const isHeading3Active = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('heading', { level: 3 }) ?? false
-})
-
-const isBulletListActive = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('bulletList') ?? false
-})
-
-const isOrderedListActive = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('orderedList') ?? false
-})
-
-const isLinkActive = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('link') ?? false
-})
-
-const isImageActive = computed(() => {
-  toolbarTick.value
-  return editor?.isActive('image') ?? false
-})
-
 const isStrikeActive = computed(() => {
   toolbarTick.value
   return editor?.isActive('strike') ?? false
 })
-
+const isBulletListActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('bulletList') ?? false
+})
+const isOrderedListActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('orderedList') ?? false
+})
 const isBlockquoteActive = computed(() => {
   toolbarTick.value
   return editor?.isActive('blockquote') ?? false
 })
-
+const isLinkActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('link') ?? false
+})
+const isImageActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('image') ?? false
+})
 const canUndo = computed(() => {
   toolbarTick.value
   return editor?.can().chain().undo().run() ?? false
 })
-
 const canRedo = computed(() => {
   toolbarTick.value
   return editor?.can().chain().redo().run() ?? false
@@ -159,47 +142,40 @@ const canRedo = computed(() => {
 
 const currentHeadingLevel = computed(() => {
   toolbarTick.value
-
   if (!editor) return 0
-
   for (let level = 1; level <= 6; level += 1) {
     if (editor.isActive('heading', { level })) return level
   }
-
   return 0
 })
 
-const blockTypeValue = computed(() => {
-  const level = currentHeadingLevel.value
-  return level ? `h${level}` : 'p'
-})
+const blockTypeValue = computed(() => currentHeadingLevel.value ? `h${currentHeadingLevel.value}` : 'p')
 
 const currentTextAlign = computed(() => {
   toolbarTick.value
-
   if (!editor) return 'left'
-
-  const isHeading = currentHeadingLevel.value > 0
-  const attrs = editor.getAttributes(isHeading ? 'heading' : 'paragraph') || {}
+  const attrs = editor.getAttributes(currentHeadingLevel.value > 0 ? 'heading' : 'paragraph') || {}
   return attrs.textAlign || 'left'
 })
 
 const currentTextColor = computed(() => {
   toolbarTick.value
-  if (!editor) return ''
-  return editor.getAttributes('textStyle')?.color || ''
+  return editor?.getAttributes('textStyle')?.color || ''
 })
 
 const currentFontFamily = computed(() => {
   toolbarTick.value
-  if (!editor) return ''
-  return editor.getAttributes('textStyle')?.fontFamily || ''
+  return editor?.getAttributes('textStyle')?.fontFamily || ''
 })
 
 const currentFontSize = computed(() => {
   toolbarTick.value
-  if (!editor) return ''
-  return editor.getAttributes('textStyle')?.fontSize || ''
+  return editor?.getAttributes('textStyle')?.fontSize || ''
+})
+
+const currentImageAlign = computed(() => {
+  toolbarTick.value
+  return editor?.getAttributes('image')?.['data-align'] || 'center'
 })
 
 const fontFamilyOptions = [
@@ -208,13 +184,8 @@ const fontFamilyOptions = [
   { value: 'sans-serif', label: 'Font: Sans', preview: 'sans-serif' },
   { value: 'arial', label: 'Font: Arial', preview: 'Arial, sans-serif' },
   { value: 'verdana', label: 'Font: Verdana', preview: 'Verdana, sans-serif' },
-  { value: 'tahoma', label: 'Font: Tahoma', preview: 'Tahoma, sans-serif' },
-  { value: 'trebuchet ms', label: 'Font: Trebuchet', preview: '"Trebuchet MS", "Trebuchet", sans-serif' },
-  { value: 'serif', label: 'Font: Serif', preview: 'serif' },
   { value: 'georgia', label: 'Font: Georgia', preview: 'Georgia, serif' },
-  { value: 'times new roman', label: 'Font: Times', preview: '"Times New Roman", Times, serif' },
   { value: 'monospace', label: 'Font: Mono', preview: 'monospace' },
-  { value: 'courier new', label: 'Font: Courier', preview: '"Courier New", Courier, monospace' },
 ]
 
 const fontSizeOptions = [
@@ -230,15 +201,9 @@ const fontSizeOptions = [
 
 const currentFontFamilyPreview = computed(() => {
   const current = String(currentFontFamily.value || '')
-  const currentNormalized = current.toLowerCase()
-  const match = fontFamilyOptions.find((opt) => String(opt.value).toLowerCase() === currentNormalized)
-  if (match) return match.preview
-  return current
+  const match = fontFamilyOptions.find(option => String(option.value).toLowerCase() === current.toLowerCase())
+  return match?.preview || current
 })
-
-function syncEmptyState() {
-  isEditorEmpty.value = editor?.isEmpty ?? true
-}
 
 function normalizeIncomingHtml(html) {
   const value = String(html || '').trim()
@@ -248,8 +213,6 @@ function normalizeIncomingHtml(html) {
   const hasBr = /<br\s*\/?\s*>/i.test(value)
   const hasOtherBlockTags = /<(ul|ol|li|h1|h2|h3|h4|h5|h6|blockquote|pre|img|table|thead|tbody|tfoot|tr|td|th)\b/i.test(value)
 
-  // Legacy normalization: old plain text was often saved as a single <p> with <br> breaks.
-  // TipTap treats that as one paragraph, so block formatting (H2/lists) will apply to all lines.
   if (paragraphCount === 1 && hasBr && !hasOtherBlockTags) {
     return value
       .replace(/<br\s*\/?\s*>\s*/gi, '</p><p>')
@@ -257,6 +220,20 @@ function normalizeIncomingHtml(html) {
   }
 
   return value
+}
+
+function imageClassForAlign(align) {
+  if (align === 'left') return 'hz-rich-image hz-rich-image-left'
+  if (align === 'right') return 'hz-rich-image hz-rich-image-right'
+  return 'hz-rich-image hz-rich-image-center'
+}
+
+function mediaDisplayUrl(media) {
+  return media?.display_url || media?.medium_url || media?.url || media?.thumbnail_url || ''
+}
+
+function csrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 }
 
 const editor = new Editor({
@@ -267,14 +244,12 @@ const editor = new Editor({
   },
   extensions: [
     StarterKit.configure({
-      heading: {
-        levels: [1, 2, 3, 4, 5, 6],
-      },
+      heading: { levels: [1, 2, 3, 4, 5, 6] },
       code: false,
       codeBlock: false,
     }),
     Underline,
-    Image.configure({
+    WrappedImage.configure({
       inline: false,
       allowBase64: false,
       HTMLAttributes: {
@@ -285,12 +260,8 @@ const editor = new Editor({
     FontSize,
     Color,
     FontFamily,
-    TextAlign.configure({
-      types: ['heading', 'paragraph'],
-    }),
-    Table.configure({
-      resizable: false,
-    }),
+    TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    Table.configure({ resizable: false }),
     TableRow,
     TableHeader,
     TableCell,
@@ -328,20 +299,8 @@ const editor = new Editor({
   },
 })
 
-const minHeightPx = computed(() => {
-  const lineHeight = 22
-  const padding = 20
-  return Math.max(120, props.rows * lineHeight + padding)
-})
-
-syncEmptyState()
-
-const showPlaceholder = computed(() =>
-  Boolean(props.placeholder)
-  && !props.disabled
-  && !isFocused.value
-  && isEditorEmpty.value
-)
+const minHeightPx = computed(() => Math.max(120, props.rows * 22 + 20))
+const showPlaceholder = computed(() => Boolean(props.placeholder) && !props.disabled && !isFocused.value && isEditorEmpty.value)
 
 function focusAndRestoreSelection() {
   editor.chain().focus().run()
@@ -351,17 +310,16 @@ function focusAndRestoreSelection() {
 function toggleBold() { focusAndRestoreSelection(); editor.chain().toggleBold().run() }
 function toggleItalic() { focusAndRestoreSelection(); editor.chain().toggleItalic().run() }
 function toggleUnderline() { focusAndRestoreSelection(); editor.chain().toggleUnderline().run() }
+function toggleStrike() { focusAndRestoreSelection(); editor.chain().toggleStrike().run() }
 function toggleUnorderedList() { focusAndRestoreSelection(); editor.chain().toggleBulletList().run() }
 function toggleOrderedList() { focusAndRestoreSelection(); editor.chain().toggleOrderedList().run() }
-
-function toggleHeading(level) {
-  focusAndRestoreSelection()
-  editor.chain().toggleHeading({ level }).run()
-}
+function toggleBlockquote() { focusAndRestoreSelection(); editor.chain().toggleBlockquote().run() }
+function insertDivider() { focusAndRestoreSelection(); editor.chain().setHorizontalRule().run() }
+function undo() { focusAndRestoreSelection(); editor.chain().undo().run() }
+function redo() { focusAndRestoreSelection(); editor.chain().redo().run() }
 
 function applyBlockType(value) {
   focusAndRestoreSelection()
-
   if (value === 'p') {
     editor.chain().setParagraph().run()
     return
@@ -369,9 +327,7 @@ function applyBlockType(value) {
 
   const match = String(value).match(/^h([1-6])$/)
   if (!match) return
-
-  const level = Number(match[1])
-  editor.chain().setHeading({ level }).run()
+  editor.chain().setHeading({ level: Number(match[1]) }).run()
 }
 
 function setTextAlign(value) {
@@ -379,20 +335,12 @@ function setTextAlign(value) {
   editor.chain().setTextAlign(value).run()
 }
 
-function toggleStrike() { focusAndRestoreSelection(); editor.chain().toggleStrike().run() }
-function toggleBlockquote() { focusAndRestoreSelection(); editor.chain().toggleBlockquote().run() }
-function insertDivider() { focusAndRestoreSelection(); editor.chain().setHorizontalRule().run() }
-
-function undo() { focusAndRestoreSelection(); editor.chain().undo().run() }
-function redo() { focusAndRestoreSelection(); editor.chain().redo().run() }
-
 function applyTextColor(color) {
   focusAndRestoreSelection()
   if (!color) {
     editor.chain().unsetColor().run()
     return
   }
-
   editor.chain().setColor(color).run()
 }
 
@@ -403,23 +351,19 @@ function clearTextColor() {
 
 function applyFontFamily(value) {
   focusAndRestoreSelection()
-
   if (!value) {
     editor.chain().unsetFontFamily().run()
     return
   }
-
   editor.chain().setFontFamily(value).run()
 }
 
 function applyFontSize(value) {
   focusAndRestoreSelection()
-
   if (!value) {
     editor.chain().unsetFontSize().run()
     return
   }
-
   editor.chain().setFontSize(value).run()
 }
 
@@ -427,31 +371,90 @@ function insertTable() {
   focusAndRestoreSelection()
   editor.chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
+function addTableRow() { focusAndRestoreSelection(); editor.chain().addRowAfter().run() }
+function addTableColumn() { focusAndRestoreSelection(); editor.chain().addColumnAfter().run() }
+function deleteTable() { focusAndRestoreSelection(); editor.chain().deleteTable().run() }
 
-function addTableRow() {
+function insertImageWithAttributes(src, alt = '', align = 'center') {
   focusAndRestoreSelection()
-  editor.chain().addRowAfter().run()
+  editor.chain().setImage({
+    src,
+    alt,
+    class: imageClassForAlign(align),
+    'data-align': align,
+  }).run()
 }
 
-function addTableColumn() {
-  focusAndRestoreSelection()
-  editor.chain().addColumnAfter().run()
-}
-
-function deleteTable() {
-  focusAndRestoreSelection()
-  editor.chain().deleteTable().run()
-}
-
-function insertImage() {
+function insertImage(align = 'center') {
   rememberSelection()
   const url = window.prompt('Image URL')
   if (!url) return
-
   const alt = window.prompt('Alt text (optional)')
+  insertImageWithAttributes(url, alt || '', align)
+}
+
+function setImageAlign(align) {
+  if (!editor?.isActive('image')) {
+    insertImage(align)
+    return
+  }
 
   focusAndRestoreSelection()
-  editor.chain().setImage({ src: url, alt: alt || '' }).run()
+  editor.chain().updateAttributes('image', {
+    class: imageClassForAlign(align),
+    'data-align': align,
+  }).run()
+  bumpToolbar()
+}
+
+function triggerImageUpload(align = 'center') {
+  if (props.disabled || isUploadingImage.value) return
+  rememberSelection()
+  pendingImageAlign.value = align
+  uploadError.value = ''
+  uploadInput.value?.click()
+}
+
+async function uploadImage(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  isUploadingImage.value = true
+  uploadError.value = ''
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('collection', props.uploadCollection)
+    formData.append('alt_text', file.name)
+
+    const response = await fetch(route('media.upload'), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrfToken(),
+      },
+      body: formData,
+    })
+
+    const data = await response.json()
+    if (!response.ok || data.status !== 'ok') {
+      throw new Error(data.message || 'Image upload failed.')
+    }
+
+    const media = data.payload?.media
+    const url = mediaDisplayUrl(media)
+    if (!url) {
+      throw new Error('Image uploaded, but no display URL was returned.')
+    }
+
+    insertImageWithAttributes(url, media?.alt_text || file.name, pendingImageAlign.value)
+  } catch (error) {
+    uploadError.value = error?.message || 'Image upload failed.'
+  } finally {
+    isUploadingImage.value = false
+  }
 }
 
 function insertLink() {
@@ -461,7 +464,6 @@ function insertLink() {
   if (url === null) return
 
   focusAndRestoreSelection()
-
   if (url.trim() === '') {
     editor.chain().focus().extendMarkRange('link').unsetLink().run()
     return
@@ -470,12 +472,7 @@ function insertLink() {
   editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
 }
 
-watch(
-  () => props.disabled,
-  (disabled) => {
-    editor?.setEditable(!disabled)
-  }
-)
+watch(() => props.disabled, disabled => editor?.setEditable(!disabled))
 
 watch(
   () => props.modelValue,
@@ -490,23 +487,15 @@ watch(
   }
 )
 
-onBeforeUnmount(() => {
-  editor?.destroy()
-})
+onBeforeUnmount(() => editor?.destroy())
 </script>
 
 <template>
   <div class="hz-stack gap-2">
+    <input ref="uploadInput" type="file" accept="image/*" class="hidden" @change="uploadImage" />
+
     <div class="hz-row gap-2 flex-wrap">
-      <select
-        class="hz-input"
-        style="max-width: 140px; padding: 0.3rem 0.55rem;"
-        title="Block style"
-        :disabled="disabled"
-        :value="blockTypeValue"
-        @mousedown.stop
-        @change="applyBlockType($event.target.value)"
-      >
+      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Block style" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
         <option value="p">Paragraph</option>
         <option value="h1">Heading 1</option>
         <option value="h2">Heading 2</option>
@@ -516,306 +505,84 @@ onBeforeUnmount(() => {
         <option value="h6">Heading 6</option>
       </select>
 
-      <select
-        class="hz-input"
-        style="max-width: 140px; padding: 0.3rem 0.55rem;"
-        title="Text alignment"
-        :disabled="disabled"
-        :value="currentTextAlign"
-        @mousedown.stop
-        @change="setTextAlign($event.target.value)"
-      >
+      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Text alignment" :disabled="disabled" :value="currentTextAlign" @mousedown.stop @change="setTextAlign($event.target.value)">
         <option value="left">Align Left</option>
         <option value="center">Align Center</option>
         <option value="right">Align Right</option>
         <option value="justify">Justify</option>
       </select>
 
-      <select
-        class="hz-input"
-        style="max-width: 140px; padding: 0.3rem 0.55rem;"
-        title="Font family"
-        :disabled="disabled"
-        :value="currentFontFamily"
-        :style="{ fontFamily: currentFontFamilyPreview }"
-        @mousedown.stop
-        @change="applyFontFamily($event.target.value)"
-      >
-        <option
-          v-for="opt in fontFamilyOptions"
-          :key="opt.value || '__default'"
-          :value="opt.value"
-          :style="{ fontFamily: opt.preview }"
-        >
-          {{ opt.label }}
-        </option>
+      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Font family" :disabled="disabled" :value="currentFontFamily" :style="{ fontFamily: currentFontFamilyPreview }" @mousedown.stop @change="applyFontFamily($event.target.value)">
+        <option v-for="opt in fontFamilyOptions" :key="opt.value || '__default'" :value="opt.value" :style="{ fontFamily: opt.preview }">{{ opt.label }}</option>
       </select>
 
-      <select
-        class="hz-input"
-        style="max-width: 130px; padding: 0.3rem 0.55rem;"
-        title="Font size"
-        :disabled="disabled"
-        :value="currentFontSize"
-        @mousedown.stop
-        @change="applyFontSize($event.target.value)"
-      >
-        <option
-          v-for="opt in fontSizeOptions"
-          :key="opt.value || '__default'"
-          :value="opt.value"
-        >
-          {{ opt.label }}
-        </option>
+      <select class="hz-input" style="max-width: 130px; padding: 0.3rem 0.55rem;" title="Font size" :disabled="disabled" :value="currentFontSize" @mousedown.stop @change="applyFontSize($event.target.value)">
+        <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
       </select>
 
-      <input
-        type="color"
-        class="hz-input"
-        style="width: 44px; padding: 0.25rem;"
-        title="Text color"
-        :disabled="disabled"
-        :value="currentTextColor || '#ffffff'"
-        @mousedown.stop
-        @change="applyTextColor($event.target.value)"
-      />
+      <input type="color" class="hz-input" style="width: 44px; padding: 0.25rem;" title="Text color" :disabled="disabled" :value="currentTextColor || '#ffffff'" @mousedown.stop @change="applyTextColor($event.target.value)" />
 
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Clear text color"
-        aria-label="Clear text color"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="clearTextColor"
-      >
-        Color ×
-      </HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTextColor">Color ×</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isBulletListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnorderedList">• List</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isOrderedListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleOrderedList">1. List</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isBlockquoteActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBlockquote">Quote</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertDivider">Divider</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isLinkActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="insertLink">Link</HorizonButton>
 
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isBoldActive ? 'primary' : 'ghost'"
-        title="Bold"
-        aria-label="Bold"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleBold"
-      >
-        B
-      </HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" title="Insert image URL centered" :disabled="disabled" @mousedown.prevent @click="insertImage('center')">Image URL</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" title="Upload centered image" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload Image' }}</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'left' ? 'primary' : 'ghost'" title="Image left with text wrap" :disabled="disabled" @mousedown.prevent @click="setImageAlign('left')">Img Left</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'center' ? 'primary' : 'ghost'" title="Image centered" :disabled="disabled" @mousedown.prevent @click="setImageAlign('center')">Img Center</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" title="Image right with text wrap" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
 
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isItalicActive ? 'primary' : 'ghost'"
-        title="Italic"
-        aria-label="Italic"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleItalic"
-      >
-        I
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isUnderlineActive ? 'primary' : 'ghost'"
-        title="Underline"
-        aria-label="Underline"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleUnderline"
-      >
-        U
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isStrikeActive ? 'primary' : 'ghost'"
-        title="Strikethrough"
-        aria-label="Strikethrough"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleStrike"
-      >
-        S
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isBulletListActive ? 'primary' : 'ghost'"
-        title="Bulleted list"
-        aria-label="Bulleted list"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleUnorderedList"
-      >
-        • List
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isOrderedListActive ? 'primary' : 'ghost'"
-        title="Numbered list"
-        aria-label="Numbered list"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleOrderedList"
-      >
-        1. List
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isBlockquoteActive ? 'primary' : 'ghost'"
-        title="Blockquote"
-        aria-label="Blockquote"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="toggleBlockquote"
-      >
-        Quote
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Insert divider"
-        aria-label="Insert divider"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="insertDivider"
-      >
-        Divider
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isLinkActive ? 'primary' : 'ghost'"
-        title="Insert/edit link"
-        aria-label="Insert/edit link"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="insertLink"
-      >
-        Link
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        :variant="isImageActive ? 'primary' : 'ghost'"
-        title="Insert image"
-        aria-label="Insert image"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="insertImage"
-      >
-        Image
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Insert table"
-        aria-label="Insert table"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="insertTable"
-      >
-        Table
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Add table row"
-        aria-label="Add table row"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="addTableRow"
-      >
-        +Row
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Add table column"
-        aria-label="Add table column"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="addTableColumn"
-      >
-        +Col
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Delete table"
-        aria-label="Delete table"
-        :disabled="disabled"
-        @mousedown.prevent
-        @click="deleteTable"
-      >
-        Del Tbl
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Undo"
-        aria-label="Undo"
-        :disabled="disabled || !canUndo"
-        @mousedown.prevent
-        @click="undo"
-      >
-        Undo
-      </HorizonButton>
-
-      <HorizonButton
-        type="button"
-        size="xs"
-        variant="ghost"
-        title="Redo"
-        aria-label="Redo"
-        :disabled="disabled || !canRedo"
-        @mousedown.prevent
-        @click="redo"
-      >
-        Redo
-      </HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableRow">+Row</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableColumn">+Col</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canUndo" @mousedown.prevent @click="undo">Undo</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canRedo" @mousedown.prevent @click="redo">Redo</HorizonButton>
     </div>
 
-    <div class="relative">
-      <div
-        v-if="showPlaceholder"
-        class="pointer-events-none absolute left-3 top-3 text-horizon-muted"
-      >
-        {{ placeholder }}
-      </div>
+    <p v-if="uploadError" class="text-xs text-red-300">{{ uploadError }}</p>
 
+    <div class="relative">
+      <div v-if="showPlaceholder" class="pointer-events-none absolute left-3 top-3 text-horizon-muted">{{ placeholder }}</div>
       <EditorContent
         :editor="editor"
-        class="hz-textarea [&_p]:my-0 [&_p]:leading-relaxed [&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-base [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:mb-1 [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:mt-3 [&_h5]:mb-1 [&_h5]:text-sm [&_h5]:font-medium [&_h6]:mt-3 [&_h6]:mb-1 [&_h6]:text-xs [&_h6]:font-medium [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_a]:underline [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:my-2 [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_mark]:rounded [&_mark]:px-1 [&_img]:my-2 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2"
+        class="hz-textarea rich-editor-body [&_p]:my-0 [&_p]:leading-relaxed [&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-base [&_h3]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_a]:underline [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_img]:my-2 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:border [&_img]:border-white/10 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2"
         :class="disabled ? 'opacity-70 pointer-events-none' : ''"
         :style="{ minHeight: `${minHeightPx}px` }"
       />
     </div>
   </div>
 </template>
+
+<style scoped>
+.rich-editor-body :deep(img.hz-rich-image-left) {
+  float: left;
+  max-width: min(45%, 22rem);
+  margin: 0.35rem 1rem 0.75rem 0;
+}
+
+.rich-editor-body :deep(img.hz-rich-image-right) {
+  float: right;
+  max-width: min(45%, 22rem);
+  margin: 0.35rem 0 0.75rem 1rem;
+}
+
+.rich-editor-body :deep(img.hz-rich-image-center) {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.rich-editor-body :deep(p::after) {
+  content: '';
+  display: block;
+  clear: both;
+}
+</style>
