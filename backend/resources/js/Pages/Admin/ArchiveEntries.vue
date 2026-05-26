@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 const props = defineProps({
   topic: { type: Object, required: true },
@@ -34,6 +35,14 @@ const editForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
 const sortedEntries = computed(() => props.entries ?? [])
 const hasCategories = computed(() => (props.categoryOptions ?? []).length > 0)
 const hasTags = computed(() => (props.tagOptions ?? []).length > 0)
+const categorySelectOptions = computed(() => (props.categoryOptions ?? []).map(category => ({
+  value: category.id,
+  label: category.name,
+})))
+const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({
+  value: tag.id,
+  label: tag.name,
+})))
 
 function startEdit(entry) {
   editingEntryId.value = entry.id
@@ -142,19 +151,23 @@ function deleteEntry(entry) {
             </div>
 
             <div v-if="hasCategories">
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Categories</label>
-              <select v-model="createForm.category_ids" multiple class="mt-1 min-h-28 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                <option v-for="category in categoryOptions" :key="category.id" :value="category.id">{{ category.name }}</option>
-              </select>
-              <p class="mt-1 text-xs text-text-muted">Hold Ctrl/Cmd to select multiple.</p>
+              <HorizonSelect
+                v-model="createForm.category_ids"
+                label="Categories"
+                multiple
+                :options="categorySelectOptions"
+              />
+              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
             </div>
 
             <div v-if="hasTags">
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Tags</label>
-              <select v-model="createForm.tag_ids" multiple class="mt-1 min-h-28 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                <option v-for="tag in tagOptions" :key="tag.id" :value="tag.id">{{ tag.name }}</option>
-              </select>
-              <p class="mt-1 text-xs text-text-muted">Hold Ctrl/Cmd to select multiple.</p>
+              <HorizonSelect
+                v-model="createForm.tag_ids"
+                label="Tags"
+                multiple
+                :options="tagSelectOptions"
+              />
+              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -255,17 +268,21 @@ function deleteEntry(entry) {
 
               <div class="grid gap-4 md:grid-cols-2">
                 <div v-if="hasCategories">
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Categories</label>
-                  <select v-model="editForm.category_ids" multiple class="mt-1 min-h-28 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                    <option v-for="category in categoryOptions" :key="category.id" :value="category.id">{{ category.name }}</option>
-                  </select>
+                  <HorizonSelect
+                    v-model="editForm.category_ids"
+                    label="Categories"
+                    multiple
+                    :options="categorySelectOptions"
+                  />
                 </div>
 
                 <div v-if="hasTags">
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Tags</label>
-                  <select v-model="editForm.tag_ids" multiple class="mt-1 min-h-28 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                    <option v-for="tag in tagOptions" :key="tag.id" :value="tag.id">{{ tag.name }}</option>
-                  </select>
+                  <HorizonSelect
+                    v-model="editForm.tag_ids"
+                    label="Tags"
+                    multiple
+                    :options="tagSelectOptions"
+                  />
                 </div>
               </div>
 
