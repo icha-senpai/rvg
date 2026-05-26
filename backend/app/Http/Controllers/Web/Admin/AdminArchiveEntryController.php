@@ -24,19 +24,22 @@ class AdminArchiveEntryController extends Controller
     {
         $this->authorize('access-admin-panel');
 
+        $previewRankLevel = $this->previewRankLevel($request);
+
         $entries = $topic->entries()
             ->with(['categories:id,name,slug', 'tags:id,name,slug'])
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get()
-            ->map(fn (ArchiveEntry $entry) => $this->presentEntry($entry));
+            ->map(fn (ArchiveEntry $entry) => $this->presentEntry($entry, $topic, $previewRankLevel));
 
         return Inertia::render('Admin/ArchiveEntries', [
-            'topic' => $this->presentTopic($topic),
+            'topic' => $this->presentTopic($topic, $previewRankLevel),
             'entries' => $entries,
             'categoryOptions' => $this->categoryOptions(),
             'tagOptions' => $this->tagOptions(),
             'rankOptions' => $this->rankOptions(),
+            'previewRankLevel' => $previewRankLevel,
         ]);
     }
 
@@ -139,7 +142,7 @@ class AdminArchiveEntryController extends Controller
         return Str::slug($value);
     }
 
-    protected function presentTopic(ArchiveTopic $topic): array
+    protected function presentTopic(ArchiveTopic $topic, ?int $previewRankLevel = null): array
     {
         return [
             'id' => $topic->id,
@@ -150,12 +153,13 @@ class AdminArchiveEntryController extends Controller
             'minimum_rank_level' => $topic->minimum_rank_level,
             'minimum_rank_label' => $topic->minimumRankLabel(),
             'is_published' => $topic->is_published,
+            'preview_visible' => $this->topicVisibleAtRank($topic, $previewRankLevel),
             'public_href' => route('archive.topic', $topic),
             'admin_href' => route('admin.archive.index'),
         ];
     }
 
-    protected function presentEntry(ArchiveEntry $entry): array
+    protected function presentEntry(ArchiveEntry $entry, ArchiveTopic $topic, ?int $previewRankLevel = null): array
     {
         return [
             'id' => $entry->id,
@@ -170,6 +174,7 @@ class AdminArchiveEntryController extends Controller
             'is_published' => $entry->is_published,
             'published_label' => $entry->published_at?->format('M j, Y'),
             'updated_label' => $entry->updated_at?->format('M j, Y'),
+            'preview_visible' => $this->entryVisibleAtRank($entry, $topic, $previewRankLevel),
             'category_ids' => $entry->categories->pluck('id')->values(),
             'tag_ids' => $entry->tags->pluck('id')->values(),
             'categories' => $entry->categories->map(fn (ArchiveCategory $category) => [
@@ -184,6 +189,57 @@ class AdminArchiveEntryController extends Controller
             ])->values(),
             'public_href' => route('archive.entry', [$entry->topic, $entry]),
         ];
+    }
+
+    protected function previewRankLevel(Request $request): ?int
+    {
+        $value = $request->query('preview_rank_level');
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $rankLevel = (int) $value;
+
+        return $rankLevel >= 1 && $rankLevel <= 6 ? $rankLevel : null;
+    }
+
+    protected function topicVisibleAtRank(ArchiveTopic $topic, ?int $rankLevel): bool
+    {
+        if (! $topic->is_published) {
+            return false;
+        }
+
+        if ($topic->published_at && $topic->published_at->isFuture()) {
+            return false;
+        }
+
+        if ($topic->minimum_rank_level === null || $rankLevel === null) {
+            return true;
+        }
+
+        return (int) $topic->minimum_rank_level <= $rankLevel;
+    }
+
+    protected function entryVisibleAtRank(ArchiveEntry $entry, ArchiveTopic $topic, ?int $rankLevel): bool
+    {
+        if (! $this->topicVisibleAtRank($topic, $rankLevel)) {
+            return false;
+        }
+
+        if (! $entry->is_published) {
+            return false;
+        }
+
+        if ($entry->published_at && $entry->published_at->isFuture()) {
+            return false;
+        }
+
+        if ($entry->minimum_rank_level === null || $rankLevel === null) {
+            return true;
+        }
+
+        return (int) $entry->minimum_rank_level <= $rankLevel;
     }
 
     protected function categoryOptions(): array
