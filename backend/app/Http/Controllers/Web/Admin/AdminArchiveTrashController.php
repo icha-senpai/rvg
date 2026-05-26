@@ -29,6 +29,7 @@ class AdminArchiveTrashController extends Controller
                 ->get()
                 ->map(fn (ArchiveTopic $topic) => $this->presentTopic($topic)),
             'entries' => ArchiveEntry::onlyTrashed()
+                ->whereDoesntHave('topic', fn ($query) => $query->onlyTrashed())
                 ->with(['topic' => fn ($query) => $query->withTrashed()])
                 ->withCount(['categories' => fn ($query) => $query->withTrashed(), 'tags' => fn ($query) => $query->withTrashed()])
                 ->latest('deleted_at')
@@ -52,15 +53,19 @@ class AdminArchiveTrashController extends Controller
         $this->authorize('access-admin-panel');
 
         $model = ArchiveTopic::onlyTrashed()->findOrFail($topic);
+        $entriesCount = $model->entries()->onlyTrashed()->count();
+
         $model->restore();
+        $model->entries()->onlyTrashed()->restore();
 
         $this->logArchiveAction($request, 'archive.topic.restored', [
             'topic_id' => $model->id,
             'title' => $model->title,
             'slug' => $model->slug,
+            'entries_restored_count' => $entriesCount,
         ]);
 
-        return back()->with('success', 'Archive topic restored.');
+        return back()->with('success', 'Archive topic and its entries restored.');
     }
 
     public function forceDeleteTopic(Request $request, int $topic): RedirectResponse
@@ -69,11 +74,17 @@ class AdminArchiveTrashController extends Controller
 
         $model = ArchiveTopic::onlyTrashed()->withCount(['entries' => fn ($query) => $query->withTrashed()])->findOrFail($topic);
         $snapshot = $this->presentTopic($model);
+        $entriesCount = $model->entries()->withTrashed()->count();
+
+        $model->entries()->withTrashed()->forceDelete();
         $model->forceDelete();
 
-        $this->logArchiveAction($request, 'archive.topic.force_deleted', $snapshot);
+        $this->logArchiveAction($request, 'archive.topic.force_deleted', [
+            ...$snapshot,
+            'entries_force_deleted_count' => $entriesCount,
+        ]);
 
-        return back()->with('success', 'Archive topic permanently deleted.');
+        return back()->with('success', 'Archive topic and its entries permanently deleted.');
     }
 
     public function restoreEntry(Request $request, int $entry): RedirectResponse
