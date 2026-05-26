@@ -42,22 +42,29 @@ function clearSearch() {
         Back to Archive
       </Link>
 
-      <section class="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_42%),rgba(255,255,255,0.035)] p-6 md:p-8">
-        <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
-          {{ topic.category_label || 'Archive Topic' }}
+      <section class="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_42%),rgba(255,255,255,0.035)]">
+        <div v-if="topic.banner_image_path" class="relative h-48 overflow-hidden border-b border-white/10 md:h-64">
+          <img :src="topic.banner_image_path" :alt="topic.title" class="h-full w-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[color:var(--horizon-void-900)] via-[color:var(--horizon-void-900)]/35 to-transparent"></div>
         </div>
 
-        <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">
-          {{ topic.title }}
-        </h1>
+        <div class="p-6 md:p-8">
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
+            {{ topic.category_label || 'Archive Topic' }}
+          </div>
 
-        <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-          {{ topic.description || 'No description has been written for this archive topic yet.' }}
-        </p>
+          <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">
+            {{ topic.title }}
+          </h1>
 
-        <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
-          <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ topic.minimum_rank_label }}</span>
-          <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ entries.length }} visible entries</span>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
+            {{ topic.description || 'No description has been written for this archive topic yet.' }}
+          </p>
+
+          <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
+            <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ topic.minimum_rank_label }}</span>
+            <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ entries.length }} visible entries</span>
+          </div>
         </div>
       </section>
 
