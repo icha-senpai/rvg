@@ -111,21 +111,25 @@ class AdminArchiveController extends Controller
     {
         $this->authorize('access-admin-panel');
 
+        $entriesCount = $topic->entries()->count();
+
         $snapshot = [
             'topic_id' => $topic->id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'minimum_rank_level' => $topic->minimum_rank_level,
             'is_published' => $topic->is_published,
+            'entries_count' => $entriesCount,
         ];
 
+        $topic->entries()->delete();
         $topic->delete();
 
         $this->logArchiveAction($request, 'archive.topic.deleted', $snapshot);
 
         return redirect()
             ->route('admin.archive.index')
-            ->with('success', 'Archive topic deleted.');
+            ->with('success', 'Archive topic and its entries moved to trash.');
     }
 
     protected function validateTopic(Request $request, ?ArchiveTopic $topic = null): array
