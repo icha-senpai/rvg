@@ -243,6 +243,149 @@
 }
 
 /* --------------------------------------------------------------------------
+   RICH TEXT CONTENT
+-------------------------------------------------------------------------- */
+
+.hz-rte-content {
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+}
+
+.hz-rte-content p {
+  margin: 0 0 0.9rem;
+}
+
+.hz-rte-content h1,
+.hz-rte-content h2,
+.hz-rte-content h3,
+.hz-rte-content h4,
+.hz-rte-content h5,
+.hz-rte-content h6 {
+  color: var(--color-horizon-white);
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 1.25rem 0 0.6rem;
+}
+
+.hz-rte-content h1 { font-size: 2rem; }
+.hz-rte-content h2 { font-size: 1.65rem; }
+.hz-rte-content h3 { font-size: 1.35rem; }
+.hz-rte-content h4 { font-size: 1.15rem; }
+.hz-rte-content h5 { font-size: 1rem; }
+.hz-rte-content h6 { font-size: 0.9rem; }
+
+.hz-rte-content ul,
+.hz-rte-content ol {
+  margin: 0.75rem 0 1rem;
+  padding-left: 1.5rem;
+}
+
+.hz-rte-content ul { list-style: disc; }
+.hz-rte-content ol { list-style: decimal; }
+.hz-rte-content li { margin: 0.25rem 0; }
+
+.hz-rte-content a {
+  color: var(--horizon-sunset-blue);
+  text-decoration: underline;
+}
+
+.hz-rte-content blockquote {
+  margin: 1rem 0;
+  border-left: 2px solid rgba(255, 255, 255, 0.22);
+  padding-left: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.hz-rte-content hr {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hz-rte-content img {
+  height: auto;
+  max-width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hz-rte-content img.hz-rich-image-left {
+  float: left;
+  max-width: min(45%, 22rem);
+  margin: 0.35rem 1rem 0.75rem 0;
+}
+
+.hz-rte-content img.hz-rich-image-right {
+  float: right;
+  max-width: min(45%, 22rem);
+  margin: 0.35rem 0 0.75rem 1rem;
+}
+
+.hz-rte-content img.hz-rich-image-center {
+  display: block;
+  margin: 0.75rem auto;
+}
+
+.hz-rte-content p::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+.hz-rte-content table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+}
+
+.hz-rte-content th,
+.hz-rte-content td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.5rem;
+}
+
+.hz-rte-content th {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-horizon-white);
+}
+
+.hz-rte-content .hz-rte-size-12 { font-size: 12px; }
+.hz-rte-content .hz-rte-size-14 { font-size: 14px; }
+.hz-rte-content .hz-rte-size-16 { font-size: 16px; }
+.hz-rte-content .hz-rte-size-18 { font-size: 18px; }
+.hz-rte-content .hz-rte-size-20 { font-size: 20px; }
+.hz-rte-content .hz-rte-size-24 { font-size: 24px; }
+.hz-rte-content .hz-rte-size-32 { font-size: 32px; }
+
+.hz-rte-content .hz-rte-font-system { font-family: system-ui, sans-serif; }
+.hz-rte-content .hz-rte-font-sans { font-family: sans-serif; }
+.hz-rte-content .hz-rte-font-arial { font-family: Arial, sans-serif; }
+.hz-rte-content .hz-rte-font-verdana { font-family: Verdana, sans-serif; }
+.hz-rte-content .hz-rte-font-georgia { font-family: Georgia, serif; }
+.hz-rte-content .hz-rte-font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+.hz-rte-content .hz-rte-color-white { color: var(--color-horizon-white); }
+.hz-rte-content .hz-rte-color-muted { color: var(--color-text-muted); }
+.hz-rte-content .hz-rte-color-blue { color: var(--horizon-sunset-blue); }
+.hz-rte-content .hz-rte-color-cyan { color: #38bdf8; }
+.hz-rte-content .hz-rte-color-magenta { color: var(--horizon-sunset-magenta); }
+.hz-rte-content .hz-rte-color-pink { color: var(--horizon-sunset-pink); }
+.hz-rte-content .hz-rte-color-orange { color: var(--horizon-sunset-orange); }
+.hz-rte-content .hz-rte-color-green { color: #22c55e; }
+.hz-rte-content .hz-rte-color-red { color: #ef4444; }
+.hz-rte-content .hz-rte-color-yellow { color: #eab308; }
+
+@media (max-width: 640px) {
+  .hz-rte-content img.hz-rich-image-left,
+  .hz-rte-content img.hz-rich-image-right {
+    float: none;
+    display: block;
+    max-width: 100%;
+    margin: 0.75rem auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
    ANIMATIONS
 -------------------------------------------------------------------------- */
 @keyframes hz-drawer-in {
@@ -615,8 +758,8 @@
     backdrop-filter: blur(10px);
   }
 
-  .hz-holo-light {
-    background: linear-gradient(135deg, rgba(42, 120, 200, 0.14), rgba(34, 43, 69, 0.55));
+  .hz-holo-panel {
+    background: linear-gradient(180deg, rgba(12, 19, 32, 0.78), rgba(5, 8, 14, 0.92));
     border: 1px solid rgba(42, 120, 200, 0.22);
     box-shadow: var(--shadow-soft);
   }
@@ -803,4 +946,3 @@
     background-color: rgba(255, 255, 255, 0.24);
   }
 }
-
