@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
@@ -21,6 +22,8 @@ const props = defineProps({
 
 const editingEntryId = ref(null)
 const previewRank = ref(props.previewRankLevel)
+const deleteEntryDialog = ref(null)
+const entryPendingDelete = ref(null)
 
 const blankEntry = {
   title: '',
@@ -90,11 +93,20 @@ function submitEdit(entry) {
   })
 }
 
-function deleteEntry(entry) {
-  if (!window.confirm(`Delete archive entry "${entry.title}"?`)) return
+function askDeleteEntry(entry) {
+  entryPendingDelete.value = entry
+  deleteEntryDialog.value?.show()
+}
 
-  router.delete(route('admin.archive.topics.entries.destroy', [props.topic.id, entry.id]), {
+function confirmDeleteEntry({ close }) {
+  if (!entryPendingDelete.value) return
+
+  router.delete(route('admin.archive.topics.entries.destroy', [props.topic.id, entryPendingDelete.value.id]), {
     preserveScroll: true,
+    onFinish: () => {
+      entryPendingDelete.value = null
+      close()
+    },
   })
 }
 </script>
@@ -216,7 +228,7 @@ function deleteEntry(entry) {
               <div class="flex flex-wrap gap-2 lg:flex-col">
                 <Link :href="entry.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                 <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(entry)">Edit</HorizonButton>
-                <HorizonButton type="button" variant="danger" size="sm" @click="deleteEntry(entry)">Delete</HorizonButton>
+                <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteEntry(entry)">Delete</HorizonButton>
               </div>
             </div>
 
@@ -267,6 +279,17 @@ function deleteEntry(entry) {
           </div>
         </div>
       </section>
+
+      <HorizonConfirmDialog
+        ref="deleteEntryDialog"
+        title="Delete Archive Entry"
+        confirm-label="Delete Entry"
+        cancel-label="Cancel"
+        variant="danger"
+        close-on-confirm="false"
+        :message="`Delete archive entry '${entryPendingDelete?.title ?? ''}'? This cannot be undone.`"
+        @confirm="confirmDeleteEntry"
+      />
     </div>
   </HorizonContainer>
 </template>
