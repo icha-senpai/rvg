@@ -14,20 +14,28 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { Color } from '@tiptap/extension-color'
-import { FontFamily } from '@tiptap/extension-font-family'
 
-const FontSize = Extension.create({
-  name: 'fontSize',
+const RichTextClasses = Extension.create({
+  name: 'richTextClasses',
   addGlobalAttributes() {
     return [
       {
         types: ['textStyle'],
         attributes: {
-          fontSize: {
+          rteFontSize: {
             default: null,
-            parseHTML: element => element.style.fontSize || null,
-            renderHTML: attributes => attributes.fontSize ? { style: `font-size: ${attributes.fontSize}` } : {},
+            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-size-')) || null,
+            renderHTML: attributes => attributes.rteFontSize ? { class: attributes.rteFontSize } : {},
+          },
+          rteFontFamily: {
+            default: null,
+            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-font-')) || null,
+            renderHTML: attributes => attributes.rteFontFamily ? { class: attributes.rteFontFamily } : {},
+          },
+          rteColor: {
+            default: null,
+            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-color-')) || null,
+            renderHTML: attributes => attributes.rteColor ? { class: attributes.rteColor } : {},
           },
         },
       },
@@ -35,8 +43,12 @@ const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ chain }) => chain().setMark('textStyle', { fontSize }).run(),
-      unsetFontSize: () => ({ chain }) => chain().setMark('textStyle', { fontSize: null }).run(),
+      setRteFontSize: value => ({ chain }) => chain().setMark('textStyle', { rteFontSize: value || null }).run(),
+      unsetRteFontSize: () => ({ chain }) => chain().setMark('textStyle', { rteFontSize: null }).run(),
+      setRteFontFamily: value => ({ chain }) => chain().setMark('textStyle', { rteFontFamily: value || null }).run(),
+      unsetRteFontFamily: () => ({ chain }) => chain().setMark('textStyle', { rteFontFamily: null }).run(),
+      setRteColor: value => ({ chain }) => chain().setMark('textStyle', { rteColor: value || null }).run(),
+      unsetRteColor: () => ({ chain }) => chain().setMark('textStyle', { rteColor: null }).run(),
     }
   },
 })
@@ -158,21 +170,18 @@ const currentTextAlign = computed(() => {
   return attrs.textAlign || 'left'
 })
 
-const currentTextColor = computed(() => {
-  toolbarTick.value
-  return editor?.getAttributes('textStyle')?.color || ''
-})
-
-const currentFontFamily = computed(() => {
-  toolbarTick.value
-  return editor?.getAttributes('textStyle')?.fontFamily || ''
-})
-
 const currentFontSize = computed(() => {
   toolbarTick.value
-  return editor?.getAttributes('textStyle')?.fontSize || ''
+  return editor?.getAttributes('textStyle')?.rteFontSize || ''
 })
-
+const currentFontFamily = computed(() => {
+  toolbarTick.value
+  return editor?.getAttributes('textStyle')?.rteFontFamily || ''
+})
+const currentTextColor = computed(() => {
+  toolbarTick.value
+  return editor?.getAttributes('textStyle')?.rteColor || ''
+})
 const currentImageAlign = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('image')?.['data-align'] || 'center'
@@ -180,29 +189,42 @@ const currentImageAlign = computed(() => {
 
 const fontFamilyOptions = [
   { value: '', label: 'Font: Default', preview: '' },
-  { value: 'system-ui', label: 'Font: System', preview: 'system-ui' },
-  { value: 'sans-serif', label: 'Font: Sans', preview: 'sans-serif' },
-  { value: 'arial', label: 'Font: Arial', preview: 'Arial, sans-serif' },
-  { value: 'verdana', label: 'Font: Verdana', preview: 'Verdana, sans-serif' },
-  { value: 'georgia', label: 'Font: Georgia', preview: 'Georgia, serif' },
-  { value: 'monospace', label: 'Font: Mono', preview: 'monospace' },
+  { value: 'hz-rte-font-system', label: 'Font: System', preview: 'system-ui' },
+  { value: 'hz-rte-font-sans', label: 'Font: Sans', preview: 'sans-serif' },
+  { value: 'hz-rte-font-arial', label: 'Font: Arial', preview: 'Arial, sans-serif' },
+  { value: 'hz-rte-font-verdana', label: 'Font: Verdana', preview: 'Verdana, sans-serif' },
+  { value: 'hz-rte-font-georgia', label: 'Font: Georgia', preview: 'Georgia, serif' },
+  { value: 'hz-rte-font-mono', label: 'Font: Mono', preview: 'monospace' },
 ]
 
 const fontSizeOptions = [
   { value: '', label: 'Size: Default' },
-  { value: '12px', label: '12px' },
-  { value: '14px', label: '14px' },
-  { value: '16px', label: '16px' },
-  { value: '18px', label: '18px' },
-  { value: '20px', label: '20px' },
-  { value: '24px', label: '24px' },
-  { value: '32px', label: '32px' },
+  { value: 'hz-rte-size-12', label: '12px' },
+  { value: 'hz-rte-size-14', label: '14px' },
+  { value: 'hz-rte-size-16', label: '16px' },
+  { value: 'hz-rte-size-18', label: '18px' },
+  { value: 'hz-rte-size-20', label: '20px' },
+  { value: 'hz-rte-size-24', label: '24px' },
+  { value: 'hz-rte-size-32', label: '32px' },
+]
+
+const textColorOptions = [
+  { value: '', label: 'Color: Default' },
+  { value: 'hz-rte-color-white', label: 'White' },
+  { value: 'hz-rte-color-muted', label: 'Muted' },
+  { value: 'hz-rte-color-blue', label: 'Blue' },
+  { value: 'hz-rte-color-cyan', label: 'Cyan' },
+  { value: 'hz-rte-color-magenta', label: 'Magenta' },
+  { value: 'hz-rte-color-pink', label: 'Pink' },
+  { value: 'hz-rte-color-orange', label: 'Orange' },
+  { value: 'hz-rte-color-green', label: 'Green' },
+  { value: 'hz-rte-color-red', label: 'Red' },
+  { value: 'hz-rte-color-yellow', label: 'Yellow' },
 ]
 
 const currentFontFamilyPreview = computed(() => {
-  const current = String(currentFontFamily.value || '')
-  const match = fontFamilyOptions.find(option => String(option.value).toLowerCase() === current.toLowerCase())
-  return match?.preview || current
+  const match = fontFamilyOptions.find(option => option.value === currentFontFamily.value)
+  return match?.preview || ''
 })
 
 function normalizeIncomingHtml(html) {
@@ -249,17 +271,9 @@ const editor = new Editor({
       codeBlock: false,
     }),
     Underline,
-    WrappedImage.configure({
-      inline: false,
-      allowBase64: false,
-      HTMLAttributes: {
-        loading: 'lazy',
-      },
-    }),
+    WrappedImage.configure({ inline: false, allowBase64: false, HTMLAttributes: { loading: 'lazy' } }),
     TextStyle,
-    FontSize,
-    Color.configure({ types: ['textStyle'] }),
-    FontFamily.configure({ types: ['textStyle'] }),
+    RichTextClasses,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Table.configure({ resizable: false }),
     TableRow,
@@ -269,10 +283,7 @@ const editor = new Editor({
       openOnClick: false,
       autolink: true,
       linkOnPaste: true,
-      HTMLAttributes: {
-        target: '_blank',
-        rel: 'noopener noreferrer',
-      },
+      HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' },
     }),
   ],
   content: normalizeIncomingHtml(props.modelValue),
@@ -324,7 +335,6 @@ function applyBlockType(value) {
     editor.chain().setParagraph().run()
     return
   }
-
   const match = String(value).match(/^h([1-6])$/)
   if (!match) return
   editor.chain().setHeading({ level: Number(match[1]) }).run()
@@ -335,36 +345,36 @@ function setTextAlign(value) {
   editor.chain().setTextAlign(value).run()
 }
 
-function applyTextColor(color) {
+function applyTextColor(value) {
   focusAndRestoreSelection()
-  if (!color) {
-    editor.chain().unsetColor().run()
+  if (!value) {
+    editor.chain().unsetRteColor().run()
     return
   }
-  editor.chain().setColor(color).run()
-}
-
-function clearTextColor() {
-  focusAndRestoreSelection()
-  editor.chain().unsetColor().run()
+  editor.chain().setRteColor(value).run()
 }
 
 function applyFontFamily(value) {
   focusAndRestoreSelection()
   if (!value) {
-    editor.chain().unsetFontFamily().run()
+    editor.chain().unsetRteFontFamily().run()
     return
   }
-  editor.chain().setFontFamily(value).run()
+  editor.chain().setRteFontFamily(value).run()
 }
 
 function applyFontSize(value) {
   focusAndRestoreSelection()
   if (!value) {
-    editor.chain().unsetFontSize().run()
+    editor.chain().unsetRteFontSize().run()
     return
   }
-  editor.chain().setFontSize(value).run()
+  editor.chain().setRteFontSize(value).run()
+}
+
+function clearTypography() {
+  focusAndRestoreSelection()
+  editor.chain().unsetRteColor().unsetRteFontFamily().unsetRteFontSize().run()
 }
 
 function insertTable() {
@@ -377,12 +387,7 @@ function deleteTable() { focusAndRestoreSelection(); editor.chain().deleteTable(
 
 function insertImageWithAttributes(src, alt = '', align = 'center') {
   focusAndRestoreSelection()
-  editor.chain().setImage({
-    src,
-    alt,
-    class: imageClassForAlign(align),
-    'data-align': align,
-  }).run()
+  editor.chain().setImage({ src, alt, class: imageClassForAlign(align), 'data-align': align }).run()
 }
 
 function insertImage(align = 'center') {
@@ -398,12 +403,8 @@ function setImageAlign(align) {
     insertImage(align)
     return
   }
-
   focusAndRestoreSelection()
-  editor.chain().updateAttributes('image', {
-    class: imageClassForAlign(align),
-    'data-align': align,
-  }).run()
+  editor.chain().updateAttributes('image', { class: imageClassForAlign(align), 'data-align': align }).run()
   bumpToolbar()
 }
 
@@ -431,23 +432,16 @@ async function uploadImage(event) {
 
     const response = await fetch(route('media.upload'), {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'X-CSRF-TOKEN': csrfToken(),
-      },
+      headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
       body: formData,
     })
 
     const data = await response.json()
-    if (!response.ok || data.status !== 'ok') {
-      throw new Error(data.message || 'Image upload failed.')
-    }
+    if (!response.ok || data.status !== 'ok') throw new Error(data.message || 'Image upload failed.')
 
     const media = data.payload?.media
     const url = mediaDisplayUrl(media)
-    if (!url) {
-      throw new Error('Image uploaded, but no display URL was returned.')
-    }
+    if (!url) throw new Error('Image uploaded, but no display URL was returned.')
 
     insertImageWithAttributes(url, media?.alt_text || file.name, pendingImageAlign.value)
   } catch (error) {
@@ -468,7 +462,6 @@ function insertLink() {
     editor.chain().focus().extendMarkRange('link').unsetLink().run()
     return
   }
-
   editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
 }
 
@@ -520,9 +513,11 @@ onBeforeUnmount(() => editor?.destroy())
         <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
       </select>
 
-      <input type="color" class="hz-input" style="width: 44px; padding: 0.25rem;" title="Text color" :disabled="disabled" :value="currentTextColor || '#ffffff'" @mousedown.stop @change="applyTextColor($event.target.value)" />
+      <select class="hz-input" style="max-width: 145px; padding: 0.3rem 0.55rem;" title="Text color" :disabled="disabled" :value="currentTextColor" @mousedown.stop @change="applyTextColor($event.target.value)">
+        <option v-for="opt in textColorOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
+      </select>
 
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTextColor">Color ×</HorizonButton>
+      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
@@ -553,7 +548,7 @@ onBeforeUnmount(() => editor?.destroy())
       <div v-if="showPlaceholder" class="pointer-events-none absolute left-3 top-3 text-horizon-muted">{{ placeholder }}</div>
       <EditorContent
         :editor="editor"
-        class="hz-textarea rich-editor-body [&_p]:my-0 [&_p]:leading-relaxed [&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-base [&_h3]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_a]:underline [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_img]:my-2 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:border [&_img]:border-white/10 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2"
+        class="hz-textarea hz-rte-content rich-editor-body"
         :class="disabled ? 'opacity-70 pointer-events-none' : ''"
         :style="{ minHeight: `${minHeightPx}px` }"
       />
@@ -562,24 +557,6 @@ onBeforeUnmount(() => editor?.destroy())
 </template>
 
 <style scoped>
-.rich-editor-body :deep(img.hz-rich-image-left) {
-  float: left;
-  max-width: min(45%, 22rem);
-  margin: 0.35rem 1rem 0.75rem 0;
-}
-
-.rich-editor-body :deep(img.hz-rich-image-right) {
-  float: right;
-  max-width: min(45%, 22rem);
-  margin: 0.35rem 0 0.75rem 1rem;
-}
-
-.rich-editor-body :deep(img.hz-rich-image-center) {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .rich-editor-body :deep(p::after) {
   content: '';
   display: block;
