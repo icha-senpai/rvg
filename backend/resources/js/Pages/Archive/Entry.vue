@@ -56,8 +56,13 @@ const props = defineProps({
       </header>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
-        <div class="prose prose-invert max-w-none whitespace-pre-line text-text-secondary">
-          {{ entry.body || 'No body content has been written for this archive entry yet.' }}
+        <div
+          v-if="entry.body"
+          class="prose prose-invert max-w-none text-text-secondary [&_a]:text-[color:var(--horizon-sunset-blue)] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_h1]:text-horizon-white [&_h2]:text-horizon-white [&_h3]:text-horizon-white [&_h4]:text-horizon-white [&_h5]:text-horizon-white [&_h6]:text-horizon-white [&_hr]:border-white/10 [&_img]:rounded-2xl [&_img]:border [&_img]:border-white/10 [&_ol]:pl-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-white/10 [&_td]:p-2 [&_th]:border [&_th]:border-white/10 [&_th]:bg-white/10 [&_th]:p-2 [&_ul]:pl-6"
+          v-html="entry.body"
+        />
+        <div v-else class="text-text-secondary">
+          No body content has been written for this archive entry yet.
         </div>
       </section>
 
