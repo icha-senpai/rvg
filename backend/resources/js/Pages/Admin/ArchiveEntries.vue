@@ -13,9 +13,11 @@ const props = defineProps({
   categoryOptions: { type: Array, default: () => [] },
   tagOptions: { type: Array, default: () => [] },
   rankOptions: { type: Array, default: () => [] },
+  previewRankLevel: { type: [Number, null], default: null },
 })
 
 const editingEntryId = ref(null)
+const previewRank = ref(props.previewRankLevel)
 
 const blankEntry = {
   title: '',
@@ -44,6 +46,21 @@ const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({
   value: tag.id,
   label: tag.name,
 })))
+const previewOptions = computed(() => (props.rankOptions ?? []).map(option => ({
+  ...option,
+  label: option.value === null ? 'All verified members' : option.label,
+})))
+const previewLabel = computed(() => previewOptions.value.find(option => option.value === previewRank.value)?.label ?? 'All verified members')
+
+function changePreviewRank() {
+  router.get(route('admin.archive.topics.entries.index', props.topic.id), {
+    preview_rank_level: previewRank.value ?? '',
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    replace: true,
+  })
+}
 
 function startEdit(entry) {
   editingEntryId.value = entry.id
@@ -108,6 +125,9 @@ function deleteEntry(entry) {
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
               <span class="rounded-full border border-white/10 px-3 py-1">{{ topic.minimum_rank_label }}</span>
               <span class="rounded-full border border-white/10 px-3 py-1">{{ topic.is_published ? 'Topic published' : 'Topic draft' }}</span>
+              <span class="rounded-full border px-3 py-1" :class="topic.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                {{ topic.preview_visible ? 'Topic visible in preview' : 'Topic hidden in preview' }}
+              </span>
             </div>
           </div>
 
@@ -119,6 +139,21 @@ function deleteEntry(entry) {
               View Topic
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
+            <p class="mt-1 text-sm text-text-secondary">
+              Currently previewing entry visibility as <span class="font-bold text-horizon-white">{{ previewLabel }}</span>. Entries also inherit the topic's visibility gate.
+            </p>
+          </div>
+
+          <select v-model="previewRank" class="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white" @change="changePreviewRank">
+            <option v-for="option in previewOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
+          </select>
         </div>
       </section>
 
@@ -206,6 +241,9 @@ function deleteEntry(entry) {
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ entry.minimum_rank_label }}</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="entry.is_published ? 'text-emerald-300' : 'text-red-300'">{{ entry.is_published ? 'Published' : 'Draft' }}</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ entry.sort_order }}</span>
+                  <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="entry.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                    {{ entry.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
+                  </span>
                 </div>
 
                 <h2 class="mt-3 text-2xl font-black text-horizon-white">{{ entry.title }}</h2>
