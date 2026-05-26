@@ -20,16 +20,19 @@ class AdminArchiveController extends Controller
     {
         $this->authorize('access-admin-panel');
 
+        $previewRankLevel = $this->previewRankLevel($request);
+
         $topics = ArchiveTopic::query()
             ->withCount('entries')
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get()
-            ->map(fn (ArchiveTopic $topic) => $this->presentTopic($topic));
+            ->map(fn (ArchiveTopic $topic) => $this->presentTopic($topic, $previewRankLevel));
 
         return Inertia::render('Admin/ArchiveIndex', [
             'topics' => $topics,
             'rankOptions' => $this->rankOptions(),
+            'previewRankLevel' => $previewRankLevel,
         ]);
     }
 
@@ -109,7 +112,7 @@ class AdminArchiveController extends Controller
         return Str::slug($value);
     }
 
-    protected function presentTopic(ArchiveTopic $topic): array
+    protected function presentTopic(ArchiveTopic $topic, ?int $previewRankLevel = null): array
     {
         return [
             'id' => $topic->id,
@@ -126,9 +129,40 @@ class AdminArchiveController extends Controller
             'published_label' => $topic->published_at?->format('M j, Y'),
             'updated_label' => $topic->updated_at?->format('M j, Y'),
             'entries_count' => (int) ($topic->entries_count ?? 0),
+            'preview_visible' => $this->isVisibleAtRank($topic, $previewRankLevel),
             'public_href' => route('archive.topic', $topic),
             'entries_admin_href' => route('admin.archive.topics.entries.index', $topic),
         ];
+    }
+
+    protected function previewRankLevel(Request $request): ?int
+    {
+        $value = $request->query('preview_rank_level');
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $rankLevel = (int) $value;
+
+        return $rankLevel >= 1 && $rankLevel <= 6 ? $rankLevel : null;
+    }
+
+    protected function isVisibleAtRank(ArchiveTopic $topic, ?int $rankLevel): bool
+    {
+        if (! $topic->is_published) {
+            return false;
+        }
+
+        if ($topic->published_at && $topic->published_at->isFuture()) {
+            return false;
+        }
+
+        if ($topic->minimum_rank_level === null || $rankLevel === null) {
+            return true;
+        }
+
+        return (int) $topic->minimum_rank_level <= $rankLevel;
     }
 
     protected function rankOptions(): array
