@@ -110,6 +110,12 @@ function clearSearch() {
               <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">
                 {{ entry.minimum_rank_label }}
               </span>
+              <span v-for="category in entry.categories" :key="`category-${entry.id}-${category.id}`" class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                {{ category.name }}
+              </span>
+              <span v-for="tag in entry.tags" :key="`tag-${entry.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">
+                #{{ tag.name }}
+              </span>
             </div>
 
             <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">
