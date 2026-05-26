@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { route } from 'ziggy-js'
+import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -27,13 +29,11 @@ const selectedUrl = computed({
 
 const filteredMedia = computed(() => {
   const needle = search.value.trim().toLowerCase()
-
   if (!needle) return media.value
 
   return media.value.filter(item => {
     const filename = String(item.original_filename ?? '').toLowerCase()
     const alt = String(item.alt_text ?? '').toLowerCase()
-
     return filename.includes(needle) || alt.includes(needle)
   })
 })
@@ -59,16 +59,11 @@ async function loadMedia() {
       collection: props.collection,
       per_page: 60,
     }), {
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
     })
 
     const data = await response.json()
-
-    if (!response.ok || data.status !== 'ok') {
-      throw new Error(data.message || 'Unable to load media.')
-    }
+    if (!response.ok || data.status !== 'ok') throw new Error(data.message || 'Unable to load media.')
 
     media.value = data.payload?.media?.data ?? []
   } catch (err) {
@@ -108,24 +103,16 @@ async function uploadMedia() {
     })
 
     const data = await response.json()
-
-    if (!response.ok || data.status !== 'ok') {
-      throw new Error(data.message || 'Unable to upload media.')
-    }
+    if (!response.ok || data.status !== 'ok') throw new Error(data.message || 'Unable to upload media.')
 
     const uploaded = data.payload?.media
-
-    if (!uploaded) {
-      throw new Error('Upload completed, but no media payload was returned.')
-    }
+    if (!uploaded) throw new Error('Upload completed, but no media payload was returned.')
 
     media.value = [uploaded, ...media.value.filter(item => item.id !== uploaded.id)]
     selectedUrl.value = mediaDisplayUrl(uploaded)
     uploadAltText.value = ''
 
-    if (uploadInput.value) {
-      uploadInput.value.value = ''
-    }
+    if (uploadInput.value) uploadInput.value.value = ''
   } catch (err) {
     uploadError.value = err?.message || 'Unable to upload media.'
   } finally {
@@ -135,10 +122,7 @@ async function uploadMedia() {
 
 function openPicker() {
   isOpen.value = true
-
-  if (!media.value.length) {
-    loadMedia()
-  }
+  if (!media.value.length) loadMedia()
 }
 
 function closePicker() {
@@ -155,9 +139,7 @@ function clearSelection() {
 }
 
 onMounted(() => {
-  if (isOpen.value) {
-    loadMedia()
-  }
+  if (isOpen.value) loadMedia()
 })
 </script>
 
@@ -165,9 +147,7 @@ onMounted(() => {
   <div class="space-y-2">
     <div class="flex items-center justify-between gap-3">
       <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">{{ label }}</label>
-      <button type="button" class="text-xs font-bold text-[color:var(--horizon-sunset-blue)] hover:text-horizon-white" @click="openPicker">
-        Choose or Upload
-      </button>
+      <HorizonButton type="button" variant="ghost" size="xs" @click="openPicker">Choose or Upload</HorizonButton>
     </div>
 
     <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
@@ -178,19 +158,11 @@ onMounted(() => {
         No image selected
       </div>
 
-      <input
-        v-model="selectedUrl"
-        class="mt-3 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-horizon-white"
-        placeholder="Selected image URL"
-      />
+      <HorizonInput v-model="selectedUrl" class="mt-3" placeholder="Selected image URL" />
 
       <div class="mt-2 flex flex-wrap gap-2">
-        <button type="button" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1.5 text-xs font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20" @click="openPicker">
-          Browse / Upload
-        </button>
-        <button v-if="selectedUrl" type="button" class="rounded-xl border border-white/10 px-3 py-1.5 text-xs font-bold text-text-secondary hover:text-horizon-white" @click="clearSelection">
-          Clear
-        </button>
+        <HorizonButton type="button" variant="ghost" size="xs" @click="openPicker">Browse / Upload</HorizonButton>
+        <HorizonButton v-if="selectedUrl" type="button" variant="ghost" size="xs" @click="clearSelection">Clear</HorizonButton>
       </div>
     </div>
 
@@ -204,16 +176,9 @@ onMounted(() => {
               <p class="mt-1 text-sm text-text-secondary">Select an existing image or upload a new one into {{ collection }}.</p>
             </div>
 
-            <div class="flex gap-2">
-              <input
-                v-model="search"
-                type="search"
-                placeholder="Filter loaded media..."
-                class="w-56 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white outline-none placeholder:text-text-muted focus:border-[color:var(--horizon-sunset-blue)]/45"
-              />
-              <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white" @click="closePicker">
-                Close
-              </button>
+            <div class="flex gap-2 md:items-end">
+              <HorizonInput v-model="search" type="search" placeholder="Filter loaded media..." class="w-56" />
+              <HorizonButton type="button" variant="ghost" @click="closePicker">Close</HorizonButton>
             </div>
           </header>
 
@@ -232,21 +197,11 @@ onMounted(() => {
                   class="mt-4 block w-full cursor-pointer rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-[color:var(--horizon-sunset-blue)]/20 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/35"
                 />
 
-                <input
-                  v-model="uploadAltText"
-                  type="text"
-                  placeholder="Alt text / description"
-                  class="mt-3 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white outline-none placeholder:text-text-muted focus:border-[color:var(--horizon-sunset-blue)]/45"
-                />
+                <HorizonInput v-model="uploadAltText" class="mt-3" placeholder="Alt text / description" />
 
-                <button
-                  type="button"
-                  class="mt-3 w-full rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isUploading"
-                  @click="uploadMedia"
-                >
+                <HorizonButton type="button" class="mt-3 w-full" :disabled="isUploading" @click="uploadMedia">
                   {{ isUploading ? 'Uploading...' : 'Upload & Select' }}
-                </button>
+                </HorizonButton>
 
                 <div v-if="uploadError" class="mt-3 rounded-xl border border-red-300/25 bg-red-300/10 p-3 text-sm text-red-200">
                   {{ uploadError }}
