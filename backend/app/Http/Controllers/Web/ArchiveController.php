@@ -127,7 +127,7 @@ class ArchiveController extends Controller
         $query->where(function (Builder $nested) use ($columns, $needle) {
             foreach ($columns as $column) {
                 $wrappedColumn = $nested->getQuery()->getGrammar()->wrap($column);
-                $nested->orWhereRaw("LOWER({$wrappedColumn}) LIKE ? ESCAPE '\\\\'", [$needle]);
+                $nested->orWhereRaw("LOWER({$wrappedColumn}) LIKE ?", [$needle]);
             }
         });
     }
