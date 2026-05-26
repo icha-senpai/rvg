@@ -5,6 +5,7 @@ import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
   topic: { type: Object, required: true },
@@ -150,6 +151,8 @@ function deleteEntry(entry) {
               <textarea v-model="createForm.body" rows="8" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
             </div>
 
+            <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Entry Banner Image" />
+
             <div v-if="hasCategories">
               <HorizonSelect
                 v-model="createForm.category_ids"
@@ -249,11 +252,9 @@ function deleteEntry(entry) {
                 <textarea v-model="editForm.body" rows="10" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
               </div>
 
-              <div class="grid gap-4 md:grid-cols-3">
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Banner Path</label>
-                  <input v-model="editForm.banner_image_path" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                </div>
+              <ArchiveMediaPicker v-model="editForm.banner_image_path" label="Entry Banner Image" />
+
+              <div class="grid gap-4 md:grid-cols-2">
                 <div>
                   <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
                   <input v-model="editForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
