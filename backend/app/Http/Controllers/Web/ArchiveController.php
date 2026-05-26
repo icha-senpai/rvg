@@ -29,11 +29,7 @@ class ArchiveController extends Controller
             ->orderBy('title');
 
         if ($search !== '') {
-            $topicsQuery->where(function (Builder $query) use ($search) {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('category_label', 'like', "%{$search}%");
-            });
+            $this->applyCaseInsensitiveSearch($topicsQuery, ['title', 'description', 'category_label'], $search);
         }
 
         $topics = $topicsQuery->get()->map(fn (ArchiveTopic $topic) => $this->presentTopicCard($topic));
@@ -41,18 +37,17 @@ class ArchiveController extends Controller
         $entries = collect();
 
         if ($search !== '') {
-            $entries = ArchiveEntry::query()
+            $entriesQuery = ArchiveEntry::query()
                 ->published()
                 ->visibleTo($user)
                 ->whereHas('topic', function (Builder $query) use ($user) {
                     $query->published()->visibleTo($user);
                 })
-                ->with('topic:id,title,slug,minimum_rank_level')
-                ->where(function (Builder $query) use ($search) {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('excerpt', 'like', "%{$search}%")
-                        ->orWhere('body', 'like', "%{$search}%");
-                })
+                ->with('topic:id,title,slug,minimum_rank_level');
+
+            $this->applyCaseInsensitiveSearch($entriesQuery, ['title', 'excerpt', 'body'], $search);
+
+            $entries = $entriesQuery
                 ->orderByDesc('updated_at')
                 ->limit(12)
                 ->get()
@@ -84,11 +79,7 @@ class ArchiveController extends Controller
             ->orderBy('title');
 
         if ($search !== '') {
-            $entriesQuery->where(function (Builder $query) use ($search) {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('excerpt', 'like', "%{$search}%")
-                    ->orWhere('body', 'like', "%{$search}%");
-            });
+            $this->applyCaseInsensitiveSearch($entriesQuery, ['title', 'excerpt', 'body'], $search);
         }
 
         return Inertia::render('Archive/Topic', [
@@ -127,6 +118,27 @@ class ArchiveController extends Controller
             'entry' => $this->presentEntry($entry),
             'relatedEntries' => $relatedEntries,
         ]);
+    }
+
+    protected function applyCaseInsensitiveSearch(Builder $query, array $columns, string $search): void
+    {
+        $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
+
+        $query->where(function (Builder $nested) use ($columns, $needle) {
+            foreach ($columns as $column) {
+                $wrappedColumn = $nested->getQuery()->getGrammar()->wrap($column);
+                $nested->orWhereRaw("LOWER({$wrappedColumn}) LIKE ? ESCAPE '\\\\'", [$needle]);
+            }
+        });
+    }
+
+    protected function escapeLike(string $value): string
+    {
+        return str_replace(
+            ['\\', '%', '_'],
+            ['\\\\', '\\%', '\\_'],
+            $value
+        );
     }
 
     protected function topicIsVisibleTo(ArchiveTopic $topic, $user): bool
