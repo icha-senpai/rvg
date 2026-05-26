@@ -86,11 +86,14 @@ function deleteTopic(topic) {
               Archive Management
             </h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-              Create and manage Archive topic cards. Use Manage Entries to add the actual documents inside each topic.
+              Create and manage Archive topic cards. Use Manage Entries to add the actual documents inside each topic, or manage Categories & Tags to organize entries across the library.
             </p>
           </div>
 
-          <div class="flex gap-3">
+          <div class="flex flex-wrap gap-3">
+            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">
+              Manage Categories & Tags
+            </Link>
             <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">
               View Archive
             </Link>
