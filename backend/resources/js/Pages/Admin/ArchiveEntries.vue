@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
@@ -183,7 +184,11 @@ function deleteEntry(entry) {
 
             <div>
               <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-              <textarea v-model="createForm.body" rows="8" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
+              <HorizonRichTextEditor
+                v-model="createForm.body"
+                placeholder="Write the archive entry body..."
+                :rows="12"
+              />
             </div>
 
             <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Entry Banner Image" />
@@ -287,7 +292,11 @@ function deleteEntry(entry) {
 
               <div>
                 <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-                <textarea v-model="editForm.body" rows="10" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
+                <HorizonRichTextEditor
+                  v-model="editForm.body"
+                  placeholder="Write the archive entry body..."
+                  :rows="14"
+                />
               </div>
 
               <ArchiveMediaPicker v-model="editForm.banner_image_path" label="Entry Banner Image" />
