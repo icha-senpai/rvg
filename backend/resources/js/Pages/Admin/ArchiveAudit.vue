@@ -3,7 +3,10 @@ import { computed, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
+import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 const props = defineProps({
   logs: { type: Object, required: true },
@@ -68,21 +71,12 @@ function prettyMeta(meta) {
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
         <form class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_auto] lg:items-end" @submit.prevent="applyFilters">
-          <div>
-            <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Action</label>
-            <select v-model="selectedAction" class="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white">
-              <option v-for="option in actionOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Search</label>
-            <input v-model="search" placeholder="Search title, name, slug, action..." class="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white placeholder:text-text-muted" />
-          </div>
+          <HorizonSelect v-model="selectedAction" label="Action" :options="actionOptions" />
+          <HorizonInput v-model="search" label="Search" placeholder="Search title, name, slug, action..." />
 
           <div class="flex gap-2">
-            <button type="submit" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25">Filter</button>
-            <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white" @click="clearFilters">Clear</button>
+            <HorizonButton type="submit">Filter</HorizonButton>
+            <HorizonButton type="button" variant="ghost" @click="clearFilters">Clear</HorizonButton>
           </div>
         </form>
       </section>
