@@ -171,6 +171,12 @@ watch(search, value => {
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
               <span class="rounded-full border border-white/10 px-2.5 py-1">{{ entry.minimum_rank_label }}</span>
               <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-2.5 py-1">Updated {{ entry.updated_label }}</span>
+              <span v-for="category in entry.categories" :key="`search-category-${entry.id}-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-blue)]">
+                {{ category.name }}
+              </span>
+              <span v-for="tag in entry.tags" :key="`search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">
+                #{{ tag.name }}
+              </span>
             </div>
           </Link>
         </div>
