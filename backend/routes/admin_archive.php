@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\Admin\AdminArchiveAuditController;
 use App\Http\Controllers\Web\Admin\AdminArchiveController;
 use App\Http\Controllers\Web\Admin\AdminArchiveEntryController;
 use App\Http\Controllers\Web\Admin\AdminArchiveTaxonomyController;
+use App\Http\Controllers\Web\Admin\AdminArchiveTrashController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:access-admin-panel'])
@@ -12,6 +13,16 @@ Route::middleware(['auth', 'can:access-admin-panel'])
     ->group(function () {
         Route::get('/', [AdminArchiveController::class, 'index'])->name('index');
         Route::get('/audit', [AdminArchiveAuditController::class, 'index'])->name('audit.index');
+        Route::get('/trash', [AdminArchiveTrashController::class, 'index'])->name('trash.index');
+
+        Route::post('/trash/topics/{topic}/restore', [AdminArchiveTrashController::class, 'restoreTopic'])->name('trash.topics.restore');
+        Route::delete('/trash/topics/{topic}/force-delete', [AdminArchiveTrashController::class, 'forceDeleteTopic'])->name('trash.topics.force-delete');
+        Route::post('/trash/entries/{entry}/restore', [AdminArchiveTrashController::class, 'restoreEntry'])->name('trash.entries.restore');
+        Route::delete('/trash/entries/{entry}/force-delete', [AdminArchiveTrashController::class, 'forceDeleteEntry'])->name('trash.entries.force-delete');
+        Route::post('/trash/categories/{category}/restore', [AdminArchiveTrashController::class, 'restoreCategory'])->name('trash.categories.restore');
+        Route::delete('/trash/categories/{category}/force-delete', [AdminArchiveTrashController::class, 'forceDeleteCategory'])->name('trash.categories.force-delete');
+        Route::post('/trash/tags/{tag}/restore', [AdminArchiveTrashController::class, 'restoreTag'])->name('trash.tags.restore');
+        Route::delete('/trash/tags/{tag}/force-delete', [AdminArchiveTrashController::class, 'forceDeleteTag'])->name('trash.tags.force-delete');
 
         Route::get('/taxonomy', [AdminArchiveTaxonomyController::class, 'index'])->name('taxonomy.index');
         Route::post('/taxonomy/categories', [AdminArchiveTaxonomyController::class, 'storeCategory'])->name('taxonomy.categories.store');
