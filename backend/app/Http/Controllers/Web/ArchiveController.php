@@ -51,7 +51,7 @@ class ArchiveController extends Controller
                     'tags:id,name,slug',
                 ]);
 
-            $this->applyCaseInsensitiveSearch($entriesQuery, ['title', 'excerpt', 'body'], $search);
+            $this->applyEntrySearch($entriesQuery, $search);
 
             $entries = $entriesQuery
                 ->orderByDesc('updated_at')
@@ -89,7 +89,7 @@ class ArchiveController extends Controller
             ->orderBy('title');
 
         if ($search !== '') {
-            $this->applyCaseInsensitiveSearch($entriesQuery, ['title', 'excerpt', 'body'], $search);
+            $this->applyEntrySearch($entriesQuery, $search);
         }
 
         return Inertia::render('Archive/Topic', [
@@ -138,16 +138,38 @@ class ArchiveController extends Controller
         ]);
     }
 
+    protected function applyEntrySearch(Builder $query, string $search): void
+    {
+        $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
+
+        $query->where(function (Builder $nested) use ($needle) {
+            $this->applyCaseInsensitiveSearchConditions($nested, ['title', 'excerpt', 'body'], $needle);
+
+            $nested->orWhereHas('categories', function (Builder $categoryQuery) use ($needle) {
+                $this->applyCaseInsensitiveSearchConditions($categoryQuery, ['name', 'slug', 'description'], $needle);
+            });
+
+            $nested->orWhereHas('tags', function (Builder $tagQuery) use ($needle) {
+                $this->applyCaseInsensitiveSearchConditions($tagQuery, ['name', 'slug'], $needle);
+            });
+        });
+    }
+
     protected function applyCaseInsensitiveSearch(Builder $query, array $columns, string $search): void
     {
         $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
 
         $query->where(function (Builder $nested) use ($columns, $needle) {
-            foreach ($columns as $column) {
-                $wrappedColumn = $nested->getQuery()->getGrammar()->wrap($column);
-                $nested->orWhereRaw("LOWER({$wrappedColumn}) LIKE ?", [$needle]);
-            }
+            $this->applyCaseInsensitiveSearchConditions($nested, $columns, $needle);
         });
+    }
+
+    protected function applyCaseInsensitiveSearchConditions(Builder $query, array $columns, string $needle): void
+    {
+        foreach ($columns as $column) {
+            $wrappedColumn = $query->getQuery()->getGrammar()->wrap($column);
+            $query->orWhereRaw("LOWER({$wrappedColumn}) LIKE ?", [$needle]);
+        }
     }
 
     protected function escapeLike(string $value): string
