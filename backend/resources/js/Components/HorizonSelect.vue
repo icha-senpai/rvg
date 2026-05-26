@@ -1,5 +1,9 @@
 <template>
-  <div class="hz-select-container relative z-[9999]" ref="container">
+  <div
+    ref="container"
+    class="hz-select-container relative"
+    :class="open ? 'z-[10050]' : 'z-10'"
+  >
     <label
       v-if="label"
       class="hz-label mb-1 block text-[var(--color-text-soft)]"
@@ -31,7 +35,7 @@
     <transition name="fade-scale">
       <ul
         v-if="open"
-        class="hz-select-menu absolute left-0 top-full z-[9999] mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[var(--color-bg-hover)] bg-[var(--color-bg-surface)] shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+        class="hz-select-menu absolute left-0 top-full z-[10060] mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[var(--color-bg-hover)] bg-[var(--color-bg-surface)] shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
       >
         <li
           v-for="opt in options"
