@@ -37,6 +37,15 @@ const props = defineProps({
           <span v-if="entry.published_label" class="rounded-full border border-white/10 px-3 py-1">Published {{ entry.published_label }}</span>
           <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-3 py-1">Updated {{ entry.updated_label }}</span>
         </div>
+
+        <div v-if="entry.categories?.length || entry.tags?.length" class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+          <span v-for="category in entry.categories" :key="`entry-category-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-[color:var(--horizon-sunset-blue)]">
+            {{ category.name }}
+          </span>
+          <span v-for="tag in entry.tags" :key="`entry-tag-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-[color:var(--horizon-sunset-magenta)]">
+            #{{ tag.name }}
+          </span>
+        </div>
       </header>
 
       <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 md:p-8">
@@ -53,6 +62,14 @@ const props = defineProps({
 
         <div class="grid gap-4 md:grid-cols-2">
           <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="rounded-2xl border border-white/10 bg-white/[0.035] p-5 hover:border-[color:var(--horizon-sunset-blue)]/45">
+            <div v-if="related.categories?.length || related.tags?.length" class="mb-3 flex flex-wrap gap-2 text-xs font-semibold">
+              <span v-for="category in related.categories" :key="`related-category-${related.id}-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-blue)]">
+                {{ category.name }}
+              </span>
+              <span v-for="tag in related.tags" :key="`related-tag-${related.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">
+                #{{ tag.name }}
+              </span>
+            </div>
             <h3 class="text-lg font-black text-horizon-white">{{ related.title }}</h3>
             <p class="mt-2 text-sm leading-6 text-text-secondary">{{ related.excerpt }}</p>
           </Link>
