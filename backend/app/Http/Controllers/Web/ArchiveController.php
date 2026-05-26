@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
+use App\Models\ArchiveTag;
 use App\Models\ArchiveTopic;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -43,7 +45,11 @@ class ArchiveController extends Controller
                 ->whereHas('topic', function (Builder $query) use ($user) {
                     $query->published()->visibleTo($user);
                 })
-                ->with('topic:id,title,slug,minimum_rank_level');
+                ->with([
+                    'topic:id,title,slug,minimum_rank_level',
+                    'categories:id,name,slug',
+                    'tags:id,name,slug',
+                ]);
 
             $this->applyCaseInsensitiveSearch($entriesQuery, ['title', 'excerpt', 'body'], $search);
 
@@ -74,7 +80,11 @@ class ArchiveController extends Controller
         $entriesQuery = $topic->entries()
             ->published()
             ->visibleTo($user)
-            ->with('topic:id,title,slug,minimum_rank_level')
+            ->with([
+                'topic:id,title,slug,minimum_rank_level',
+                'categories:id,name,slug',
+                'tags:id,name,slug',
+            ])
             ->orderBy('sort_order')
             ->orderBy('title');
 
@@ -99,14 +109,22 @@ class ArchiveController extends Controller
         abort_unless($this->topicIsVisibleTo($topic, $user), 404);
         abort_unless($this->entryIsVisibleTo($entry, $user), 404);
 
-        $entry->loadMissing('topic:id,title,slug,minimum_rank_level');
+        $entry->loadMissing([
+            'topic:id,title,slug,minimum_rank_level',
+            'categories:id,name,slug',
+            'tags:id,name,slug',
+        ]);
 
         $relatedEntries = ArchiveEntry::query()
             ->published()
             ->visibleTo($user)
             ->where('archive_topic_id', $topic->id)
             ->whereKeyNot($entry->id)
-            ->with('topic:id,title,slug,minimum_rank_level')
+            ->with([
+                'topic:id,title,slug,minimum_rank_level',
+                'categories:id,name,slug',
+                'tags:id,name,slug',
+            ])
             ->orderBy('sort_order')
             ->orderBy('title')
             ->limit(4)
@@ -212,7 +230,11 @@ class ArchiveController extends Controller
 
     protected function presentEntryCard(ArchiveEntry $entry): array
     {
-        $entry->loadMissing('topic:id,title,slug,minimum_rank_level');
+        $entry->loadMissing([
+            'topic:id,title,slug,minimum_rank_level',
+            'categories:id,name,slug',
+            'tags:id,name,slug',
+        ]);
 
         return [
             'id' => $entry->id,
@@ -226,6 +248,16 @@ class ArchiveController extends Controller
             'updated_at' => $entry->updated_at?->toISOString(),
             'published_label' => $entry->published_at?->format('M j, Y'),
             'updated_label' => $entry->updated_at?->format('M j, Y'),
+            'categories' => $entry->categories->map(fn (ArchiveCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ])->values(),
+            'tags' => $entry->tags->map(fn (ArchiveTag $tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ])->values(),
             'topic' => $entry->topic ? [
                 'title' => $entry->topic->title,
                 'slug' => $entry->topic->slug,
