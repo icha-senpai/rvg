@@ -435,7 +435,7 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/squadron/demote', [SquadronRankController::class, 'demote'])
             ->name('admin.squadron.demote');
     });
-
+require __DIR__ . '/admin_archive.php';
 Route::fallback(function () {
     return Inertia::render('Error', [
         'status' => 404,
