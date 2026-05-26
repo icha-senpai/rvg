@@ -233,6 +233,7 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
 Route::middleware(['auth', 'rsi.verified'])
     ->prefix('archive')
     ->name('archive.')
+    ->scopeBindings()
     ->group(function () {
         Route::get('/', [ArchiveController::class, 'index'])->name('index');
         Route::get('/{topic:slug}', [ArchiveController::class, 'topic'])->name('topic');
@@ -435,7 +436,9 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/squadron/demote', [SquadronRankController::class, 'demote'])
             ->name('admin.squadron.demote');
     });
+
 require __DIR__ . '/admin_archive.php';
+
 Route::fallback(function () {
     return Inertia::render('Error', [
         'status' => 404,
