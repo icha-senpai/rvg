@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
@@ -86,7 +86,7 @@ function deleteTopic(topic) {
               Archive Management
             </h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-              Create and manage Archive topic cards. Entry editing comes next; this page is the first admin control layer.
+              Create and manage Archive topic cards. Use Manage Entries to add the actual documents inside each topic.
             </p>
           </div>
 
@@ -173,6 +173,7 @@ function deleteTopic(topic) {
                 </div>
 
                 <div class="flex flex-wrap gap-2 lg:flex-col">
+                  <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
                   <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                   <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45" @click="startEdit(topic)">Edit</button>
                   <button type="button" class="rounded-xl border border-red-300/25 px-4 py-2 text-sm font-bold text-red-200 hover:bg-red-300/10" @click="deleteTopic(topic)">Delete</button>
