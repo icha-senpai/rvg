@@ -4,6 +4,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 
@@ -14,6 +15,10 @@ const props = defineProps({
 
 const editingCategoryId = ref(null)
 const editingTagId = ref(null)
+const deleteCategoryDialog = ref(null)
+const deleteTagDialog = ref(null)
+const categoryPendingDelete = ref(null)
+const tagPendingDelete = ref(null)
 
 const categoryCreateForm = useForm({ name: '', slug: '', description: '', sort_order: 0 })
 const categoryEditForm = useForm({ name: '', slug: '', description: '', sort_order: 0 })
@@ -48,11 +53,20 @@ function submitCategoryEdit(category) {
   })
 }
 
-function deleteCategory(category) {
-  if (!window.confirm(`Delete archive category "${category.name}"? Entries will keep existing content, but lose this category label.`)) return
+function askDeleteCategory(category) {
+  categoryPendingDelete.value = category
+  deleteCategoryDialog.value?.show()
+}
 
-  router.delete(route('admin.archive.taxonomy.categories.destroy', category.id), {
+function confirmDeleteCategory({ close }) {
+  if (!categoryPendingDelete.value) return
+
+  router.delete(route('admin.archive.taxonomy.categories.destroy', categoryPendingDelete.value.id), {
     preserveScroll: true,
+    onFinish: () => {
+      categoryPendingDelete.value = null
+      close()
+    },
   })
 }
 
@@ -82,11 +96,20 @@ function submitTagEdit(tag) {
   })
 }
 
-function deleteTag(tag) {
-  if (!window.confirm(`Delete archive tag "${tag.name}"? Entries will keep existing content, but lose this tag label.`)) return
+function askDeleteTag(tag) {
+  tagPendingDelete.value = tag
+  deleteTagDialog.value?.show()
+}
 
-  router.delete(route('admin.archive.taxonomy.tags.destroy', tag.id), {
+function confirmDeleteTag({ close }) {
+  if (!tagPendingDelete.value) return
+
+  router.delete(route('admin.archive.taxonomy.tags.destroy', tagPendingDelete.value.id), {
     preserveScroll: true,
+    onFinish: () => {
+      tagPendingDelete.value = null
+      close()
+    },
   })
 }
 </script>
@@ -154,7 +177,7 @@ function deleteTag(tag) {
 
               <div class="flex flex-wrap gap-2 md:flex-col">
                 <HorizonButton type="button" variant="ghost" size="sm" @click="startCategoryEdit(category)">Edit</HorizonButton>
-                <HorizonButton type="button" variant="danger" size="sm" @click="deleteCategory(category)">Delete</HorizonButton>
+                <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteCategory(category)">Delete</HorizonButton>
               </div>
             </div>
 
@@ -209,7 +232,7 @@ function deleteTag(tag) {
 
               <div class="flex flex-wrap gap-2 md:flex-col">
                 <HorizonButton type="button" variant="ghost" size="sm" @click="startTagEdit(tag)">Edit</HorizonButton>
-                <HorizonButton type="button" variant="danger" size="sm" @click="deleteTag(tag)">Delete</HorizonButton>
+                <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTag(tag)">Delete</HorizonButton>
               </div>
             </div>
 
@@ -229,6 +252,28 @@ function deleteTag(tag) {
           <div v-if="!tags.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No tags exist yet.</div>
         </div>
       </section>
+
+      <HorizonConfirmDialog
+        ref="deleteCategoryDialog"
+        title="Delete Archive Category"
+        confirm-label="Delete Category"
+        cancel-label="Cancel"
+        variant="danger"
+        close-on-confirm="false"
+        :message="`Delete archive category '${categoryPendingDelete?.name ?? ''}'? Entries will keep their content but lose this category label.`"
+        @confirm="confirmDeleteCategory"
+      />
+
+      <HorizonConfirmDialog
+        ref="deleteTagDialog"
+        title="Delete Archive Tag"
+        confirm-label="Delete Tag"
+        cancel-label="Cancel"
+        variant="danger"
+        close-on-confirm="false"
+        :message="`Delete archive tag '${tagPendingDelete?.name ?? ''}'? Entries will keep their content but lose this tag label.`"
+        @confirm="confirmDeleteTag"
+      />
     </div>
   </HorizonContainer>
 </template>
