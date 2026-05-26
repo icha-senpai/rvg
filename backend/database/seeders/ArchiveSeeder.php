@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
+use App\Models\ArchiveTag;
 use App\Models\ArchiveTopic;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +15,38 @@ class ArchiveSeeder extends Seeder
     {
         DB::transaction(function () {
             $now = now();
+
+            $categories = collect([
+                ['name' => 'Doctrine', 'slug' => 'doctrine', 'description' => 'Standing guidance, operating principles, and strategic posture.', 'sort_order' => 10],
+                ['name' => 'Procedures', 'slug' => 'procedures', 'description' => 'Step-by-step operational and administrative processes.', 'sort_order' => 20],
+                ['name' => 'History', 'slug' => 'history', 'description' => 'Organizational memory, milestones, and records.', 'sort_order' => 30],
+                ['name' => 'Logistics', 'slug' => 'logistics', 'description' => 'Transport, support, supply, medical, and recovery coordination.', 'sort_order' => 40],
+                ['name' => 'Identity', 'slug' => 'identity', 'description' => 'Purpose, values, culture, and long-term organizational direction.', 'sort_order' => 50],
+            ])->mapWithKeys(function (array $categoryData) {
+                $category = ArchiveCategory::updateOrCreate(
+                    ['slug' => $categoryData['slug']],
+                    $categoryData
+                );
+
+                return [$category->slug => $category];
+            });
+
+            $tags = collect([
+                ['name' => 'Defence', 'slug' => 'defence'],
+                ['name' => 'Support', 'slug' => 'support'],
+                ['name' => 'Medical', 'slug' => 'medical'],
+                ['name' => 'Logistics', 'slug' => 'logistics'],
+                ['name' => 'Policy', 'slug' => 'policy'],
+                ['name' => 'Vision', 'slug' => 'vision'],
+                ['name' => 'Starter Content', 'slug' => 'starter-content'],
+            ])->mapWithKeys(function (array $tagData) {
+                $tag = ArchiveTag::updateOrCreate(
+                    ['slug' => $tagData['slug']],
+                    $tagData
+                );
+
+                return [$tag->slug => $tag];
+            });
 
             $topics = [
                 [
@@ -30,6 +64,8 @@ class ArchiveSeeder extends Seeder
                             'body' => "Defence Industries contains Horizon material related to security, patrol operations, combat readiness, escort posture, and strategic defence planning.\n\nThis Phase 1A article is seeded as a placeholder so the Archive system has live content while the full content management layer is built.",
                             'sort_order' => 10,
                             'minimum_rank_level' => 1,
+                            'categories' => ['doctrine'],
+                            'tags' => ['defence', 'starter-content'],
                         ],
                     ],
                 ],
@@ -48,6 +84,8 @@ class ArchiveSeeder extends Seeder
                             'body' => "Lifeline Industries tracks the support side of Horizon operations: moving people, supplies, ships, and rescue capability where they are needed.\n\nThis page is intentionally simple for Phase 1A. Later phases can expand it into doctrine, procedures, and structured support articles.",
                             'sort_order' => 10,
                             'minimum_rank_level' => 1,
+                            'categories' => ['logistics'],
+                            'tags' => ['support', 'medical', 'logistics', 'starter-content'],
                         ],
                     ],
                 ],
@@ -66,6 +104,8 @@ class ArchiveSeeder extends Seeder
                             'body' => "Horizon exists to provide organized, welcoming, and scalable Star Citizen experiences across casual, structured, and large-scale operations.\n\nThe Archive will eventually preserve the deeper identity, values, and strategic direction of the organization here.",
                             'sort_order' => 10,
                             'minimum_rank_level' => 1,
+                            'categories' => ['identity'],
+                            'tags' => ['vision', 'starter-content'],
                         ],
                     ],
                 ],
@@ -84,6 +124,8 @@ class ArchiveSeeder extends Seeder
                             'body' => "Organizational History will hold important milestones, records, transitions, and long-term memory for Horizon.\n\nThis seeded article is a placeholder for validating navigation, search, and visibility rules.",
                             'sort_order' => 10,
                             'minimum_rank_level' => 1,
+                            'categories' => ['history'],
+                            'tags' => ['starter-content'],
                         ],
                     ],
                 ],
@@ -102,6 +144,8 @@ class ArchiveSeeder extends Seeder
                             'body' => "Regulations and Procedures is rank-gated in Phase 1A so the access system can be tested immediately.\n\nMembers below the required rank should not see this topic, this article, its title, its excerpt, or search results that reference it.",
                             'sort_order' => 10,
                             'minimum_rank_level' => 2,
+                            'categories' => ['procedures'],
+                            'tags' => ['policy', 'starter-content'],
                         ],
                     ],
                 ],
@@ -120,7 +164,11 @@ class ArchiveSeeder extends Seeder
                 );
 
                 foreach ($entries as $entryData) {
-                    ArchiveEntry::updateOrCreate(
+                    $entryCategories = $entryData['categories'] ?? [];
+                    $entryTags = $entryData['tags'] ?? [];
+                    unset($entryData['categories'], $entryData['tags']);
+
+                    $entry = ArchiveEntry::updateOrCreate(
                         [
                             'archive_topic_id' => $topic->id,
                             'slug' => $entryData['slug'],
@@ -130,6 +178,22 @@ class ArchiveSeeder extends Seeder
                             'is_published' => true,
                             'published_at' => $now,
                         ])
+                    );
+
+                    $entry->categories()->sync(
+                        collect($entryCategories)
+                            ->map(fn (string $slug) => $categories->get($slug)?->id)
+                            ->filter()
+                            ->values()
+                            ->all()
+                    );
+
+                    $entry->tags()->sync(
+                        collect($entryTags)
+                            ->map(fn (string $slug) => $tags->get($slug)?->id)
+                            ->filter()
+                            ->values()
+                            ->all()
                     );
                 }
             }
