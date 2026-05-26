@@ -127,6 +127,7 @@ class AdminArchiveController extends Controller
             'updated_label' => $topic->updated_at?->format('M j, Y'),
             'entries_count' => (int) ($topic->entries_count ?? 0),
             'public_href' => route('archive.topic', $topic),
+            'entries_admin_href' => route('admin.archive.topics.entries.index', $topic),
         ];
     }
 
