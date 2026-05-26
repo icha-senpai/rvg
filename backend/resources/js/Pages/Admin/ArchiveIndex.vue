@@ -3,7 +3,10 @@ import { computed, ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
+import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
@@ -117,10 +120,8 @@ function deleteTopic(topic) {
             <p class="mt-1 text-sm text-text-secondary">Currently previewing topic visibility as <span class="font-bold text-horizon-white">{{ previewLabel }}</span>.</p>
           </div>
 
-          <div class="flex gap-2">
-            <select v-model="previewRank" class="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white" @change="changePreviewRank">
-              <option v-for="option in previewOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-            </select>
+          <div class="w-full md:w-72">
+            <HorizonSelect v-model="previewRank" :options="previewOptions" @update:model-value="changePreviewRank" />
           </div>
         </div>
       </section>
@@ -131,48 +132,31 @@ function deleteTopic(topic) {
 
           <div class="mt-4 space-y-4">
             <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Title</label>
-              <input v-model="createForm.title" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
+              <HorizonInput v-model="createForm.title" label="Title" />
               <div v-if="createForm.errors.title" class="mt-1 text-xs text-red-300">{{ createForm.errors.title }}</div>
             </div>
 
             <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Slug</label>
-              <input v-model="createForm.slug" placeholder="auto-from-title if blank" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
+              <HorizonInput v-model="createForm.slug" label="Slug" placeholder="auto-from-title if blank" />
               <div v-if="createForm.errors.slug" class="mt-1 text-xs text-red-300">{{ createForm.errors.slug }}</div>
             </div>
 
-            <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Category Label</label>
-              <input v-model="createForm.category_label" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-            </div>
-
-            <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Description</label>
-              <textarea v-model="createForm.description" rows="4" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
-            </div>
+            <HorizonInput v-model="createForm.category_label" label="Category Label" />
+            <HorizonInput v-model="createForm.description" label="Description" type="textarea" rows="4" />
 
             <ArchiveMediaPicker v-model="createForm.card_image_path" label="Topic Card Image" />
             <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Topic Banner Image" />
 
             <div class="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
-                <input v-model="createForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-              </div>
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Minimum Rank</label>
-                <select v-model="createForm.minimum_rank_level" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                  <option v-for="option in rankOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-                </select>
-              </div>
+              <HorizonInput v-model="createForm.sort_order" label="Sort" type="number" min="0" />
+              <HorizonSelect v-model="createForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
             </div>
 
             <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
               <input v-model="createForm.is_published" type="checkbox" /> Published
             </label>
 
-            <button type="submit" class="w-full rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25" :disabled="createForm.processing">Create Topic</button>
+            <HorizonButton type="submit" class="w-full" :disabled="createForm.processing">Create Topic</HorizonButton>
           </div>
         </form>
 
@@ -199,43 +183,23 @@ function deleteTopic(topic) {
                 <div class="flex flex-wrap gap-2 lg:flex-col">
                   <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
                   <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
-                  <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45" @click="startEdit(topic)">Edit</button>
-                  <button type="button" class="rounded-xl border border-red-300/25 px-4 py-2 text-sm font-bold text-red-200 hover:bg-red-300/10" @click="deleteTopic(topic)">Delete</button>
+                  <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
+                  <HorizonButton type="button" variant="danger" size="sm" @click="deleteTopic(topic)">Delete</HorizonButton>
                 </div>
               </div>
 
               <form v-else class="space-y-4" @submit.prevent="submitEdit(topic)">
                 <div class="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Title</label>
-                    <input v-model="editForm.title" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Slug</label>
-                    <input v-model="editForm.slug" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                  </div>
+                  <HorizonInput v-model="editForm.title" label="Title" />
+                  <HorizonInput v-model="editForm.slug" label="Slug" />
                 </div>
 
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Description</label>
-                  <textarea v-model="editForm.description" rows="4" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
-                </div>
+                <HorizonInput v-model="editForm.description" label="Description" type="textarea" rows="4" />
 
                 <div class="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Category</label>
-                    <input v-model="editForm.category_label" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
-                    <input v-model="editForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Minimum Rank</label>
-                    <select v-model="editForm.minimum_rank_level" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                      <option v-for="option in rankOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-                    </select>
-                  </div>
+                  <HorizonInput v-model="editForm.category_label" label="Category" />
+                  <HorizonInput v-model="editForm.sort_order" label="Sort" type="number" min="0" />
+                  <HorizonSelect v-model="editForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
                 </div>
 
                 <div class="grid gap-4 md:grid-cols-2">
@@ -248,8 +212,8 @@ function deleteTopic(topic) {
                 </label>
 
                 <div class="flex flex-wrap gap-2">
-                  <button type="submit" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white">Save</button>
-                  <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white" @click="cancelEdit">Cancel</button>
+                  <HorizonButton type="submit">Save</HorizonButton>
+                  <HorizonButton type="button" variant="ghost" @click="cancelEdit">Cancel</HorizonButton>
                 </div>
               </form>
             </article>
