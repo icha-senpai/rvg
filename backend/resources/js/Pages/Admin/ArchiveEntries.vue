@@ -3,7 +3,9 @@ import { computed, ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
+import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
@@ -39,18 +41,9 @@ const editForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
 const sortedEntries = computed(() => props.entries ?? [])
 const hasCategories = computed(() => (props.categoryOptions ?? []).length > 0)
 const hasTags = computed(() => (props.tagOptions ?? []).length > 0)
-const categorySelectOptions = computed(() => (props.categoryOptions ?? []).map(category => ({
-  value: category.id,
-  label: category.name,
-})))
-const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({
-  value: tag.id,
-  label: tag.name,
-})))
-const previewOptions = computed(() => (props.rankOptions ?? []).map(option => ({
-  ...option,
-  label: option.value === null ? 'All verified members' : option.label,
-})))
+const categorySelectOptions = computed(() => (props.categoryOptions ?? []).map(category => ({ value: category.id, label: category.name })))
+const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({ value: tag.id, label: tag.name })))
+const previewOptions = computed(() => (props.rankOptions ?? []).map(option => ({ ...option, label: option.value === null ? 'All verified members' : option.label })))
 const previewLabel = computed(() => previewOptions.value.find(option => option.value === previewRank.value)?.label ?? 'All verified members')
 
 function changePreviewRank() {
@@ -98,9 +91,7 @@ function submitEdit(entry) {
 }
 
 function deleteEntry(entry) {
-  if (!window.confirm(`Delete archive entry "${entry.title}"?`)) {
-    return
-  }
+  if (!window.confirm(`Delete archive entry "${entry.title}"?`)) return
 
   router.delete(route('admin.archive.topics.entries.destroy', [props.topic.id, entry.id]), {
     preserveScroll: true,
@@ -114,12 +105,8 @@ function deleteEntry(entry) {
       <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
-              Archive Entries
-            </div>
-            <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">
-              {{ topic.title }}
-            </h1>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Entries</div>
+            <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">{{ topic.title }}</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
               Manage the visible documents inside this archive topic. Draft and rank-gated entries stay hidden from members until published and permitted.
             </p>
@@ -133,12 +120,8 @@ function deleteEntry(entry) {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">
-              Back to Topics
-            </Link>
-            <Link :href="topic.public_href" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">
-              View Topic
-            </Link>
+            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Topics</Link>
+            <Link :href="topic.public_href" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Topic</Link>
           </div>
         </div>
       </section>
@@ -152,79 +135,49 @@ function deleteEntry(entry) {
             </p>
           </div>
 
-          <select v-model="previewRank" class="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-horizon-white" @change="changePreviewRank">
-            <option v-for="option in previewOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-          </select>
+          <div class="w-full md:w-72">
+            <HorizonSelect v-model="previewRank" :options="previewOptions" @update:model-value="changePreviewRank" />
+          </div>
         </div>
       </section>
 
       <section class="grid gap-6 lg:grid-cols-[26rem_minmax(0,1fr)]">
         <form class="rounded-3xl border border-white/10 bg-white/[0.035] p-5" @submit.prevent="submitCreate">
-          <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">
-            New Entry
-          </div>
+          <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">New Entry</div>
 
           <div class="mt-4 space-y-4">
             <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Title</label>
-              <input v-model="createForm.title" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
+              <HorizonInput v-model="createForm.title" label="Title" />
               <div v-if="createForm.errors.title" class="mt-1 text-xs text-red-300">{{ createForm.errors.title }}</div>
             </div>
 
             <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Slug</label>
-              <input v-model="createForm.slug" placeholder="auto-from-title if blank" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
+              <HorizonInput v-model="createForm.slug" label="Slug" placeholder="auto-from-title if blank" />
               <div v-if="createForm.errors.slug" class="mt-1 text-xs text-red-300">{{ createForm.errors.slug }}</div>
             </div>
 
-            <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Excerpt</label>
-              <textarea v-model="createForm.excerpt" rows="3" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
-            </div>
+            <HorizonInput v-model="createForm.excerpt" label="Excerpt" type="textarea" rows="3" />
 
             <div>
               <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-              <HorizonRichTextEditor
-                v-model="createForm.body"
-                placeholder="Write the archive entry body..."
-                :rows="12"
-              />
+              <HorizonRichTextEditor v-model="createForm.body" placeholder="Write the archive entry body..." :rows="12" />
             </div>
 
             <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Entry Banner Image" />
 
             <div v-if="hasCategories">
-              <HorizonSelect
-                v-model="createForm.category_ids"
-                label="Categories"
-                multiple
-                :options="categorySelectOptions"
-              />
+              <HorizonSelect v-model="createForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
               <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
             </div>
 
             <div v-if="hasTags">
-              <HorizonSelect
-                v-model="createForm.tag_ids"
-                label="Tags"
-                multiple
-                :options="tagSelectOptions"
-              />
+              <HorizonSelect v-model="createForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
               <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
-                <input v-model="createForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-              </div>
-
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Minimum Rank</label>
-                <select v-model="createForm.minimum_rank_level" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                  <option v-for="option in rankOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-                </select>
-              </div>
+              <HorizonInput v-model="createForm.sort_order" label="Sort" type="number" min="0" />
+              <HorizonSelect v-model="createForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
             </div>
 
             <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
@@ -232,9 +185,7 @@ function deleteEntry(entry) {
               Published
             </label>
 
-            <button type="submit" class="w-full rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/25" :disabled="createForm.processing">
-              Create Entry
-            </button>
+            <HorizonButton type="submit" class="w-full" :disabled="createForm.processing">Create Entry</HorizonButton>
           </div>
         </form>
 
@@ -255,12 +206,8 @@ function deleteEntry(entry) {
                 <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
 
                 <div v-if="entry.categories?.length || entry.tags?.length" class="mt-3 flex flex-wrap gap-2">
-                  <span v-for="category in entry.categories" :key="`category-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">
-                    {{ category.name }}
-                  </span>
-                  <span v-for="tag in entry.tags" :key="`tag-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">
-                    #{{ tag.name }}
-                  </span>
+                  <span v-for="category in entry.categories" :key="`category-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
+                  <span v-for="tag in entry.tags" :key="`tag-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
                 </div>
 
                 <div class="mt-3 text-xs text-text-muted">/{{ topic.slug }}/{{ entry.slug }}</div>
@@ -268,69 +215,38 @@ function deleteEntry(entry) {
 
               <div class="flex flex-wrap gap-2 lg:flex-col">
                 <Link :href="entry.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
-                <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45" @click="startEdit(entry)">Edit</button>
-                <button type="button" class="rounded-xl border border-red-300/25 px-4 py-2 text-sm font-bold text-red-200 hover:bg-red-300/10" @click="deleteEntry(entry)">Delete</button>
+                <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(entry)">Edit</HorizonButton>
+                <HorizonButton type="button" variant="danger" size="sm" @click="deleteEntry(entry)">Delete</HorizonButton>
               </div>
             </div>
 
             <form v-else class="space-y-4" @submit.prevent="submitEdit(entry)">
               <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Title</label>
-                  <input v-model="editForm.title" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                </div>
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Slug</label>
-                  <input v-model="editForm.slug" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                </div>
+                <HorizonInput v-model="editForm.title" label="Title" />
+                <HorizonInput v-model="editForm.slug" label="Slug" />
               </div>
 
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Excerpt</label>
-                <textarea v-model="editForm.excerpt" rows="3" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white"></textarea>
-              </div>
+              <HorizonInput v-model="editForm.excerpt" label="Excerpt" type="textarea" rows="3" />
 
               <div>
                 <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-                <HorizonRichTextEditor
-                  v-model="editForm.body"
-                  placeholder="Write the archive entry body..."
-                  :rows="14"
-                />
+                <HorizonRichTextEditor v-model="editForm.body" placeholder="Write the archive entry body..." :rows="14" />
               </div>
 
               <ArchiveMediaPicker v-model="editForm.banner_image_path" label="Entry Banner Image" />
 
               <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sort</label>
-                  <input v-model="editForm.sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white" />
-                </div>
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Minimum Rank</label>
-                  <select v-model="editForm.minimum_rank_level" class="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-horizon-white">
-                    <option v-for="option in rankOptions" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-                  </select>
-                </div>
+                <HorizonInput v-model="editForm.sort_order" label="Sort" type="number" min="0" />
+                <HorizonSelect v-model="editForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
               </div>
 
               <div class="grid gap-4 md:grid-cols-2">
                 <div v-if="hasCategories">
-                  <HorizonSelect
-                    v-model="editForm.category_ids"
-                    label="Categories"
-                    multiple
-                    :options="categorySelectOptions"
-                  />
+                  <HorizonSelect v-model="editForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
                 </div>
 
                 <div v-if="hasTags">
-                  <HorizonSelect
-                    v-model="editForm.tag_ids"
-                    label="Tags"
-                    multiple
-                    :options="tagSelectOptions"
-                  />
+                  <HorizonSelect v-model="editForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
                 </div>
               </div>
 
@@ -340,8 +256,8 @@ function deleteEntry(entry) {
               </label>
 
               <div class="flex flex-wrap gap-2">
-                <button type="submit" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/15 px-4 py-2 text-sm font-bold text-horizon-white">Save</button>
-                <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white" @click="cancelEdit">Cancel</button>
+                <HorizonButton type="submit">Save</HorizonButton>
+                <HorizonButton type="button" variant="ghost" @click="cancelEdit">Cancel</HorizonButton>
               </div>
             </form>
           </article>
