@@ -20,13 +20,38 @@ const pendingItem = ref(null)
 const pendingAction = ref(null)
 
 const groups = computed(() => [
-  { key: 'topics', title: 'Deleted Topics', items: props.topics, empty: 'No deleted archive topics.' },
-  { key: 'entries', title: 'Deleted Entries', items: props.entries, empty: 'No deleted archive entries.' },
-  { key: 'categories', title: 'Deleted Categories', items: props.categories, empty: 'No deleted archive categories.' },
-  { key: 'tags', title: 'Deleted Tags', items: props.tags, empty: 'No deleted archive tags.' },
+  {
+    key: 'topics',
+    title: 'Deleted Topics',
+    items: props.topics,
+    empty: 'No deleted archive topics.',
+    hint: 'Deleted topics appear here with their bundled entries attached.',
+  },
+  {
+    key: 'entries',
+    title: 'Deleted Entries',
+    items: props.entries,
+    empty: 'No standalone deleted archive entries.',
+    hint: 'Entries deleted as part of a topic stay bundled under the topic instead of appearing twice.',
+  },
+  {
+    key: 'categories',
+    title: 'Deleted Categories',
+    items: props.categories,
+    empty: 'No deleted archive categories.',
+    hint: 'Restoring a category makes it selectable again for Archive entries.',
+  },
+  {
+    key: 'tags',
+    title: 'Deleted Tags',
+    items: props.tags,
+    empty: 'No deleted archive tags.',
+    hint: 'Restoring a tag makes it selectable again for Archive entries.',
+  },
 ])
 
 const totalTrashCount = computed(() => props.topics.length + props.entries.length + props.categories.length + props.tags.length)
+const trashIsEmpty = computed(() => totalTrashCount.value === 0)
 
 function askRestore(item) {
   pendingItem.value = item
@@ -74,10 +99,15 @@ function confirmForceDelete({ close }) {
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Recovery Bay</div>
             <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">Archive Trash</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-              Restore soft-deleted Archive content or permanently delete records that should be removed forever.
+              Restore soft-deleted Archive content or permanently delete records that should be removed forever. Topic deletes are bundled with their entries so whole sections can be recovered cleanly.
             </p>
-            <div class="mt-4 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
-              {{ totalTrashCount }} deleted item{{ totalTrashCount === 1 ? '' : 's' }}
+            <div class="mt-4 flex flex-wrap gap-2">
+              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
+                {{ totalTrashCount }} deleted item{{ totalTrashCount === 1 ? '' : 's' }}
+              </div>
+              <div v-if="trashIsEmpty" class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200 inline-flex">
+                Recovery bay clear
+              </div>
             </div>
           </div>
 
@@ -88,10 +118,19 @@ function confirmForceDelete({ close }) {
         </div>
       </section>
 
+      <section v-if="trashIsEmpty" class="rounded-[2rem] border border-emerald-300/20 bg-emerald-300/10 p-6 md:p-8">
+        <div class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-200/80">Nothing to restore</div>
+        <h2 class="mt-2 text-2xl font-black text-emerald-100">The Archive trash is empty.</h2>
+        <p class="mt-2 max-w-3xl text-sm leading-6 text-emerald-100/80">
+          Deleted Archive content will appear here after soft-delete. Until then, the recovery bay is quiet, tidy, and suspiciously well-behaved.
+        </p>
+      </section>
+
       <section v-for="group in groups" :key="group.key" class="space-y-4">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">{{ group.title }}</div>
           <h2 class="text-2xl font-black text-horizon-white">{{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ group.hint }}</p>
         </div>
 
         <div v-if="group.items.length" class="grid gap-4 lg:grid-cols-2">
@@ -129,7 +168,7 @@ function confirmForceDelete({ close }) {
         confirm-label="Restore"
         cancel-label="Cancel"
         variant="success"
-        close-on-confirm="false"
+        :close-on-confirm="false"
         :message="`Restore ${pendingItem?.type ?? 'item'} '${pendingItem?.title ?? ''}' back into the active Archive?`"
         @confirm="confirmRestore"
       />
@@ -140,7 +179,7 @@ function confirmForceDelete({ close }) {
         confirm-label="Delete Forever"
         cancel-label="Cancel"
         variant="danger"
-        close-on-confirm="false"
+        :close-on-confirm="false"
         requires-text-input
         text-input-label="Type DELETE to permanently remove this item"
         text-input-placeholder="DELETE"
