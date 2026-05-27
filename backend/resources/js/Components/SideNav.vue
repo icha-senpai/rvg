@@ -8,6 +8,7 @@ import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 const page = usePage()
 
 const user = computed(() => page.props?.auth?.user ?? null)
+const archiveNavigation = computed(() => page.props?.archiveNavigation ?? { topics: [] })
 
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0))
 
@@ -77,6 +78,24 @@ const directorBadgeLabel = computed(() => {
   if (roleSlugs.includes('director')) return 'DIRECTOR'
 
   return 'DIRECTOR ACCESS'
+})
+
+const archiveTopicChildren = computed(() => {
+  const url = page.url ?? ''
+
+  return (archiveNavigation.value?.topics ?? []).map(topic => ({
+    key: `archive-topic-${topic.id}`,
+    label: topic.title,
+    href: topic.href,
+    isActive: url === topic.href || url.startsWith(`${topic.href}/`) || url.startsWith(`${topic.href}?`),
+    meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
+    entries: (topic.entries ?? []).map(entry => ({
+      key: `archive-entry-${entry.id}`,
+      label: entry.title,
+      href: entry.href,
+      isActive: url === entry.href || url.startsWith(`${entry.href}?`),
+    })),
+  }))
 })
 
 const navGroups = computed(() => {
@@ -218,6 +237,7 @@ const navGroups = computed(() => {
           isActive: url === '/archive' || url === '/archive/' || url.startsWith('/archive?') || url.startsWith('/archive/'),
           tone: 'magenta',
           status: 'Docs',
+          children: archiveTopicChildren.value,
         },
       ],
     },
@@ -277,6 +297,10 @@ function getItemHref(item) {
   if (item.href) return item.href
 
   return route(item.routeName, item.params)
+}
+
+function itemHasOpenChildren(item) {
+  return Boolean(item.isActive && item.children?.length)
 }
 
 function iconToneClass(item, active = false) {
@@ -533,6 +557,43 @@ onBeforeUnmount(() => {
                   </span>
                 </div>
               </a>
+
+              <div
+                v-if="itemHasOpenChildren(item)"
+                class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
+              >
+                <div
+                  v-for="child in item.children"
+                  :key="child.key"
+                  class="space-y-1"
+                >
+                  <Link
+                    :href="child.href"
+                    class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
+                    :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                    @click="closeMobileNav"
+                  >
+                    <span class="truncate">{{ child.label }}</span>
+                    <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
+                  </Link>
+
+                  <div
+                    v-if="child.isActive && child.entries?.length"
+                    class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                  >
+                    <Link
+                      v-for="entry in child.entries"
+                      :key="entry.key"
+                      :href="entry.href"
+                      class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                      :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      @click="closeMobileNav"
+                    >
+                      {{ entry.label }}
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </template>
           </section>
         </nav>
@@ -758,6 +819,41 @@ onBeforeUnmount(() => {
                   ↗
                 </span>
               </a>
+
+              <div
+                v-if="desktopExpanded && itemHasOpenChildren(item)"
+                class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
+              >
+                <div
+                  v-for="child in item.children"
+                  :key="child.key"
+                  class="space-y-1"
+                >
+                  <Link
+                    :href="child.href"
+                    class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
+                    :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                  >
+                    <span class="truncate">{{ child.label }}</span>
+                    <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
+                  </Link>
+
+                  <div
+                    v-if="child.isActive && child.entries?.length"
+                    class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                  >
+                    <Link
+                      v-for="entry in child.entries"
+                      :key="entry.key"
+                      :href="entry.href"
+                      class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                      :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                    >
+                      {{ entry.label }}
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </template>
           </section>
         </nav>
