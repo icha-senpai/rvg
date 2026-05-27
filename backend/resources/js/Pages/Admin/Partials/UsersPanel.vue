@@ -854,10 +854,11 @@ const roleOrderIndex = new Map(roleSortOrder.map((slug, index) => [slug, index])
 const rankOptions = [
   { label: 'Member', value: 'member', level: 1 },
   { label: 'Lieutenant', value: 'lieutenant', level: 2 },
-  { label: 'Commander', value: 'commander', level: 3 },
-  { label: 'Wing Commander', value: 'wing_commander', level: 4 },
-  { label: 'Admiral', value: 'admiral', level: 5 },
-  { label: 'Grand Admiral', value: 'grand_admiral', level: 6 },
+  { label: 'C.I.T (Commander in Training)', value: 'cit', level: 3 },
+  { label: 'Commander', value: 'commander', level: 4 },
+  { label: 'Wing Commander', value: 'wing_commander', level: 5 },
+  { label: 'Admiral', value: 'admiral', level: 6 },
+  { label: 'Grand Admiral', value: 'grand_admiral', level: 7 },
 ];
 
 const rankLabelBySlug = new Map(rankOptions.map(o => [o.value, o.label]));
