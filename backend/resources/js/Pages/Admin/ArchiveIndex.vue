@@ -6,9 +6,9 @@ import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
-import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
@@ -207,7 +207,7 @@ function confirmDeleteTopic({ close }) {
         </div>
       </section>
 
-      <OperationDrawer v-if="topicDrawerOpen" @close="closeTopicDrawer">
+      <HorizonDrawer v-if="topicDrawerOpen" close-label="Close archive topic drawer" @close="closeTopicDrawer">
         <template #header>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">{{ drawerEyebrow }}</div>
           <h2 class="mt-1 text-2xl font-black text-horizon-white">{{ drawerTitle }}</h2>
@@ -256,7 +256,7 @@ function confirmDeleteTopic({ close }) {
             </HorizonButton>
           </div>
         </template>
-      </OperationDrawer>
+      </HorizonDrawer>
 
       <HorizonConfirmDialog
         ref="deleteTopicDialog"
