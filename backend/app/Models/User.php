@@ -89,10 +89,11 @@ class User extends Authenticatable
         $map = [
             'member'         => 1,
             'lieutenant'     => 2,
-            'commander'      => 3,
-            'wing_commander' => 4,
-            'admiral'        => 5,
-            'grand_admiral'  => 6,
+            'cit'            => 3,
+            'commander'      => 4,
+            'wing_commander' => 5,
+            'admiral'        => 6,
+            'grand_admiral'  => 7,
         ];
 
         $this->attributes['rank'] = $rank;
@@ -108,10 +109,11 @@ class User extends Authenticatable
         return [
             1 => 'Member',
             2 => 'Lieutenant',
-            3 => 'Commander',
-            4 => 'Wing Commander',
-            5 => 'Admiral',
-            6 => 'Grand Admiral',
+            3 => 'C.I.T (Commander in Training)',
+            4 => 'Commander',
+            5 => 'Wing Commander',
+            6 => 'Admiral',
+            7 => 'Grand Admiral',
         ][$this->rank_level] ?? 'Unknown';
     }
 
