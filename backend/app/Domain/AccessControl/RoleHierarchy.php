@@ -17,8 +17,8 @@ class RoleHierarchy
         'wing_commander'    => 5,
         'admiral'           => 6,
         'grand_admiral'     => 7,
+        'director'          => 8,
         'tech_director'     => 8,
-        'director'          => 9,
     ];
 
     public static function levelFor(string $roleSlug): int
