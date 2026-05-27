@@ -28,10 +28,11 @@ class RankMiddleware
         $requiredRole = match ($requiredRank) {
             1 => 'member',
             2 => 'lieutenant',
-            3 => 'commander',
-            4 => 'wing_commander',
-            5 => 'admiral',
-            6 => 'grand_admiral',
+            3 => 'cit',
+            4 => 'commander',
+            5 => 'wing_commander',
+            6 => 'admiral',
+            7 => 'grand_admiral',
             default => null,
         };
 
@@ -62,10 +63,11 @@ class RankMiddleware
         return match ($level) {
             1 => 'Member',
             2 => 'Lieutenant',
-            3 => 'Commander',
-            4 => 'Wing Commander',
-            5 => 'Admiral',
-            6 => 'Grand Admiral',
+            3 => 'C.I.T (Commander in Training)',
+            4 => 'Commander',
+            5 => 'Wing Commander',
+            6 => 'Admiral',
+            7 => 'Grand Admiral',
             default => 'Unknown Rank'
         };
     }
