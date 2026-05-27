@@ -7,9 +7,13 @@ use App\Domain\AccessControl\PermissionRegistry;
 use App\Domain\Media\MediaService;
 use App\Domain\Media\MediaVisibility;
 use App\Domain\Media\Presenters\MediaPresenter;
+use App\Models\ArchiveCategory;
+use App\Models\ArchiveEntry;
+use App\Models\ArchiveTopic;
 use App\Models\Media;
 use App\Models\User;
 use Inertia\Middleware;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -110,7 +114,73 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
             ],
             'mediaPicker' => fn () => $this->resolveMediaPicker($request),
+            'archiveNavigation' => fn () => $this->resolveArchiveNavigation($request),
         ]);
+    }
+
+    protected function resolveArchiveNavigation(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (! $user || ! $request->is('archive*')) {
+            return null;
+        }
+
+        $topics = ArchiveTopic::query()
+            ->published()
+            ->visibleTo($user)
+            ->with([
+                'entries' => function ($query) use ($user) {
+                    $query->published()
+                        ->visibleTo($user)
+                        ->with(['categories:id,name,slug'])
+                        ->orderBy('sort_order')
+                        ->orderBy('title');
+                },
+            ])
+            ->withCount([
+                'entries as visible_entries_count' => function (Builder $query) use ($user) {
+                    $query->published()->visibleTo($user);
+                },
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get();
+
+        return [
+            'topics' => $topics->map(function (ArchiveTopic $topic) {
+                $categories = $topic->entries
+                    ->flatMap(fn (ArchiveEntry $entry) => $entry->categories)
+                    ->unique('id')
+                    ->sortBy('name')
+                    ->values()
+                    ->map(fn (ArchiveCategory $category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                    ]);
+
+                return [
+                    'id' => $topic->id,
+                    'title' => $topic->title,
+                    'slug' => $topic->slug,
+                    'category_label' => $topic->category_label,
+                    'minimum_rank_label' => $topic->minimumRankLabel(),
+                    'visible_entries_count' => (int) ($topic->visible_entries_count ?? $topic->entries->count()),
+                    'href' => route('archive.topic', $topic),
+                    'categories' => $categories,
+                    'entries' => $topic->entries->map(fn (ArchiveEntry $entry) => [
+                        'id' => $entry->id,
+                        'title' => $entry->title,
+                        'slug' => $entry->slug,
+                        'href' => route('archive.entry', [
+                            'topic' => $topic,
+                            'entry' => $entry,
+                        ]),
+                    ])->values(),
+                ];
+            })->values(),
+        ];
     }
 
     protected function resolveMediaPicker(Request $request): ?array
@@ -161,7 +231,6 @@ class HandleInertiaRequests extends Middleware
         }
 
         $media = $this->mediaService->list($result->filters, 24, 'media_picker_page', $page);
-
         $media->setCollection(
             $media->getCollection()->map(
                 fn (Media $item) => MediaPresenter::make($item)->summary()
