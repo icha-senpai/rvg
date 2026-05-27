@@ -9,6 +9,7 @@ import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
@@ -20,6 +21,7 @@ const props = defineProps({
   previewRankLevel: { type: [Number, null], default: null },
 })
 
+const entryDrawerOpen = ref(false)
 const editingEntryId = ref(null)
 const previewRank = ref(props.previewRankLevel)
 const deleteEntryDialog = ref(null)
@@ -38,8 +40,7 @@ const blankEntry = {
   is_published: true,
 }
 
-const createForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
-const editForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
+const entryForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
 
 const sortedEntries = computed(() => props.entries ?? [])
 const hasCategories = computed(() => (props.categoryOptions ?? []).length > 0)
@@ -48,6 +49,14 @@ const categorySelectOptions = computed(() => (props.categoryOptions ?? []).map(c
 const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({ value: tag.id, label: tag.name })))
 const previewOptions = computed(() => (props.rankOptions ?? []).map(option => ({ ...option, label: option.value === null ? 'All verified members' : option.label })))
 const previewLabel = computed(() => previewOptions.value.find(option => option.value === previewRank.value)?.label ?? 'All verified members')
+const editingEntry = computed(() => sortedEntries.value.find(entry => entry.id === editingEntryId.value) ?? null)
+const isEditingEntry = computed(() => Boolean(editingEntryId.value))
+const drawerTitle = computed(() => isEditingEntry.value ? 'Edit Archive Entry' : 'New Archive Entry')
+const drawerEyebrow = computed(() => isEditingEntry.value ? 'Entry Editor' : 'Entry Builder')
+const drawerDescription = computed(() => isEditingEntry.value
+  ? 'Update the entry body, taxonomy, publishing state, media, and rank visibility.'
+  : `Create a new document inside ${props.topic.title}.`
+)
 
 function changePreviewRank() {
   router.get(route('admin.archive.topics.entries.index', props.topic.id), {
@@ -59,37 +68,53 @@ function changePreviewRank() {
   })
 }
 
+function hydrateEntryForm(entry = null) {
+  const source = entry ?? blankEntry
+
+  entryForm.title = source.title ?? ''
+  entryForm.slug = source.slug ?? ''
+  entryForm.excerpt = source.excerpt ?? ''
+  entryForm.body = source.body ?? ''
+  entryForm.banner_image_path = source.banner_image_path ?? ''
+  entryForm.sort_order = source.sort_order ?? 0
+  entryForm.minimum_rank_level = source.minimum_rank_level ?? null
+  entryForm.category_ids = [...(source.category_ids ?? [])]
+  entryForm.tag_ids = [...(source.tag_ids ?? [])]
+  entryForm.is_published = Boolean(source.is_published ?? true)
+  entryForm.clearErrors()
+}
+
+function openCreateDrawer() {
+  editingEntryId.value = null
+  hydrateEntryForm()
+  entryDrawerOpen.value = true
+}
+
 function startEdit(entry) {
   editingEntryId.value = entry.id
-  editForm.title = entry.title ?? ''
-  editForm.slug = entry.slug ?? ''
-  editForm.excerpt = entry.excerpt ?? ''
-  editForm.body = entry.body ?? ''
-  editForm.banner_image_path = entry.banner_image_path ?? ''
-  editForm.sort_order = entry.sort_order ?? 0
-  editForm.minimum_rank_level = entry.minimum_rank_level ?? null
-  editForm.category_ids = [...(entry.category_ids ?? [])]
-  editForm.tag_ids = [...(entry.tag_ids ?? [])]
-  editForm.is_published = Boolean(entry.is_published)
+  hydrateEntryForm(entry)
+  entryDrawerOpen.value = true
 }
 
-function cancelEdit() {
+function closeEntryDrawer() {
+  entryDrawerOpen.value = false
   editingEntryId.value = null
-  editForm.reset()
-  editForm.clearErrors()
+  entryForm.reset()
+  entryForm.clearErrors()
 }
 
-function submitCreate() {
-  createForm.post(route('admin.archive.topics.entries.store', props.topic.id), {
-    preserveScroll: true,
-    onSuccess: () => createForm.reset(),
-  })
-}
+function submitEntry() {
+  if (isEditingEntry.value && editingEntry.value) {
+    entryForm.put(route('admin.archive.topics.entries.update', [props.topic.id, editingEntry.value.id]), {
+      preserveScroll: true,
+      onSuccess: () => closeEntryDrawer(),
+    })
+    return
+  }
 
-function submitEdit(entry) {
-  editForm.put(route('admin.archive.topics.entries.update', [props.topic.id, entry.id]), {
+  entryForm.post(route('admin.archive.topics.entries.store', props.topic.id), {
     preserveScroll: true,
-    onSuccess: () => cancelEdit(),
+    onSuccess: () => closeEntryDrawer(),
   })
 }
 
@@ -132,6 +157,7 @@ function confirmDeleteEntry({ close }) {
           </div>
 
           <div class="flex flex-wrap gap-3">
+            <HorizonButton type="button" @click="openCreateDrawer">New Entry</HorizonButton>
             <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Topics</Link>
             <Link :href="topic.public_href" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Topic</Link>
           </div>
@@ -153,57 +179,19 @@ function confirmDeleteEntry({ close }) {
         </div>
       </section>
 
-      <section class="grid gap-6 lg:grid-cols-[26rem_minmax(0,1fr)]">
-        <form class="rounded-3xl border border-white/10 bg-white/[0.035] p-5" @submit.prevent="submitCreate">
-          <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">New Entry</div>
-
-          <div class="mt-4 space-y-4">
-            <div>
-              <HorizonInput v-model="createForm.title" label="Title" />
-              <div v-if="createForm.errors.title" class="mt-1 text-xs text-red-300">{{ createForm.errors.title }}</div>
-            </div>
-
-            <div>
-              <HorizonInput v-model="createForm.slug" label="Slug" placeholder="auto-from-title if blank" />
-              <div v-if="createForm.errors.slug" class="mt-1 text-xs text-red-300">{{ createForm.errors.slug }}</div>
-            </div>
-
-            <HorizonInput v-model="createForm.excerpt" label="Excerpt" type="textarea" rows="3" />
-
-            <div>
-              <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-              <HorizonRichTextEditor v-model="createForm.body" placeholder="Write the archive entry body..." :rows="12" />
-            </div>
-
-            <ArchiveMediaPicker v-model="createForm.banner_image_path" label="Entry Banner Image" />
-
-            <div v-if="hasCategories">
-              <HorizonSelect v-model="createForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
-              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
-            </div>
-
-            <div v-if="hasTags">
-              <HorizonSelect v-model="createForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
-              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
-            </div>
-
-            <div class="grid gap-4 sm:grid-cols-2">
-              <HorizonInput v-model="createForm.sort_order" label="Sort" type="number" min="0" />
-              <HorizonSelect v-model="createForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
-            </div>
-
-            <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
-              <input v-model="createForm.is_published" type="checkbox" />
-              Published
-            </label>
-
-            <HorizonButton type="submit" class="w-full" :disabled="createForm.processing">Create Entry</HorizonButton>
+      <section class="space-y-4">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Entries</div>
+            <h2 class="text-2xl font-black text-horizon-white">{{ sortedEntries.length }} entr{{ sortedEntries.length === 1 ? 'y' : 'ies' }}</h2>
           </div>
-        </form>
 
-        <div class="space-y-4">
+          <HorizonButton type="button" variant="ghost" @click="openCreateDrawer">Create Entry</HorizonButton>
+        </div>
+
+        <div v-if="sortedEntries.length" class="space-y-4">
           <article v-for="entry in sortedEntries" :key="entry.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-            <div v-if="editingEntryId !== entry.id" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ entry.minimum_rank_label }}</span>
@@ -231,54 +219,78 @@ function confirmDeleteEntry({ close }) {
                 <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteEntry(entry)">Delete</HorizonButton>
               </div>
             </div>
-
-            <form v-else class="space-y-4" @submit.prevent="submitEdit(entry)">
-              <div class="grid gap-4 md:grid-cols-2">
-                <HorizonInput v-model="editForm.title" label="Title" />
-                <HorizonInput v-model="editForm.slug" label="Slug" />
-              </div>
-
-              <HorizonInput v-model="editForm.excerpt" label="Excerpt" type="textarea" rows="3" />
-
-              <div>
-                <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
-                <HorizonRichTextEditor v-model="editForm.body" placeholder="Write the archive entry body..." :rows="14" />
-              </div>
-
-              <ArchiveMediaPicker v-model="editForm.banner_image_path" label="Entry Banner Image" />
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <HorizonInput v-model="editForm.sort_order" label="Sort" type="number" min="0" />
-                <HorizonSelect v-model="editForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <div v-if="hasCategories">
-                  <HorizonSelect v-model="editForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
-                </div>
-
-                <div v-if="hasTags">
-                  <HorizonSelect v-model="editForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
-                </div>
-              </div>
-
-              <label class="flex items-center gap-2 text-sm font-semibold text-text-secondary">
-                <input v-model="editForm.is_published" type="checkbox" />
-                Published
-              </label>
-
-              <div class="flex flex-wrap gap-2">
-                <HorizonButton type="submit">Save</HorizonButton>
-                <HorizonButton type="button" variant="ghost" @click="cancelEdit">Cancel</HorizonButton>
-              </div>
-            </form>
           </article>
+        </div>
 
-          <div v-if="!sortedEntries.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
-            No archive entries exist for this topic yet.
-          </div>
+        <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+          No archive entries exist for this topic yet. Use New Entry to create the first document.
         </div>
       </section>
+
+      <OperationDrawer v-if="entryDrawerOpen" @close="closeEntryDrawer">
+        <template #header>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">{{ drawerEyebrow }}</div>
+          <h2 class="mt-1 text-2xl font-black text-horizon-white">{{ drawerTitle }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ drawerDescription }}</p>
+        </template>
+
+        <form id="archive-entry-form" class="space-y-5" @submit.prevent="submitEntry">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <HorizonInput v-model="entryForm.title" label="Title" />
+              <div v-if="entryForm.errors.title" class="mt-1 text-xs text-red-300">{{ entryForm.errors.title }}</div>
+            </div>
+
+            <div>
+              <HorizonInput v-model="entryForm.slug" label="Slug" placeholder="auto-from-title if blank" />
+              <div v-if="entryForm.errors.slug" class="mt-1 text-xs text-red-300">{{ entryForm.errors.slug }}</div>
+            </div>
+          </div>
+
+          <div>
+            <HorizonInput v-model="entryForm.excerpt" label="Excerpt" type="textarea" rows="3" />
+            <div v-if="entryForm.errors.excerpt" class="mt-1 text-xs text-red-300">{{ entryForm.errors.excerpt }}</div>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Body</label>
+            <HorizonRichTextEditor v-model="entryForm.body" placeholder="Write the archive entry body..." :rows="16" />
+            <div v-if="entryForm.errors.body" class="mt-1 text-xs text-red-300">{{ entryForm.errors.body }}</div>
+          </div>
+
+          <ArchiveMediaPicker v-model="entryForm.banner_image_path" label="Entry Banner Image" />
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div v-if="hasCategories">
+              <HorizonSelect v-model="entryForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
+              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
+            </div>
+
+            <div v-if="hasTags">
+              <HorizonSelect v-model="entryForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
+              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
+            </div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <HorizonInput v-model="entryForm.sort_order" label="Sort" type="number" min="0" />
+            <HorizonSelect v-model="entryForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
+          </div>
+
+          <label class="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-text-secondary">
+            <input v-model="entryForm.is_published" type="checkbox" /> Published
+          </label>
+        </form>
+
+        <template #footer>
+          <div class="flex flex-wrap justify-end gap-2">
+            <HorizonButton type="button" variant="ghost" @click="closeEntryDrawer">Cancel</HorizonButton>
+            <HorizonButton type="submit" form="archive-entry-form" :disabled="entryForm.processing">
+              {{ entryForm.processing ? 'Saving...' : isEditingEntry ? 'Save Entry' : 'Create Entry' }}
+            </HorizonButton>
+          </div>
+        </template>
+      </OperationDrawer>
 
       <HorizonConfirmDialog
         ref="deleteEntryDialog"
@@ -286,8 +298,8 @@ function confirmDeleteEntry({ close }) {
         confirm-label="Delete Entry"
         cancel-label="Cancel"
         variant="danger"
-        close-on-confirm="false"
-        :message="`Delete archive entry '${entryPendingDelete?.title ?? ''}'? This cannot be undone.`"
+        :close-on-confirm="false"
+        :message="`Delete archive entry '${entryPendingDelete?.title ?? ''}'? It will move to Archive Trash.`"
         @confirm="confirmDeleteEntry"
       />
     </div>
