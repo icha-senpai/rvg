@@ -4,7 +4,6 @@ import { Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
-import HorizonButton from '@/Components/HorizonButton.vue'
 
 import UsersPanel from './Partials/UsersPanel.vue'
 import SquadronsPanel from './Partials/SquadronsPanel.vue'
@@ -17,10 +16,19 @@ const props = defineProps({
   roles: Array,
   filters: Object,
   eligibleLeaders: Array,
+  archiveStats: { type: Object, default: () => ({}) },
 })
 
 const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media'])
 const activeTabStorageKey = 'adminDashboard.activeTab'
+
+const archiveSummary = computed(() => ({
+  topics: props.archiveStats?.topics ?? 0,
+  entries: props.archiveStats?.entries ?? 0,
+  categories: props.archiveStats?.categories ?? 0,
+  tags: props.archiveStats?.tags ?? 0,
+  trashTotal: props.archiveStats?.trash_total ?? 0,
+}))
 
 const tabItems = computed(() => [
   {
@@ -64,6 +72,23 @@ const commandLinks = computed(() => [
     description: 'Create topics, manage entries, and control rank-gated archive visibility.',
     href: route('admin.archive.index'),
     tone: 'magenta',
+    stat: `${archiveSummary.value.topics} topics`,
+  },
+  {
+    label: 'Archive Trash',
+    eyebrow: 'Recovery Bay',
+    description: 'Restore soft-deleted Archive content or permanently purge old records.',
+    href: route('admin.archive.trash.index'),
+    tone: 'danger',
+    stat: `${archiveSummary.value.trashTotal} trashed`,
+  },
+  {
+    label: 'Archive Audit',
+    eyebrow: 'Activity Log',
+    description: 'Review create, update, delete, restore, and purge events for Archive content.',
+    href: route('admin.archive.audit.index'),
+    tone: 'indigo',
+    stat: 'Logs',
   },
   {
     label: 'Public Archive',
@@ -71,6 +96,7 @@ const commandLinks = computed(() => [
     description: 'Open the member-facing Archive exactly as verified users see it.',
     href: route('archive.index'),
     tone: 'blue',
+    stat: `${archiveSummary.value.entries} entries`,
   },
 ])
 
@@ -157,6 +183,10 @@ function commandCardClass(link) {
   switch (link.tone) {
     case 'magenta':
       return 'border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 hover:border-[color:var(--horizon-sunset-magenta)]/55 hover:bg-[color:var(--horizon-sunset-magenta)]/15'
+    case 'indigo':
+      return 'border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-sunset-indigo)]/10 hover:border-[color:var(--horizon-sunset-indigo)]/55 hover:bg-[color:var(--horizon-sunset-indigo)]/15'
+    case 'danger':
+      return 'border-red-300/25 bg-red-300/10 hover:border-red-300/45 hover:bg-red-300/15'
     case 'blue':
     default:
       return 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 hover:border-[color:var(--horizon-sunset-blue)]/55 hover:bg-[color:var(--horizon-sunset-blue)]/15'
@@ -229,6 +259,10 @@ onBeforeUnmount(() => {
               <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ props.roles?.length ?? 0 }} Roles
               </span>
+
+              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ archiveSummary.entries }} Archive Entries
+              </span>
             </div>
           </div>
 
@@ -249,7 +283,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Admin command links -->
-      <section class="grid gap-4 md:grid-cols-2">
+      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Link
           v-for="link in commandLinks"
           :key="link.label"
@@ -257,24 +291,46 @@ onBeforeUnmount(() => {
           class="group rounded-[1.5rem] border p-5 transition duration-200 hover:-translate-y-0.5"
           :class="commandCardClass(link)"
         >
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            {{ link.eyebrow }}
-          </div>
-
-          <div class="mt-2 flex items-center justify-between gap-3">
-            <div class="text-2xl font-black text-horizon-white">
-              {{ link.label }}
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              {{ link.eyebrow }}
             </div>
 
             <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
-              Open
+              {{ link.stat }}
             </div>
+          </div>
+
+          <div class="mt-3 text-2xl font-black text-horizon-white">
+            {{ link.label }}
           </div>
 
           <p class="mt-3 text-sm leading-6 text-text-secondary">
             {{ link.description }}
           </p>
         </Link>
+      </section>
+
+      <section class="grid gap-4 md:grid-cols-4">
+        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Topics</div>
+          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.topics }}</div>
+        </div>
+
+        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Entries</div>
+          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.entries }}</div>
+        </div>
+
+        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Taxonomy</div>
+          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.categories + archiveSummary.tags }}</div>
+        </div>
+
+        <div class="rounded-[1.25rem] border border-red-300/20 bg-red-300/10 p-4">
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-red-200/80">Trash</div>
+          <div class="mt-1 text-2xl font-black text-red-100">{{ archiveSummary.trashTotal }}</div>
+        </div>
       </section>
 
       <!-- Admin tab cards -->
