@@ -101,8 +101,8 @@ watch(search, value => {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)] md:p-8">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
+      <section class="relative overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)] md:p-8">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
@@ -122,15 +122,15 @@ watch(search, value => {
             </div>
           </div>
 
-          <form class="rounded-2xl border border-white/10 bg-black/20 p-3 shadow-inner shadow-black/20" @submit.prevent="applySearch">
-            <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem_auto] md:items-end">
+          <form class="rounded-2xl border border-white/10 bg-black/20 p-4 shadow-inner shadow-black/20" @submit.prevent="applySearch">
+            <div class="grid gap-3 md:grid-cols-2">
               <HorizonInput
                 id="archive-search"
                 v-model="search"
                 label="Search Archive"
                 type="search"
                 placeholder="Search topics and visible entries..."
-                class="min-w-0"
+                class="md:col-span-2"
               />
 
               <HorizonSelect
@@ -140,7 +140,9 @@ watch(search, value => {
                 @update:model-value="applySort"
               />
 
-              <HorizonButton type="submit" class="shrink-0">Search</HorizonButton>
+              <div class="flex items-end">
+                <HorizonButton type="submit" class="w-full">Search</HorizonButton>
+              </div>
             </div>
 
             <div class="mt-3 flex flex-wrap items-center gap-2">
