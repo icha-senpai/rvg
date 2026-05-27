@@ -159,7 +159,7 @@ function clearFilters() {
         </div>
       </section>
 
-      <section class="relative overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.18)] md:p-5">
+      <section class="relative overflow-visible rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.18)] md:p-5">
         <div class="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)]/45 to-transparent"></div>
 
         <div class="relative flex flex-col gap-4">
@@ -172,12 +172,15 @@ function clearFilters() {
             <HorizonButton v-if="hasActiveFilters" type="button" variant="ghost" @click="clearFilters">Clear filters</HorizonButton>
           </div>
 
-          <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_13rem_13rem_auto] xl:items-end">
-            <HorizonInput v-model="search" type="search" label="Search" placeholder="Search entries..." />
+          <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
+            <HorizonInput v-model="search" type="search" label="Search" placeholder="Search entries..." class="md:col-span-2 xl:col-span-1" />
             <HorizonSelect v-model="category" label="Category" :options="categorySelectOptions" @update:model-value="applyFilters" />
             <HorizonSelect v-model="tag" label="Tag" :options="tagSelectOptions" @update:model-value="applyFilters" />
             <HorizonSelect v-model="sort" label="Sort" :options="sortOptions" @update:model-value="applyFilters" />
-            <HorizonButton type="button" @click="applyFilters">Apply</HorizonButton>
+          </div>
+
+          <div class="flex justify-end">
+            <HorizonButton type="button" class="w-full md:w-auto" @click="applyFilters">Apply Filters</HorizonButton>
           </div>
         </div>
       </section>
