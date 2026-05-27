@@ -1,7 +1,7 @@
 <template>
   <button
     :class="[
-      'hz-btn',
+      'hz-btn overflow-visible whitespace-nowrap leading-normal',
       sizeMap[size],
       variantMap[variant],
       disabled ? 'hz-btn-disabled' : ''
@@ -35,9 +35,9 @@ const variantMap = {
   Size mapping → Horizon size classes
 */
 const sizeMap = {
-  xs: 'hz-btn-xs',
-  sm: 'hz-btn-sm',
-  md: '',
-  lg: 'hz-btn-lg',
+  xs: 'min-h-8 hz-btn-xs',
+  sm: 'min-h-9 hz-btn-sm',
+  md: 'min-h-10',
+  lg: 'min-h-12 hz-btn-lg',
 };
 </script>
