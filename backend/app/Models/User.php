@@ -94,6 +94,7 @@ class User extends Authenticatable
             'wing_commander' => 5,
             'admiral'        => 6,
             'grand_admiral'  => 7,
+            'director'       => 8,
         ];
 
         $this->attributes['rank'] = $rank;
@@ -114,6 +115,7 @@ class User extends Authenticatable
             5 => 'Wing Commander',
             6 => 'Admiral',
             7 => 'Grand Admiral',
+            8 => 'Director',
         ][$this->rank_level] ?? 'Unknown';
     }
 
