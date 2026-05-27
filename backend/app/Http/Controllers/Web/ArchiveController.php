@@ -18,6 +18,7 @@ class ArchiveController extends Controller
     {
         $user = $request->user()->loadMissing('roles:id,slug');
         $search = trim((string) $request->query('search', ''));
+        $sort = $this->normalizeSort((string) $request->query('sort', 'recent'), ['recent', 'title', 'oldest'], 'recent');
 
         $topicsQuery = ArchiveTopic::query()
             ->published()
@@ -52,9 +53,9 @@ class ArchiveController extends Controller
                 ]);
 
             $this->applyEntrySearch($entriesQuery, $search);
+            $this->applyEntrySort($entriesQuery, $sort);
 
             $entries = $entriesQuery
-                ->orderByDesc('updated_at')
                 ->limit(12)
                 ->get()
                 ->map(fn (ArchiveEntry $entry) => $this->presentEntryCard($entry));
@@ -65,6 +66,7 @@ class ArchiveController extends Controller
             'entries' => $entries,
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
             ],
         ]);
     }
@@ -76,6 +78,9 @@ class ArchiveController extends Controller
         abort_unless($this->topicIsVisibleTo($topic, $user), 404);
 
         $search = trim((string) $request->query('search', ''));
+        $sort = $this->normalizeSort((string) $request->query('sort', 'default'), ['default', 'title', 'recent', 'oldest'], 'default');
+        $category = trim((string) $request->query('category', ''));
+        $tag = trim((string) $request->query('tag', ''));
 
         $entriesQuery = $topic->entries()
             ->published()
@@ -84,19 +89,36 @@ class ArchiveController extends Controller
                 'topic:id,title,slug,minimum_rank_level',
                 'categories:id,name,slug',
                 'tags:id,name,slug',
-            ])
-            ->orderBy('sort_order')
-            ->orderBy('title');
+            ]);
 
         if ($search !== '') {
             $this->applyEntrySearch($entriesQuery, $search);
         }
 
+        if ($category !== '') {
+            $entriesQuery->whereHas('categories', function (Builder $query) use ($category) {
+                $query->where('slug', $category);
+            });
+        }
+
+        if ($tag !== '') {
+            $entriesQuery->whereHas('tags', function (Builder $query) use ($tag) {
+                $query->where('slug', $tag);
+            });
+        }
+
+        $this->applyEntrySort($entriesQuery, $sort);
+
         return Inertia::render('Archive/Topic', [
             'topic' => $this->presentTopic($topic),
             'entries' => $entriesQuery->get()->map(fn (ArchiveEntry $entry) => $this->presentEntryCard($entry)),
+            'categoryOptions' => $this->topicCategoryOptions($topic, $user),
+            'tagOptions' => $this->topicTagOptions($topic, $user),
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
+                'category' => $category,
+                'tag' => $tag,
             ],
         ]);
     }
@@ -155,6 +177,16 @@ class ArchiveController extends Controller
         });
     }
 
+    protected function applyEntrySort(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            'title' => $query->orderBy('title'),
+            'recent' => $query->orderByDesc('updated_at')->orderBy('title'),
+            'oldest' => $query->orderBy('updated_at')->orderBy('title'),
+            default => $query->orderBy('sort_order')->orderBy('title'),
+        };
+    }
+
     protected function applyCaseInsensitiveSearch(Builder $query, array $columns, string $search): void
     {
         $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
@@ -179,6 +211,60 @@ class ArchiveController extends Controller
             ['\\\\', '\\%', '\\_'],
             $value
         );
+    }
+
+    protected function normalizeSort(string $sort, array $allowed, string $default): string
+    {
+        return in_array($sort, $allowed, true) ? $sort : $default;
+    }
+
+    protected function topicCategoryOptions(ArchiveTopic $topic, $user): array
+    {
+        return ArchiveCategory::query()
+            ->whereHas('entries', function (Builder $query) use ($topic, $user) {
+                $query->where('archive_topic_id', $topic->id)
+                    ->published()
+                    ->visibleTo($user);
+            })
+            ->withCount(['entries' => function (Builder $query) use ($topic, $user) {
+                $query->where('archive_topic_id', $topic->id)
+                    ->published()
+                    ->visibleTo($user);
+            }])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (ArchiveCategory $category) => [
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'entries_count' => (int) ($category->entries_count ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function topicTagOptions(ArchiveTopic $topic, $user): array
+    {
+        return ArchiveTag::query()
+            ->whereHas('entries', function (Builder $query) use ($topic, $user) {
+                $query->where('archive_topic_id', $topic->id)
+                    ->published()
+                    ->visibleTo($user);
+            })
+            ->withCount(['entries' => function (Builder $query) use ($topic, $user) {
+                $query->where('archive_topic_id', $topic->id)
+                    ->published()
+                    ->visibleTo($user);
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (ArchiveTag $tag) => [
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+                'entries_count' => (int) ($tag->entries_count ?? 0),
+            ])
+            ->values()
+            ->all();
     }
 
     protected function topicIsVisibleTo(ArchiveTopic $topic, $user): bool
