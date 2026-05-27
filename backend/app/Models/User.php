@@ -57,6 +57,10 @@ class User extends Authenticatable
         'verification_code',
     ];
 
+    protected $appends = [
+        'rank_name',
+    ];
+
     protected function casts(): array
     {
         return [
