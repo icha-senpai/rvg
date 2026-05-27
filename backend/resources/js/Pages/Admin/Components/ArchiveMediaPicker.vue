@@ -38,6 +38,8 @@ const filteredMedia = computed(() => {
   })
 })
 
+const hasSearch = computed(() => search.value.trim().length > 0)
+
 function mediaDisplayUrl(item) {
   return item.display_url || item.medium_url || item.thumbnail_url || item.url || ''
 }
@@ -154,8 +156,9 @@ onMounted(() => {
       <div v-if="selectedUrl" class="overflow-hidden rounded-xl border border-white/10 bg-black/30">
         <img :src="selectedUrl" :alt="label" class="h-32 w-full object-cover" />
       </div>
-      <div v-else class="flex h-24 items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-        No image selected
+      <div v-else class="flex h-24 flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 px-4 text-center">
+        <div class="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">No image selected</div>
+        <div class="mt-1 text-xs text-text-muted/80">Paste a URL or choose from the media library.</div>
       </div>
 
       <HorizonInput v-model="selectedUrl" class="mt-3" placeholder="Selected image URL" />
@@ -176,8 +179,8 @@ onMounted(() => {
               <p class="mt-1 text-sm text-text-secondary">Select an existing image or upload a new one into {{ collection }}.</p>
             </div>
 
-            <div class="flex gap-2 md:items-end">
-              <HorizonInput v-model="search" type="search" placeholder="Filter loaded media..." class="w-56" />
+            <div class="flex flex-col gap-2 md:flex-row md:items-end">
+              <HorizonInput v-model="search" type="search" placeholder="Filter loaded media..." class="w-full md:w-56" />
               <HorizonButton type="button" variant="ghost" @click="closePicker">Close</HorizonButton>
             </div>
           </header>
@@ -234,8 +237,12 @@ onMounted(() => {
                 </button>
               </div>
 
+              <div v-else-if="hasSearch" class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+                No loaded media matched “{{ search }}”. Clear the filter or upload a new image.
+              </div>
+
               <div v-else class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
-                No media found in this collection yet. Upload an image from the panel on the left.
+                No media found in this collection yet. Upload an image from the panel on the left and it will be selected automatically.
               </div>
             </div>
           </div>
