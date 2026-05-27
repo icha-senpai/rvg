@@ -160,7 +160,7 @@ class ArchiveController extends Controller
         ]);
     }
 
-    protected function applyEntrySearch(Builder $query, string $search): void
+    protected function applyEntrySearch($query, string $search): void
     {
         $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
 
@@ -177,7 +177,7 @@ class ArchiveController extends Controller
         });
     }
 
-    protected function applyEntrySort(Builder $query, string $sort): void
+    protected function applyEntrySort($query, string $sort): void
     {
         match ($sort) {
             'title' => $query->orderBy('title'),
