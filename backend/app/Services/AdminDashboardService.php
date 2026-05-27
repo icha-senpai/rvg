@@ -4,6 +4,10 @@ namespace App\Services;
 
 use App\Domain\Media\Presenters\MediaPresenter;
 use App\Domain\Squadrons\SquadronService;
+use App\Models\ArchiveCategory;
+use App\Models\ArchiveEntry;
+use App\Models\ArchiveTag;
+use App\Models\ArchiveTopic;
 use App\Models\Role;
 use App\Models\User;
 
@@ -19,6 +23,7 @@ class AdminDashboardService
             'users' => $this->users($search),
             'squadrons' => $this->dashboardSquadrons(),
             'roles' => $this->roles(),
+            'archiveStats' => $this->archiveStats(),
             'eligibleLeaders' => $this->squadrons->eligibleLeaders(),
             'filters' => [
                 'search' => $search,
@@ -103,5 +108,27 @@ class AdminDashboardService
         return Role::select('id', 'name', 'slug')
             ->orderBy('name')
             ->get();
+    }
+
+    protected function archiveStats(): array
+    {
+        $deletedTopics = ArchiveTopic::onlyTrashed()->count();
+        $deletedEntries = ArchiveEntry::onlyTrashed()->count();
+        $deletedCategories = ArchiveCategory::onlyTrashed()->count();
+        $deletedTags = ArchiveTag::onlyTrashed()->count();
+
+        return [
+            'topics' => ArchiveTopic::query()->count(),
+            'entries' => ArchiveEntry::query()->count(),
+            'categories' => ArchiveCategory::query()->count(),
+            'tags' => ArchiveTag::query()->count(),
+            'trash_total' => $deletedTopics + $deletedEntries + $deletedCategories + $deletedTags,
+            'trash' => [
+                'topics' => $deletedTopics,
+                'entries' => $deletedEntries,
+                'categories' => $deletedCategories,
+                'tags' => $deletedTags,
+            ],
+        ];
     }
 }
