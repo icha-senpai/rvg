@@ -859,6 +859,7 @@ const rankOptions = [
   { label: 'Wing Commander', value: 'wing_commander', level: 5 },
   { label: 'Admiral', value: 'admiral', level: 6 },
   { label: 'Grand Admiral', value: 'grand_admiral', level: 7 },
+  { label: 'Director', value: 'director', level: 8 },
 ];
 
 const rankLabelBySlug = new Map(rankOptions.map(o => [o.value, o.label]));
