@@ -6,6 +6,7 @@ import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 const props = defineProps({
   topics: { type: Array, default: () => [] },
@@ -14,17 +15,40 @@ const props = defineProps({
 })
 
 const search = ref(props.filters?.search ?? '')
+const sort = ref(props.filters?.sort ?? 'recent')
 let searchDebounceId = null
 
 const hasSearch = computed(() => String(props.filters?.search ?? '').trim().length > 0)
 const topicCount = computed(() => props.topics.length)
 const resultCount = computed(() => props.entries.length)
 
-function runSearch(value) {
-  const trimmed = String(value ?? '').trim()
+const sortOptions = [
+  { value: 'recent', label: 'Recently updated' },
+  { value: 'title', label: 'Title A-Z' },
+  { value: 'oldest', label: 'Oldest updated' },
+]
+
+function currentQuery(overrides = {}) {
+  const next = {
+    search: search.value,
+    sort: sort.value,
+    ...overrides,
+  }
+
+  const query = {}
+  const trimmed = String(next.search ?? '').trim()
+
+  if (trimmed) query.search = trimmed
+  if (next.sort && next.sort !== 'recent') query.sort = next.sort
+
+  return query
+}
+
+function runSearch(value = search.value) {
+  search.value = value
 
   router.visit(route('archive.index'), {
-    data: trimmed ? { search: trimmed } : {},
+    data: currentQuery({ search: value }),
     preserveState: true,
     preserveScroll: true,
     replace: true,
@@ -41,6 +65,16 @@ function applySearch() {
   runSearch(search.value)
 }
 
+function applySort() {
+  router.visit(route('archive.index'), {
+    data: currentQuery(),
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+    only: ['topics', 'entries', 'filters'],
+  })
+}
+
 function clearSearch() {
   if (searchDebounceId) {
     clearTimeout(searchDebounceId)
@@ -48,7 +82,14 @@ function clearSearch() {
   }
 
   search.value = ''
-  runSearch('')
+  sort.value = 'recent'
+  router.visit(route('archive.index'), {
+    data: {},
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+    only: ['topics', 'entries', 'filters'],
+  })
 }
 
 watch(search, value => {
@@ -66,7 +107,7 @@ watch(search, value => {
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
+        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-end">
           <div class="min-w-0">
             <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">Horizon Internal Knowledge Library</div>
             <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">Archive</h1>
@@ -82,20 +123,30 @@ watch(search, value => {
           </div>
 
           <form class="rounded-2xl border border-white/10 bg-black/20 p-3 shadow-inner shadow-black/20" @submit.prevent="applySearch">
-            <div class="flex gap-2">
+            <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem_auto] md:items-end">
               <HorizonInput
                 id="archive-search"
                 v-model="search"
                 label="Search Archive"
                 type="search"
                 placeholder="Search topics and visible entries..."
-                class="min-w-0 flex-1"
+                class="min-w-0"
               />
 
-              <HorizonButton type="submit" class="mt-6 shrink-0">Search</HorizonButton>
+              <HorizonSelect
+                v-model="sort"
+                label="Sort Results"
+                :options="sortOptions"
+                @update:model-value="applySort"
+              />
+
+              <HorizonButton type="submit" class="shrink-0">Search</HorizonButton>
             </div>
 
-            <HorizonButton v-if="hasSearch" type="button" variant="ghost" size="xs" class="mt-2" @click="clearSearch">Clear search</HorizonButton>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <HorizonButton v-if="hasSearch" type="button" variant="ghost" size="xs" @click="clearSearch">Clear search</HorizonButton>
+              <span class="text-xs text-text-muted">Search results can be sorted by title or update date.</span>
+            </div>
           </form>
         </div>
       </section>
