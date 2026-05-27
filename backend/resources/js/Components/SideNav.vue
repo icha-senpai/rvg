@@ -274,6 +274,13 @@ const navGroups = computed(() => {
 
 const mobileOpen = ref(false)
 const desktopExpanded = ref(true)
+const manuallyExpandedGroups = ref(new Set())
+
+const activeGroupKeys = computed(() => new Set(
+  navGroups.value
+    .filter(group => group.items.some(item => item.isActive))
+    .map(group => group.key)
+))
 
 function openMobileNav() {
   mobileOpen.value = true
@@ -293,6 +300,26 @@ function toggleDesktopNav() {
   }
 }
 
+function toggleGroup(group) {
+  const next = new Set(manuallyExpandedGroups.value)
+
+  if (next.has(group.key)) {
+    next.delete(group.key)
+  } else {
+    next.add(group.key)
+  }
+
+  manuallyExpandedGroups.value = next
+}
+
+function groupIsActive(group) {
+  return activeGroupKeys.value.has(group.key)
+}
+
+function groupIsOpen(group) {
+  return groupIsActive(group) || manuallyExpandedGroups.value.has(group.key)
+}
+
 function getItemHref(item) {
   if (item.href) return item.href
 
@@ -301,6 +328,14 @@ function getItemHref(item) {
 
 function itemHasOpenChildren(item) {
   return Boolean(item.isActive && item.children?.length)
+}
+
+function groupToggleClass(group) {
+  if (groupIsActive(group)) {
+    return 'border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.055] text-horizon-white'
+  }
+
+  return 'border-white/[0.05] bg-white/[0.025] text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/25 hover:bg-white/[0.045] hover:text-horizon-white'
 }
 
 function iconToneClass(item, active = false) {
@@ -364,6 +399,7 @@ watch(
   () => page.url,
   () => {
     closeMobileNav()
+    manuallyExpandedGroups.value = new Set()
   }
 )
 
@@ -454,147 +490,156 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-1">
+        <nav class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-1">
           <section
             v-for="group in navGroups"
             :key="group.key"
             class="space-y-2"
           >
-            <div class="px-2">
-              <div class="text-[10px] font-black uppercase tracking-[0.24em] text-text-muted">
-                {{ group.label }}
-              </div>
-
-              <div class="mt-0.5 text-[10px] text-text-muted/80">
-                {{ group.eyebrow }}
-              </div>
-            </div>
-
-            <template
-              v-for="item in group.items"
-              :key="item.key"
+            <button
+              type="button"
+              class="flex w-full items-center justify-between rounded-2xl border px-3 py-2.5 text-left transition"
+              :class="groupToggleClass(group)"
+              @click="toggleGroup(group)"
             >
-              <Link
-                v-if="!item.href"
-                :href="getItemHref(item)"
-                class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
-                :class="itemCardClass(item)"
-                @click="closeMobileNav"
-              >
-                <span
-                  v-if="item.isActive"
-                  class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
-                  :class="activeRailClass(item)"
-                />
+              <span class="min-w-0">
+                <span class="block text-[10px] font-black uppercase tracking-[0.24em]">
+                  {{ group.label }}
+                </span>
+                <span class="mt-0.5 block truncate text-[10px] text-text-muted/80">
+                  {{ group.eyebrow }}
+                </span>
+              </span>
+              <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
+            </button>
 
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex min-w-0 items-center gap-3">
+            <div v-if="groupIsOpen(group)" class="space-y-2">
+              <template
+                v-for="item in group.items"
+                :key="item.key"
+              >
+                <Link
+                  v-if="!item.href"
+                  :href="getItemHref(item)"
+                  class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
+                  :class="itemCardClass(item)"
+                  @click="closeMobileNav"
+                >
+                  <span
+                    v-if="item.isActive"
+                    class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
+                    :class="activeRailClass(item)"
+                  />
+
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                      <span
+                        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
+                        :class="iconToneClass(item, item.isActive)"
+                      >
+                        <span class="text-base leading-none">
+                          {{ item.icon }}
+                        </span>
+
+                        <span
+                          v-if="item.isActive"
+                          class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
+                        ></span>
+                      </span>
+
+                      <div class="min-w-0">
+                        <div class="truncate">
+                          {{ item.label }}
+                        </div>
+
+                        <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          {{ item.status }}
+                        </div>
+                      </div>
+                    </div>
+
                     <span
-                      class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                      :class="iconToneClass(item, item.isActive)"
+                      v-if="item.badge"
+                      class="max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
                     >
-                      <span class="text-base leading-none">
+                      {{ item.badge }}
+                    </span>
+                  </div>
+                </Link>
+
+                <a
+                  v-else
+                  :href="item.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
+                  :class="itemCardClass(item)"
+                  @click="closeMobileNav"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                      <span
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
+                        :class="iconToneClass(item, false)"
+                      >
                         {{ item.icon }}
                       </span>
 
-                      <span
-                        v-if="item.isActive"
-                        class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
-                      ></span>
-                    </span>
+                      <div class="min-w-0">
+                        <div class="truncate">
+                          {{ item.label }}
+                        </div>
 
-                    <div class="min-w-0">
-                      <div class="truncate">
-                        {{ item.label }}
-                      </div>
-
-                      <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                        {{ item.status }}
+                        <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          {{ item.status }}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span
-                    v-if="item.badge"
-                    class="max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
-                  >
-                    {{ item.badge }}
-                  </span>
-                </div>
-              </Link>
-
-              <a
-                v-else
-                :href="item.href"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
-                :class="itemCardClass(item)"
-                @click="closeMobileNav"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex min-w-0 items-center gap-3">
-                    <span
-                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                      :class="iconToneClass(item, false)"
-                    >
-                      {{ item.icon }}
+                    <span class="text-xs text-text-muted">
+                      ↗
                     </span>
-
-                    <div class="min-w-0">
-                      <div class="truncate">
-                        {{ item.label }}
-                      </div>
-
-                      <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                        {{ item.status }}
-                      </div>
-                    </div>
                   </div>
+                </a>
 
-                  <span class="text-xs text-text-muted">
-                    ↗
-                  </span>
-                </div>
-              </a>
-
-              <div
-                v-if="itemHasOpenChildren(item)"
-                class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
-              >
                 <div
-                  v-for="child in item.children"
-                  :key="child.key"
-                  class="space-y-1"
+                  v-if="itemHasOpenChildren(item)"
+                  class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
                 >
-                  <Link
-                    :href="child.href"
-                    class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
-                    :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
-                    @click="closeMobileNav"
-                  >
-                    <span class="truncate">{{ child.label }}</span>
-                    <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
-                  </Link>
-
                   <div
-                    v-if="child.isActive && child.entries?.length"
-                    class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                    v-for="child in item.children"
+                    :key="child.key"
+                    class="space-y-1"
                   >
                     <Link
-                      v-for="entry in child.entries"
-                      :key="entry.key"
-                      :href="entry.href"
-                      class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                      :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      :href="child.href"
+                      class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
+                      :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
                       @click="closeMobileNav"
                     >
-                      {{ entry.label }}
+                      <span class="truncate">{{ child.label }}</span>
+                      <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
                     </Link>
+
+                    <div
+                      v-if="child.isActive && child.entries?.length"
+                      class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                    >
+                      <Link
+                        v-for="entry in child.entries"
+                        :key="entry.key"
+                        :href="entry.href"
+                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                        :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                        @click="closeMobileNav"
+                      >
+                        {{ entry.label }}
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
           </section>
         </nav>
 
@@ -706,155 +751,165 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-1">
+        <nav class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-1">
           <section
             v-for="group in navGroups"
             :key="group.key"
             class="space-y-2"
           >
+            <button
+              v-if="desktopExpanded"
+              type="button"
+              class="flex w-full items-center justify-between rounded-2xl border px-3 py-2.5 text-left transition"
+              :class="groupToggleClass(group)"
+              @click="toggleGroup(group)"
+            >
+              <span class="min-w-0">
+                <span class="block text-[10px] font-black uppercase tracking-[0.24em]">
+                  {{ group.label }}
+                </span>
+                <span class="mt-0.5 block truncate text-[10px] text-text-muted/80">
+                  {{ group.eyebrow }}
+                </span>
+              </span>
+              <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
+            </button>
+
             <div
-              class="px-2 transition-all duration-200"
-              :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none h-0 overflow-hidden opacity-0'"
+              v-if="desktopExpanded ? groupIsOpen(group) : true"
+              class="space-y-2"
             >
-              <div class="text-[10px] font-black uppercase tracking-[0.24em] text-text-muted">
-                {{ group.label }}
-              </div>
-
-              <div class="mt-0.5 text-[10px] text-text-muted/80">
-                {{ group.eyebrow }}
-              </div>
-            </div>
-
-            <template
-              v-for="item in group.items"
-              :key="item.key"
-            >
-              <Link
-                v-if="!item.href"
-                :href="getItemHref(item)"
-                class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
-                :class="[
-                  desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
-                  itemCardClass(item)
-                ]"
-                :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
+              <template
+                v-for="item in group.items"
+                :key="item.key"
               >
-                <span
-                  v-if="item.isActive"
-                  class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
-                  :class="activeRailClass(item)"
-                />
-
-                <span
-                  class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                  :class="iconToneClass(item, item.isActive)"
+                <Link
+                  v-if="!item.href"
+                  :href="getItemHref(item)"
+                  class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
+                  :class="[
+                    desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
+                    itemCardClass(item)
+                  ]"
+                  :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
                 >
-                  <span class="text-base leading-none">
+                  <span
+                    v-if="item.isActive"
+                    class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
+                    :class="activeRailClass(item)"
+                  />
+
+                  <span
+                    class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
+                    :class="iconToneClass(item, item.isActive)"
+                  >
+                    <span class="text-base leading-none">
+                      {{ item.icon }}
+                    </span>
+
+                    <span
+                      v-if="item.isActive"
+                      class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
+                    ></span>
+                  </span>
+
+                  <div
+                    class="min-w-0 transition-all duration-200"
+                    :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
+                  >
+                    <div class="truncate">
+                      {{ item.label }}
+                    </div>
+
+                    <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {{ item.status }}
+                    </div>
+                  </div>
+
+                  <span
+                    v-if="desktopExpanded && item.badge"
+                    class="ml-auto max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
+                  >
+                    {{ item.badge }}
+                  </span>
+                </Link>
+
+                <a
+                  v-else
+                  :href="item.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
+                  :class="[
+                    desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
+                    itemCardClass(item)
+                  ]"
+                  :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
+                >
+                  <span
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
+                    :class="iconToneClass(item, false)"
+                  >
                     {{ item.icon }}
                   </span>
 
-                  <span
-                    v-if="item.isActive"
-                    class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
-                  ></span>
-                </span>
-
-                <div
-                  class="min-w-0 transition-all duration-200"
-                  :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
-                >
-                  <div class="truncate">
-                    {{ item.label }}
-                  </div>
-
-                  <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {{ item.status }}
-                  </div>
-                </div>
-
-                <span
-                  v-if="desktopExpanded && item.badge"
-                  class="ml-auto max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
-                >
-                  {{ item.badge }}
-                </span>
-              </Link>
-
-              <a
-                v-else
-                :href="item.href"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
-                :class="[
-                  desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
-                  itemCardClass(item)
-                ]"
-                :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
-              >
-                <span
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                  :class="iconToneClass(item, false)"
-                >
-                  {{ item.icon }}
-                </span>
-
-                <div
-                  class="min-w-0 transition-all duration-200"
-                  :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
-                >
-                  <div class="truncate">
-                    {{ item.label }}
-                  </div>
-
-                  <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {{ item.status }}
-                  </div>
-                </div>
-
-                <span
-                  v-if="desktopExpanded"
-                  class="ml-auto text-xs text-text-muted"
-                >
-                  ↗
-                </span>
-              </a>
-
-              <div
-                v-if="desktopExpanded && itemHasOpenChildren(item)"
-                class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
-              >
-                <div
-                  v-for="child in item.children"
-                  :key="child.key"
-                  class="space-y-1"
-                >
-                  <Link
-                    :href="child.href"
-                    class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
-                    :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
-                  >
-                    <span class="truncate">{{ child.label }}</span>
-                    <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
-                  </Link>
-
                   <div
-                    v-if="child.isActive && child.entries?.length"
-                    class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                    class="min-w-0 transition-all duration-200"
+                    :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
+                  >
+                    <div class="truncate">
+                      {{ item.label }}
+                    </div>
+
+                    <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {{ item.status }}
+                    </div>
+                  </div>
+
+                  <span
+                    v-if="desktopExpanded"
+                    class="ml-auto text-xs text-text-muted"
+                  >
+                    ↗
+                  </span>
+                </a>
+
+                <div
+                  v-if="desktopExpanded && itemHasOpenChildren(item)"
+                  class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
+                >
+                  <div
+                    v-for="child in item.children"
+                    :key="child.key"
+                    class="space-y-1"
                   >
                     <Link
-                      v-for="entry in child.entries"
-                      :key="entry.key"
-                      :href="entry.href"
-                      class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                      :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      :href="child.href"
+                      class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
+                      :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
                     >
-                      {{ entry.label }}
+                      <span class="truncate">{{ child.label }}</span>
+                      <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
                     </Link>
+
+                    <div
+                      v-if="child.isActive && child.entries?.length"
+                      class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                    >
+                      <Link
+                        v-for="entry in child.entries"
+                        :key="entry.key"
+                        :href="entry.href"
+                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                        :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      >
+                        {{ entry.label }}
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
           </section>
         </nav>
 
