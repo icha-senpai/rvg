@@ -1,11 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
@@ -13,6 +14,8 @@ const props = defineProps({
   tags: { type: Array, default: () => [] },
 })
 
+const categoryDrawerOpen = ref(false)
+const tagDrawerOpen = ref(false)
 const editingCategoryId = ref(null)
 const editingTagId = ref(null)
 const deleteCategoryDialog = ref(null)
@@ -20,36 +23,97 @@ const deleteTagDialog = ref(null)
 const categoryPendingDelete = ref(null)
 const tagPendingDelete = ref(null)
 
-const categoryCreateForm = useForm({ name: '', slug: '', description: '', sort_order: 0 })
-const categoryEditForm = useForm({ name: '', slug: '', description: '', sort_order: 0 })
-const tagCreateForm = useForm({ name: '', slug: '' })
-const tagEditForm = useForm({ name: '', slug: '' })
+const categoryForm = useForm({ name: '', slug: '', description: '', sort_order: 0 })
+const tagForm = useForm({ name: '', slug: '' })
+
+const sortedCategories = computed(() => props.categories ?? [])
+const sortedTags = computed(() => props.tags ?? [])
+const editingCategory = computed(() => sortedCategories.value.find(category => category.id === editingCategoryId.value) ?? null)
+const editingTag = computed(() => sortedTags.value.find(tag => tag.id === editingTagId.value) ?? null)
+const isEditingCategory = computed(() => Boolean(editingCategoryId.value))
+const isEditingTag = computed(() => Boolean(editingTagId.value))
+const categoryDrawerTitle = computed(() => isEditingCategory.value ? 'Edit Archive Category' : 'New Archive Category')
+const tagDrawerTitle = computed(() => isEditingTag.value ? 'Edit Archive Tag' : 'New Archive Tag')
+
+function hydrateCategoryForm(category = null) {
+  categoryForm.name = category?.name ?? ''
+  categoryForm.slug = category?.slug ?? ''
+  categoryForm.description = category?.description ?? ''
+  categoryForm.sort_order = category?.sort_order ?? 0
+  categoryForm.clearErrors()
+}
+
+function hydrateTagForm(tag = null) {
+  tagForm.name = tag?.name ?? ''
+  tagForm.slug = tag?.slug ?? ''
+  tagForm.clearErrors()
+}
+
+function openCategoryCreateDrawer() {
+  editingCategoryId.value = null
+  hydrateCategoryForm()
+  categoryDrawerOpen.value = true
+}
+
+function openTagCreateDrawer() {
+  editingTagId.value = null
+  hydrateTagForm()
+  tagDrawerOpen.value = true
+}
 
 function startCategoryEdit(category) {
   editingCategoryId.value = category.id
-  categoryEditForm.name = category.name ?? ''
-  categoryEditForm.slug = category.slug ?? ''
-  categoryEditForm.description = category.description ?? ''
-  categoryEditForm.sort_order = category.sort_order ?? 0
+  hydrateCategoryForm(category)
+  categoryDrawerOpen.value = true
 }
 
-function cancelCategoryEdit() {
+function startTagEdit(tag) {
+  editingTagId.value = tag.id
+  hydrateTagForm(tag)
+  tagDrawerOpen.value = true
+}
+
+function closeCategoryDrawer() {
+  categoryDrawerOpen.value = false
   editingCategoryId.value = null
-  categoryEditForm.reset()
-  categoryEditForm.clearErrors()
+  categoryForm.reset()
+  categoryForm.clearErrors()
 }
 
-function submitCategoryCreate() {
-  categoryCreateForm.post(route('admin.archive.taxonomy.categories.store'), {
+function closeTagDrawer() {
+  tagDrawerOpen.value = false
+  editingTagId.value = null
+  tagForm.reset()
+  tagForm.clearErrors()
+}
+
+function submitCategory() {
+  if (isEditingCategory.value && editingCategory.value) {
+    categoryForm.put(route('admin.archive.taxonomy.categories.update', editingCategory.value.id), {
+      preserveScroll: true,
+      onSuccess: () => closeCategoryDrawer(),
+    })
+    return
+  }
+
+  categoryForm.post(route('admin.archive.taxonomy.categories.store'), {
     preserveScroll: true,
-    onSuccess: () => categoryCreateForm.reset(),
+    onSuccess: () => closeCategoryDrawer(),
   })
 }
 
-function submitCategoryEdit(category) {
-  categoryEditForm.put(route('admin.archive.taxonomy.categories.update', category.id), {
+function submitTag() {
+  if (isEditingTag.value && editingTag.value) {
+    tagForm.put(route('admin.archive.taxonomy.tags.update', editingTag.value.id), {
+      preserveScroll: true,
+      onSuccess: () => closeTagDrawer(),
+    })
+    return
+  }
+
+  tagForm.post(route('admin.archive.taxonomy.tags.store'), {
     preserveScroll: true,
-    onSuccess: () => cancelCategoryEdit(),
+    onSuccess: () => closeTagDrawer(),
   })
 }
 
@@ -67,32 +131,6 @@ function confirmDeleteCategory({ close }) {
       categoryPendingDelete.value = null
       close()
     },
-  })
-}
-
-function startTagEdit(tag) {
-  editingTagId.value = tag.id
-  tagEditForm.name = tag.name ?? ''
-  tagEditForm.slug = tag.slug ?? ''
-}
-
-function cancelTagEdit() {
-  editingTagId.value = null
-  tagEditForm.reset()
-  tagEditForm.clearErrors()
-}
-
-function submitTagCreate() {
-  tagCreateForm.post(route('admin.archive.taxonomy.tags.store'), {
-    preserveScroll: true,
-    onSuccess: () => tagCreateForm.reset(),
-  })
-}
-
-function submitTagEdit(tag) {
-  tagEditForm.put(route('admin.archive.taxonomy.tags.update', tag.id), {
-    preserveScroll: true,
-    onSuccess: () => cancelTagEdit(),
   })
 }
 
@@ -128,6 +166,8 @@ function confirmDeleteTag({ close }) {
           </div>
 
           <div class="flex flex-wrap gap-3">
+            <HorizonButton type="button" @click="openCategoryCreateDrawer">New Category</HorizonButton>
+            <HorizonButton type="button" variant="ghost" @click="openTagCreateDrawer">New Tag</HorizonButton>
             <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
             <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
             <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
@@ -137,33 +177,17 @@ function confirmDeleteTag({ close }) {
 
       <section class="grid gap-6 xl:grid-cols-2">
         <div class="space-y-4">
-          <form class="rounded-3xl border border-white/10 bg-white/[0.035] p-5" @submit.prevent="submitCategoryCreate">
-            <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-blue)]">New Category</div>
-
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <HorizonInput v-model="categoryCreateForm.name" label="Name" />
-                <div v-if="categoryCreateForm.errors.name" class="mt-1 text-xs text-red-300">{{ categoryCreateForm.errors.name }}</div>
-              </div>
-
-              <div>
-                <HorizonInput v-model="categoryCreateForm.slug" label="Slug" placeholder="auto-from-name if blank" />
-                <div v-if="categoryCreateForm.errors.slug" class="mt-1 text-xs text-red-300">{{ categoryCreateForm.errors.slug }}</div>
-              </div>
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Categories</div>
+              <h2 class="text-2xl font-black text-horizon-white">{{ sortedCategories.length }} categor{{ sortedCategories.length === 1 ? 'y' : 'ies' }}</h2>
             </div>
 
-            <div class="mt-4">
-              <HorizonInput v-model="categoryCreateForm.description" label="Description" type="textarea" rows="3" />
-            </div>
+            <HorizonButton type="button" variant="ghost" @click="openCategoryCreateDrawer">Create Category</HorizonButton>
+          </div>
 
-            <div class="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-              <HorizonInput v-model="categoryCreateForm.sort_order" label="Sort Order" type="number" min="0" />
-              <HorizonButton type="submit" :disabled="categoryCreateForm.processing">Create Category</HorizonButton>
-            </div>
-          </form>
-
-          <article v-for="category in categories" :key="category.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-            <div v-if="editingCategoryId !== category.id" class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+          <article v-for="category in sortedCategories" :key="category.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
                   <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.entries_count }} entries</span>
@@ -180,47 +204,25 @@ function confirmDeleteTag({ close }) {
                 <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteCategory(category)">Delete</HorizonButton>
               </div>
             </div>
-
-            <form v-else class="space-y-4" @submit.prevent="submitCategoryEdit(category)">
-              <div class="grid gap-4 md:grid-cols-2">
-                <HorizonInput v-model="categoryEditForm.name" label="Name" />
-                <HorizonInput v-model="categoryEditForm.slug" label="Slug" />
-              </div>
-
-              <HorizonInput v-model="categoryEditForm.description" label="Description" type="textarea" rows="3" />
-              <HorizonInput v-model="categoryEditForm.sort_order" label="Sort Order" type="number" min="0" />
-
-              <div class="flex flex-wrap gap-2">
-                <HorizonButton type="submit">Save</HorizonButton>
-                <HorizonButton type="button" variant="ghost" @click="cancelCategoryEdit">Cancel</HorizonButton>
-              </div>
-            </form>
           </article>
 
-          <div v-if="!categories.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No categories exist yet.</div>
+          <div v-if="!sortedCategories.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+            No categories exist yet. Use New Category to create the first broad bucket.
+          </div>
         </div>
 
         <div class="space-y-4">
-          <form class="rounded-3xl border border-white/10 bg-white/[0.035] p-5" @submit.prevent="submitTagCreate">
-            <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-sunset-magenta)]">New Tag</div>
-
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <HorizonInput v-model="tagCreateForm.name" label="Name" />
-                <div v-if="tagCreateForm.errors.name" class="mt-1 text-xs text-red-300">{{ tagCreateForm.errors.name }}</div>
-              </div>
-
-              <div>
-                <HorizonInput v-model="tagCreateForm.slug" label="Slug" placeholder="auto-from-name if blank" />
-                <div v-if="tagCreateForm.errors.slug" class="mt-1 text-xs text-red-300">{{ tagCreateForm.errors.slug }}</div>
-              </div>
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Tags</div>
+              <h2 class="text-2xl font-black text-horizon-white">{{ sortedTags.length }} tag{{ sortedTags.length === 1 ? '' : 's' }}</h2>
             </div>
 
-            <HorizonButton type="submit" class="mt-4 w-full" :disabled="tagCreateForm.processing">Create Tag</HorizonButton>
-          </form>
+            <HorizonButton type="button" variant="ghost" @click="openTagCreateDrawer">Create Tag</HorizonButton>
+          </div>
 
-          <article v-for="tag in tags" :key="tag.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-            <div v-if="editingTagId !== tag.id" class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+          <article v-for="tag in sortedTags" :key="tag.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
                   <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">{{ tag.entries_count }} entries</span>
@@ -235,23 +237,80 @@ function confirmDeleteTag({ close }) {
                 <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTag(tag)">Delete</HorizonButton>
               </div>
             </div>
-
-            <form v-else class="space-y-4" @submit.prevent="submitTagEdit(tag)">
-              <div class="grid gap-4 md:grid-cols-2">
-                <HorizonInput v-model="tagEditForm.name" label="Name" />
-                <HorizonInput v-model="tagEditForm.slug" label="Slug" />
-              </div>
-
-              <div class="flex flex-wrap gap-2">
-                <HorizonButton type="submit">Save</HorizonButton>
-                <HorizonButton type="button" variant="ghost" @click="cancelTagEdit">Cancel</HorizonButton>
-              </div>
-            </form>
           </article>
 
-          <div v-if="!tags.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No tags exist yet.</div>
+          <div v-if="!sortedTags.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+            No tags exist yet. Use New Tag to create the first searchable signal.
+          </div>
         </div>
       </section>
+
+      <HorizonDrawer v-if="categoryDrawerOpen" close-label="Close archive category drawer" @close="closeCategoryDrawer">
+        <template #header>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category Editor</div>
+          <h2 class="mt-1 text-2xl font-black text-horizon-white">{{ categoryDrawerTitle }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">Categories are broad buckets that help entries group into readable sections.</p>
+        </template>
+
+        <form id="archive-category-form" class="space-y-5" @submit.prevent="submitCategory">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <HorizonInput v-model="categoryForm.name" label="Name" />
+              <div v-if="categoryForm.errors.name" class="mt-1 text-xs text-red-300">{{ categoryForm.errors.name }}</div>
+            </div>
+
+            <div>
+              <HorizonInput v-model="categoryForm.slug" label="Slug" placeholder="auto-from-name if blank" />
+              <div v-if="categoryForm.errors.slug" class="mt-1 text-xs text-red-300">{{ categoryForm.errors.slug }}</div>
+            </div>
+          </div>
+
+          <div>
+            <HorizonInput v-model="categoryForm.description" label="Description" type="textarea" rows="3" />
+            <div v-if="categoryForm.errors.description" class="mt-1 text-xs text-red-300">{{ categoryForm.errors.description }}</div>
+          </div>
+
+          <HorizonInput v-model="categoryForm.sort_order" label="Sort Order" type="number" min="0" />
+        </form>
+
+        <template #footer>
+          <div class="flex flex-wrap justify-end gap-2">
+            <HorizonButton type="button" variant="ghost" @click="closeCategoryDrawer">Cancel</HorizonButton>
+            <HorizonButton type="submit" form="archive-category-form" :disabled="categoryForm.processing">
+              {{ categoryForm.processing ? 'Saving...' : isEditingCategory ? 'Save Category' : 'Create Category' }}
+            </HorizonButton>
+          </div>
+        </template>
+      </HorizonDrawer>
+
+      <HorizonDrawer v-if="tagDrawerOpen" close-label="Close archive tag drawer" @close="closeTagDrawer">
+        <template #header>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Tag Editor</div>
+          <h2 class="mt-1 text-2xl font-black text-horizon-white">{{ tagDrawerTitle }}</h2>
+          <p class="mt-1 text-sm text-text-secondary">Tags are small searchable signals attached to Archive entries.</p>
+        </template>
+
+        <form id="archive-tag-form" class="space-y-5" @submit.prevent="submitTag">
+          <div>
+            <HorizonInput v-model="tagForm.name" label="Name" />
+            <div v-if="tagForm.errors.name" class="mt-1 text-xs text-red-300">{{ tagForm.errors.name }}</div>
+          </div>
+
+          <div>
+            <HorizonInput v-model="tagForm.slug" label="Slug" placeholder="auto-from-name if blank" />
+            <div v-if="tagForm.errors.slug" class="mt-1 text-xs text-red-300">{{ tagForm.errors.slug }}</div>
+          </div>
+        </form>
+
+        <template #footer>
+          <div class="flex flex-wrap justify-end gap-2">
+            <HorizonButton type="button" variant="ghost" @click="closeTagDrawer">Cancel</HorizonButton>
+            <HorizonButton type="submit" form="archive-tag-form" :disabled="tagForm.processing">
+              {{ tagForm.processing ? 'Saving...' : isEditingTag ? 'Save Tag' : 'Create Tag' }}
+            </HorizonButton>
+          </div>
+        </template>
+      </HorizonDrawer>
 
       <HorizonConfirmDialog
         ref="deleteCategoryDialog"
@@ -259,7 +318,7 @@ function confirmDeleteTag({ close }) {
         confirm-label="Delete Category"
         cancel-label="Cancel"
         variant="danger"
-        close-on-confirm="false"
+        :close-on-confirm="false"
         :message="`Delete archive category '${categoryPendingDelete?.name ?? ''}'? Entries will keep their content but lose this category label.`"
         @confirm="confirmDeleteCategory"
       />
@@ -270,7 +329,7 @@ function confirmDeleteTag({ close }) {
         confirm-label="Delete Tag"
         cancel-label="Cancel"
         variant="danger"
-        close-on-confirm="false"
+        :close-on-confirm="false"
         :message="`Delete archive tag '${tagPendingDelete?.name ?? ''}'? Entries will keep their content but lose this tag label.`"
         @confirm="confirmDeleteTag"
       />
