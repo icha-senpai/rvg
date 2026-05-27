@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
       @click="closeMobileNav"
     ></div>
 
-    <aside class="absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] bg-bg-elevated border-r border-horizon-blue-20 shadow-[0_0_42px_rgba(56,189,248,0.18)]">
+    <aside class="absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] overflow-hidden border-r border-[color:var(--horizon-sunset-indigo)]/35 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_54px_rgba(67,56,202,0.18)] backdrop-blur-xl">
       <div class="pointer-events-none absolute inset-0 opacity-50">
         <div class="absolute left-6 top-0 h-px w-44 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-6 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
