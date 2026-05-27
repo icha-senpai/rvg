@@ -33,6 +33,7 @@ class RankMiddleware
             5 => 'wing_commander',
             6 => 'admiral',
             7 => 'grand_admiral',
+            8 => 'director',
             default => null,
         };
 
@@ -68,6 +69,7 @@ class RankMiddleware
             5 => 'Wing Commander',
             6 => 'Admiral',
             7 => 'Grand Admiral',
+            8 => 'Director',
             default => 'Unknown Rank'
         };
     }
