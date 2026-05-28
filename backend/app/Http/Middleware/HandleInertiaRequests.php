@@ -122,7 +122,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if (! $user || ! $request->is('archive*')) {
+        if (! $user) {
             return null;
         }
 
