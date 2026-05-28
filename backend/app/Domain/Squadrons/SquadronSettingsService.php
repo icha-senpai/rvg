@@ -169,6 +169,11 @@ class SquadronSettingsService
                     $allowedAttrs[] = 'style';
                 }
 
+                // Allow class attribute on span for rich text colors (hz-rte-color-*)
+                if ($tag === 'span') {
+                    $allowedAttrs[] = 'class';
+                }
+
                 if (in_array($tag, ['th', 'td'], true)) {
                     $allowedAttrs[] = 'colspan';
                     $allowedAttrs[] = 'rowspan';

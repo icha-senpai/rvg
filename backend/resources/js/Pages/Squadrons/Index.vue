@@ -50,27 +50,15 @@ function squadronHref(squadron) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
-      <!-- Page header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+      <!-- Header -->
+      <div class="border-b border-white/[0.055] pb-5">
+        <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+          Horizon Squadron Registry
         </div>
-
-        <div class="relative">
-          <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
-            Horizon Squadron Registry
-          </div>
-
-          <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
-            Squadrons
-          </h1>
-
-          <p class="mt-2 max-w-2xl text-sm text-text-secondary md:text-base">
-            Browse Horizon Interstellar units, review their mission profiles, and enter full squadron dossiers.
-          </p>
-        </div>
-      </section>
+        <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-4xl">
+          Squadrons
+        </h1>
+      </div>
 
       <!-- Empty state -->
       <section
@@ -86,16 +74,10 @@ function squadronHref(squadron) {
           v-for="squadron in squadrons"
           :key="squadron.id"
           :href="squadronHref(squadron)"
-          class="group relative flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/[0.055] bg-[rgba(21,25,42,0.64)]  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+          class="group relative flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] transition hover:border-white/[0.08]"
         >
-          <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
-            <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-            <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
-          </div>
-
           <!-- Emblem area -->
           <div class="relative aspect-square w-full overflow-hidden bg-[color:var(--horizon-void-800)]">
-            <div class="absolute inset-6 rounded-[1.5rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/10 via-transparent to-[color:var(--horizon-sunset-magenta)]/10 blur-xl"></div>
 
             <img
               v-if="squadron.emblem_url"

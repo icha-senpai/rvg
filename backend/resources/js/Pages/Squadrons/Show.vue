@@ -678,103 +678,43 @@ watch(
       </div>
 
       <template v-else>
-        <!-- Squadron hero -->
-        <section
-          class="relative overflow-hidden rounded-[2rem] border border-[color:var(--squadron-accent-a)]/45 bg-[radial-gradient(circle_at_top_left,var(--squadron-glow-a),transparent_34%),radial-gradient(circle_at_top_right,var(--squadron-glow-b),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6"
-        >
-          <div class="pointer-events-none absolute inset-0 opacity-20">
-            <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--squadron-accent-a)] to-transparent"></div>
-            <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--squadron-accent-b)] to-transparent"></div>
-          </div>
-
-          <div class="relative grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
-            <div class="relative mx-auto h-36 w-36 shrink-0 lg:mx-0">
-              <div class="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-[1.75rem] border border-[color:var(--squadron-accent-a)]/35 bg-[rgba(21,25,42,0.8)]">
-                <img
-                  v-if="squadron.emblem_url"
-                  :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
-                  :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-                  class="h-full w-full object-contain p-3"
-                  loading="lazy"
-                />
-                <div v-else class="text-4xl font-black text-[color:var(--horizon-text-primary)]">
-                  {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
+        <!-- Main content card -->
+        <div class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 md:p-8">
+          <!-- Header -->
+          <div class="border-b border-white/[0.055] pb-6">
+            <div class="flex items-center gap-4">
+              <img
+                v-if="squadron.emblem_url"
+                :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
+                :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
+                class="h-20 w-20 rounded-2xl object-contain md:h-24 md:w-24"
+                loading="lazy"
+              />
+              <div v-else class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl font-bold text-white md:h-24 md:w-24">
+                {{ squadron.name?.[0] || '?' }}
+              </div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+                  {{ formatTitle(squadron.branch) }}
                 </div>
+                <h1 class="text-3xl font-black tracking-tight text-white md:text-5xl">
+                  {{ squadron.name }}
+                </h1>
               </div>
             </div>
 
-            <div class="min-w-0 text-center lg:text-left">
-              <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
-                Horizon Squadron File
-              </div>
-
-              <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
-                {{ squadron.name }}
-              </h1>
-
-              <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-                {{ squadron.motto ?? 'No motto provided.' }}
-              </p>
-
-              <div class="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
-                <span class="rounded-full border border-[color:var(--squadron-accent-a)]/30 bg-[color:var(--squadron-accent-a)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
-                  {{ formatTitle(squadron.branch) }}<span v-if="squadron.division"> · {{ formatTitle(squadron.division) }}</span>
-                </span>
-
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-semibold"
-                  :class="squadron.recruiting
-                    ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
-                >
-                  {{ recruitmentStateLabel }}
-                </span>
-
-                <span class="rounded-full border border-[color:var(--squadron-accent-b)]/30 bg-[color:var(--squadron-accent-b)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
-                  {{ activeMemberCount }} / {{ maxRosterSize }} Active
-                </span>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-2 lg:min-w-44">
-              <HorizonButton
-                v-if="canEditSquadron"
-                variant="primary"
-                size="sm"
-                @click="openEditModal"
+            <div class="mt-4 flex items-center gap-2 text-xs">
+              <span
+                class="rounded-full px-2.5 py-0.5 font-semibold"
+                :class="squadron.recruiting
+                  ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+                  : 'bg-white/[0.042] text-text-secondary'"
               >
-                Edit Squadron
-              </HorizonButton>
-
-              <HorizonButton
-                v-if="permissions?.can_apply"
-                variant="primary"
-                size="sm"
-                :disabled="activeAction === 'apply'"
-                @click="applyToSquadron"
-              >
-                {{ activeAction === 'apply' ? 'Applying…' : 'Apply' }}
-              </HorizonButton>
-
-              <HorizonButton
-                v-if="permissions?.can_leave"
-                variant="secondary"
-                size="sm"
-                :disabled="activeAction === 'leave'"
-                @click="askLeaveSquadron"
-              >
-                {{ activeAction === 'leave' ? 'Leaving…' : 'Leave Squadron' }}
-              </HorizonButton>
-
-              <Link
-                :href="route('squadrons.index')"
-                class="inline-flex items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.06] hover:text-horizon-white"
-              >
-                Back to Registry
-              </Link>
+                {{ recruitmentStateLabel }}
+              </span>
+              <span v-if="squadron.division" class="text-text-muted">{{ squadron.division }}</span>
             </div>
           </div>
-        </section>
 
         <div v-if="errorMessage" class="hz-alert hz-alert-danger">
           {{ errorMessage }}
@@ -784,104 +724,38 @@ watch(
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <main class="space-y-6">
             <!-- Recruitment -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-6">
-              <div class="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                    Recruitment Broadcast
-                  </div>
-                  <h2 class="mt-1 text-xl font-bold text-horizon-white">
-                    Join Directive
-                  </h2>
-                </div>
-
-                <span
-                  class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
-                  :class="squadron.recruiting
-                    ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
-                >
-                  {{ recruitmentStateLabel }}
-                </span>
-              </div>
-
+            <div v-if="squadron.recruitment_propaganda" class="space-y-3">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Recruitment</div>
               <div
-                v-if="squadron.recruitment_propaganda"
-                class="hz-soft space-y-3 [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[color:var(--squadron-accent-a)]/35 [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_code]:rounded [&_code]:bg-bg-elevated [&_code]:px-1 [&_code]:py-0.5 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-[color:var(--color-bg-hover)] [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-lg [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-7 [&_pre]:rounded [&_pre]:bg-bg-elevated [&_pre]:p-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-[color:var(--color-bg-hover)] [&_td]:bg-bg-elevated [&_td]:p-2 [&_th]:border [&_th]:border-[color:var(--color-bg-hover)] [&_th]:bg-bg-hover [&_th]:p-2 [&_ul]:list-disc [&_ul]:pl-5"
+                class="hz-rte-content"
                 v-html="squadron.recruitment_propaganda"
               />
-
-              <p v-else class="text-sm text-text-secondary">
-                No recruitment message has been posted for this squadron yet.
-              </p>
-            </section>
+            </div>
 
             <!-- Overview -->
-            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6">
-              <div class="mb-4">
-                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                  Squadron Overview
-                </div>
-                <h2 class="mt-1 text-xl font-bold text-horizon-white">
-                  Mission Profile
-                </h2>
-              </div>
-
+            <div class="space-y-3">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">About</div>
               <div
                 v-if="squadron.description"
-                class="hz-soft space-y-3 [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[color:var(--squadron-accent-a)]/35 [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_code]:rounded [&_code]:bg-bg-elevated [&_code]:px-1 [&_code]:py-0.5 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-[color:var(--color-bg-hover)] [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-lg [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-7 [&_pre]:rounded [&_pre]:bg-bg-elevated [&_pre]:p-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-[color:var(--color-bg-hover)] [&_td]:bg-bg-elevated [&_td]:p-2 [&_th]:border [&_th]:border-[color:var(--color-bg-hover)] [&_th]:bg-bg-hover [&_th]:p-2 [&_ul]:list-disc [&_ul]:pl-5"
+                class="hz-rte-content"
                 v-html="squadron.description"
               />
+              <p v-else class="text-sm text-text-secondary">No description provided.</p>
+            </div>
 
-              <p v-else class="text-sm text-text-secondary">
-                No squadron description has been provided yet.
-              </p>
-            </section>
-
-            <!-- Roster Command Console -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-6">
-              <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                    Roster Command Console
-                  </div>
-                  <h2 class="mt-1 text-xl font-bold text-horizon-white">
-                    Active Personnel
-                  </h2>
-                  <p class="mt-1 text-sm text-text-secondary">
-                    Command staff, lieutenants, squadron members, and pending applications.
-                  </p>
-                </div>
-
-                <div class="rounded-2xl border border-[color:var(--squadron-accent-b)]/25 bg-[color:var(--squadron-accent-b)]/10 px-4 py-3 text-right">
-                  <div class="text-2xl font-black text-horizon-white">
-                    {{ activeMemberCount }} / {{ maxRosterSize }}
-                  </div>
-                  <div class="text-xs uppercase tracking-wide text-text-muted">
-                    Active Slots
-                  </div>
-                </div>
+            <!-- Roster -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Roster</div>
+                <div class="text-xs text-text-secondary">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
               </div>
 
               <div class="space-y-6">
                 <!-- Pending applications -->
-                <section
-                  v-if="canManageMembers && pendingMembers.length"
-                  class="rounded-[1.5rem] border border-amber-300/25 bg-amber-300/5 p-4"
-                >
-                  <div class="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <div class="text-xs font-bold uppercase tracking-[0.18em] text-amber-100/80">
-                        Pending Applications
-                      </div>
-                      <div class="text-sm text-text-secondary">
-                        Applicants awaiting officer review.
-                      </div>
-                    </div>
-
-                    <div class="rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">
-                      {{ pendingMembers.length }}
-                    </div>
+                <div v-if="canManageMembers && pendingMembers.length" class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-amber-100/80">Pending</div>
+                    <div class="text-xs font-bold text-amber-100">{{ pendingMembers.length }}</div>
                   </div>
 
                   <div class="grid gap-3 md:grid-cols-2">
@@ -939,58 +813,43 @@ watch(
                       </div>
                     </article>
                   </div>
-                </section>
+                </div>
 
                 <!-- Commanding officer -->
-                <section v-if="leaderMember || leader" class="space-y-2">
-                  <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Commanding Officer
-                  </div>
-
-                  <article class="rounded-2xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.024] p-4">
-                    <div class="flex items-center gap-3">
-                      <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/30 bg-white/[0.042]">
-                        <img
-                          v-if="leaderMember && memberAvatar(leaderMember)"
-                          :src="memberAvatar(leaderMember)"
-                          :alt="`${memberName(leaderMember)} Discord avatar`"
-                          class="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-
-                        <div
-                          v-else
-                          class="flex h-full w-full items-center justify-center text-lg font-black text-horizon-white"
-                        >
-                          {{ leaderMember ? memberInitial(leaderMember) : String(leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'L').slice(0, 1).toUpperCase() }}
-                        </div>
-                      </div>
-
-                      <div class="min-w-0">
-                        <Link
-                          v-if="leaderMember && memberProfileHref(leaderMember)"
-                          :href="memberProfileHref(leaderMember)"
-                          class="font-semibold hover:underline"
-                          :style="memberNameColor(leaderMember) ? { color: memberNameColor(leaderMember) } : undefined"
-                        >
-                          {{ memberName(leaderMember) }}
-                        </Link>
+                <div v-if="leaderMember || leader" class="space-y-2">
+                  <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Commanding Officer</div>
+                  <div class="flex items-center gap-2">
+                    <img
+                      v-if="leaderMember && memberAvatar(leaderMember)"
+                      :src="memberAvatar(leaderMember)"
+                      :alt="`${memberName(leaderMember)} Discord avatar`"
+                      class="h-8 w-8 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                    <div
+                      v-else
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xs font-bold text-horizon-white"
+                    >
+                      {{ leaderMember ? memberInitial(leaderMember) : String(leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'L').slice(0, 1).toUpperCase() }}
+                    </div>
+                    <Link
+                      v-if="leaderMember && memberProfileHref(leaderMember)"
+                      :href="memberProfileHref(leaderMember)"
+                      class="text-sm font-semibold text-horizon-white hover:underline"
+                      :style="memberNameColor(leaderMember) ? { color: memberNameColor(leaderMember) } : undefined"
+                    >
+                      {{ memberName(leaderMember) }}
+                    </Link>
 
                         <span
                           v-else
-                          class="font-semibold"
+                          class="text-sm font-semibold text-horizon-white"
                           :style="leaderColor ? { color: leaderColor } : undefined"
                         >
                           {{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}
                         </span>
-
-                        <div class="mt-1 text-xs uppercase tracking-wide text-text-muted">
-                          Squadron Leader
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                </section>
+                  </div>
+                </div>
 
                 <!-- Lieutenants -->
                 <section class="space-y-2">
@@ -1156,156 +1015,77 @@ watch(
                   </p>
                 </section>
               </div>
-            </section>
+            </div>
           </main>
 
           <aside class="space-y-6">
-            <!-- Viewer status -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-5">
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Your Status
-              </div>
-
-              <div class="mt-3 text-2xl font-black text-horizon-white">
-                {{ viewerStatusLabel }}
-              </div>
-
-              <p class="mt-2 text-sm text-text-secondary">
+            <!-- Your Status -->
+            <div class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Your Status</div>
+              <div class="text-lg font-semibold text-horizon-white">{{ viewerStatusLabel }}</div>
+              <div class="text-sm text-text-secondary">
                 {{ viewerMembership ? 'You have an existing relationship with this squadron.' : 'You are not currently assigned to this squadron.' }}
-              </p>
-            </section>
-
-            <!-- Officer tools -->
-            <section
-              v-if="canEditSquadron || canManageMembers"
-              class="rounded-[2rem] border border-[color:var(--squadron-accent-b)]/25 bg-[radial-gradient(circle_at_top_right,var(--squadron-glow-b),transparent_46%),rgba(255,255,255,0.035)] p-5"
-            >
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Officer Tools
               </div>
+            </div>
 
-              <div class="mt-4 space-y-2">
-                <HorizonButton
-                  v-if="canEditSquadron"
-                  variant="primary"
-                  size="sm"
-                  class="w-full"
-                  @click="openEditModal"
-                >
-                  Edit Dossier
-                </HorizonButton>
-
-                <div
-                  v-if="canManageMembers"
-                  class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3"
-                >
-                  <div class="text-sm font-semibold text-horizon-white">
-                    {{ pendingMembers.length }} Pending
-                  </div>
-                  <div class="mt-1 text-xs text-text-muted">
-                    Applications awaiting review.
-                  </div>
-                </div>
+            <!-- Officer Tools -->
+            <div v-if="canEditSquadron || canManageMembers" class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Officer Tools</div>
+              <div class="flex flex-col gap-2">
+                <HorizonButton v-if="canEditSquadron" variant="primary" size="sm" class="w-full" @click="openEditModal">Edit Squadron</HorizonButton>
+                <div v-if="canManageMembers" class="text-sm text-text-secondary">{{ pendingMembers.length }} pending</div>
               </div>
-            </section>
+            </div>
 
-            <!-- Quick facts -->
-            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Quick Facts
+            <!-- Quick Facts -->
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Branch</span>
+                <span class="flex items-center gap-2 font-semibold text-horizon-white">
+                  <img v-if="branchLogoSrc(squadron.branch)" :src="branchLogoSrc(squadron.branch)" class="h-4 w-4 object-contain" loading="lazy" />
+                  {{ formatTitle(squadron.branch) }}
+                </span>
               </div>
-
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                  <span class="text-sm text-text-muted">Branch</span>
-                  <span class="flex items-center gap-2 text-sm font-semibold text-horizon-white">
-                    <img
-                      v-if="branchLogoSrc(squadron.branch)"
-                      :src="branchLogoSrc(squadron.branch)"
-                      :alt="`${formatTitle(squadron.branch)} logo`"
-                      class="h-4 w-4 shrink-0 object-contain"
-                      loading="lazy"
-                    />
-                    {{ formatTitle(squadron.branch) }}
-                  </span>
-                </div>
-
-                <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                  <span class="text-sm text-text-muted">Division</span>
-                  <span class="text-sm font-semibold text-horizon-white">
-                    {{ formatTitle(squadron.division) }}
-                  </span>
-                </div>
-
-                <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                  <span class="text-sm text-text-muted">Status</span>
-                  <span class="text-sm font-semibold text-horizon-white">
-                    {{ formatTitle(squadron.status) }}
-                  </span>
-                </div>
-
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-sm text-text-muted">Recruiting</span>
-                  <span class="text-sm font-semibold text-horizon-white">
-                    {{ squadron.recruiting ? 'Open' : 'Closed' }}
-                  </span>
-                </div>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Division</span>
+                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.division) }}</span>
               </div>
-            </section>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Status</span>
+                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.status) }}</span>
+              </div>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Recruiting</span>
+                <span class="font-semibold text-horizon-white">{{ squadron.recruiting ? 'Open' : 'Closed' }}</span>
+              </div>
+            </div>
 
             <!-- Capacity -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-b)]/25 bg-[radial-gradient(circle_at_top_right,var(--squadron-glow-b),transparent_46%),rgba(255,255,255,0.035)] p-5">
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Roster Capacity
-              </div>
-
-              <div class="mt-3 flex items-end justify-between gap-3">
-                <div class="text-3xl font-black text-horizon-white">
-                  {{ activeMemberCount }}
-                </div>
-                <div class="pb-1 text-sm text-text-secondary">
-                  of {{ maxRosterSize }} active slots
-                </div>
-              </div>
-
-              <div class="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+            <div class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Capacity</div>
+              <div class="text-2xl font-semibold text-horizon-white">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
+              <div class="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <div
-                  class="h-full rounded-full bg-gradient-to-r from-[color:var(--squadron-accent-a)] to-[color:var(--squadron-accent-b)]"
+                  class="h-full rounded-full bg-white/[0.3]"
                   :style="{ width: `${rosterPercent}%` }"
                 ></div>
               </div>
-            </section>
+            </div>
 
             <!-- Leadership -->
-            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Leadership
+            <div class="space-y-3">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Leadership</div>
+              <div class="space-y-1">
+                <div class="text-sm font-semibold text-horizon-white">{{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}</div>
+                <div class="text-xs text-text-muted">Commander</div>
               </div>
-
-              <div class="mt-4 space-y-3">
-                <div class="rounded-2xl border border-[color:var(--squadron-accent-a)]/20 bg-white/[0.025] p-3">
-                  <div class="text-xs uppercase tracking-wide text-text-muted">
-                    Commander
-                  </div>
-                  <div
-                    class="mt-1 font-semibold text-horizon-white"
-                    :style="leaderColor ? { color: leaderColor } : undefined"
-                  >
-                    {{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}
-                  </div>
-                </div>
-
-                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
-                  <div class="text-xs uppercase tracking-wide text-text-muted">
-                    Lieutenants
-                  </div>
-                  <div class="mt-1 font-semibold text-horizon-white">
-                    {{ lieutenantMembers.length }} / 2
-                  </div>
-                </div>
+              <div class="space-y-1">
+                <div class="text-sm font-semibold text-horizon-white">{{ lieutenantMembers.length }} / 2</div>
+                <div class="text-xs text-text-muted">Lieutenants</div>
               </div>
-            </section>
+            </div>
           </aside>
+        </div>
         </div>
 
         <!-- Edit modal -->
@@ -1314,18 +1094,15 @@ watch(
           class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           @click.self="closeEditModal"
         >
-          <section class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-[color:var(--squadron-accent-a)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_64px_var(--squadron-glow-a)]">
-            <header class="flex items-start justify-between gap-4 border-b border-[color:var(--squadron-accent-a)]/20 p-5">
+          <section class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.95)]">
+            <header class="flex items-start justify-between gap-4 border-b border-white/[0.055] p-5">
               <div>
-                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                  Squadron Edit Console
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+                  Edit Squadron
                 </div>
-                <h2 class="mt-1 text-2xl font-black text-horizon-white">
-                  Edit {{ squadron.name }}
+                <h2 class="mt-1 text-xl font-black text-horizon-white">
+                  {{ squadron.name }}
                 </h2>
-                <p class="mt-1 text-sm text-text-secondary">
-                  Update the public dossier without disturbing the command layout.
-                </p>
               </div>
 
               <HorizonButton
@@ -1342,59 +1119,36 @@ watch(
               <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
                 <!-- Emblem controls -->
                 <aside class="space-y-4">
-                  <section class="rounded-2xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.035] p-4">
-                    <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Emblem
-                    </div>
+                  <div class="space-y-3">
+                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Emblem</div>
 
-                    <div class="relative mx-auto mt-4 h-40 w-40">
-                      <div class="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-[color:var(--squadron-accent-a)]/25 via-transparent to-[color:var(--squadron-accent-b)]/25 blur-xl"></div>
-
-                      <div class="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-[1.5rem] border border-[color:var(--squadron-accent-a)]/35 bg-[color:var(--horizon-void-800)]">
-                        <img
-                          v-if="squadron.emblem_url"
-                          :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
-                          :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-                          class="h-full w-full object-contain p-3"
-                          loading="lazy"
-                        />
-                        <div v-else class="text-4xl font-black text-[color:var(--horizon-text-primary)]">
-                          {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
-                        </div>
+                    <div class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/[0.055] bg-[color:var(--horizon-void-800)]">
+                      <img
+                        v-if="squadron.emblem_url"
+                        :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
+                        :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
+                        class="h-full w-full object-contain p-3"
+                        loading="lazy"
+                      />
+                      <div v-else class="text-3xl font-black text-horizon-white">
+                        {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
                       </div>
                     </div>
 
-                    <div class="mt-4 space-y-2">
-                      <HorizonButton
-                        variant="primary"
-                        size="sm"
-                        class="w-full"
-                        :disabled="isSavingEmblem"
-                        @click="openEmblemPicker"
-                      >
+                    <div class="space-y-2">
+                      <HorizonButton variant="primary" size="sm" class="w-full" :disabled="isSavingEmblem" @click="openEmblemPicker">
                         Choose Emblem
                       </HorizonButton>
-
-                      <HorizonButton
-                        variant="ghost"
-                        size="sm"
-                        class="w-full"
-                        :disabled="isSavingEmblem || !squadron.emblem_url"
-                        @click="clearEmblem"
-                      >
-                        {{ isSavingEmblem ? 'Updating…' : 'Clear Emblem' }}
+                      <HorizonButton variant="ghost" size="sm" class="w-full" :disabled="isSavingEmblem || !squadron.emblem_url" @click="clearEmblem">
+                        {{ isSavingEmblem ? 'Updating…' : 'Clear' }}
                       </HorizonButton>
                     </div>
-                  </section>
+                  </div>
 
-                  <section class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                    <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Save Rules
-                    </div>
-                    <p class="mt-2 text-sm text-text-secondary">
-                      Text fields save together. Emblem changes save immediately after selection.
-                    </p>
-                  </section>
+                  <div class="space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Save Rules</div>
+                    <p class="text-sm text-text-secondary">Text fields save together. Emblem changes save immediately after selection.</p>
+                  </div>
                 </aside>
 
                 <!-- Text controls -->
@@ -1439,7 +1193,7 @@ watch(
               </div>
             </div>
 
-            <footer class="flex items-center justify-end gap-2 border-t border-[color:var(--squadron-accent-a)]/20 p-5">
+            <footer class="flex items-center justify-end gap-2 border-t border-white/[0.055] p-5">
               <HorizonButton
                 variant="ghost"
                 size="sm"

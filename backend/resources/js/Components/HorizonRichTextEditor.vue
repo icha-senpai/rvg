@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
-import { Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -15,34 +14,61 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TextStyle } from '@tiptap/extension-text-style'
 
-const RichTextClasses = Extension.create({
-  name: 'richTextClasses',
-  addGlobalAttributes() {
+const ExtendedTextStyle = TextStyle.extend({
+  parseHTML() {
     return [
       {
-        types: ['textStyle'],
-        attributes: {
-          rteFontSize: {
-            default: null,
-            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-size-')) || null,
-            renderHTML: attributes => attributes.rteFontSize ? { class: attributes.rteFontSize } : {},
-          },
-          rteFontFamily: {
-            default: null,
-            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-font-')) || null,
-            renderHTML: attributes => attributes.rteFontFamily ? { class: attributes.rteFontFamily } : {},
-          },
-          rteColor: {
-            default: null,
-            parseHTML: element => Array.from(element.classList).find(name => name.startsWith('hz-rte-color-')) || null,
-            renderHTML: attributes => attributes.rteColor ? { class: attributes.rteColor } : {},
-          },
+        tag: 'span',
+        getAttrs: element => {
+          const style = element.getAttribute?.('style') || ''
+          const className = element.getAttribute?.('class') || ''
+          return style || /\bhz-rte-(size|font|color)-/.test(className) ? {} : false
         },
       },
     ]
   },
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      rteFontSize: {
+        default: null,
+        parseHTML: element => {
+          const cls = Array.from(element.classList).find(name => name.startsWith('hz-rte-size-'))
+          return cls || null
+        },
+        renderHTML: attributes => {
+          if (!attributes.rteFontSize) return {}
+          return { class: attributes.rteFontSize }
+        },
+      },
+      rteFontFamily: {
+        default: null,
+        parseHTML: element => {
+          const cls = Array.from(element.classList).find(name => name.startsWith('hz-rte-font-'))
+          return cls || null
+        },
+        renderHTML: attributes => {
+          if (!attributes.rteFontFamily) return {}
+          return { class: attributes.rteFontFamily }
+        },
+      },
+      rteColor: {
+        default: null,
+        parseHTML: element => {
+          const cls = Array.from(element.classList).find(name => name.startsWith('hz-rte-color-'))
+          return cls || null
+        },
+        renderHTML: attributes => {
+          if (!attributes.rteColor) return {}
+          return { class: attributes.rteColor }
+        },
+      },
+    }
+  },
   addCommands() {
     return {
+      ...this.parent?.(),
       setRteFontSize: value => ({ chain }) => chain().setMark('textStyle', { rteFontSize: value || null }).run(),
       unsetRteFontSize: () => ({ chain }) => chain().setMark('textStyle', { rteFontSize: null }).run(),
       setRteFontFamily: value => ({ chain }) => chain().setMark('textStyle', { rteFontFamily: value || null }).run(),
@@ -272,8 +298,7 @@ const editor = new Editor({
     }),
     Underline,
     WrappedImage.configure({ inline: false, allowBase64: false, HTMLAttributes: { loading: 'lazy' } }),
-    TextStyle,
-    RichTextClasses,
+    ExtendedTextStyle,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Table.configure({ resizable: false }),
     TableRow,
