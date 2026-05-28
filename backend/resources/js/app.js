@@ -1,4 +1,5 @@
 import '../css/app.css';
+import '../css/reduced-chrome.css';
 
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
@@ -96,4 +97,3 @@ createInertiaApp({
         app.mount(el);
     },
 });
-
