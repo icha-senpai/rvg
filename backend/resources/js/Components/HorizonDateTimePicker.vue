@@ -4,7 +4,7 @@
 
     <button
       type="button"
-      class="hz-input w-full text-left cursor-pointer flex items-center justify-between gap-3 bg-horizon-blue-dark"
+      class="hz-input w-full text-left cursor-pointer flex items-center justify-between gap-3 bg-[rgba(21,25,42,0.8)]"
       @click="togglePicker"
     >
       <span class="truncate">{{ displayValue }}</span>
@@ -13,12 +13,12 @@
 
     <div
       v-if="pickerOpen"
-      class="mt-2 w-full rounded-xl shadow-2xl overflow-visible bg-bg-surface border border-[color:var(--horizon-sunset-blue)]"
+      class="mt-2 w-full rounded-xl shadow-2xl overflow-visible bg-bg-surface border border-white/[0.055]"
     >
       <div class="px-3 py-3 border-b border-white/10 flex items-center justify-between gap-2">
         <button
           type="button"
-          class="px-2 py-1 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)]"
+          class="px-2 py-1 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042]"
           @click="goPrevMonth"
         >
           ‹
@@ -30,7 +30,7 @@
 
         <button
           type="button"
-          class="px-2 py-1 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)]"
+          class="px-2 py-1 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042]"
           @click="goNextMonth"
         >
           ›
@@ -52,10 +52,10 @@
               cell.isBlank
                 ? 'opacity-0 pointer-events-none'
                 : (cell.isSelected
-                    ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'),
+                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
+                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'),
               (!cell.isBlank && cell.isTodayHighlight && !cell.isSelected)
-                ? 'ring-1 ring-[color:var(--horizon-sunset-blue)]'
+                ? 'ring-1 ring-white/[0.055]'
                 : '',
             ]"
             @click="!cell.isBlank && selectDay(cell.day)"
@@ -73,7 +73,7 @@
               <button
                 type="button"
                 ref="hourButton"
-                class="hz-input bg-horizon-blue-dark w-20 text-left px-3 py-2 flex items-center justify-between"
+                class="hz-input bg-[rgba(21,25,42,0.8)] w-20 text-left px-3 py-2 flex items-center justify-between"
                 @click="toggleHourMenu"
               >
                 <span>{{ String(hour).padStart(2, '0') }}</span>
@@ -92,8 +92,8 @@
                   type="button"
                   class="w-full px-2 py-1 rounded-md text-sm text-left"
                   :class="(hour === (h - 1))
-                    ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
+                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
+                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'"
                   @click="selectHour(h - 1)"
                 >
                   {{ String(h - 1).padStart(2, '0') }}
@@ -106,7 +106,7 @@
               <button
                 type="button"
                 ref="minuteButton"
-                class="hz-input bg-horizon-blue-dark w-24 text-left px-3 py-2 flex items-center justify-between"
+                class="hz-input bg-[rgba(21,25,42,0.8)] w-24 text-left px-3 py-2 flex items-center justify-between"
                 @click="toggleMinuteMenu"
               >
                 <span>{{ String(minute).padStart(2, '0') }}</span>
@@ -125,8 +125,8 @@
                   type="button"
                   class="w-full px-2 py-1 rounded-md text-sm text-left"
                   :class="(minute === m)
-                    ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white'
-                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-10)]'"
+                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
+                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'"
                   @click="selectMinute(m)"
                 >
                   {{ String(m).padStart(2, '0') }}
@@ -137,7 +137,7 @@
             <div v-if="showNow" class="ml-auto">
               <button
                 type="button"
-                class="px-3 py-2 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)] text-sm"
+                class="px-3 py-2 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042] text-sm"
                 @click="setNow"
               >
                 Now
@@ -148,7 +148,7 @@
           <div v-if="clearable" class="flex items-center justify-end gap-2 flex-wrap">
             <button
               type="button"
-              class="px-3 py-2 rounded-lg bg-bg-hover border border-bg-hover hover:border-[color:var(--horizon-sunset-blue)] text-sm"
+              class="px-3 py-2 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042] text-sm"
               @click="clear"
             >
               Clear
@@ -514,3 +514,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleViewportChanged, true)
 })
 </script>
+
+
+
+
+
+
+
+

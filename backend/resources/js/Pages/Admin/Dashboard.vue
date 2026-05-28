@@ -166,30 +166,30 @@ function tabCardClass(tab) {
   if (activeTab.value === tab.key) {
     switch (tab.tone) {
       case 'magenta':
-        return 'border-[color:var(--horizon-sunset-magenta)]/40 bg-[color:var(--horizon-sunset-magenta)]/10 shadow-[0_0_28px_rgba(192,38,211,0.16)]'
+        return 'border-white/[0.055] bg-white/[0.042] '
       case 'indigo':
-        return 'border-[color:var(--horizon-sunset-indigo)]/40 bg-[color:var(--horizon-sunset-indigo)]/10 shadow-[0_0_28px_rgba(67,56,202,0.16)]'
+        return 'border-white/[0.055] bg-white/[0.042] '
       case 'cyan':
       case 'blue':
       default:
-        return 'border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/10 shadow-[0_0_28px_rgba(30,64,175,0.16)]'
+        return 'border-[color:var(--horizon-sunset-blue)]/40 bg-white/[0.042] '
     }
   }
 
-  return 'border-white/10 bg-white/[0.025] hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.045]'
+  return 'border-white/[0.055] bg-white/[0.024] hover:border-white/[0.055] hover:bg-white/[0.045]'
 }
 
 function commandCardClass(link) {
   switch (link.tone) {
     case 'magenta':
-      return 'border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 hover:border-[color:var(--horizon-sunset-magenta)]/55 hover:bg-[color:var(--horizon-sunset-magenta)]/15'
+      return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-magenta)]/15'
     case 'indigo':
-      return 'border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-sunset-indigo)]/10 hover:border-[color:var(--horizon-sunset-indigo)]/55 hover:bg-[color:var(--horizon-sunset-indigo)]/15'
+      return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-indigo)]/15'
     case 'danger':
       return 'border-red-300/25 bg-red-300/10 hover:border-red-300/45 hover:bg-red-300/15'
     case 'blue':
     default:
-      return 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 hover:border-[color:var(--horizon-sunset-blue)]/55 hover:bg-[color:var(--horizon-sunset-blue)]/15'
+      return 'border-white/[0.055] bg-white/[0.042] hover:border-[color:var(--horizon-sunset-blue)]/55 hover:bg-[color:var(--horizon-sunset-blue)]/15'
   }
 }
 
@@ -227,7 +227,7 @@ onBeforeUnmount(() => {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Admin command hero -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -248,25 +248,25 @@ onBeforeUnmount(() => {
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ props.users?.total ?? props.users?.data?.length ?? 0 }} Users
               </span>
 
-              <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ props.squadrons?.length ?? 0 }} Squadrons
               </span>
 
-              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ props.roles?.length ?? 0 }} Roles
               </span>
 
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ archiveSummary.entries }} Archive Entries
               </span>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-4 py-3 text-right">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Active Console
             </div>
@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
               {{ link.eyebrow }}
             </div>
 
-            <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+            <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
               {{ link.stat }}
             </div>
           </div>
@@ -312,17 +312,17 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Topics</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.topics }}</div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Entries</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.entries }}</div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Taxonomy</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.categories + archiveSummary.tags }}</div>
         </div>
@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
 
             <div
               v-if="tab.count !== null"
-              class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white"
+              class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white"
             >
               {{ tab.count }}
             </div>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Active console shell -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
             </p>
           </div>
 
-          <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
             {{ activeTab }}
           </div>
         </div>
@@ -426,3 +426,11 @@ onBeforeUnmount(() => {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

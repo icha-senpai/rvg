@@ -51,7 +51,7 @@ function squadronHref(squadron) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Page header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -75,7 +75,7 @@ function squadronHref(squadron) {
       <!-- Empty state -->
       <section
         v-if="!squadrons.length"
-        class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
+        class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
       >
         No squadrons are currently listed.
       </section>
@@ -86,7 +86,7 @@ function squadronHref(squadron) {
           v-for="squadron in squadrons"
           :key="squadron.id"
           :href="squadronHref(squadron)"
-          class="group relative flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] shadow-[0_0_32px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/45 hover:shadow-[0_0_42px_rgba(192,38,211,0.16)]"
+          class="group relative flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/[0.055] bg-[rgba(21,25,42,0.64)]  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -125,7 +125,7 @@ function squadronHref(squadron) {
                   class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
                   :class="squadron.recruiting
                     ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border border-white/10 bg-white/[0.04] text-text-secondary'"
+                    : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
                 >
                   {{ squadron.recruiting ? 'Open' : 'Closed' }}
                 </span>
@@ -170,7 +170,7 @@ function squadronHref(squadron) {
                 View Dossier
               </div>
 
-              <div class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)] transition group-hover:border-[color:var(--horizon-sunset-magenta)]/35 group-hover:bg-[color:var(--horizon-sunset-magenta)]/10">
+              <div class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)] transition group-hover:border-white/[0.055] group-hover:bg-white/[0.042]">
                 Open →
               </div>
             </div>
@@ -180,3 +180,10 @@ function squadronHref(squadron) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+

@@ -9,7 +9,7 @@
       <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
     </div>
 
-    <div class="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_72px_rgba(67,56,202,0.28)] hz-animate-pop">
+    <div class="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -33,7 +33,7 @@
 
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
             aria-label="Close upload modal"
             @click="$emit('close')"
           >
@@ -44,7 +44,7 @@
 
       <div class="relative flex-1 overflow-y-auto p-5">
         <div class="space-y-5">
-          <section class="relative z-30 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+          <section class="relative z-30 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
             <div class="mb-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Upload Target
@@ -63,7 +63,7 @@
             />
           </section>
 
-          <section class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+          <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
             <div class="mb-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 File Metadata
@@ -106,7 +106,7 @@
 
           <section
             v-if="uploadPreviewUrl"
-            class="overflow-hidden rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-black/30"
+            class="overflow-hidden rounded-[1.5rem] border border-white/[0.055] bg-black/30"
           >
             <img
               :src="uploadPreviewUrl"
@@ -114,7 +114,7 @@
               class="max-h-80 w-full object-contain"
             />
 
-            <div class="border-t border-white/10 bg-white/[0.025] p-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+            <div class="border-t border-white/[0.055] bg-white/[0.024] p-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
               Preview
             </div>
           </section>
@@ -173,3 +173,10 @@ defineProps({
 
 defineEmits(['close', 'submit', 'file-select', 'update:collection', 'update:alt-text'])
 </script>
+
+
+
+
+
+
+

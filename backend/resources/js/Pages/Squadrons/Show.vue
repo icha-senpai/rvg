@@ -672,7 +672,7 @@ watch(
     <div class="mx-auto max-w-6xl space-y-8" :style="squadronAccentStyle">
       <div
         v-if="!squadron"
-        class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
+        class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
       >
         Squadron data could not be loaded.
       </div>
@@ -681,18 +681,15 @@ watch(
         <!-- Squadron hero -->
         <section
           class="relative overflow-hidden rounded-[2rem] border border-[color:var(--squadron-accent-a)]/45 bg-[radial-gradient(circle_at_top_left,var(--squadron-glow-a),transparent_34%),radial-gradient(circle_at_top_right,var(--squadron-glow-b),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6"
-          :style="{ boxShadow: '0 0 48px var(--squadron-glow-a)' }"
         >
-          <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="pointer-events-none absolute inset-0 opacity-20">
             <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--squadron-accent-a)] to-transparent"></div>
             <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--squadron-accent-b)] to-transparent"></div>
           </div>
 
           <div class="relative grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
             <div class="relative mx-auto h-36 w-36 shrink-0 lg:mx-0">
-              <div class="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-[color:var(--squadron-accent-a)]/35 via-transparent to-[color:var(--squadron-accent-b)]/30 blur-xl"></div>
-
-              <div class="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-[1.75rem] border border-[color:var(--squadron-accent-a)]/35 bg-[color:var(--horizon-void-800)] shadow-[0_0_28px_var(--squadron-glow-a)]">
+              <div class="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-[1.75rem] border border-[color:var(--squadron-accent-a)]/35 bg-[rgba(21,25,42,0.8)]">
                 <img
                   v-if="squadron.emblem_url"
                   :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
@@ -728,7 +725,7 @@ watch(
                   class="rounded-full px-3 py-1 text-xs font-semibold"
                   :class="squadron.recruiting
                     ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border border-white/10 bg-white/[0.04] text-text-secondary'"
+                    : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
                 >
                   {{ recruitmentStateLabel }}
                 </span>
@@ -771,7 +768,7 @@ watch(
 
               <Link
                 :href="route('squadrons.index')"
-                class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.06] hover:text-horizon-white"
+                class="inline-flex items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.06] hover:text-horizon-white"
               >
                 Back to Registry
               </Link>
@@ -787,7 +784,7 @@ watch(
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <main class="space-y-6">
             <!-- Recruitment -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[linear-gradient(135deg,var(--squadron-glow-a),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-6 shadow-[0_0_32px_var(--squadron-glow-a)]">
+            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-6">
               <div class="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -802,7 +799,7 @@ watch(
                   class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
                   :class="squadron.recruiting
                     ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border border-white/10 bg-white/[0.04] text-text-secondary'"
+                    : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
                 >
                   {{ recruitmentStateLabel }}
                 </span>
@@ -820,7 +817,7 @@ watch(
             </section>
 
             <!-- Overview -->
-            <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6">
+            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                   Squadron Overview
@@ -842,7 +839,7 @@ watch(
             </section>
 
             <!-- Roster Command Console -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/30 bg-[color:var(--horizon-void-700)]/80 p-6 shadow-[0_0_32px_var(--squadron-glow-a)]">
+            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-6">
               <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -950,9 +947,9 @@ watch(
                     Commanding Officer
                   </div>
 
-                  <article class="rounded-2xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.035] p-4">
+                  <article class="rounded-2xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.024] p-4">
                     <div class="flex items-center gap-3">
-                      <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/30 bg-[color:var(--squadron-accent-a)]/10 shadow-[0_0_18px_var(--squadron-glow-a)]">
+                      <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/30 bg-white/[0.042]">
                         <img
                           v-if="leaderMember && memberAvatar(leaderMember)"
                           :src="memberAvatar(leaderMember)"
@@ -1011,10 +1008,10 @@ watch(
                     <article
                       v-for="member in lieutenantMembers"
                       :key="member.id"
-                      class="rounded-2xl border border-[color:var(--squadron-accent-a)]/15 bg-white/[0.025] p-3"
+                      class="rounded-2xl border border-[color:var(--squadron-accent-a)]/15 bg-white/[0.024] p-3"
                     >
                       <div class="flex items-start gap-3">
-                        <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/25 bg-[color:var(--squadron-accent-a)]/10 shadow-[0_0_14px_var(--squadron-glow-a)]">
+                        <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.042]">
                           <img
                             v-if="memberAvatar(member)"
                             :src="memberAvatar(member)"
@@ -1075,7 +1072,7 @@ watch(
                     </article>
                   </div>
 
-                  <p v-else class="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-text-secondary">
+                  <p v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 text-sm text-text-secondary">
                     No lieutenants are assigned yet.
                   </p>
                 </section>
@@ -1090,10 +1087,10 @@ watch(
                     <article
                       v-for="member in sortedRegularMembers"
                       :key="member.id"
-                      class="rounded-2xl border border-white/10 bg-white/[0.025] p-3"
+                      class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3"
                     >
                       <div class="flex items-start gap-3">
-                        <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+                        <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/[0.055] bg-white/[0.042]">
                           <img
                             v-if="memberAvatar(member)"
                             :src="memberAvatar(member)"
@@ -1154,7 +1151,7 @@ watch(
                     </article>
                   </div>
 
-                  <p v-else class="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-text-secondary">
+                  <p v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 text-sm text-text-secondary">
                     No regular members are listed yet.
                   </p>
                 </section>
@@ -1164,7 +1161,7 @@ watch(
 
           <aside class="space-y-6">
             <!-- Viewer status -->
-            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[linear-gradient(135deg,var(--squadron-glow-a),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_var(--squadron-glow-a)]">
+            <section class="rounded-[2rem] border border-[color:var(--squadron-accent-a)]/25 bg-[rgba(21,25,42,0.42)] p-5">
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                 Your Status
               </div>
@@ -1200,7 +1197,7 @@ watch(
 
                 <div
                   v-if="canManageMembers"
-                  class="rounded-2xl border border-white/10 bg-white/[0.025] p-3"
+                  class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3"
                 >
                   <div class="text-sm font-semibold text-horizon-white">
                     {{ pendingMembers.length }} Pending
@@ -1213,7 +1210,7 @@ watch(
             </section>
 
             <!-- Quick facts -->
-            <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                 Quick Facts
               </div>
@@ -1280,7 +1277,7 @@ watch(
             </section>
 
             <!-- Leadership -->
-            <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+            <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                 Leadership
               </div>
@@ -1298,7 +1295,7 @@ watch(
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Lieutenants
                   </div>
@@ -1390,7 +1387,7 @@ watch(
                     </div>
                   </section>
 
-                  <section class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                  <section class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
                     <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                       Save Rules
                     </div>
@@ -1547,3 +1544,10 @@ watch(
     @confirm="() => { if (pendingDemoteMember) demoteLieutenant(pendingDemoteMember) }"
   />
 </template>
+
+
+
+
+
+
+

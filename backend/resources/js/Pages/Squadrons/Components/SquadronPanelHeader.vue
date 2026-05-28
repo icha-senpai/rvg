@@ -22,7 +22,7 @@ function formatTitle(value) {
     <div class="hz-row gap-3 items-center">
       <div
         v-if="squadron?.emblem_url"
-        class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-void-800)] shadow-[0_0_22px_rgba(30,64,175,0.18)]"
+        class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-void-800)] "
       >
         <img
           :src="squadron?.emblem?.thumbnail_url || squadron?.emblem?.medium_url || squadron?.emblem?.url || squadron?.emblem_url"
@@ -42,3 +42,11 @@ function formatTitle(value) {
     </div>
   </div>
 </template>
+
+
+
+
+
+
+
+

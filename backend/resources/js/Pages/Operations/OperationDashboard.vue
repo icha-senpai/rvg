@@ -721,17 +721,17 @@ function formatDate(value) {
 function statusCardClass(status) {
   switch (status) {
     case 'draft':
-      return 'border-white/10 bg-white/[0.035]'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
     case 'published':
-      return 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
     case 'in_progress':
-      return 'border-emerald-300/25 bg-emerald-300/10'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
     case 'completed':
-      return 'border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-sunset-indigo)]/10'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
     case 'canceled':
-      return 'border-red-300/25 bg-red-300/10'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
     default:
-      return 'border-white/10 bg-white/[0.035]'
+      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
   }
 }
 </script>
@@ -740,10 +740,10 @@ function statusCardClass(status) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command header -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6">
+        <div class="pointer-events-none absolute inset-0 opacity-20">
+          <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
         <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
@@ -761,15 +761,15 @@ function statusCardClass(status) {
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)] shadow-none">
                 {{ operationsTotalCount }} Total
               </span>
 
-              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)] shadow-none">
                 {{ statusFilterLabel }} View
               </span>
 
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-text-secondary shadow-none">
                 {{ todayLabel }}
               </span>
             </div>
@@ -808,8 +808,8 @@ function statusCardClass(status) {
       </section>
 
       <!-- Stats strip -->
-      <section class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+      <section class="grid overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024] md:grid-cols-4">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Active
           </div>
@@ -821,7 +821,7 @@ function statusCardClass(status) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-5">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Drafts
           </div>
@@ -833,7 +833,7 @@ function statusCardClass(status) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(67,56,202,0.10)]">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Published
           </div>
@@ -845,7 +845,7 @@ function statusCardClass(status) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Completed
           </div>
@@ -859,46 +859,32 @@ function statusCardClass(status) {
       </section>
 
       <!-- Filters -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Command Filters
-            </div>
-
-            <h2 class="mt-1 text-xl font-black text-horizon-white">
-              Operation Registry
-            </h2>
-
-            <p class="mt-1 text-sm text-text-secondary">
-              Filter by lifecycle state or search by title, description, ID, squadron, or creator.
-            </p>
+      <section class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-wrap items-center gap-2">
+            <HorizonButton
+              v-for="status in statusFilters"
+              :key="status.value"
+              size="xs"
+              :variant="statusFilter === status.value ? 'primary' : 'ghost'"
+              @click="statusFilter = status.value"
+            >
+              {{ status.label }}
+            </HorizonButton>
           </div>
 
-          <div class="w-full lg:max-w-md">
+          <div class="w-full sm:w-auto sm:min-w-[16rem]">
             <HorizonInput
               v-model="search"
-              label="Search"
-              placeholder="Title, description, ID, squadron, creator..."
+              placeholder="Search operations..."
+              class="text-sm"
             />
           </div>
-        </div>
-
-        <div class="mt-5 flex flex-wrap gap-2">
-          <HorizonButton
-            v-for="status in statusFilters"
-            :key="status.value"
-            size="xs"
-            :variant="statusFilter === status.value ? 'primary' : 'ghost'"
-            @click="statusFilter = status.value"
-          >
-            {{ status.label }}
-          </HorizonButton>
         </div>
       </section>
 
       <!-- Operation command cards -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-4 md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -910,7 +896,7 @@ function statusCardClass(status) {
             </h2>
           </div>
 
-          <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted shadow-none">
             {{ statusFilterLabel }}
           </div>
         </div>
@@ -919,7 +905,7 @@ function statusCardClass(status) {
           <article
             v-for="op in filteredOperations"
             :key="op.id"
-            class="group relative overflow-visible rounded-[1.75rem] border bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40 hover:shadow-[0_0_42px_rgba(192,38,211,0.14)]"
+            class="group relative overflow-visible rounded-[1.75rem] border border-white/[0.075] bg-[rgba(21,25,42,0.64)] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[rgba(27,32,53,0.68)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
             :class="statusCardClass(op.status)"
           >
             <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
@@ -929,15 +915,15 @@ function statusCardClass(status) {
 
             <div class="relative space-y-5">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)] shadow-none">
                   #{{ op.id }}
                 </span>
 
-                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary">
+                <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary shadow-none">
                   {{ operationKindLabel(op.operation_type ?? op.operation_kind) }}
                 </span>
 
-                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary">
+                <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary shadow-none">
                   {{ formatEnumLabel(op.status, 'draft') }}
                 </span>
               </div>
@@ -963,7 +949,7 @@ function statusCardClass(status) {
               </div>
 
               <div class="grid gap-3 md:grid-cols-2">
-                <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Starts
                   </div>
@@ -972,7 +958,7 @@ function statusCardClass(status) {
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Ends
                   </div>
@@ -983,7 +969,7 @@ function statusCardClass(status) {
               </div>
 
               <div class="grid gap-3 md:grid-cols-2">
-                <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Squadron
                   </div>
@@ -992,7 +978,7 @@ function statusCardClass(status) {
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Creator
                   </div>
@@ -1024,11 +1010,11 @@ function statusCardClass(status) {
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ formatEnumLabel(op.operation_strictness, 'default') }} Comms
                 </span>
 
-                <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ formatEnumLabel(op.visibility, 'open') }} Visibility
                 </span>
               </div>
@@ -1240,3 +1226,10 @@ function statusCardClass(status) {
     @confirm="confirmCancelOperation"
   />
 </template>
+
+
+
+
+
+
+

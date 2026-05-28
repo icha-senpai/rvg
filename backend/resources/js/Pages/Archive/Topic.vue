@@ -121,11 +121,11 @@ function clearFilters() {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <Link :href="route('archive.index')" class="inline-flex items-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-semibold text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
+      <Link :href="route('archive.index')" class="inline-flex items-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-semibold text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
         ← Back to Archive
       </Link>
 
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_42%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_36%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] shadow-[0_0_48px_rgba(67,56,202,0.16)]">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -138,10 +138,10 @@ function clearFilters() {
 
         <div class="relative p-6 md:p-8">
           <div class="flex flex-wrap gap-2">
-            <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
+            <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
               {{ topic.category_label || 'Archive Topic' }}
             </span>
-            <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
+            <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
           </div>
 
           <h1 class="mt-4 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
@@ -154,7 +154,7 @@ function clearFilters() {
 
           <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
             <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ entries.length }} visible entries</span>
-            <span v-if="hasActiveFilters" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-[color:var(--horizon-text-primary)]">Filtered</span>
+            <span v-if="hasActiveFilters" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-[color:var(--horizon-text-primary)]">Filtered</span>
           </div>
         </div>
       </section>
@@ -198,13 +198,13 @@ function clearFilters() {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
-            <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-[color:var(--horizon-sunset-blue)]/10 blur-3xl"></div>
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group relative overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+            <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div class="relative flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
-              <span v-for="categoryItem in entry.categories" :key="`category-${entry.id}-${categoryItem.id}`" class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">{{ categoryItem.name }}</span>
-              <span v-for="tagItem in entry.tags" :key="`tag-${entry.id}-${tagItem.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tagItem.name }}</span>
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
+              <span v-for="categoryItem in entry.categories" :key="`category-${entry.id}-${categoryItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ categoryItem.name }}</span>
+              <span v-for="tagItem in entry.tags" :key="`tag-${entry.id}-${tagItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tagItem.name }}</span>
             </div>
 
             <h3 class="relative mt-3 text-xl font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
@@ -213,10 +213,18 @@ function clearFilters() {
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
           No visible entries matched this topic and filter set.
         </div>
       </section>
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

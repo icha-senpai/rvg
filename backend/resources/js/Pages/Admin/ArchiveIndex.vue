@@ -129,7 +129,7 @@ function confirmDeleteTopic({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Director Tools</div>
@@ -141,16 +141,16 @@ function confirmDeleteTopic({ close }) {
 
           <div class="flex flex-wrap gap-3">
             <HorizonButton type="button" @click="openCreateDrawer">New Topic</HorizonButton>
-            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Manage Categories & Tags</Link>
+            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Manage Categories & Tags</Link>
             <Link :href="route('admin.archive.trash.index')" class="rounded-xl border border-red-300/25 bg-red-300/10 px-4 py-2 text-sm font-bold text-red-100 hover:bg-red-300/15">Trash</Link>
-            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
-            <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
-            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
+            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
+            <Link :href="route('archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
+            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
           </div>
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
@@ -174,7 +174,7 @@ function confirmDeleteTopic({ close }) {
         </div>
 
         <div v-if="sortedTopics.length" class="space-y-4">
-          <article v-for="topic in sortedTopics" :key="topic.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+          <article v-for="topic in sortedTopics" :key="topic.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -193,7 +193,7 @@ function confirmDeleteTopic({ close }) {
               </div>
 
               <div class="flex flex-wrap gap-2 lg:flex-col">
-                <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
+                <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
                 <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                 <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
                 <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTopic(topic)">Delete</HorizonButton>
@@ -202,7 +202,7 @@ function confirmDeleteTopic({ close }) {
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
           No archive topics exist yet. Use New Topic to create the first card.
         </div>
       </section>
@@ -243,7 +243,7 @@ function confirmDeleteTopic({ close }) {
             <ArchiveMediaPicker v-model="topicForm.banner_image_path" label="Topic Banner Image" />
           </div>
 
-          <label class="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-text-secondary">
+          <label class="flex items-center gap-2 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4 text-sm font-semibold text-text-secondary">
             <input v-model="topicForm.is_published" type="checkbox" /> Published
           </label>
         </form>
@@ -271,3 +271,11 @@ function confirmDeleteTopic({ close }) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

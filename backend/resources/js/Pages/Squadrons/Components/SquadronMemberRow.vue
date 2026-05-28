@@ -106,3 +106,11 @@ const nameColor = computed(() => {
   return getOrgRoleColor(slug)
 })
 </script>
+
+
+
+
+
+
+
+

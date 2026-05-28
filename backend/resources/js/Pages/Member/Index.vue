@@ -218,7 +218,7 @@ function hasFavoriteData(user) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command hero -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -239,24 +239,24 @@ function hasFavoriteData(user) {
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ totalUsers }} Active Members
               </span>
 
               <span
                 v-if="activeSearch"
-                class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
+                class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
               >
                 Search: {{ activeSearch }}
               </span>
 
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
                 Page {{ currentPage }} / {{ lastPage }}
               </span>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-4 py-3 text-right">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Visible
             </div>
@@ -274,7 +274,7 @@ function hasFavoriteData(user) {
 
       <!-- Stats strip -->
       <section class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 ">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Registry Total
           </div>
@@ -286,7 +286,7 @@ function hasFavoriteData(user) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(67,56,202,0.10)]">
+        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 ">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Callsigns
           </div>
@@ -298,7 +298,7 @@ function hasFavoriteData(user) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Timezones
           </div>
@@ -312,7 +312,7 @@ function hasFavoriteData(user) {
       </section>
 
       <!-- Search command panel -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
         <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -330,7 +330,7 @@ function hasFavoriteData(user) {
 
           <div
             v-if="activeSearch"
-            class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-3"
+            class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3"
           >
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Active Filter
@@ -372,7 +372,7 @@ function hasFavoriteData(user) {
       </section>
 
       <!-- Members registry -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -388,7 +388,7 @@ function hasFavoriteData(user) {
             </p>
           </div>
 
-          <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
             Page {{ currentPage }} of {{ lastPage }}
           </div>
         </div>
@@ -400,7 +400,7 @@ function hasFavoriteData(user) {
           <article
             v-for="member in members"
             :key="member.id"
-            class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40 hover:shadow-[0_0_42px_rgba(192,38,211,0.14)]"
+            class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[rgba(21,25,42,0.64)] p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
           >
             <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
               <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -418,12 +418,12 @@ function hasFavoriteData(user) {
                   v-if="member.discord_avatar"
                   :src="member.discord_avatar"
                   alt=""
-                  class="h-24 w-24 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 object-cover shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+                  class="h-24 w-24 rounded-2xl border border-white/[0.055] object-cover "
                 />
 
                 <div
                   v-else
-                  class="flex h-24 w-24 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.04] text-3xl font-black text-horizon-white shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+                  class="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/[0.055] bg-white/[0.04] text-3xl font-black text-horizon-white "
                 >
                   {{ avatarInitial(member) }}
                 </div>
@@ -452,7 +452,7 @@ function hasFavoriteData(user) {
 
                   <Link
                     :href="profileHref(member)"
-                    class="inline-flex shrink-0 items-center justify-center rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10"
+                    class="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white transition hover:border-white/[0.055] hover:bg-white/[0.042]"
                   >
                     View Dossier
                   </Link>
@@ -461,14 +461,14 @@ function hasFavoriteData(user) {
                 <!-- Chips -->
                 <div class="flex flex-wrap gap-2">
                   <span
-                    class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
+                    class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
                   >
                     {{ rankLabel(member) }}
                   </span>
 
                   <span
                     v-if="String(member.callsign ?? '').trim()"
-                    class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
+                    class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]"
                     :title="`Callsign: ${member.callsign}`"
                   >
                     Callsign: {{ member.callsign }}
@@ -476,7 +476,7 @@ function hasFavoriteData(user) {
 
                   <span
                     v-if="String(member.timezone ?? '').trim()"
-                    class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                    class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary"
                     :title="`Timezone: ${member.timezone}`"
                   >
                     {{ member.timezone }}
@@ -484,7 +484,7 @@ function hasFavoriteData(user) {
 
                   <span
                     v-if="member.roles?.length"
-                    class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                    class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary"
                     :title="`Roles: ${formatRoleList(member.roles)}`"
                   >
                     Roles: {{ formatRoleList(member.roles) }}
@@ -493,7 +493,7 @@ function hasFavoriteData(user) {
 
                 <!-- Detail grid -->
                 <div class="grid gap-4 xl:grid-cols-2">
-                  <section class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                  <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                     <div class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                       Experience
                     </div>
@@ -518,7 +518,7 @@ function hasFavoriteData(user) {
                     </div>
                   </section>
 
-                  <section class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+                  <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                     <div class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                       Favorites
                     </div>
@@ -536,7 +536,7 @@ function hasFavoriteData(user) {
                           <span
                             v-for="ship in previewChipList(member.favorite_ships).items"
                             :key="ship"
-                            class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 px-2.5 py-1 text-xs font-semibold text-text-secondary"
+                            class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] px-2.5 py-1 text-xs font-semibold text-text-secondary"
                             :title="ship"
                           >
                             {{ ship }}
@@ -544,7 +544,7 @@ function hasFavoriteData(user) {
 
                           <span
                             v-if="previewChipList(member.favorite_ships).moreCount > 0"
-                            class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-semibold text-text-secondary"
+                            class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-semibold text-text-secondary"
                           >
                             +{{ previewChipList(member.favorite_ships).moreCount }} more
                           </span>
@@ -567,7 +567,7 @@ function hasFavoriteData(user) {
                           <span
                             v-for="gun in previewChipList(member.favorite_guns).items"
                             :key="gun"
-                            class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 px-2.5 py-1 text-xs font-semibold text-text-secondary"
+                            class="max-w-full truncate rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-xs font-semibold text-text-secondary"
                             :title="gun"
                           >
                             {{ gun }}
@@ -575,7 +575,7 @@ function hasFavoriteData(user) {
 
                           <span
                             v-if="previewChipList(member.favorite_guns).moreCount > 0"
-                            class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-semibold text-text-secondary"
+                            class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-semibold text-text-secondary"
                           >
                             +{{ previewChipList(member.favorite_guns).moreCount }} more
                           </span>
@@ -592,7 +592,7 @@ function hasFavoriteData(user) {
 
                     <div
                       v-else
-                      class="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-4 text-sm text-text-secondary"
+                      class="rounded-xl border border-dashed border-white/[0.075] bg-white/[0.018] [0.02] px-3 py-4 text-sm text-text-secondary"
                     >
                       No favorite equipment listed.
                     </div>
@@ -657,3 +657,10 @@ function hasFavoriteData(user) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+

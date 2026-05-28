@@ -30,3 +30,11 @@ defineProps({
   detail: String,
 });
 </script>
+
+
+
+
+
+
+
+

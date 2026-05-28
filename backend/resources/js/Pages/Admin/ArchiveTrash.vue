@@ -93,7 +93,7 @@ function confirmForceDelete({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Recovery Bay</div>
@@ -102,7 +102,7 @@ function confirmForceDelete({ close }) {
               Restore soft-deleted Archive content or permanently delete records that should be removed forever. Topic deletes are bundled with their entries so whole sections can be recovered cleanly.
             </p>
             <div class="mt-4 flex flex-wrap gap-2">
-              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
+              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
                 {{ totalTrashCount }} deleted item{{ totalTrashCount === 1 ? '' : 's' }}
               </div>
               <div v-if="trashIsEmpty" class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200 inline-flex">
@@ -112,8 +112,8 @@ function confirmForceDelete({ close }) {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
-            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
+            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
+            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
           </div>
         </div>
       </section>
@@ -134,11 +134,11 @@ function confirmForceDelete({ close }) {
         </div>
 
         <div v-if="group.items.length" class="grid gap-4 lg:grid-cols-2">
-          <article v-for="item in group.items" :key="`${group.key}-${item.id}`" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+          <article v-for="item in group.items" :key="`${group.key}-${item.id}`" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="min-w-0">
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ item.type }}</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ item.type }}</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Deleted {{ item.deleted_label }}</span>
                   <span v-if="item.entries_count !== undefined" class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ item.entries_count }} related entries</span>
                 </div>
@@ -157,7 +157,7 @@ function confirmForceDelete({ close }) {
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
           {{ group.empty }}
         </div>
       </section>
@@ -190,3 +190,11 @@ function confirmForceDelete({ close }) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

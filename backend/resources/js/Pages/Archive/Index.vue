@@ -101,7 +101,7 @@ watch(search, value => {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="relative overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)] md:p-8">
+      <section class="relative overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6  md:p-8">
         <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -116,9 +116,9 @@ watch(search, value => {
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">{{ topicCount }} Visible Topics</span>
-              <span v-if="hasSearch" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">{{ resultCount }} Matching Entries</span>
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">Rank-filtered</span>
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">{{ topicCount }} Visible Topics</span>
+              <span v-if="hasSearch" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">{{ resultCount }} Matching Entries</span>
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">Rank-filtered</span>
             </div>
           </div>
 
@@ -162,20 +162,20 @@ watch(search, value => {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">{{ entry.topic?.title ?? 'Archive Entry' }}</div>
             <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
             <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
               <span class="rounded-full border border-white/10 px-2.5 py-1">{{ entry.minimum_rank_label }}</span>
               <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-2.5 py-1">Updated {{ entry.updated_label }}</span>
-              <span v-for="category in entry.categories" :key="`search-category-${entry.id}-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
-              <span v-for="tag in entry.tags" :key="`search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
+              <span v-for="category in entry.categories" :key="`search-category-${entry.id}-${category.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
+              <span v-for="tag in entry.tags" :key="`search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
             </div>
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No visible archive entries matched this search.</div>
+        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No visible archive entries matched this search.</div>
       </section>
 
       <section class="space-y-4">
@@ -185,10 +185,10 @@ watch(search, value => {
         </div>
 
         <div v-if="topics.length" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="topic in topics" :key="topic.id" :href="topic.href" class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-[color:var(--horizon-sunset-magenta)]/45">
+          <Link v-for="topic in topics" :key="topic.id" :href="topic.href" class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
             <div class="pointer-events-none absolute inset-0 opacity-70">
-              <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-[color:var(--horizon-sunset-blue)]/10 blur-3xl"></div>
-              <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-[color:var(--horizon-sunset-magenta)]/10 blur-3xl"></div>
+              <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
+              <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
             </div>
 
             <div class="relative space-y-4">
@@ -199,8 +199,8 @@ watch(search, value => {
 
               <div>
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-text-primary)]">{{ topic.category_label || 'Archive' }}</span>
-                  <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-text-primary)]">{{ topic.category_label || 'Archive' }}</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
                 </div>
 
                 <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">{{ topic.title }}</h3>
@@ -215,8 +215,16 @@ watch(search, value => {
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">No archive topics are currently visible to your rank.</div>
+        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No archive topics are currently visible to your rank.</div>
       </section>
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

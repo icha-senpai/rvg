@@ -790,7 +790,7 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="flex w-full flex-col rounded-[2rem] border! border-[color:var(--horizon-sunset-indigo)]/45! bg-[linear-gradient(135deg,rgba(30,64,175,0.16),var(--horizon-void-700)_42%,var(--horizon-void-900))] shadow-[0_0_42px_rgba(67,56,202,0.18)]"
+    class="flex w-full flex-col rounded-[2rem] border! border-white/[0.055]! bg-[rgba(21,25,42,0.64)] "
   >
     <header
       class="flex shrink-0 items-start justify-between border-b border-[color:var(--horizon-sunset-blue)]/20 px-6 py-4"
@@ -1395,3 +1395,11 @@ watch(
     @confirm="() => { if (pendingDemoteMember) demoteLieutenant(pendingDemoteMember) }"
   />
 </template>
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 <template>
-  <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+  <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -17,7 +17,7 @@
 
       <div
         v-if="collection"
-        class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-3"
+        class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3"
       >
         <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
           Collection
@@ -94,3 +94,10 @@ const activeCollectionLabel = computed(() => {
   return props.collectionOptions.find(option => option.value === props.collection)?.label ?? props.collection
 })
 </script>
+
+
+
+
+
+
+

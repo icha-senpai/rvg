@@ -180,7 +180,7 @@ function closeViewModal() {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -201,7 +201,7 @@ function closeViewModal() {
             </p>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-4 py-3 text-right">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Today
             </div>
@@ -213,8 +213,8 @@ function closeViewModal() {
       </section>
 
       <!-- Status strip -->
-      <section class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+      <section class="grid overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024] md:grid-cols-3">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Listed
           </div>
@@ -226,7 +226,7 @@ function closeViewModal() {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-indigo)]/25 bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(67,56,202,0.10)]">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Upcoming
           </div>
@@ -238,7 +238,7 @@ function closeViewModal() {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Joined
           </div>
@@ -252,7 +252,7 @@ function closeViewModal() {
       </section>
 
       <!-- Operations list shell -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-4 md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -268,7 +268,7 @@ function closeViewModal() {
             </p>
           </div>
 
-          <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
             {{ sortedOperations.length }} visible
           </div>
         </div>
@@ -284,7 +284,7 @@ function closeViewModal() {
 
         <div
           v-else
-          class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-8 text-center"
+          class="rounded-[1.5rem] border border-dashed border-white/[0.075] bg-white/[0.018] p-8 text-center"
         >
           <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
             No Operations Found
@@ -349,3 +349,10 @@ function closeViewModal() {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+

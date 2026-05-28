@@ -22,7 +22,7 @@ function entryIsActive(entry) {
 
 <template>
   <div class="space-y-4">
-    <details class="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.18)] lg:hidden">
+    <details class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.18)] lg:hidden">
       <summary class="cursor-pointer list-none text-sm font-black uppercase tracking-[0.2em] text-horizon-white">
         Browse Archive
       </summary>
@@ -65,7 +65,7 @@ function entryIsActive(entry) {
               </Link>
 
               <div v-if="topic.categories?.length" class="mt-2 flex flex-wrap gap-1.5 px-2">
-                <span v-for="category in topic.categories" :key="`desktop-category-${topic.id}-${category.slug}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-0.5 text-[0.65rem] font-semibold text-[color:var(--horizon-sunset-blue)]">
+                <span v-for="category in topic.categories" :key="`desktop-category-${topic.id}-${category.slug}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] px-2 py-0.5 text-[0.65rem] font-semibold text-[color:var(--horizon-sunset-blue)]">
                   {{ category.name }}
                 </span>
               </div>
@@ -86,3 +86,11 @@ function entryIsActive(entry) {
     </aside>
   </div>
 </template>
+
+
+
+
+
+
+
+

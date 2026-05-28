@@ -187,7 +187,7 @@ onMounted(() => {
 
           <div class="grid max-h-[70vh] overflow-hidden lg:grid-cols-[22rem_minmax(0,1fr)]">
             <aside class="border-b border-white/10 p-5 lg:border-b-0 lg:border-r">
-              <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+              <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Upload New</div>
                 <p class="mt-2 text-sm leading-6 text-text-secondary">
                   Upload an image directly into the media library. It will be selected automatically after upload.
@@ -213,7 +213,7 @@ onMounted(() => {
             </aside>
 
             <div class="overflow-y-auto p-5">
-              <div v-if="isLoading" class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+              <div v-if="isLoading" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
                 Loading media...
               </div>
 
@@ -226,7 +226,7 @@ onMounted(() => {
                   v-for="item in filteredMedia"
                   :key="item.id"
                   type="button"
-                  class="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] text-left transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]"
+                  class="group overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] text-left transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]"
                   @click="selectMedia(item)"
                 >
                   <img :src="mediaPreviewUrl(item)" :alt="item.alt_text || item.original_filename" class="h-32 w-full bg-black/30 object-cover" />
@@ -237,11 +237,11 @@ onMounted(() => {
                 </button>
               </div>
 
-              <div v-else-if="hasSearch" class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+              <div v-else-if="hasSearch" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
                 No loaded media matched “{{ search }}”. Clear the filter or upload a new image.
               </div>
 
-              <div v-else class="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+              <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
                 No media found in this collection yet. Upload an image from the panel on the left and it will be selected automatically.
               </div>
             </div>
@@ -251,3 +251,11 @@ onMounted(() => {
     </teleport>
   </div>
 </template>
+
+
+
+
+
+
+
+

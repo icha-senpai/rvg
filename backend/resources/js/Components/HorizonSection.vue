@@ -16,3 +16,11 @@ import { ref } from 'vue';
 const props = defineProps({ title: String });
 const open = ref(true);
 </script>
+
+
+
+
+
+
+
+

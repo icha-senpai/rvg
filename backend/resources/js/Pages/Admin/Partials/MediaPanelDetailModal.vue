@@ -9,7 +9,7 @@
       <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
     </div>
 
-    <div class="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_72px_rgba(67,56,202,0.28)] hz-animate-pop">
+    <div class="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -27,15 +27,15 @@
             </div>
 
             <div class="mt-2 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 #{{ detailItem.id }}
               </span>
 
-              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ collectionLabel(detailItem.collection) }}
               </span>
 
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
                 {{ detailItem.human_size }}
               </span>
             </div>
@@ -43,7 +43,7 @@
 
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
             aria-label="Close detail modal"
             @click="$emit('close')"
           >
@@ -54,14 +54,14 @@
 
       <div class="relative flex-1 overflow-y-auto p-5">
         <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <section class="overflow-hidden rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-black/30">
+          <section class="overflow-hidden rounded-[1.5rem] border border-white/[0.055] bg-black/30">
             <img
               :src="detailItem.medium_url || detailItem.url"
               :alt="detailItem.alt_text || detailItem.original_filename"
               class="max-h-[34rem] w-full object-contain"
             />
 
-            <div class="border-t border-white/10 bg-white/[0.025] p-4">
+            <div class="border-t border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Preview
               </div>
@@ -74,7 +74,7 @@
           </section>
 
           <aside class="space-y-5">
-            <section class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Asset Details
@@ -111,7 +111,7 @@
               </div>
             </section>
 
-            <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+            <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Editable Metadata
@@ -151,7 +151,7 @@
               </div>
             </section>
 
-            <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+            <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   URLs
@@ -167,7 +167,7 @@
                   v-for="(url, label) in detailUrls"
                   :key="label"
                   type="button"
-                  class="w-full rounded-xl border border-white/10 bg-white/[0.025] p-3 text-left transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055]"
+                  class="w-full rounded-xl border border-white/[0.055] bg-white/[0.024] p-3 text-left transition hover:border-white/[0.055] hover:bg-white/[0.055]"
                   :title="'Click to copy'"
                   @click="$emit('copy', url)"
                 >
@@ -190,7 +190,7 @@
           <div class="flex flex-wrap gap-2">
             <a
               :href="`/admin/media/${detailItem.id}/download`"
-              class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white"
+              class="inline-flex items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.055] hover:text-horizon-white"
             >
               Download Original
             </a>
@@ -242,3 +242,10 @@ defineProps({
 
 defineEmits(['close', 'save', 'delete', 'copy', 'update:filename', 'update:alt-text'])
 </script>
+
+
+
+
+
+
+

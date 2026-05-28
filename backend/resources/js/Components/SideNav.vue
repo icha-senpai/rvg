@@ -433,7 +433,7 @@ onBeforeUnmount(() => {
 
         <div class="flex shrink-0 items-center justify-between gap-3 px-1 py-1">
           <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+            <div class="text-base font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Navigation
             </div>
 
@@ -459,7 +459,7 @@ onBeforeUnmount(() => {
           >
             <button
               type="button"
-              class="flex w-full items-center justify-between px-2 py-1 text-left text-[10px] font-black uppercase tracking-[0.24em] transition"
+              class="flex w-full items-center justify-between px-2 py-1 text-left text-xs font-black uppercase tracking-[0.24em] transition"
               :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
@@ -475,7 +475,7 @@ onBeforeUnmount(() => {
                 <Link
                   v-if="!item.href"
                   :href="getItemHref(item)"
-                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
+                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold transition"
                   :class="itemRowClass(item)"
                   @click="closeMobileNav"
                 >
@@ -506,7 +506,7 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
+                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
                   @click="closeMobileNav"
                 >
                   <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
@@ -517,7 +517,7 @@ onBeforeUnmount(() => {
                     {{ item.label }}
                   </span>
 
-                  <span class="text-xs text-text-muted">↗</span>
+                  <span class="text-sm text-text-muted">↗</span>
                 </a>
 
                 <div
@@ -531,7 +531,7 @@ onBeforeUnmount(() => {
                   >
                     <Link
                       :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition"
                       :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                       @click="closeMobileNav"
                     >
@@ -595,7 +595,7 @@ onBeforeUnmount(() => {
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
               </div>
 
-              <div class="truncate text-xs text-text-secondary">
+              <div class="truncate text-sm text-text-secondary">
                 {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
               </div>
             </div>
@@ -633,7 +633,7 @@ onBeforeUnmount(() => {
             class="min-w-0 transition-all duration-200"
             :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
           >
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+            <div class="text-base font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Navigation
             </div>
 
@@ -666,7 +666,7 @@ onBeforeUnmount(() => {
             <button
               v-if="desktopExpanded"
               type="button"
-              class="flex w-full items-center justify-between px-2 py-1 text-left text-[10px] font-black uppercase tracking-[0.24em] transition"
+              class="flex w-full items-center justify-between px-2 py-1 text-left text-xs font-black uppercase tracking-[0.24em] transition"
               :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
@@ -685,7 +685,7 @@ onBeforeUnmount(() => {
                 <Link
                   v-if="!item.href"
                   :href="getItemHref(item)"
-                  class="group relative flex items-center rounded-xl text-sm font-semibold transition"
+                  class="group relative flex items-center rounded-xl text-base font-semibold transition"
                   :class="[
                     desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5',
                     itemRowClass(item)
@@ -722,7 +722,7 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative flex items-center rounded-xl text-sm font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
+                  class="group relative flex items-center rounded-xl text-base font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
                   :class="desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5'"
                   :title="desktopExpanded ? undefined : item.label"
                 >
@@ -739,7 +739,7 @@ onBeforeUnmount(() => {
 
                   <span
                     v-if="desktopExpanded"
-                    class="ml-auto text-xs text-text-muted"
+                    class="ml-auto text-sm text-text-muted"
                   >
                     ↗
                   </span>
@@ -756,7 +756,7 @@ onBeforeUnmount(() => {
                   >
                     <Link
                       :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition"
                       :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                     >
                       <span class="truncate">{{ child.label }}</span>
@@ -822,7 +822,7 @@ onBeforeUnmount(() => {
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
               </div>
 
-              <div class="truncate text-xs text-text-secondary">
+              <div class="truncate text-sm text-text-secondary">
                 {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
               </div>
             </div>
@@ -846,3 +846,11 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+
+
+
+
+
+
+

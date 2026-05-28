@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-6xl space-y-6">
     <!-- Squadron admin header -->
-    <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_36%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_34%),linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_0_40px_rgba(67,56,202,0.16)]">
+    <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-5 ">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -23,7 +23,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-3">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Total
             </div>
@@ -45,7 +45,7 @@
     </section>
 
     <!-- Squadron cards -->
-    <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+    <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
       <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -69,7 +69,7 @@
         <article
           v-for="sq in squadrons"
           :key="sq.id"
-          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40 hover:shadow-[0_0_42px_rgba(192,38,211,0.14)]"
+          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[rgba(21,25,42,0.64)] p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -79,7 +79,7 @@
           <div class="relative grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
             <div
               v-if="sq?.emblem_url"
-              class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-black/20 shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+              class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/[0.055] bg-black/20 "
             >
               <img
                 :src="sq?.emblem?.thumbnail_url || sq?.emblem?.medium_url || sq?.emblem?.url || sq?.emblem_url"
@@ -91,7 +91,7 @@
 
             <div
               v-else
-              class="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.04] text-3xl font-black text-horizon-white shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+              class="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-white/[0.055] bg-white/[0.04] text-3xl font-black text-horizon-white "
             >
               {{ String(sq.name || 'S').slice(0, 1).toUpperCase() }}
             </div>
@@ -124,16 +124,16 @@
                   {{ formatTitle(sq.status) }}
                 </span>
 
-                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   {{ sq.branch ? formatTitle(sq.branch) : 'No Branch' }}
                 </span>
 
-                <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   {{ sq.division ? formatTitle(sq.division) : 'No Division' }}
                 </span>
               </div>
 
-              <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+              <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                 <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Squadron Leader
                 </div>
@@ -209,7 +209,7 @@
         <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
       </div>
 
-      <div class="relative z-10 flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_72px_rgba(67,56,202,0.28)] hz-animate-pop">
+      <div class="relative z-10 flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -233,7 +233,7 @@
 
             <button
               type="button"
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
               aria-label="Close squadron editor"
               @click="closeModal"
             >
@@ -244,7 +244,7 @@
 
         <div class="relative flex-1 overflow-y-auto p-5">
           <div class="space-y-5">
-            <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+            <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Identity
@@ -278,7 +278,7 @@
               </div>
             </section>
 
-            <section class="relative z-30 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <section class="relative z-30 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Organization
@@ -317,7 +317,7 @@
               </div>
             </section>
 
-            <section class="relative z-20 rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+            <section class="relative z-20 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
               <div class="mb-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Leadership
@@ -330,7 +330,7 @@
 
               <div
                 v-if="isEditing"
-                class="mb-4 rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-text-secondary"
+                class="mb-4 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 text-sm text-text-secondary"
               >
                 Current leader:
                 <span
@@ -619,3 +619,10 @@ function confirmDeleteSquadron({ close }) {
   })
 }
 </script>
+
+
+
+
+
+
+

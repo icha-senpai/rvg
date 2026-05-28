@@ -155,7 +155,7 @@ function confirmDeleteTag({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Taxonomy</div>
@@ -168,9 +168,9 @@ function confirmDeleteTag({ close }) {
           <div class="flex flex-wrap gap-3">
             <HorizonButton type="button" @click="openCategoryCreateDrawer">New Category</HorizonButton>
             <HorizonButton type="button" variant="ghost" @click="openTagCreateDrawer">New Tag</HorizonButton>
-            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
-            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
-            <Link :href="route('archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
+            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
+            <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
+            <Link :href="route('archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
           </div>
         </div>
       </section>
@@ -186,11 +186,11 @@ function confirmDeleteTag({ close }) {
             <HorizonButton type="button" variant="ghost" @click="openCategoryCreateDrawer">Create Category</HorizonButton>
           </div>
 
-          <article v-for="category in sortedCategories" :key="category.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+          <article v-for="category in sortedCategories" :key="category.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.entries_count }} entries</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.entries_count }} entries</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ category.sort_order }}</span>
                 </div>
 
@@ -206,7 +206,7 @@ function confirmDeleteTag({ close }) {
             </div>
           </article>
 
-          <div v-if="!sortedCategories.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+          <div v-if="!sortedCategories.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
             No categories exist yet. Use New Category to create the first broad bucket.
           </div>
         </div>
@@ -221,11 +221,11 @@ function confirmDeleteTag({ close }) {
             <HorizonButton type="button" variant="ghost" @click="openTagCreateDrawer">Create Tag</HorizonButton>
           </div>
 
-          <article v-for="tag in sortedTags" :key="tag.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+          <article v-for="tag in sortedTags" :key="tag.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">{{ tag.entries_count }} entries</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">{{ tag.entries_count }} entries</span>
                 </div>
 
                 <h2 class="mt-3 text-2xl font-black text-horizon-white">#{{ tag.name }}</h2>
@@ -239,7 +239,7 @@ function confirmDeleteTag({ close }) {
             </div>
           </article>
 
-          <div v-if="!sortedTags.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+          <div v-if="!sortedTags.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
             No tags exist yet. Use New Tag to create the first searchable signal.
           </div>
         </div>
@@ -336,3 +336,11 @@ function confirmDeleteTag({ close }) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 <template>
-  <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_36%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_34%),linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_0_40px_rgba(67,56,202,0.16)]">
+  <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-5 ">
     <div class="pointer-events-none absolute inset-0 opacity-40">
       <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
       <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -20,15 +20,15 @@
         </p>
 
         <div class="mt-4 flex flex-wrap gap-2">
-          <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+          <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
             {{ totalCount }} Files
           </span>
 
-          <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+          <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
             {{ humanTotalSize }}
           </span>
 
-          <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+          <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
             R2 suggested near 8 GB
           </span>
         </div>
@@ -55,3 +55,10 @@ defineProps({
 
 defineEmits(['upload'])
 </script>
+
+
+
+
+
+
+

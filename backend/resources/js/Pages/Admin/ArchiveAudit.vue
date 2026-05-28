@@ -52,7 +52,7 @@ function prettyMeta(meta) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Security Trail</div>
@@ -63,13 +63,13 @@ function prettyMeta(meta) {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive</Link>
-            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Categories & Tags</Link>
+            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive</Link>
+            <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Categories & Tags</Link>
           </div>
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
         <form class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_auto] lg:items-end" @submit.prevent="applyFilters">
           <HorizonSelect v-model="selectedAction" label="Action" :options="actionOptions" />
           <HorizonInput v-model="search" label="Search" placeholder="Search title, name, slug, action..." />
@@ -82,11 +82,11 @@ function prettyMeta(meta) {
       </section>
 
       <section class="space-y-4">
-        <article v-for="log in rows" :key="log.id" class="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035]">
+        <article v-for="log in rows" :key="log.id" class="overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024]">
           <div class="grid gap-4 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
               <div class="flex flex-wrap gap-2">
-                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-bold text-[color:var(--horizon-sunset-blue)]">{{ log.action }}</span>
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold text-[color:var(--horizon-sunset-blue)]">{{ log.action }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ log.created_label }}</span>
               </div>
 
@@ -104,7 +104,7 @@ function prettyMeta(meta) {
           </details>
         </article>
 
-        <div v-if="!rows.length" class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+        <div v-if="!rows.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
           No archive audit logs matched your filters.
         </div>
       </section>
@@ -127,3 +127,11 @@ function prettyMeta(meta) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

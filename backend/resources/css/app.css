@@ -510,23 +510,23 @@
   }
 
   .hz-btn-secondary {
-    background: var(--color-bg-elevated);
+    background: transparent;
     color: var(--color-horizon-white);
-    border: 1px solid var(--color-bg-hover);
+    border: 1px solid transparent;
   }
 
   .hz-btn-secondary:hover {
-    background: var(--color-bg-hover);
+    background: rgba(255, 255, 255, 0.045);
   }
 
   .hz-btn-ghost {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid transparent;
     color: var(--color-horizon-white);
   }
 
   .hz-btn-ghost:hover {
-    background: var(--color-horizon-blue-soft);
+    background: rgba(255, 255, 255, 0.045);
   }
 
   .hz-btn-danger {
@@ -549,48 +549,50 @@
   /* CARDS -------------------------------------------------- */
 
   .hz-card {
-    background: var(--horizon-card);
+    background: color-mix(in srgb, var(--horizon-card) 82%, transparent);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-bg-hover);
-    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    box-shadow: none;
   }
 
   .hz-card-soft {
-    background: var(--horizon-card);
+    background: color-mix(in srgb, var(--horizon-card) 82%, transparent);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-bg-hover);
-    box-shadow: var(--shadow-medium);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    box-shadow: none;
   }
 
   .hz-card-glow {
-    background: var(--horizon-card);
+    background: color-mix(in srgb, var(--horizon-card) 82%, transparent);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-horizon-blue-20);
-    box-shadow: var(--shadow-neon);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.22);
   }
 
   .hz-card-glass {
     background: rgba(23, 28, 36, 0.65);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.055);
     backdrop-filter: blur(12px);
   }
 
   /* PANELS -------------------------------------------------- */
   .hz-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  padding: 0.15rem 0.5rem;
-  font-size: var(--text-tiny);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.15rem 0.5rem;
+    font-size: var(--text-tiny);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-color: transparent;
+    box-shadow: none;
   }
 
   .hz-badge-warn {
@@ -599,19 +601,19 @@
     color: rgb(234 179 8);
   }
   .hz-panel {
-    background: var(--horizon-card);
+    background: color-mix(in srgb, var(--horizon-card) 82%, transparent);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-bg-hover);
-    box-shadow: var(--shadow-medium);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    box-shadow: none;
   }
 
   .hz-panel-deep {
-    background: var(--horizon-card);
+    background: color-mix(in srgb, var(--horizon-card) 82%, transparent);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-bg-hover);
-    box-shadow: var(--shadow-deep);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    box-shadow: none;
   }
 
   /* INPUTS -------------------------------------------------- */
@@ -620,33 +622,35 @@
     width: 100%;
     padding: 0.65rem 0.85rem;
     border-radius: var(--radius-sm);
-    background: var(--color-horizon-blue-dark);
-    border: 1px solid var(--color-bg-hover);
+    background: rgba(27, 32, 53, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.055);
     color: var(--color-text-primary);
     transition: all var(--motion-fast) var(--ease-smooth);
+    box-shadow: none;
   }
 
- 
   select.hz-input {
-    background-color: var(--color-horizon-blue-dark) !important;
+    background-color: rgba(27, 32, 53, 0.72) !important;
     color: var(--color-text-primary) !important;
-    border: 1px solid var(--color-bg-hover) !important;
+    border: 1px solid rgba(255, 255, 255, 0.055) !important;
     border-radius: 0.5rem !important;
     padding: 0.5rem 0.75rem !important;
     appearance: none !important;
+    box-shadow: none !important;
   }
 
   select.hz-input:focus {
     outline: none !important;
-    border-color: var(--color-horizon-blue) !important;
-    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.25) !important;
-    background-color: var(--color-horizon-blue-dark) !important;
+    border-color: rgba(81, 162, 245, 0.42) !important;
+    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.14) !important;
+    background-color: rgba(27, 32, 53, 0.72) !important;
   }
+
   .hz-input:focus {
     outline: none;
-    border-color: var(--color-horizon-blue);
-    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.25);
-    background: var(--color-horizon-blue-dark);
+    border-color: rgba(81, 162, 245, 0.42);
+    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.14);
+    background: rgba(27, 32, 53, 0.72);
   }
 
   .hz-textarea {
@@ -654,27 +658,29 @@
     min-height: 120px;
     padding: 0.75rem 0.9rem;
     border-radius: var(--radius-sm);
-    background: var(--color-horizon-blue-dark);
-    border: 1px solid var(--color-bg-hover);
+    background: rgba(27, 32, 53, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.055);
     color: var(--color-text-primary);
     resize: vertical;
+    box-shadow: none;
   }
 
   .hz-textarea:focus {
     outline: none;
-    border-color: var(--color-horizon-blue);
-    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.25);
-    background: var(--color-horizon-blue-dark);
+    border-color: rgba(81, 162, 245, 0.42);
+    box-shadow: 0 0 0 3px rgba(42, 120, 200, 0.14);
+    background: rgba(27, 32, 53, 0.72);
   }
 
   .hz-select {
     width: 100%;
     padding: 0.65rem 0.85rem;
     border-radius: var(--radius-sm);
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-bg-hover);
+    background: rgba(27, 32, 53, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.055);
     color: var(--color-text-primary);
     appearance: none;
+    box-shadow: none;
   }
 
   /* ALERTS -------------------------------------------------- */
@@ -733,11 +739,11 @@
   .hz-modal {
     background: var(--color-bg-surface);
     border-radius: var(--radius-xl);
-    border: 1px solid var(--color-bg-hover);
+    border: 1px solid rgba(109, 40, 217, 0.26);
     padding: var(--space-lg);
     max-width: 32rem;
     margin: 10vh auto 0;
-    box-shadow: var(--shadow-deep);
+    box-shadow: 0 18px 46px rgb(0 0 0 / 0.28);
     z-index: var(--layer-modal);
   }
 }

@@ -463,7 +463,7 @@ const hasMetaInformation = computed(() => {
 <template>
   <div class="space-y-8 p-5 md:p-6">
     <!-- Mission top bar -->
-    <section class="relative overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/40 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-5 shadow-[0_0_42px_rgba(67,56,202,0.16)]">
+    <section class="relative overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-5 ">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -502,7 +502,7 @@ const hasMetaInformation = computed(() => {
     <!-- Operation image -->
     <section
       v-if="operationImageSrc"
-       class="relative z-0 overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-void-800)] shadow-[0_0_32px_rgba(30,64,175,0.12)]"
+       class="relative z-0 overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-800)] "
 >
     
       <img
@@ -518,7 +518,7 @@ const hasMetaInformation = computed(() => {
       <main class="space-y-6">
         <!-- Time command strip -->
         <section class="grid gap-4 md:grid-cols-2">
-          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+          <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 ">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Start Window
             </div>
@@ -546,7 +546,7 @@ const hasMetaInformation = computed(() => {
             </div>
           </div>
 
-          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="rounded-[1.5rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Sign Up Deadline
             </div>
@@ -570,7 +570,7 @@ const hasMetaInformation = computed(() => {
         <!-- Briefing -->
         <section
           v-if="operation.description"
-          class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-6 shadow-[0_0_28px_rgba(30,64,175,0.10)]"
+          class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-6 "
         >
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
             Operation Briefing
@@ -584,7 +584,7 @@ const hasMetaInformation = computed(() => {
         <!-- Extended briefing -->
         <section
           v-if="operation.extended_description || operation.notes"
-          class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6"
+          class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6"
         >
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
             Extended Briefing
@@ -598,14 +598,14 @@ const hasMetaInformation = computed(() => {
         <!-- Meta information -->
         <section
           v-if="hasMetaInformation"
-          class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6"
+          class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6"
         >
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
             Mission Metadata
           </div>
 
           <div class="mt-5 grid gap-4 md:grid-cols-2">
-            <div v-if="operation.start_location" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div v-if="operation.start_location" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Start Location
               </div>
@@ -614,7 +614,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div v-if="operation.operation_location" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div v-if="operation.operation_location" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Operation Location
               </div>
@@ -623,7 +623,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div v-if="operation.branch" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div v-if="operation.branch" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Branch
               </div>
@@ -639,7 +639,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div v-if="operation.squadron_name" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div v-if="operation.squadron_name" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Squadron
               </div>
@@ -648,7 +648,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div v-if="operation.gameplay_type || operation.type" class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div v-if="operation.gameplay_type || operation.type" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Gameplay Type
               </div>
@@ -657,7 +657,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs uppercase tracking-wide text-text-muted">
                 Comms Strictness
               </div>
@@ -669,7 +669,7 @@ const hasMetaInformation = computed(() => {
         </section>
 
         <!-- Roles -->
-        <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-void-700)]/80 p-6 shadow-[0_0_32px_rgba(67,56,202,0.12)]">
+        <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 ">
           <div class="mb-5 flex items-center justify-between gap-4">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -680,7 +680,7 @@ const hasMetaInformation = computed(() => {
               </h2>
             </div>
 
-            <div class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)]">
+            <div class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)]">
               {{ participantsList.length }} total
             </div>
           </div>
@@ -689,14 +689,14 @@ const hasMetaInformation = computed(() => {
             <article
               v-for="slotName in operation.slots"
               :key="slotName"
-              class="rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+              class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="font-bold text-horizon-white">
                   {{ slotName }}
                 </div>
 
-                <div class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-semibold text-text-secondary">
                   {{ (participantsBySlotSafe[slotName] || []).length }}
                 </div>
               </div>
@@ -735,7 +735,7 @@ const hasMetaInformation = computed(() => {
 
                 <div
                   v-if="!(participantsBySlotSafe[slotName] || []).length"
-                  class="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-text-muted"
+                  class="rounded-xl border border-dashed border-white/[0.075] bg-white/[0.018] [0.02] px-3 py-2 text-sm text-text-muted"
                 >
                   No one assigned yet.
                 </div>
@@ -747,7 +747,7 @@ const hasMetaInformation = computed(() => {
             No roles defined. Participants join as “No Role”.
           </div>
 
-          <div v-if="unassignedParticipantsSafe.length" class="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <div v-if="unassignedParticipantsSafe.length" class="mt-5 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               No Role
             </div>
@@ -790,7 +790,7 @@ const hasMetaInformation = computed(() => {
 
       <aside class="space-y-6">
         <!-- Your status -->
-        <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-5 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+        <section class="rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-5 ">
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
             Your Status
           </div>
@@ -865,7 +865,7 @@ const hasMetaInformation = computed(() => {
         </section>
 
         <!-- Quick facts -->
-        <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+        <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
             Quick Facts
           </div>
@@ -902,13 +902,13 @@ const hasMetaInformation = computed(() => {
         </section>
 
         <!-- Participants -->
-        <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+        <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
           <div class="flex items-center justify-between gap-3">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Participants
             </div>
 
-            <span class="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-bold text-text-secondary">
+            <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-bold text-text-secondary">
               {{ participantsList.length }}
             </span>
           </div>
@@ -917,7 +917,7 @@ const hasMetaInformation = computed(() => {
             <div
               v-for="p in participantsList"
               :key="p.id"
-              class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2"
+              class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-2"
             >
               <div class="flex min-w-0 items-center gap-2">
                 <img
@@ -973,3 +973,10 @@ const hasMetaInformation = computed(() => {
     />
   </div>
 </template>
+
+
+
+
+
+
+

@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
-import HorizonButton from '@/Components/HorizonButton.vue'
 import ProgressPill from '@/Components/ProgressPill.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -13,8 +12,6 @@ const props = defineProps({
     required: true,
   },
 })
-
-const open = ref(false)
 
 const operationKind = computed(() => {
   return props.operation?.operation_type ?? props.operation?.operation_kind ?? 'operation'
@@ -127,21 +124,21 @@ const operationAccentClass = computed(() => {
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
         glow: 'rgba(30,64,175,0.16)',
-        chip: 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10',
+        chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'wing_training':
       return {
-        border: 'border-[color:var(--horizon-sunset-indigo)]/35',
+        border: 'border-white/[0.055]',
         glow: 'rgba(67,56,202,0.16)',
-        chip: 'border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-sunset-indigo)]/10',
+        chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'roleplay':
       return {
-        border: 'border-[color:var(--horizon-sunset-magenta)]/35',
+        border: 'border-white/[0.055]',
         glow: 'rgba(192,38,211,0.16)',
-        chip: 'border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10',
+        chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'meeting':
@@ -162,14 +159,10 @@ const operationAccentClass = computed(() => {
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
         glow: 'rgba(30,64,175,0.16)',
-        chip: 'border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10',
+        chip: 'border-white/[0.055] bg-white/[0.042]',
       }
   }
 })
-
-function toggleOpen() {
-  open.value = !open.value
-}
 
 function viewOperation() {
   emit('view', props.operation)
@@ -292,9 +285,8 @@ function toDate(value) {
 
 <template>
   <article
-    class="group relative overflow-hidden rounded-[1.75rem] border bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40"
+    class="group relative overflow-hidden rounded-[1.75rem] border bg-[rgba(21,25,42,0.64)] transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[rgba(27,32,53,0.68)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
     :class="operationAccentClass.border"
-    :style="{ boxShadow: `0 0 32px ${operationAccentClass.glow}` }"
   >
     <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
       <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -303,8 +295,8 @@ function toDate(value) {
 
     <button
       type="button"
-      class="relative block w-full p-5 text-left md:p-6"
-      @click="toggleOpen"
+      class="relative block w-full p-5 text-left md:p-6 cursor-pointer group"
+      @click="viewOperation"
     >
       <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div class="min-w-0 flex-1">
@@ -320,12 +312,12 @@ function toDate(value) {
               class="rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"
               :class="isUpcoming
                 ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                : 'border-white/10 bg-white/[0.04] text-text-secondary'"
+                : 'border-transparent bg-white/[0.042] shadow-none text-text-secondary'"
             >
               {{ timingBadgeLabel }}
             </span>
 
-            <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+            <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted shadow-none">
               {{ statusLabel }}
             </span>
 
@@ -354,7 +346,7 @@ function toDate(value) {
                 v-if="branchLogoSrc"
                 :src="branchLogoSrc"
                 :alt="branchLogoAlt"
-                class="h-5 w-5 rounded-full border border-white/10 object-contain"
+                class="h-5 w-5 rounded-full border-transparent object-contain"
                 loading="lazy"
               />
               <span>{{ branchLabel(operation.branch) }}</span>
@@ -392,13 +384,13 @@ function toDate(value) {
                 v-if="creatorAvatar"
                 :src="creatorAvatar"
                 alt=""
-                class="h-5 w-5 rounded-full border border-white/10 object-cover"
+                class="h-5 w-5 rounded-full border-transparent object-cover"
                 loading="lazy"
               />
 
               <span
                 v-else
-                class="flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-black text-horizon-white"
+                class="flex h-5 w-5 items-center justify-center rounded-full border-transparent bg-white/[0.042] text-[10px] font-black text-horizon-white shadow-none"
               >
                 {{ creatorInitial }}
               </span>
@@ -410,171 +402,25 @@ function toDate(value) {
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center justify-between gap-3 lg:justify-end">
-          <div class="hidden rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-right sm:block">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-              Participants
-            </div>
-            <div class="mt-1 text-2xl font-black text-horizon-white">
-              {{ joinedCount }}
+        <div class="flex shrink-0 items-center gap-3">
+          <div class="hidden text-right sm:block">
+            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
+              {{ joinedCount }} joined
             </div>
           </div>
 
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-text-secondary transition group-hover:text-horizon-white">
-            <svg
-              class="h-6 w-6 transition-transform duration-200"
-              :class="open ? 'rotate-180' : 'rotate-0'"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
-                clip-rule="evenodd"
-              />
-            </svg>
+          <div class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-semibold text-text-secondary transition group-hover:border-white/[0.12] group-hover:bg-white/[0.042] group-hover:text-horizon-white">
+            View
           </div>
         </div>
       </div>
     </button>
-
-    <div
-      v-if="open"
-      class="relative border-t border-white/10 px-5 pb-5 md:px-6 md:pb-6"
-    >
-      <div class="grid gap-4 pt-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div class="space-y-4">
-          <section class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-              Mission Briefing
-            </div>
-
-            <p
-              v-if="operation.description"
-              class="mt-2 whitespace-pre-line text-sm leading-7 text-text-secondary"
-            >
-              {{ operation.description }}
-            </p>
-
-            <p
-              v-else
-              class="mt-2 text-sm text-text-secondary"
-            >
-              No briefing has been posted for this operation yet.
-            </p>
-          </section>
-
-          <section class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
-              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                Start Time
-              </div>
-
-              <div class="mt-2 text-sm font-semibold text-horizon-white">
-                {{ formatUTC(operation.starts_at) }}
-              </div>
-
-              <div class="mt-1 text-xs text-text-secondary">
-                {{ formatLocal(operation.starts_at) }} local
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
-              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                Sign Up Deadline
-              </div>
-
-              <template v-if="rsvpDeadline">
-                <div class="mt-2 text-sm font-semibold text-horizon-white">
-                  {{ formatUTC(operation.rsvp_deadline) }}
-                </div>
-
-                <div class="mt-1 text-xs text-text-secondary">
-                  {{ formatLocal(operation.rsvp_deadline) }} local
-                </div>
-              </template>
-
-              <div
-                v-else
-                class="mt-2 text-sm text-text-secondary"
-              >
-                No sign up deadline set.
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <aside class="space-y-4">
-          <section class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-              Mission Tags
-            </div>
-
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
-                {{ formatTitle(operation.visibility ?? 'open') }}
-              </span>
-
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
-                {{ formatTitle(operation.operation_strictness ?? 'normal') }} Comms
-              </span>
-
-              <span
-                v-if="operation.gameplay_type || operation.type"
-                class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
-              >
-                {{ formatTitle(operation.gameplay_type ?? operation.type) }}
-              </span>
-            </div>
-          </section>
-
-          <section class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-              Creator
-            </div>
-
-            <div class="mt-3 flex items-center gap-3">
-              <img
-                v-if="creatorAvatar"
-                :src="creatorAvatar"
-                alt=""
-                class="h-10 w-10 rounded-xl border border-white/10 object-cover"
-                loading="lazy"
-              />
-
-              <span
-                v-else
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm font-black text-horizon-white"
-              >
-                {{ creatorInitial }}
-              </span>
-
-              <div class="min-w-0">
-                <div
-                  class="truncate font-semibold"
-                  :style="creatorColor ? { color: creatorColor } : undefined"
-                >
-                  {{ creatorName }}
-                </div>
-
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Operation Creator
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <HorizonButton
-            variant="primary"
-            size="sm"
-            class="w-full"
-            @click.stop="viewOperation"
-          >
-            View Full Operation
-          </HorizonButton>
-        </aside>
-      </div>
-    </div>
   </article>
 </template>
+
+
+
+
+
+
+

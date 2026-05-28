@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-6xl space-y-6">
     <!-- Search command panel -->
-    <section class="relative z-30 overflow-visible rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+    <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
       <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -17,7 +17,7 @@
           </p>
         </div>
 
-        <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-4 py-3">
+        <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
             Registry
           </div>
@@ -58,7 +58,7 @@
     </section>
 
     <!-- Users command list -->
-    <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-4 shadow-[0_0_32px_rgba(30,64,175,0.10)] md:p-5">
+    <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
       <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -74,7 +74,7 @@
           </p>
         </div>
 
-        <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+        <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
           Page {{ currentPage }} of {{ lastPage }}
         </div>
       </div>
@@ -83,7 +83,7 @@
         <article
           v-for="u in users.data"
           :key="u.id"
-          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(30,64,175,0.10),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-magenta)]/40 hover:shadow-[0_0_42px_rgba(192,38,211,0.14)]"
+          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[rgba(21,25,42,0.64)] p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -101,12 +101,12 @@
                 v-if="u.discord_avatar"
                 :src="u.discord_avatar"
                 alt=""
-                class="h-20 w-20 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 object-cover shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+                class="h-20 w-20 rounded-2xl border border-white/[0.055] object-cover "
               />
 
               <div
                 v-else
-                class="flex h-20 w-20 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.04] text-2xl font-black text-horizon-white shadow-[0_0_24px_rgba(30,64,175,0.14)]"
+                class="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/[0.055] bg-white/[0.04] text-2xl font-black text-horizon-white "
               >
                 {{ String(u.rsi_handle || u.discord_name || 'M').slice(0, 1).toUpperCase() }}
               </div>
@@ -129,11 +129,11 @@
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   Rank {{ formatRankLabel(u.rank) }}
                 </span>
 
-                <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   Level {{ u.rank_level || '-' }}
                 </span>
 
@@ -147,7 +147,7 @@
                 </span>
               </div>
 
-              <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+              <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
                 <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Roles
                 </div>
@@ -163,7 +163,7 @@
             <div class="flex flex-wrap gap-2 lg:justify-end">
               <Link
                 :href="u.rsi_handle ? route('member.profile', u.rsi_handle) : `/user/${u.id}`"
-                class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white"
+                class="inline-flex items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.055] hover:text-horizon-white"
               >
                 View
               </Link>
@@ -242,7 +242,7 @@
       </div>
 
       <div
-        class="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_72px_rgba(67,56,202,0.28)] hz-animate-pop"
+        class="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop"
       >
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -262,12 +262,12 @@
                   v-if="editingUser.discord_avatar"
                   :src="editingUser.discord_avatar"
                   alt=""
-                  class="h-16 w-16 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/30 object-cover shadow-[0_0_20px_rgba(30,64,175,0.16)]"
+                  class="h-16 w-16 rounded-2xl border border-white/[0.055] object-cover "
                 />
 
                 <div
                   v-else
-                  class="flex h-16 w-16 items-center justify-center rounded-2xl border border-[color:var(--horizon-sunset-blue)]/30 bg-white/[0.04] text-2xl font-black text-horizon-white"
+                  class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.055] bg-white/[0.04] text-2xl font-black text-horizon-white"
                 >
                   {{ String(editingUser.rsi_handle || editingUser.discord_name || 'M').slice(0, 1).toUpperCase() }}
                 </div>
@@ -286,11 +286,11 @@
                 </div>
 
                 <div class="mt-2 flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                     ID {{ editingUser.id }}
                   </span>
 
-                  <span class="rounded-full border border-[color:var(--horizon-sunset-indigo)]/25 bg-[color:var(--horizon-sunset-indigo)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                     {{ formatRankLabel(editingUser.rank) }}
                   </span>
 
@@ -309,14 +309,14 @@
             <div class="flex shrink-0 flex-wrap gap-2 lg:justify-end">
               <Link
                 :href="editingUser.rsi_handle ? route('member.profile', editingUser.rsi_handle) : `/user/${editingUser.id}`"
-                class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white"
+                class="inline-flex items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.055] hover:text-horizon-white"
               >
                 View Profile
               </Link>
 
               <button
                 type="button"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+                class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
                 aria-label="Close user editor"
                 @click="closeUserEditor"
               >
@@ -330,7 +330,7 @@
     <!-- FORM -->
           <div class="space-y-6">
             <!-- Identity + access -->
-            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)]">
+            <section class="rounded-[1.75rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
               <div class="mb-5">
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                   Identity + Access
@@ -346,7 +346,7 @@
               </div>
 
               <div class="grid gap-4 md:grid-cols-2">
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     RSI Handle
                   </label>
@@ -358,7 +358,7 @@
                   />
                 </div>
 
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Global Status
                   </label>
@@ -377,7 +377,7 @@
                   </select>
                 </div>
 
-                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Rank
                   </label>
@@ -396,7 +396,7 @@
                   </select>
                 </div>
 
-                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.042] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Rank Level
                   </label>
@@ -416,7 +416,7 @@
             </section>
 
             <!-- Verification -->
-            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+            <section class="rounded-[1.75rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
               <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -458,7 +458,7 @@
                     {{ rsiVerifiedAtDisplay }}
                   </span>
 
-                  <span class="shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-xs text-[var(--color-text-secondary)]">
+                  <span class="shrink-0 rounded-full border border-white/[0.055] bg-white/[0.024] px-2 py-1 text-xs text-[var(--color-text-secondary)]">
                     Edit
                   </span>
                 </button>
@@ -470,7 +470,7 @@
                   <div class="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-3">
                     <button
                       type="button"
-                      class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                      class="rounded-lg border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
                       @click="goRsiVerifiedAtPrevMonth"
                     >
                       ‹
@@ -482,7 +482,7 @@
 
                     <button
                       type="button"
-                      class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                      class="rounded-lg border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
                       @click="goRsiVerifiedAtNextMonth"
                     >
                       ›
@@ -596,7 +596,7 @@
                         <div class="ml-auto flex flex-wrap gap-2">
                           <button
                             type="button"
-                            class="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
+                            class="rounded-lg border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm text-text-secondary transition hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white"
                             @click="setRsiVerifiedAtNow"
                           >
                             Now
@@ -622,7 +622,7 @@
             </section>
 
             <!-- Profile fields -->
-            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_28px_rgba(30,64,175,0.10)]">
+            <section class="rounded-[1.75rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
               <div class="mb-5">
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                   Profile Fields
@@ -638,7 +638,7 @@
               </div>
 
               <div class="grid gap-4 md:grid-cols-2">
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Timezone
                   </label>
@@ -650,7 +650,7 @@
                   />
                 </div>
 
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Availability Status
                   </label>
@@ -662,7 +662,7 @@
                   />
                 </div>
 
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4 md:col-span-2">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4 md:col-span-2">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     LOA Note
                   </label>
@@ -674,7 +674,7 @@
                   ></textarea>
                 </div>
 
-                <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.025] p-4 md:col-span-2">
+                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4 md:col-span-2">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Bio
                   </label>
@@ -689,7 +689,7 @@
             </section>
 
             <!-- Roles -->
-            <section class="rounded-[1.75rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_28px_rgba(67,56,202,0.12)]">
+            <section class="rounded-[1.75rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-5 ">
               <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -718,7 +718,7 @@
                 <label
                   v-for="role in sortedRoles"
                   :key="role.id"
-                  class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3 transition hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.045]"
+                  class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 transition hover:border-white/[0.055] hover:bg-white/[0.045]"
                 >
                   <input
                     v-model="form.role_ids"
@@ -736,7 +736,7 @@
           </div>
 
           <!-- ACTION ROW -->
-          <footer class="sticky bottom-0 z-20 mt-6 rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+          <footer class="sticky bottom-0 z-20 mt-6 rounded-[1.75rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1405,3 +1405,11 @@ function saveUserRoles() {
   );
 }
 </script>
+
+
+
+
+
+
+
+

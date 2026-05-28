@@ -139,7 +139,7 @@ function confirmDeleteEntry({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 md:p-8">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Entries</div>
@@ -158,13 +158,13 @@ function confirmDeleteEntry({ close }) {
 
           <div class="flex flex-wrap gap-3">
             <HorizonButton type="button" @click="openCreateDrawer">New Entry</HorizonButton>
-            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Topics</Link>
-            <Link :href="topic.public_href" class="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Topic</Link>
+            <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Topics</Link>
+            <Link :href="topic.public_href" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Topic</Link>
           </div>
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
@@ -190,7 +190,7 @@ function confirmDeleteEntry({ close }) {
         </div>
 
         <div v-if="sortedEntries.length" class="space-y-4">
-          <article v-for="entry in sortedEntries" :key="entry.id" class="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+          <article v-for="entry in sortedEntries" :key="entry.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -206,8 +206,8 @@ function confirmDeleteEntry({ close }) {
                 <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
 
                 <div v-if="entry.categories?.length || entry.tags?.length" class="mt-3 flex flex-wrap gap-2">
-                  <span v-for="category in entry.categories" :key="`category-${category.id}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
-                  <span v-for="tag in entry.tags" :key="`tag-${tag.id}`" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
+                  <span v-for="category in entry.categories" :key="`category-${category.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
+                  <span v-for="tag in entry.tags" :key="`tag-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
                 </div>
 
                 <div class="mt-3 text-xs text-text-muted">/{{ topic.slug }}/{{ entry.slug }}</div>
@@ -222,7 +222,7 @@ function confirmDeleteEntry({ close }) {
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/10 bg-white/[0.035] p-6 text-sm text-text-secondary">
+        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
           No archive entries exist for this topic yet. Use New Entry to create the first document.
         </div>
       </section>
@@ -277,7 +277,7 @@ function confirmDeleteEntry({ close }) {
             <HorizonSelect v-model="entryForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
           </div>
 
-          <label class="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-text-secondary">
+          <label class="flex items-center gap-2 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4 text-sm font-semibold text-text-secondary">
             <input v-model="entryForm.is_published" type="checkbox" /> Published
           </label>
         </form>
@@ -305,3 +305,11 @@ function confirmDeleteEntry({ close }) {
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+
+

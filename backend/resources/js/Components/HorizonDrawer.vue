@@ -54,9 +54,9 @@ onUnmounted(() => {
     <aside
       :class="[
         'relative z-50 flex h-full w-full flex-col overflow-hidden',
-        'border-l border-[color:var(--horizon-sunset-indigo)]/45',
+        'border-l border-white/[0.055]',
         'bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]',
-        'shadow-[0_0_72px_rgba(67,56,202,0.28)]',
+        '',
         'md:w-[78%] xl:w-[68%] 2xl:w-[58%]',
         closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in',
       ]"
@@ -78,7 +78,7 @@ onUnmounted(() => {
 
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-lg font-bold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
             :aria-label="props.closeLabel"
             @click="requestClose"
           >
@@ -102,3 +102,11 @@ onUnmounted(() => {
     </aside>
   </div>
 </template>
+
+
+
+
+
+
+
+

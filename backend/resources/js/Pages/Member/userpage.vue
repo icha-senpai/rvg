@@ -636,8 +636,8 @@ watch(
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Personnel command header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/45 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_34%),radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_32%),linear-gradient(135deg,var(--horizon-void-600),var(--horizon-void-900))] p-6 shadow-[0_0_48px_rgba(67,56,202,0.18)]">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
+        <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
@@ -657,15 +657,15 @@ watch(
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ canEditProfile ? 'Editable Profile' : 'Read Only' }}
               </span>
 
-              <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                 {{ rankName }}
               </span>
 
-              <span class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
                 {{ rolesLabel }}
               </span>
             </div>
@@ -712,28 +712,25 @@ watch(
       </div>
 
       <!-- Identity dossier card -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,rgba(30,64,175,0.18),var(--horizon-void-700)_42%,var(--horizon-void-900))] p-6 shadow-[0_0_40px_rgba(30,64,175,0.16)]">
-        <div class="pointer-events-none absolute inset-0 opacity-60">
-          <div class="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,var(--horizon-glow-magenta),transparent_55%)]"></div>
+      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.64)] p-6 ">
+        <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute left-10 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         </div>
 
         <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
           <div class="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
             <div class="relative shrink-0">
-              <div class="absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[color:var(--horizon-sunset-blue)]/35 via-transparent to-[color:var(--horizon-sunset-magenta)]/30 blur-xl"></div>
-
               <img
                 v-if="me?.discord_avatar"
                 :src="me.discord_avatar"
                 alt=""
-                class="relative h-32 w-32 rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 object-cover shadow-[0_0_28px_rgba(67,56,202,0.24)]"
+                class="relative h-32 w-32 rounded-[1.7rem] border border-white/[0.055] object-cover"
               />
 
               <div
                 v-else
                 :style="displayNameColor ? { color: displayNameColor } : undefined"
-                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.04] text-4xl font-black shadow-[0_0_28px_rgba(67,56,202,0.24)]"
+                class="relative flex h-32 w-32 items-center justify-center rounded-[1.7rem] border border-white/[0.055] bg-white/[0.042] text-4xl font-black"
               >
                 {{ String(displayName).slice(0, 1).toUpperCase() }}
               </div>
@@ -752,15 +749,15 @@ watch(
               </div>
 
               <div class="mt-3 flex flex-wrap gap-2">
-                <span class="rounded-full border border-[color:var(--horizon-sunset-blue)]/30 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   Rank {{ rankName }}
                 </span>
 
-                <span class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/30 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   {{ primaryRoleLabel }}
                 </span>
 
-                <span class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-text-secondary">
+                <span class="rounded-full border-transparent bg-white/[0.042] shadow-none px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ opCommitmentLabel }}
                 </span>
               </div>
@@ -773,7 +770,7 @@ watch(
           </div>
 
           <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
               </div>
@@ -783,7 +780,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Style
               </div>
@@ -793,7 +790,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Timezone
               </div>
@@ -803,7 +800,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Availability
               </div>
@@ -817,7 +814,7 @@ watch(
 
         <div
           v-if="me?.bio"
-          class="relative mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4"
+          class="relative mt-6 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4"
         >
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Member Bio
@@ -831,7 +828,7 @@ watch(
 
 
       <!-- Operation stats + readiness -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/35 bg-[color:var(--horizon-void-700)]/80 p-5 shadow-[0_0_32px_rgba(192,38,211,0.10)]">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -850,8 +847,8 @@ watch(
           <div
             class="rounded-2xl border px-4 py-3"
             :class="canViewRestrictedOperationStats
-              ? 'border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10'
-              : 'border-white/10 bg-white/[0.035]'"
+              ? 'border-white/[0.055] bg-white/[0.042]'
+              : 'border-transparent bg-white/[0.024] shadow-none'"
           >
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Visibility
@@ -867,7 +864,7 @@ watch(
           v-if="canViewRestrictedOperationStats"
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
         >
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[linear-gradient(135deg,rgba(30,64,175,0.16),rgba(255,255,255,0.025))] p-4">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Created
             </div>
@@ -903,7 +900,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Completed
             </div>
@@ -935,7 +932,7 @@ watch(
           v-else
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
         >
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-4">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Created
             </div>
@@ -953,7 +950,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-indigo)]/20 bg-[color:var(--horizon-sunset-indigo)]/10 p-4">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Completed
             </div>
@@ -984,7 +981,7 @@ watch(
 
       <!-- Readiness profile -->
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+        <div class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Readiness Profile
@@ -1000,7 +997,7 @@ watch(
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Primary Role
               </div>
@@ -1009,7 +1006,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Secondary Role
               </div>
@@ -1018,7 +1015,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Gameplay Style
               </div>
@@ -1027,7 +1024,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Operation Commitment
               </div>
@@ -1055,7 +1052,7 @@ watch(
         </div>
 
         <aside class="space-y-6">
-          <div class="rounded-[2rem] border border-[color:var(--horizon-sunset-magenta)]/25 bg-[radial-gradient(circle_at_top_right,var(--horizon-glow-magenta),transparent_46%),rgba(255,255,255,0.035)] p-5">
+          <div class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Availability
             </div>
@@ -1071,7 +1068,7 @@ watch(
 
             <div
               v-if="me?.loa_note"
-              class="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+              class="mt-4 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
             >
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 LOA Note
@@ -1083,7 +1080,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5">
+          <div class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Squadron Assignment
             </div>
@@ -1092,7 +1089,7 @@ watch(
               <div
                 v-for="squadron in inertiaSquadrons"
                 :key="squadron.id"
-                class="rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+                class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
               >
                 <div class="text-sm font-bold text-horizon-white">
                   {{ squadron.name }}
@@ -1118,7 +1115,7 @@ watch(
       </section>
 
       <!-- Equipment preferences -->
-      <section class="rounded-[2rem] border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-void-700)]/70 p-5 shadow-[0_0_32px_rgba(30,64,175,0.10)]">
+      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1134,7 +1131,7 @@ watch(
             </p>
           </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-4 py-3">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Loadout
             </div>
@@ -1147,7 +1144,7 @@ watch(
 
         <div class="grid gap-6 lg:grid-cols-2">
           <!-- Ships -->
-          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-5">
+          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-5">
             <div class="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -1159,7 +1156,7 @@ watch(
                 </div>
               </div>
 
-              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
                 {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }}
               </div>
             </div>
@@ -1172,7 +1169,7 @@ watch(
                 <span
                   v-for="ship in profilePreviewList(me?.favorite_ships).items"
                   :key="ship"
-                  class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                  class="max-w-full truncate rounded-full border border-white/[0.055] bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
                   :title="ship"
                 >
                   {{ ship }}
@@ -1180,7 +1177,7 @@ watch(
 
                 <span
                   v-if="profilePreviewList(me?.favorite_ships).moreCount > 0"
-                  class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-horizon-white"
+                  class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-horizon-white"
                 >
                   +{{ profilePreviewList(me?.favorite_ships).moreCount }} more
                 </span>
@@ -1207,7 +1204,7 @@ watch(
                   v-for="ship in form.favorite_ships"
                   :key="ship"
                   type="button"
-                  class="rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-[color:var(--horizon-sunset-blue)]/20"
+                  class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-[color:var(--horizon-sunset-blue)]/20"
                   :title="'Remove ' + ship"
                   @click="removeFavoriteShip(ship)"
                 >
@@ -1233,8 +1230,8 @@ watch(
                       class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
                       :class="
                         form.favorite_ships?.includes(ship)
-                          ? 'border-[color:var(--horizon-sunset-blue)]/35 bg-[color:var(--horizon-sunset-blue)]/10 text-horizon-white'
-                          : 'border-white/10 bg-white/[0.025] text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/25 hover:bg-white/[0.05] hover:text-horizon-white'
+                          ? 'border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] text-horizon-white'
+                          : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:border-white/[0.055] hover:bg-white/[0.05] hover:text-horizon-white'
                       "
                       @click="toggleFavoriteShip(ship)"
                     >
@@ -1256,7 +1253,7 @@ watch(
           </div>
 
           <!-- Guns -->
-          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-5">
+          <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-5">
             <div class="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -1268,7 +1265,7 @@ watch(
                 </div>
               </div>
 
-              <div class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-bold text-horizon-white">
+              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
                 {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }}
               </div>
             </div>
@@ -1281,7 +1278,7 @@ watch(
                 <span
                   v-for="gun in profilePreviewList(me?.favorite_guns).items"
                   :key="gun"
-                  class="max-w-full truncate rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
+                  class="max-w-full truncate rounded-full border border-white/[0.055] bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
                   :title="gun"
                 >
                   {{ gun }}
@@ -1289,7 +1286,7 @@ watch(
 
                 <span
                   v-if="profilePreviewList(me?.favorite_guns).moreCount > 0"
-                  class="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-horizon-white"
+                  class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-horizon-white"
                 >
                   +{{ profilePreviewList(me?.favorite_guns).moreCount }} more
                 </span>
@@ -1328,7 +1325,7 @@ watch(
                   v-for="gun in form.favorite_guns"
                   :key="gun"
                   type="button"
-                  class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-[color:var(--horizon-sunset-magenta)]/20"
+                  class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-[color:var(--horizon-sunset-magenta)]/20"
                   :title="'Remove ' + gun"
                   @click="removeFavoriteGun(gun)"
                 >
@@ -1347,7 +1344,7 @@ watch(
       <!-- Profile edit console -->
       <section
         v-if="isEditing"
-        class="rounded-[2rem] border border-[color:var(--horizon-sunset-indigo)]/30 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_0_32px_rgba(67,56,202,0.12)]"
+        class="rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 "
       >
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -1387,7 +1384,7 @@ watch(
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div class="space-y-5">
-            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Bio
               </div>
@@ -1401,7 +1398,7 @@ watch(
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Timezone
                 </div>
@@ -1413,7 +1410,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Availability
                 </div>
@@ -1426,7 +1423,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Vacation / LOA Note
               </div>
@@ -1441,7 +1438,7 @@ watch(
           </div>
 
           <aside class="space-y-5">
-            <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-magenta)]/20 bg-[color:var(--horizon-sunset-magenta)]/10 p-4">
+            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
               </div>
@@ -1454,7 +1451,7 @@ watch(
             </div>
 
             <div class="grid gap-4">
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Primary Role
                 </div>
@@ -1467,7 +1464,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Secondary Role
                 </div>
@@ -1480,7 +1477,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Preferred Gameplay Style
                 </div>
@@ -1493,7 +1490,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4">
+              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Typical Op Commitment
                 </div>
@@ -1509,7 +1506,7 @@ watch(
           </aside>
         </div>
 
-        <div class="mt-6 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-[color:var(--horizon-sunset-blue)]/10 p-4">
+        <div class="mt-6 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
           <div class="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
             Experience Ratings
           </div>
@@ -1535,7 +1532,7 @@ watch(
                   :key="item.key + '_' + n"
                   type="button"
                   class="h-4 w-4 rounded-full border border-[color:var(--horizon-sunset-blue)]/50 transition"
-                  :class="(form.experience_ratings?.[item.key] ?? 0) >= n ? 'bg-[color:var(--horizon-sunset-blue)] shadow-[0_0_12px_rgba(30,64,175,0.75)]' : 'bg-transparent'"
+                  :class="(form.experience_ratings?.[item.key] ?? 0) >= n ? 'bg-[color:var(--horizon-sunset-blue)] ' : 'bg-transparent'"
                   @click="setExperienceRating(item.key, n)"
                 />
               </div>
@@ -1550,3 +1547,10 @@ watch(
     </div>
   </HorizonContainer>
 </template>
+
+
+
+
+
+
+

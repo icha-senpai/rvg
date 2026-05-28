@@ -12,7 +12,7 @@ const emit = defineEmits(['apply', 'leave'])
 </script>
 
 <template>
-  <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-4 shadow-[0_0_24px_rgba(30,64,175,0.10)]">
+  <div class="rounded-2xl border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-4 ">
     <div class="hz-section-label">Your Status</div>
 
     <p class="hz-soft">
@@ -50,3 +50,11 @@ const emit = defineEmits(['apply', 'leave'])
     </div>
   </div>
 </template>
+
+
+
+
+
+
+
+

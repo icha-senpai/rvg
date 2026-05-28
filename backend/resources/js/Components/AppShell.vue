@@ -22,7 +22,7 @@ const shouldShowAuthFallback = computed(() => {
         v-if="shouldShowAuthFallback"
         class="min-h-screen flex items-center justify-center px-6"
       >
-        <div class="max-w-xl rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-center shadow-[0_0_40px_rgba(56,189,248,0.12)]">
+        <div class="max-w-xl rounded-2xl border border-white/[0.055] bg-white/[0.024] p-8 text-center shadow-[0_0_40px_rgba(56,189,248,0.12)]">
           <h1 class="text-2xl font-bold text-horizon-white">
             Authentication Required
           </h1>
@@ -44,3 +44,10 @@ const shouldShowAuthFallback = computed(() => {
     </main>
   </div>
 </template>
+
+
+
+
+
+
+

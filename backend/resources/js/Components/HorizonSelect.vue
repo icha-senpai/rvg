@@ -15,7 +15,7 @@
       type="button"
       variant="ghost"
       size="md"
-      class="hz-select-button flex w-full items-center justify-between rounded-lg border border-[var(--color-bg-hover)] bg-horizon-blue-dark px-3 py-2 font-normal text-[var(--color-text-primary)] transition hover:border-[var(--color-horizon-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--color-horizon-blue)]"
+      class="hz-select-button flex w-full items-center justify-between rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.72)] px-3 py-2 font-normal text-[var(--color-text-primary)] transition hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-[rgba(42,120,200,0.25)]"
       @click="toggle"
     >
       <span class="truncate">
@@ -35,7 +35,7 @@
     <transition name="fade-scale">
       <ul
         v-if="open"
-        class="hz-select-menu absolute left-0 top-full z-[10060] mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[var(--color-bg-hover)] bg-[var(--color-bg-surface)] shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+        class="hz-select-menu absolute left-0 top-full z-[10060] mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.9)] shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
       >
         <li
           v-for="opt in options"
@@ -149,3 +149,11 @@ onBeforeUnmount(() => {
   transform: scale(0.98);
 }
 </style>
+
+
+
+
+
+
+
+
