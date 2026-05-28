@@ -1,0 +1,39 @@
+/* --------------------------------------------------------------------------
+   OPERATION ACCORDION POLISH
+   --------------------------------------------------------------------------
+   Final narrow overrides for the member-facing operation accordion.
+   Loaded after reduced-chrome.css so these selectors win over Tailwind utilities.
+-------------------------------------------------------------------------- */
+
+/* Flatten the participant counter block that sits on the right side of each
+   accordion row. It should read like metadata, not a gray card. */
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden.rounded-2xl,
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden[class*="rounded-2xl"],
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="text-right"][class*="sm:block"] {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-width: 4.75rem;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden.rounded-2xl > div:first-child,
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden[class*="rounded-2xl"] > div:first-child,
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="text-right"][class*="sm:block"] > div:first-child {
+  letter-spacing: 0.24em !important;
+  color: var(--color-text-muted) !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden.rounded-2xl > div:last-child,
+main article[style][class*="rounded-[1.75rem]"] > button div.hidden[class*="rounded-2xl"] > div:last-child,
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="text-right"][class*="sm:block"] > div:last-child {
+  font-size: 1.25rem !important;
+  line-height: 1.25rem !important;
+}
+
+/* Keep the chevron compact and control-like, not a second card. */
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="h-11"][class*="w-11"] {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  box-shadow: none !important;
+}
