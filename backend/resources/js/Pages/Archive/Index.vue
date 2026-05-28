@@ -122,32 +122,15 @@ watch(search, value => {
             </div>
           </div>
 
-          <form class="rounded-2xl border border-white/10 bg-black/20 p-4 shadow-inner shadow-black/20" @submit.prevent="applySearch">
-            <div class="grid gap-3 md:grid-cols-2">
-              <HorizonInput
-                id="archive-search"
-                v-model="search"
-                label="Search Archive"
-                type="search"
-                placeholder="Search topics and visible entries..."
-                class="md:col-span-2"
-              />
-
-              <HorizonSelect
-                v-model="sort"
-                label="Sort Results"
-                :options="sortOptions"
-                @update:model-value="applySort"
-              />
-
-              <div class="flex items-end">
-                <HorizonButton type="submit" class="w-full">Search</HorizonButton>
+          <!-- Search -->
+          <form class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3" @submit.prevent="applySearch">
+            <div class="flex flex-col gap-2 md:flex-row md:items-end">
+              <HorizonInput v-model="search" type="search" placeholder="Search archive..." class="md:flex-1" />
+              <HorizonSelect v-model="sort" :options="sortOptions" placeholder="Sort" @update:model-value="applySort" class="min-w-[8rem]" />
+              <div class="flex gap-2">
+                <HorizonButton type="submit" size="sm">Search</HorizonButton>
+                <HorizonButton v-if="hasSearch" type="button" variant="ghost" size="sm" @click="clearSearch">Clear</HorizonButton>
               </div>
-            </div>
-
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <HorizonButton v-if="hasSearch" type="button" variant="ghost" size="xs" @click="clearSearch">Clear search</HorizonButton>
-              <span class="text-xs text-text-muted">Search results can be sorted by title or update date.</span>
             </div>
           </form>
         </div>

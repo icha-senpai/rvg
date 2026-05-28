@@ -159,28 +159,18 @@ function clearFilters() {
         </div>
       </section>
 
-      <section class="relative overflow-visible rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.18)] md:p-5">
-        <div class="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)]/45 to-transparent"></div>
-
-        <div class="relative flex flex-col gap-4">
-          <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Search & Filter Topic</div>
-              <p class="mt-1 text-sm text-text-secondary">Search and filter only within the entries you are allowed to see.</p>
-            </div>
-
-            <HorizonButton v-if="hasActiveFilters" type="button" variant="ghost" @click="clearFilters">Clear filters</HorizonButton>
+      <!-- Filters -->
+      <section class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end">
+          <HorizonInput v-model="search" type="search" placeholder="Search entries..." class="md:flex-1" />
+          <div class="flex gap-2">
+            <HorizonSelect v-model="category" :options="categorySelectOptions" placeholder="Category" @update:model-value="applyFilters" class="min-w-[8rem]" />
+            <HorizonSelect v-model="tag" :options="tagSelectOptions" placeholder="Tag" @update:model-value="applyFilters" class="min-w-[8rem]" />
+            <HorizonSelect v-model="sort" :options="sortOptions" placeholder="Sort" @update:model-value="applyFilters" class="min-w-[8rem]" />
           </div>
-
-          <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
-            <HorizonInput v-model="search" type="search" label="Search" placeholder="Search entries..." class="md:col-span-2 xl:col-span-1" />
-            <HorizonSelect v-model="category" label="Category" :options="categorySelectOptions" @update:model-value="applyFilters" />
-            <HorizonSelect v-model="tag" label="Tag" :options="tagSelectOptions" @update:model-value="applyFilters" />
-            <HorizonSelect v-model="sort" label="Sort" :options="sortOptions" @update:model-value="applyFilters" />
-          </div>
-
-          <div class="flex justify-end">
-            <HorizonButton type="button" class="w-full md:w-auto" @click="applyFilters">Apply Filters</HorizonButton>
+          <div class="flex gap-2">
+            <HorizonButton type="button" size="sm" @click="applyFilters">Apply</HorizonButton>
+            <HorizonButton v-if="hasActiveFilters" type="button" size="sm" variant="ghost" @click="clearFilters">Clear</HorizonButton>
           </div>
         </div>
       </section>

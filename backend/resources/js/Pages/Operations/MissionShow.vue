@@ -484,60 +484,29 @@ const hasMetaInformation = computed(() => {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
-      <!-- Hero -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+      <!-- Header -->
+      <div class="border-b border-white/[0.055] pb-5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+            {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
+          </span>
+          <span class="text-xs text-text-muted">•</span>
+          <ProgressPill :variant="statusVariant" size="sm">
+            {{ formatTitle(operation.status) }}
+          </ProgressPill>
         </div>
 
-        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
-              {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }} Dossier
-            </div>
+        <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-4xl">
+          {{ displayTitle }}
+        </h1>
 
-            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
-              {{ displayTitle }}
-            </h1>
-
-            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-              Full operation briefing, deployment slots, participant roster, and calendar actions.
-            </p>
-
-            <div class="mt-4 flex flex-wrap gap-2">
-              <ProgressPill :variant="statusVariant">
-                {{ formatTitle(operation.status) }}
-              </ProgressPill>
-
-              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
-                {{ formatTitle(operation.visibility ?? 'open') }}
-              </span>
-
-              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
-                {{ participantsList.length }} Participants
-              </span>
-            </div>
-          </div>
-
-          <div class="relative z-[9999] flex flex-col gap-3 lg:min-w-64">
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3">
-              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                Local Start
-              </div>
-              <div class="mt-1 text-sm font-semibold text-horizon-white">
-                {{ formatLocal(operation.starts_at) }}
-              </div>
-            </div>
-
-            <HorizonSelect
-              v-if="canAddToCalendar"
-              v-model="calendarChoice"
-              :options="calendarOptions"
-            />
-          </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-text-secondary">{{ formatTitle(operation.visibility ?? 'open') }}</span>
+          <span class="text-xs text-text-muted">•</span>
+          <span class="text-xs font-semibold text-text-secondary">{{ participantsList.length }} participants</span>
         </div>
-      </section>
+
+      </div>
 
       <!-- Operation image -->
       <section
@@ -635,199 +604,90 @@ const hasMetaInformation = computed(() => {
           </section>
 
           <!-- Meta information -->
-          <section
-            v-if="hasMetaInformation"
-            class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6"
-          >
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Mission Metadata
-            </div>
-
-            <div class="mt-5 grid gap-4 md:grid-cols-2">
-              <div v-if="operation.start_location" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Start Location
-                </div>
-                <div class="mt-1 font-semibold text-horizon-white">
-                  {{ operation.start_location }}
-                </div>
+          <div v-if="hasMetaInformation" class="space-y-3">
+            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Details</div>
+            <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm">
+              <div v-if="operation.start_location">
+                <span class="text-text-muted">Start</span>
+                <div class="font-semibold text-horizon-white">{{ operation.start_location }}</div>
               </div>
-
-              <div v-if="operation.operation_location" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Operation Location
-                </div>
-                <div class="mt-1 font-semibold text-horizon-white">
-                  {{ operation.operation_location }}
-                </div>
+              <div v-if="operation.operation_location">
+                <span class="text-text-muted">Location</span>
+                <div class="font-semibold text-horizon-white">{{ operation.operation_location }}</div>
               </div>
-
-              <div v-if="operation.branch" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Branch
-                </div>
-                <div class="mt-2 flex items-center gap-2 font-semibold text-horizon-white">
-                  <img
-                    v-if="branchLogoSrc(operation.branch)"
-                    :src="branchLogoSrc(operation.branch)"
-                    :alt="`${formatTitle(operation.branch)} branch logo`"
-                    class="h-5 w-5 object-contain"
-                    loading="lazy"
-                  />
+              <div v-if="operation.branch">
+                <span class="text-text-muted">Branch</span>
+                <div class="flex items-center gap-2 font-semibold text-horizon-white">
+                  <img v-if="branchLogoSrc(operation.branch)" :src="branchLogoSrc(operation.branch)" class="h-4 w-4 object-contain" loading="lazy" />
                   {{ formatTitle(operation.branch) }}
                 </div>
               </div>
-
-              <div v-if="operation.squadron_name" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Squadron
-                </div>
-                <div class="mt-1 font-semibold text-horizon-white">
-                  {{ operation.squadron_name }}
-                </div>
+              <div v-if="operation.squadron_name">
+                <span class="text-text-muted">Squadron</span>
+                <div class="font-semibold text-horizon-white">{{ operation.squadron_name }}</div>
               </div>
-
-              <div v-if="operation.gameplay_type || operation.type" class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Gameplay Type
-                </div>
-                <div class="mt-1 font-semibold text-horizon-white">
-                  {{ formatTitle(operation.gameplay_type ?? operation.type) }}
-                </div>
+              <div v-if="operation.gameplay_type || operation.type">
+                <span class="text-text-muted">Type</span>
+                <div class="font-semibold text-horizon-white">{{ formatTitle(operation.gameplay_type ?? operation.type) }}</div>
               </div>
-
-              <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Comms Strictness
-                </div>
-                <div class="mt-1 font-semibold text-horizon-white">
-                  {{ formatTitle(operation.operation_strictness ?? 'normal') }}
-                </div>
+              <div>
+                <span class="text-text-muted">Comms</span>
+                <div class="font-semibold text-horizon-white">{{ formatTitle(operation.operation_strictness ?? 'normal') }}</div>
               </div>
             </div>
-          </section>
+          </div>
 
           <!-- Roles -->
-          <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 ">
-            <div class="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                  Role Assignments
-                </div>
-                <h2 class="mt-1 text-xl font-black text-horizon-white">
-                  Deployment Slots
-                </h2>
-              </div>
-
-              <div class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold text-[color:var(--horizon-text-primary)]">
-                {{ participantsList.length }} total
-              </div>
+          <div class="space-y-4">
+            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Slots ({{ participantsList.length }} total)
             </div>
 
-            <div v-if="(operation.slots || []).length" class="grid gap-4 md:grid-cols-2">
-              <article
-                v-for="slotName in operation.slots"
-                :key="slotName"
-                class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <div class="font-bold text-horizon-white">
-                    {{ slotName }}
-                  </div>
-
-                  <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                    {{ (participantsBySlotSafe[slotName] || []).length }}
-                  </div>
+            <div v-if="(operation.slots || []).length" class="space-y-4">
+              <div v-for="slotName in operation.slots" :key="slotName" class="space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="font-semibold text-horizon-white">{{ slotName }}</span>
+                  <span class="text-xs text-text-muted">{{ (participantsBySlotSafe[slotName] || []).length }}</span>
                 </div>
-
-                <div class="mt-4 space-y-2">
-                  <div
-                    v-for="participant in participantsBySlotSafe[slotName] || []"
-                    :key="participant.id"
-                    class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2"
-                  >
+                <div class="space-y-1">
+                  <div v-for="p in participantsBySlotSafe[slotName] || []" :key="p.id" class="flex items-center justify-between gap-2 py-1">
                     <div class="flex min-w-0 items-center gap-2">
-                      <img
-                        v-if="participantAvatar(participant)"
-                        :src="participantAvatar(participant)"
-                        alt=""
-                        class="h-7 w-7 shrink-0 rounded-lg object-cover"
-                        loading="lazy"
-                      />
-
-                      <div
-                        v-else
-                        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
-                      >
-                        {{ participantInitial(participant) }}
-                      </div>
-
-                      <span class="truncate text-sm font-semibold text-horizon-white">
-                        {{ participantName(participant) }}
-                      </span>
+                      <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
+                      <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
+                      <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                     </div>
-
-                    <span class="shrink-0 text-xs text-text-muted">
-                      {{ formatTitle(participant.attendance_status) }}
-                    </span>
+                    <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
                   </div>
-
-                  <div
-                    v-if="!(participantsBySlotSafe[slotName] || []).length"
-                    class="rounded-xl border border-dashed border-white/[0.075] bg-white/[0.018] [0.02] px-3 py-2 text-sm text-text-muted"
-                  >
-                    No one assigned yet.
-                  </div>
+                  <div v-if="!(participantsBySlotSafe[slotName] || []).length" class="py-1 text-sm text-text-muted italic">Empty</div>
                 </div>
-              </article>
-            </div>
-
-            <div v-else class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary">
-              No roles defined. Participants join as “No Role”.
-            </div>
-
-            <div v-if="unassignedParticipantsSafe.length" class="mt-5 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
-              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                No Role
               </div>
+            </div>
 
-              <div class="mt-3 grid gap-2 md:grid-cols-2">
-                <div
-                  v-for="participant in unassignedParticipantsSafe"
-                  :key="participant.id"
-                  class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2"
-                >
+            <div v-else class="text-sm text-text-secondary">No slots defined.</div>
+
+            <div v-if="unassignedParticipantsSafe.length" class="border-t border-white/[0.055] pt-4">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted mb-2">No Role</div>
+              <div class="space-y-1">
+                <div v-for="p in unassignedParticipantsSafe" :key="p.id" class="flex items-center justify-between gap-2 py-1">
                   <div class="flex min-w-0 items-center gap-2">
-                    <img
-                      v-if="participantAvatar(participant)"
-                      :src="participantAvatar(participant)"
-                      alt=""
-                      class="h-7 w-7 shrink-0 rounded-lg object-cover"
-                      loading="lazy"
-                    />
-
-                    <div
-                      v-else
-                      class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
-                    >
-                      {{ participantInitial(participant) }}
-                    </div>
-
-                    <span class="truncate text-sm font-semibold text-horizon-white">
-                      {{ participantName(participant) }}
-                    </span>
+                    <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
+                    <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
+                    <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                   </div>
-
-                  <span class="shrink-0 text-xs text-text-muted">
-                    {{ formatTitle(participant.attendance_status) }}
-                  </span>
+                  <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
         </main>
 
         <aside class="space-y-6">
+          <!-- Calendar -->
+          <div v-if="canAddToCalendar" class="space-y-2">
+            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Calendar</div>
+            <HorizonSelect v-model="calendarChoice" :options="calendarOptions" size="sm" />
+          </div>
+
           <!-- Your status -->
           <section class="rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-5 ">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -904,133 +764,75 @@ const hasMetaInformation = computed(() => {
           </section>
 
           <!-- Quick facts -->
-          <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Quick Facts
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between gap-2">
+              <span class="text-text-muted">Status</span>
+              <span class="font-semibold text-horizon-white">{{ formatTitle(operation.status) }}</span>
             </div>
-
-            <div class="mt-4 space-y-3">
-              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                <span class="text-sm text-text-muted">Status</span>
-                <span class="text-sm font-semibold text-horizon-white">
-                  {{ formatTitle(operation.status) }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                <span class="text-sm text-text-muted">Visibility</span>
-                <span class="text-sm font-semibold text-horizon-white">
-                  {{ formatTitle(operation.visibility ?? 'open') }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                <span class="text-sm text-text-muted">Participants</span>
-                <span class="text-sm font-semibold text-horizon-white">
-                  {{ participantsList.length }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-sm text-text-muted">Creator</span>
-                <span class="text-sm font-semibold text-horizon-white">
-                  {{ creatorName() }}
-                </span>
-              </div>
+            <div class="flex justify-between gap-2">
+              <span class="text-text-muted">Visibility</span>
+              <span class="font-semibold text-horizon-white">{{ formatTitle(operation.visibility ?? 'open') }}</span>
             </div>
-          </section>
+            <div class="flex justify-between gap-2">
+              <span class="text-text-muted">Participants</span>
+              <span class="font-semibold text-horizon-white">{{ participantsList.length }}</span>
+            </div>
+            <div class="flex justify-between gap-2">
+              <span class="text-text-muted">Creator</span>
+              <span class="font-semibold text-horizon-white">{{ creatorName() }}</span>
+            </div>
+          </div>
 
           <!-- Creator -->
-          <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Operation Creator
+          <div class="space-y-2">
+            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Creator</div>
+            <div class="flex items-center gap-2">
+              <img v-if="creatorAvatar()" :src="creatorAvatar()" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover" loading="lazy" />
+              <div v-else class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xs font-bold text-horizon-white">{{ creatorInitial() }}</div>
+              <span class="text-sm font-semibold text-horizon-white">{{ creatorName() }}</span>
             </div>
-
-            <div class="mt-4 flex items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
-              <img
-                v-if="creatorAvatar()"
-                :src="creatorAvatar()"
-                alt=""
-                class="h-11 w-11 shrink-0 rounded-xl object-cover"
-                loading="lazy"
-              />
-
-              <div
-                v-else
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-sm font-black text-horizon-white"
-              >
-                {{ creatorInitial() }}
-              </div>
-
-              <div class="min-w-0">
-                <div class="truncate font-semibold text-horizon-white">
-                  {{ creatorName() }}
-                </div>
-                <div class="text-xs uppercase tracking-wide text-text-muted">
-                  Mission author
-                </div>
-              </div>
-            </div>
-          </section>
+          </div>
 
           <!-- Participants -->
-          <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
-            <div class="flex items-center justify-between gap-3">
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                Participants
-              </div>
-
-              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-2.5 py-1 text-xs font-bold text-text-secondary">
-                {{ participantsList.length }}
-              </span>
+          <div class="space-y-2">
+            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Participants ({{ participantsList.length }})
             </div>
 
-            <div class="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+            <div class="max-h-64 space-y-1 overflow-y-auto pr-1">
               <div
-                v-for="participant in participantsList"
-                :key="participant.id"
-                class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-2"
+                v-for="p in participantsList"
+                :key="p.id"
+                class="flex items-center justify-between gap-2 py-1.5"
               >
                 <div class="flex min-w-0 items-center gap-2">
                   <img
-                    v-if="participantAvatar(participant)"
-                    :src="participantAvatar(participant)"
+                    v-if="participantAvatar(p)"
+                    :src="participantAvatar(p)"
                     alt=""
-                    class="h-8 w-8 shrink-0 rounded-lg object-cover"
+                    class="h-7 w-7 shrink-0 rounded-md object-cover"
                     loading="lazy"
                   />
-
                   <div
                     v-else
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-xs font-black text-horizon-white"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-[10px] font-bold text-horizon-white"
                   >
-                    {{ participantInitial(participant) }}
+                    {{ participantInitial(p) }}
                   </div>
-
                   <div class="min-w-0">
-                    <div class="truncate text-sm font-semibold text-horizon-white">
-                      {{ participantName(participant) }}
-                    </div>
-
-                    <div class="truncate text-xs text-text-muted">
-                      {{ participant.slot ?? 'No Role' }}
+                    <div class="truncate text-sm text-horizon-white">
+                      {{ participantName(p) }}
                     </div>
                   </div>
                 </div>
-
-                <span class="shrink-0 text-xs text-text-muted">
-                  {{ formatTitle(participant.attendance_status) }}
-                </span>
+                <span class="shrink-0 text-xs text-text-muted">{{ p.slot ?? '—' }}</span>
               </div>
 
-              <div
-                v-if="!participantsList.length"
-                class="rounded-xl border border-dashed border-white/15 bg-white/[0.025] px-3 py-4 text-center text-sm text-text-secondary"
-              >
-                No participants have joined yet.
+              <div v-if="!participantsList.length" class="py-2 text-sm text-text-secondary">
+                No participants yet.
               </div>
             </div>
-          </section>
+          </div>
         </aside>
       </div>
     </div>
