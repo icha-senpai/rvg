@@ -80,6 +80,17 @@ const directorBadgeLabel = computed(() => {
   return 'DIRECTOR ACCESS'
 })
 
+function normalizeArchiveHref(href) {
+  if (!href) return ''
+
+  try {
+    const resolved = new URL(href, window.location.origin)
+    return `${resolved.pathname}${resolved.search}`
+  } catch {
+    return String(href)
+  }
+}
+
 const archiveTopicChildren = computed(() => {
   const url = page.url ?? ''
 
@@ -87,13 +98,19 @@ const archiveTopicChildren = computed(() => {
     key: `archive-topic-${topic.id}`,
     label: topic.title,
     href: topic.href,
-    isActive: url === topic.href || url.startsWith(`${topic.href}/`) || url.startsWith(`${topic.href}?`),
+    isActive: (() => {
+      const topicHref = normalizeArchiveHref(topic.href)
+      return url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`)
+    })(),
     meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
     entries: (topic.entries ?? []).map(entry => ({
       key: `archive-entry-${entry.id}`,
       label: entry.title,
       href: entry.href,
-      isActive: url === entry.href || url.startsWith(`${entry.href}?`),
+      isActive: (() => {
+        const entryHref = normalizeArchiveHref(entry.href)
+        return url === entryHref || url.startsWith(`${entryHref}?`)
+      })(),
     })),
   }))
 })
@@ -275,6 +292,7 @@ const navGroups = computed(() => {
 const mobileOpen = ref(false)
 const desktopExpanded = ref(true)
 const manuallyExpandedGroups = ref(new Set())
+const manuallyExpandedItems = ref(new Set())
 
 const activeGroupKeys = computed(() => new Set(
   navGroups.value
@@ -320,6 +338,18 @@ function groupIsOpen(group) {
   return groupIsActive(group) || manuallyExpandedGroups.value.has(group.key)
 }
 
+function toggleItem(item) {
+  const next = new Set(manuallyExpandedItems.value)
+
+  if (next.has(item.key)) {
+    next.delete(item.key)
+  } else {
+    next.add(item.key)
+  }
+
+  manuallyExpandedItems.value = next
+}
+
 function getItemHref(item) {
   if (item.href) return item.href
 
@@ -327,7 +357,43 @@ function getItemHref(item) {
 }
 
 function itemHasOpenChildren(item) {
-  return Boolean(item.isActive && item.children?.length)
+  return Boolean(item.children?.length)
+}
+
+function itemChildrenAreOpen(item) {
+  return Boolean(item.entries?.length && (item.isActive || manuallyExpandedItems.value.has(item.key)))
+}
+
+function archiveTopicRowClass(item) {
+  if (item.isActive) {
+    return 'bg-white/[0.07] text-horizon-white'
+  }
+
+  if (itemChildrenAreOpen(item)) {
+    return 'bg-white/[0.04] text-text-secondary'
+  }
+
+  return 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'
+}
+
+function archiveTopicMetaClass(item) {
+  if (item.isActive) {
+    return 'text-horizon-white/80'
+  }
+
+  if (itemChildrenAreOpen(item)) {
+    return 'text-text-secondary'
+  }
+
+  return 'text-text-muted'
+}
+
+function archiveEntryRowClass(item) {
+  if (item.isActive) {
+    return 'bg-white/[0.06] text-horizon-white'
+  }
+
+  return 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'
 }
 
 function groupLabelClass(group) {
@@ -363,9 +429,15 @@ function activeRailClass(item) {
 
 watch(
   () => page.url,
-  () => {
-    closeMobileNav()
-    manuallyExpandedGroups.value = new Set()
+  (nextUrl, previousUrl) => {
+    const nextIsArchive = String(nextUrl ?? '').startsWith('/archive')
+    const previousIsArchive = String(previousUrl ?? '').startsWith('/archive')
+
+    if (!(nextIsArchive && previousIsArchive)) {
+      closeMobileNav()
+      manuallyExpandedGroups.value = new Set()
+      manuallyExpandedItems.value = new Set()
+    }
   }
 )
 
@@ -529,18 +601,38 @@ onBeforeUnmount(() => {
                     :key="child.key"
                     class="space-y-1"
                   >
-                    <Link
-                      :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition"
-                      :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
-                      @click="closeMobileNav"
-                    >
-                      <span class="truncate">{{ child.label }}</span>
-                      <span v-if="child.meta" class="shrink-0 text-[10px] text-text-muted">{{ child.meta }}</span>
-                    </Link>
+                    <div class="flex items-center gap-1">
+                      <button
+                        type="button"
+                        class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                        :class="archiveTopicRowClass(child)"
+                        @click="toggleItem(child)"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="truncate">{{ child.label }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(child)">{{ child.meta }}</span>
+                        </div>
+                      </button>
+
+                      <Link
+                        :href="child.href"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                      >
+                        ↗
+                      </Link>
+
+                      <button
+                        v-if="child.entries?.length"
+                        type="button"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        @click.stop="toggleItem(child)"
+                      >
+                        <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
+                      </button>
+                    </div>
 
                     <div
-                      v-if="child.isActive && child.entries?.length"
+                      v-if="itemChildrenAreOpen(child) && child.entries?.length"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
                       <Link
@@ -548,8 +640,7 @@ onBeforeUnmount(() => {
                         :key="entry.key"
                         :href="entry.href"
                         class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="entry.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
-                        @click="closeMobileNav"
+                        :class="archiveEntryRowClass(entry)"
                       >
                         {{ entry.label }}
                       </Link>
@@ -754,17 +845,38 @@ onBeforeUnmount(() => {
                     :key="child.key"
                     class="space-y-1"
                   >
-                    <Link
-                      :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition"
-                      :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
-                    >
-                      <span class="truncate">{{ child.label }}</span>
-                      <span v-if="child.meta" class="shrink-0 text-[10px] text-text-muted">{{ child.meta }}</span>
-                    </Link>
+                    <div class="flex items-center gap-1">
+                      <button
+                        type="button"
+                        class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                        :class="archiveTopicRowClass(child)"
+                        @click="toggleItem(child)"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="truncate">{{ child.label }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(child)">{{ child.meta }}</span>
+                        </div>
+                      </button>
+
+                      <Link
+                        :href="child.href"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                      >
+                        ↗
+                      </Link>
+
+                      <button
+                        v-if="child.entries?.length"
+                        type="button"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        @click.stop="toggleItem(child)"
+                      >
+                        <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
+                      </button>
+                    </div>
 
                     <div
-                      v-if="child.isActive && child.entries?.length"
+                      v-if="itemChildrenAreOpen(child) && child.entries?.length"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
                       <Link
@@ -772,7 +884,7 @@ onBeforeUnmount(() => {
                         :key="entry.key"
                         :href="entry.href"
                         class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="entry.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
+                        :class="archiveEntryRowClass(entry)"
                       >
                         {{ entry.label }}
                       </Link>
