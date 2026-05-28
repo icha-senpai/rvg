@@ -91,28 +91,63 @@ function normalizeArchiveHref(href) {
   }
 }
 
-const archiveTopicChildren = computed(() => {
+const archiveCategoryChildren = computed(() => {
   const url = page.url ?? ''
+  const groups = new Map()
 
-  return (archiveNavigation.value?.topics ?? []).map(topic => ({
-    key: `archive-topic-${topic.id}`,
-    label: topic.title,
-    href: topic.href,
-    isActive: (() => {
-      const topicHref = normalizeArchiveHref(topic.href)
-      return url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`)
-    })(),
-    meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
-    entries: (topic.entries ?? []).map(entry => ({
-      key: `archive-entry-${entry.id}`,
-      label: entry.title,
-      href: entry.href,
-      isActive: (() => {
-        const entryHref = normalizeArchiveHref(entry.href)
-        return url === entryHref || url.startsWith(`${entryHref}?`)
-      })(),
-    })),
-  }))
+  for (const topic of archiveNavigation.value?.topics ?? []) {
+    const topicHref = normalizeArchiveHref(topic.href)
+    const topicIsActive = url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`)
+    const entries = (topic.entries ?? []).map(entry => {
+      const entryHref = normalizeArchiveHref(entry.href)
+
+      return {
+        key: `archive-entry-${entry.id}`,
+        label: entry.title,
+        href: entry.href,
+        isActive: url === entryHref || url.startsWith(`${entryHref}?`),
+      }
+    })
+
+    const categoryLabel = topic.category_label || 'Archive'
+    const categoryKey = `archive-category-${categoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+
+    if (!groups.has(categoryKey)) {
+      groups.set(categoryKey, {
+        key: categoryKey,
+        label: categoryLabel,
+        sortOrder: Number(topic.category_sort_order ?? Number.MAX_SAFE_INTEGER),
+        topics: [],
+        visibleEntriesCount: 0,
+        isActive: false,
+      })
+    }
+
+    const group = groups.get(categoryKey)
+    group.topics.push({
+      key: `archive-topic-${topic.id}`,
+      label: topic.title,
+      href: topic.href,
+      isActive: topicIsActive,
+      meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
+      entries,
+    })
+    group.visibleEntriesCount += Number(topic.visible_entries_count ?? 0)
+    group.isActive = group.isActive || topicIsActive || entries.some(entry => entry.isActive)
+  }
+
+  return Array.from(groups.values())
+    .sort((left, right) => {
+      if (left.sortOrder !== right.sortOrder) {
+        return left.sortOrder - right.sortOrder
+      }
+
+      return left.label.localeCompare(right.label)
+    })
+    .map(group => ({
+      ...group,
+      meta: group.visibleEntriesCount ? `${group.visibleEntriesCount}` : null,
+    }))
 })
 
 const navGroups = computed(() => {
@@ -254,7 +289,7 @@ const navGroups = computed(() => {
           isActive: url === '/archive' || url === '/archive/' || url.startsWith('/archive?') || url.startsWith('/archive/'),
           tone: 'magenta',
           status: 'Docs',
-          children: archiveTopicChildren.value,
+          children: archiveCategoryChildren.value,
         },
       ],
     },
@@ -361,7 +396,31 @@ function itemHasOpenChildren(item) {
 }
 
 function itemChildrenAreOpen(item) {
-  return Boolean(item.entries?.length && (item.isActive || manuallyExpandedItems.value.has(item.key)))
+  return Boolean((item.entries?.length || item.topics?.length) && (item.isActive || manuallyExpandedItems.value.has(item.key)))
+}
+
+function archiveCategoryRowClass(item) {
+  if (item.isActive) {
+    return 'bg-white/[0.08] text-horizon-white'
+  }
+
+  if (itemChildrenAreOpen(item)) {
+    return 'bg-white/[0.05] text-text-secondary'
+  }
+
+  return 'text-text-secondary hover:bg-white/[0.03] hover:text-horizon-white'
+}
+
+function archiveCategoryMetaClass(item) {
+  if (item.isActive) {
+    return 'text-horizon-white/80'
+  }
+
+  if (itemChildrenAreOpen(item)) {
+    return 'text-text-secondary'
+  }
+
+  return 'text-text-muted'
 }
 
 function archiveTopicRowClass(item) {
@@ -605,24 +664,17 @@ onBeforeUnmount(() => {
                       <button
                         type="button"
                         class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
-                        :class="archiveTopicRowClass(child)"
+                        :class="archiveCategoryRowClass(child)"
                         @click="toggleItem(child)"
                       >
                         <div class="flex items-center justify-between gap-2">
                           <span class="truncate">{{ child.label }}</span>
-                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(child)">{{ child.meta }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveCategoryMetaClass(child)">{{ child.meta }}</span>
                         </div>
                       </button>
 
-                      <Link
-                        :href="child.href"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
-                      >
-                        ↗
-                      </Link>
-
                       <button
-                        v-if="child.entries?.length"
+                        v-if="child.topics?.length"
                         type="button"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
@@ -632,18 +684,59 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                      v-if="itemChildrenAreOpen(child) && child.entries?.length"
+                      v-if="itemChildrenAreOpen(child) && child.topics?.length"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
-                      <Link
-                        v-for="entry in child.entries"
-                        :key="entry.key"
-                        :href="entry.href"
-                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="archiveEntryRowClass(entry)"
+                      <div
+                        v-for="topic in child.topics"
+                        :key="topic.key"
+                        class="space-y-1"
                       >
-                        {{ entry.label }}
-                      </Link>
+                        <div class="flex items-center gap-1">
+                          <button
+                            type="button"
+                            class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                            :class="archiveTopicRowClass(topic)"
+                            @click="toggleItem(topic)"
+                          >
+                            <div class="flex items-center justify-between gap-2">
+                              <span class="truncate">{{ topic.label }}</span>
+                              <span v-if="topic.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(topic)">{{ topic.meta }}</span>
+                            </div>
+                          </button>
+
+                          <Link
+                            :href="topic.href"
+                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                          >
+                            ↗
+                          </Link>
+
+                          <button
+                            v-if="topic.entries?.length"
+                            type="button"
+                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            @click.stop="toggleItem(topic)"
+                          >
+                            <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
+                          </button>
+                        </div>
+
+                        <div
+                          v-if="itemChildrenAreOpen(topic) && topic.entries?.length"
+                          class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                        >
+                          <Link
+                            v-for="entry in topic.entries"
+                            :key="entry.key"
+                            :href="entry.href"
+                            class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                            :class="archiveEntryRowClass(entry)"
+                          >
+                            {{ entry.label }}
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -849,24 +942,17 @@ onBeforeUnmount(() => {
                       <button
                         type="button"
                         class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
-                        :class="archiveTopicRowClass(child)"
+                        :class="archiveCategoryRowClass(child)"
                         @click="toggleItem(child)"
                       >
                         <div class="flex items-center justify-between gap-2">
                           <span class="truncate">{{ child.label }}</span>
-                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(child)">{{ child.meta }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveCategoryMetaClass(child)">{{ child.meta }}</span>
                         </div>
                       </button>
 
-                      <Link
-                        :href="child.href"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
-                      >
-                        ↗
-                      </Link>
-
                       <button
-                        v-if="child.entries?.length"
+                        v-if="child.topics?.length"
                         type="button"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
@@ -876,18 +962,59 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                      v-if="itemChildrenAreOpen(child) && child.entries?.length"
+                      v-if="itemChildrenAreOpen(child) && child.topics?.length"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
-                      <Link
-                        v-for="entry in child.entries"
-                        :key="entry.key"
-                        :href="entry.href"
-                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="archiveEntryRowClass(entry)"
+                      <div
+                        v-for="topic in child.topics"
+                        :key="topic.key"
+                        class="space-y-1"
                       >
-                        {{ entry.label }}
-                      </Link>
+                        <div class="flex items-center gap-1">
+                          <button
+                            type="button"
+                            class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                            :class="archiveTopicRowClass(topic)"
+                            @click="toggleItem(topic)"
+                          >
+                            <div class="flex items-center justify-between gap-2">
+                              <span class="truncate">{{ topic.label }}</span>
+                              <span v-if="topic.meta" class="shrink-0 text-[10px]" :class="archiveTopicMetaClass(topic)">{{ topic.meta }}</span>
+                            </div>
+                          </button>
+
+                          <Link
+                            :href="topic.href"
+                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                          >
+                            ↗
+                          </Link>
+
+                          <button
+                            v-if="topic.entries?.length"
+                            type="button"
+                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            @click.stop="toggleItem(topic)"
+                          >
+                            <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
+                          </button>
+                        </div>
+
+                        <div
+                          v-if="itemChildrenAreOpen(topic) && topic.entries?.length"
+                          class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                        >
+                          <Link
+                            v-for="entry in topic.entries"
+                            :key="entry.key"
+                            :href="entry.href"
+                            class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                            :class="archiveEntryRowClass(entry)"
+                          >
+                            {{ entry.label }}
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

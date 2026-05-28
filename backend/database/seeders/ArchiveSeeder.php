@@ -53,6 +53,7 @@ class ArchiveSeeder extends Seeder
                     'title' => 'Defence Industries',
                     'slug' => 'defence-industries',
                     'description' => 'Doctrine, strategic posture, equipment notes, and defence-oriented operational records.',
+                    'category_slug' => 'doctrine',
                     'category_label' => 'Defence',
                     'sort_order' => 10,
                     'minimum_rank_level' => 1,
@@ -73,6 +74,7 @@ class ArchiveSeeder extends Seeder
                     'title' => 'Lifeline Industries',
                     'slug' => 'lifeline-industries',
                     'description' => 'Logistics, rescue, medical support, transport coordination, and operational sustainment.',
+                    'category_slug' => 'logistics',
                     'category_label' => 'Support',
                     'sort_order' => 20,
                     'minimum_rank_level' => 1,
@@ -93,6 +95,7 @@ class ArchiveSeeder extends Seeder
                     'title' => 'The Vision of Horizon',
                     'slug' => 'the-vision-of-horizon',
                     'description' => 'Purpose, values, long-term objectives, and the identity of Horizon as an organization.',
+                    'category_slug' => 'identity',
                     'category_label' => 'Identity',
                     'sort_order' => 30,
                     'minimum_rank_level' => 1,
@@ -113,6 +116,7 @@ class ArchiveSeeder extends Seeder
                     'title' => 'Organizational History',
                     'slug' => 'organizational-history',
                     'description' => 'Milestones, leadership records, historical events, and important organizational developments.',
+                    'category_slug' => 'history',
                     'category_label' => 'Records',
                     'sort_order' => 40,
                     'minimum_rank_level' => 1,
@@ -133,6 +137,7 @@ class ArchiveSeeder extends Seeder
                     'title' => 'Regulations and Procedures',
                     'slug' => 'regulations-and-procedures',
                     'description' => 'Operational standards, policies, internal guidance, and procedure references.',
+                    'category_slug' => 'procedures',
                     'category_label' => 'Policy',
                     'sort_order' => 50,
                     'minimum_rank_level' => 2,
@@ -153,11 +158,14 @@ class ArchiveSeeder extends Seeder
 
             foreach ($topics as $topicData) {
                 $entries = $topicData['entries'];
+                $categorySlug = $topicData['category_slug'] ?? null;
                 unset($topicData['entries']);
+                unset($topicData['category_slug']);
 
                 $topic = ArchiveTopic::updateOrCreate(
                     ['slug' => $topicData['slug']],
                     array_merge($topicData, [
+                        'archive_category_id' => $categorySlug ? $categories->get($categorySlug)?->id : null,
                         'is_published' => true,
                         'published_at' => $now,
                     ])

@@ -130,10 +130,10 @@ class HandleInertiaRequests extends Middleware
             ->published()
             ->visibleTo($user)
             ->with([
+                'category:id,name,slug,sort_order',
                 'entries' => function ($query) use ($user) {
                     $query->published()
                         ->visibleTo($user)
-                        ->with(['categories:id,name,slug'])
                         ->orderBy('sort_order')
                         ->orderBy('title');
                 },
@@ -143,32 +143,25 @@ class HandleInertiaRequests extends Middleware
                     $query->published()->visibleTo($user);
                 },
             ])
+            ->leftJoin('archive_categories', 'archive_categories.id', '=', 'archive_topics.archive_category_id')
+            ->select('archive_topics.*')
+            ->orderByRaw('CASE WHEN archive_categories.sort_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('archive_categories.sort_order')
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
 
         return [
             'topics' => $topics->map(function (ArchiveTopic $topic) {
-                $categories = $topic->entries
-                    ->flatMap(fn (ArchiveEntry $entry) => $entry->categories)
-                    ->unique('id')
-                    ->sortBy('name')
-                    ->values()
-                    ->map(fn (ArchiveCategory $category) => [
-                        'id' => $category->id,
-                        'name' => $category->name,
-                        'slug' => $category->slug,
-                    ]);
-
                 return [
                     'id' => $topic->id,
                     'title' => $topic->title,
                     'slug' => $topic->slug,
-                    'category_label' => $topic->category_label,
+                    'category_label' => $topic->category?->name ?? $topic->category_label,
+                    'category_sort_order' => $topic->category?->sort_order,
                     'minimum_rank_label' => $topic->minimumRankLabel(),
                     'visible_entries_count' => (int) ($topic->visible_entries_count ?? $topic->entries->count()),
                     'href' => route('archive.topic', $topic),
-                    'categories' => $categories,
                     'entries' => $topic->entries->map(fn (ArchiveEntry $entry) => [
                         'id' => $entry->id,
                         'title' => $entry->title,

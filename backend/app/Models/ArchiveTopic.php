@@ -15,6 +15,7 @@ class ArchiveTopic extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'archive_category_id',
         'title',
         'slug',
         'description',
@@ -32,11 +33,17 @@ class ArchiveTopic extends Model
     protected function casts(): array
     {
         return [
+            'archive_category_id' => 'integer',
             'sort_order' => 'integer',
             'minimum_rank_level' => 'integer',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
         ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ArchiveCategory::class, 'archive_category_id');
     }
 
     public function entries(): HasMany

@@ -10,31 +10,20 @@ import HorizonSelect from '@/Components/HorizonSelect.vue'
 const props = defineProps({
   topic: Object,
   entries: { type: Array, default: () => [] },
-  categoryOptions: { type: Array, default: () => [] },
   tagOptions: { type: Array, default: () => [] },
   filters: { type: Object, default: () => ({}) },
 })
 
 const search = ref(props.filters?.search ?? '')
 const sort = ref(props.filters?.sort ?? 'default')
-const category = ref(props.filters?.category ?? '')
 const tag = ref(props.filters?.tag ?? '')
 let searchTimer = null
 
 const hasActiveFilters = computed(() => Boolean(
   String(props.filters?.search ?? '').trim()
-  || props.filters?.category
   || props.filters?.tag
   || (props.filters?.sort && props.filters.sort !== 'default')
 ))
-
-const categorySelectOptions = computed(() => [
-  { value: '', label: 'All categories' },
-  ...(props.categoryOptions ?? []).map(item => ({
-    value: item.slug,
-    label: `${item.name} (${item.entries_count})`,
-  })),
-])
 
 const tagSelectOptions = computed(() => [
   { value: '', label: 'All tags' },
@@ -55,7 +44,6 @@ function currentQuery(overrides = {}) {
   const next = {
     search: search.value,
     sort: sort.value,
-    category: category.value,
     tag: tag.value,
     ...overrides,
   }
@@ -64,7 +52,6 @@ function currentQuery(overrides = {}) {
   const trimmed = String(next.search ?? '').trim()
 
   if (trimmed) query.search = trimmed
-  if (next.category) query.category = next.category
   if (next.tag) query.tag = next.tag
   if (next.sort && next.sort !== 'default') query.sort = next.sort
 
@@ -77,7 +64,7 @@ function visitWithFilters(overrides = {}) {
     preserveState: true,
     preserveScroll: true,
     replace: true,
-    only: ['entries', 'categoryOptions', 'tagOptions', 'filters'],
+    only: ['entries', 'tagOptions', 'filters'],
   })
 }
 
@@ -105,7 +92,6 @@ function clearFilters() {
 
   search.value = ''
   sort.value = 'default'
-  category.value = ''
   tag.value = ''
 
   router.visit(route('archive.topic', props.topic.slug), {
@@ -113,7 +99,7 @@ function clearFilters() {
     preserveState: true,
     preserveScroll: true,
     replace: true,
-    only: ['entries', 'categoryOptions', 'tagOptions', 'filters'],
+    only: ['entries', 'tagOptions', 'filters'],
   })
 }
 </script>
@@ -164,7 +150,6 @@ function clearFilters() {
         <div class="flex flex-col gap-3 md:flex-row md:items-end">
           <HorizonInput v-model="search" type="search" placeholder="Search entries..." class="md:flex-1" />
           <div class="flex gap-2">
-            <HorizonSelect v-model="category" :options="categorySelectOptions" placeholder="Category" @update:model-value="applyFilters" class="min-w-[8rem]" />
             <HorizonSelect v-model="tag" :options="tagSelectOptions" placeholder="Tag" @update:model-value="applyFilters" class="min-w-[8rem]" />
             <HorizonSelect v-model="sort" :options="sortOptions" placeholder="Sort" @update:model-value="applyFilters" class="min-w-[8rem]" />
           </div>
@@ -193,7 +178,6 @@ function clearFilters() {
 
             <div class="relative flex flex-wrap gap-2">
               <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
-              <span v-for="categoryItem in entry.categories" :key="`category-${entry.id}-${categoryItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ categoryItem.name }}</span>
               <span v-for="tagItem in entry.tags" :key="`tag-${entry.id}-${tagItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tagItem.name }}</span>
             </div>
 

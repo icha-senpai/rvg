@@ -195,6 +195,7 @@ class ArchiveVisibilityTest extends TestCase
     private function archiveTopic(array $attributes = []): ArchiveTopic
     {
         return ArchiveTopic::create(array_merge([
+            'archive_category_id' => $this->archiveCategory()->id,
             'title' => 'Archive Topic',
             'slug' => 'archive-topic',
             'description' => 'Test archive topic.',
@@ -206,6 +207,21 @@ class ArchiveVisibilityTest extends TestCase
             'is_published' => true,
             'published_at' => now()->subMinute(),
         ], $attributes));
+    }
+
+    private function archiveCategory(array $attributes = []): ArchiveCategory
+    {
+        $payload = array_merge([
+            'name' => 'Test',
+            'slug' => 'test',
+            'description' => null,
+            'sort_order' => 0,
+        ], $attributes);
+
+        return ArchiveCategory::query()->updateOrCreate(
+            ['slug' => $payload['slug']],
+            $payload,
+        );
     }
 
     private function archiveEntry(ArchiveTopic $topic, array $attributes = []): ArchiveEntry

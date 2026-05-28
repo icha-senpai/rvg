@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
 use App\Models\ArchiveTag;
 use App\Models\ArchiveTopic;
@@ -28,7 +27,7 @@ class AdminArchiveEntryController extends Controller
         $previewRankLevel = $this->previewRankLevel($request);
 
         $entries = $topic->entries()
-            ->with(['categories:id,name,slug', 'tags:id,name,slug'])
+            ->with(['tags:id,name,slug'])
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get()
@@ -37,7 +36,6 @@ class AdminArchiveEntryController extends Controller
         return Inertia::render('Admin/ArchiveEntries', [
             'topic' => $this->presentTopic($topic, $previewRankLevel),
             'entries' => $entries,
-            'categoryOptions' => $this->categoryOptions(),
             'tagOptions' => $this->tagOptions(),
             'rankOptions' => $this->rankOptions(),
             'previewRankLevel' => $previewRankLevel,
@@ -49,7 +47,6 @@ class AdminArchiveEntryController extends Controller
         $this->authorize('access-admin-panel');
 
         $data = $this->validateEntry($request, $topic);
-        $categoryIds = Arr::pull($data, 'category_ids', []);
         $tagIds = Arr::pull($data, 'tag_ids', []);
 
         $data['slug'] = $this->normalizeSlug($data['slug'] ?? $data['title']);
@@ -59,7 +56,6 @@ class AdminArchiveEntryController extends Controller
         $data['published_at'] = ($data['is_published'] ?? false) ? now() : null;
 
         $entry = ArchiveEntry::create($data);
-        $entry->categories()->sync($categoryIds);
         $entry->tags()->sync($tagIds);
 
         $this->logArchiveAction($request, 'archive.entry.created', [
@@ -70,7 +66,6 @@ class AdminArchiveEntryController extends Controller
             'slug' => $entry->slug,
             'minimum_rank_level' => $entry->minimum_rank_level,
             'is_published' => $entry->is_published,
-            'category_ids' => array_values($categoryIds),
             'tag_ids' => array_values($tagIds),
         ]);
 
@@ -84,7 +79,7 @@ class AdminArchiveEntryController extends Controller
         $this->authorize('access-admin-panel');
         $this->assertEntryBelongsToTopic($topic, $entry);
 
-        $entry->loadMissing(['categories:id', 'tags:id']);
+        $entry->loadMissing(['tags:id']);
 
         $before = $entry->only([
             'title',
@@ -97,11 +92,9 @@ class AdminArchiveEntryController extends Controller
             'is_published',
             'published_at',
         ]);
-        $beforeCategoryIds = $entry->categories->pluck('id')->values()->all();
         $beforeTagIds = $entry->tags->pluck('id')->values()->all();
 
         $data = $this->validateEntry($request, $topic, $entry);
-        $categoryIds = Arr::pull($data, 'category_ids', []);
         $tagIds = Arr::pull($data, 'tag_ids', []);
 
         $data['slug'] = $this->normalizeSlug($data['slug'] ?? $data['title']);
@@ -116,7 +109,6 @@ class AdminArchiveEntryController extends Controller
         }
 
         $entry->update($data);
-        $entry->categories()->sync($categoryIds);
         $entry->tags()->sync($tagIds);
 
         $this->logArchiveAction($request, 'archive.entry.updated', [
@@ -127,11 +119,9 @@ class AdminArchiveEntryController extends Controller
             'slug' => $entry->slug,
             'changed_fields' => array_keys($entry->getChanges()),
             'before' => array_merge($before, [
-                'category_ids' => $beforeCategoryIds,
                 'tag_ids' => $beforeTagIds,
             ]),
             'after' => array_merge($entry->only(array_keys($before)), [
-                'category_ids' => array_values($categoryIds),
                 'tag_ids' => array_values($tagIds),
             ]),
         ]);
@@ -146,7 +136,7 @@ class AdminArchiveEntryController extends Controller
         $this->authorize('access-admin-panel');
         $this->assertEntryBelongsToTopic($topic, $entry);
 
-        $entry->loadMissing(['categories:id', 'tags:id']);
+        $entry->loadMissing(['tags:id']);
 
         $snapshot = [
             'topic_id' => $topic->id,
@@ -156,7 +146,6 @@ class AdminArchiveEntryController extends Controller
             'slug' => $entry->slug,
             'minimum_rank_level' => $entry->minimum_rank_level,
             'is_published' => $entry->is_published,
-            'category_ids' => $entry->categories->pluck('id')->values()->all(),
             'tag_ids' => $entry->tags->pluck('id')->values()->all(),
         ];
 
@@ -187,8 +176,6 @@ class AdminArchiveEntryController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'minimum_rank_level' => ['nullable', 'integer', 'min:1', 'max:6'],
             'is_published' => ['boolean'],
-            'category_ids' => ['array'],
-            'category_ids.*' => ['integer', 'exists:archive_categories,id'],
             'tag_ids' => ['array'],
             'tag_ids.*' => ['integer', 'exists:archive_tags,id'],
         ]);
@@ -206,12 +193,14 @@ class AdminArchiveEntryController extends Controller
 
     protected function presentTopic(ArchiveTopic $topic, ?int $previewRankLevel = null): array
     {
+        $topic->loadMissing('category:id,name,slug');
+
         return [
             'id' => $topic->id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'description' => $topic->description,
-            'category_label' => $topic->category_label,
+            'category_label' => $topic->category?->name ?? $topic->category_label,
             'minimum_rank_level' => $topic->minimum_rank_level,
             'minimum_rank_label' => $topic->minimumRankLabel(),
             'is_published' => $topic->is_published,
@@ -237,13 +226,7 @@ class AdminArchiveEntryController extends Controller
             'published_label' => $entry->published_at?->format('M j, Y'),
             'updated_label' => $entry->updated_at?->format('M j, Y'),
             'preview_visible' => $this->entryVisibleAtRank($entry, $topic, $previewRankLevel),
-            'category_ids' => $entry->categories->pluck('id')->values(),
             'tag_ids' => $entry->tags->pluck('id')->values(),
-            'categories' => $entry->categories->map(fn (ArchiveCategory $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-            ])->values(),
             'tags' => $entry->tags->map(fn (ArchiveTag $tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,
@@ -313,21 +296,6 @@ class AdminArchiveEntryController extends Controller
             'user_agent' => $request->userAgent(),
             'meta' => $meta,
         ]);
-    }
-
-    protected function categoryOptions(): array
-    {
-        return ArchiveCategory::query()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug'])
-            ->map(fn (ArchiveCategory $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-            ])
-            ->values()
-            ->all();
     }
 
     protected function tagOptions(): array

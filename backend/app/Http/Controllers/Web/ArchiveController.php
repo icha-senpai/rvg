@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
 use App\Models\ArchiveTag;
 use App\Models\ArchiveTopic;
@@ -23,6 +22,7 @@ class ArchiveController extends Controller
         $topicsQuery = ArchiveTopic::query()
             ->published()
             ->visibleTo($user)
+            ->with('category:id,name,slug')
             ->withCount([
                 'entries as visible_entries_count' => function (Builder $query) use ($user) {
                     $query->published()->visibleTo($user);
@@ -32,7 +32,15 @@ class ArchiveController extends Controller
             ->orderBy('title');
 
         if ($search !== '') {
-            $this->applyCaseInsensitiveSearch($topicsQuery, ['title', 'description', 'category_label'], $search);
+            $needle = '%' . $this->escapeLike(mb_strtolower($search)) . '%';
+
+            $topicsQuery->where(function (Builder $nested) use ($needle) {
+                $this->applyCaseInsensitiveSearchConditions($nested, ['title', 'description', 'category_label'], $needle);
+
+                $nested->orWhereHas('category', function (Builder $categoryQuery) use ($needle) {
+                    $this->applyCaseInsensitiveSearchConditions($categoryQuery, ['name', 'slug', 'description'], $needle);
+                });
+            });
         }
 
         $topics = $topicsQuery->get()->map(fn (ArchiveTopic $topic) => $this->presentTopicCard($topic));
@@ -48,7 +56,6 @@ class ArchiveController extends Controller
                 })
                 ->with([
                     'topic:id,title,slug,minimum_rank_level',
-                    'categories:id,name,slug',
                     'tags:id,name,slug',
                 ]);
 
@@ -79,7 +86,6 @@ class ArchiveController extends Controller
 
         $search = trim((string) $request->query('search', ''));
         $sort = $this->normalizeSort((string) $request->query('sort', 'default'), ['default', 'title', 'recent', 'oldest'], 'default');
-        $category = trim((string) $request->query('category', ''));
         $tag = trim((string) $request->query('tag', ''));
 
         $entriesQuery = $topic->entries()
@@ -87,18 +93,11 @@ class ArchiveController extends Controller
             ->visibleTo($user)
             ->with([
                 'topic:id,title,slug,minimum_rank_level',
-                'categories:id,name,slug',
                 'tags:id,name,slug',
             ]);
 
         if ($search !== '') {
             $this->applyEntrySearch($entriesQuery, $search);
-        }
-
-        if ($category !== '') {
-            $entriesQuery->whereHas('categories', function (Builder $query) use ($category) {
-                $query->where('slug', $category);
-            });
         }
 
         if ($tag !== '') {
@@ -112,12 +111,10 @@ class ArchiveController extends Controller
         return Inertia::render('Archive/Topic', [
             'topic' => $this->presentTopic($topic),
             'entries' => $entriesQuery->get()->map(fn (ArchiveEntry $entry) => $this->presentEntryCard($entry)),
-            'categoryOptions' => $this->topicCategoryOptions($topic, $user),
             'tagOptions' => $this->topicTagOptions($topic, $user),
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
-                'category' => $category,
                 'tag' => $tag,
             ],
         ]);
@@ -133,7 +130,6 @@ class ArchiveController extends Controller
 
         $entry->loadMissing([
             'topic:id,title,slug,minimum_rank_level',
-            'categories:id,name,slug',
             'tags:id,name,slug',
         ]);
 
@@ -144,7 +140,6 @@ class ArchiveController extends Controller
             ->whereKeyNot($entry->id)
             ->with([
                 'topic:id,title,slug,minimum_rank_level',
-                'categories:id,name,slug',
                 'tags:id,name,slug',
             ])
             ->orderBy('sort_order')
@@ -167,7 +162,7 @@ class ArchiveController extends Controller
         $query->where(function (Builder $nested) use ($needle) {
             $this->applyCaseInsensitiveSearchConditions($nested, ['title', 'excerpt', 'body'], $needle);
 
-            $nested->orWhereHas('categories', function (Builder $categoryQuery) use ($needle) {
+            $nested->orWhereHas('topic.category', function (Builder $categoryQuery) use ($needle) {
                 $this->applyCaseInsensitiveSearchConditions($categoryQuery, ['name', 'slug', 'description'], $needle);
             });
 
@@ -216,31 +211,6 @@ class ArchiveController extends Controller
     protected function normalizeSort(string $sort, array $allowed, string $default): string
     {
         return in_array($sort, $allowed, true) ? $sort : $default;
-    }
-
-    protected function topicCategoryOptions(ArchiveTopic $topic, $user): array
-    {
-        return ArchiveCategory::query()
-            ->whereHas('entries', function (Builder $query) use ($topic, $user) {
-                $query->where('archive_topic_id', $topic->id)
-                    ->published()
-                    ->visibleTo($user);
-            })
-            ->withCount(['entries' => function (Builder $query) use ($topic, $user) {
-                $query->where('archive_topic_id', $topic->id)
-                    ->published()
-                    ->visibleTo($user);
-            }])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (ArchiveCategory $category) => [
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'entries_count' => (int) ($category->entries_count ?? 0),
-            ])
-            ->values()
-            ->all();
     }
 
     protected function topicTagOptions(ArchiveTopic $topic, $user): array
@@ -311,12 +281,14 @@ class ArchiveController extends Controller
 
     protected function presentTopicCard(ArchiveTopic $topic): array
     {
+        $topic->loadMissing('category:id,name,slug');
+
         return [
             'id' => $topic->id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'description' => $topic->description,
-            'category_label' => $topic->category_label,
+            'category_label' => $topic->category?->name ?? $topic->category_label,
             'card_image_path' => $topic->card_image_path,
             'banner_image_path' => $topic->banner_image_path,
             'minimum_rank_level' => $topic->minimum_rank_level,
@@ -340,7 +312,6 @@ class ArchiveController extends Controller
     {
         $entry->loadMissing([
             'topic:id,title,slug,minimum_rank_level',
-            'categories:id,name,slug',
             'tags:id,name,slug',
         ]);
 
@@ -356,11 +327,6 @@ class ArchiveController extends Controller
             'updated_at' => $entry->updated_at?->toISOString(),
             'published_label' => $entry->published_at?->format('M j, Y'),
             'updated_label' => $entry->updated_at?->format('M j, Y'),
-            'categories' => $entry->categories->map(fn (ArchiveCategory $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-            ])->values(),
             'tags' => $entry->tags->map(fn (ArchiveTag $tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ArchiveCategory;
 use App\Models\ArchiveTopic;
 use App\Models\AuthAuditLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -24,6 +25,7 @@ class AdminArchiveController extends Controller
         $previewRankLevel = $this->previewRankLevel($request);
 
         $topics = ArchiveTopic::query()
+            ->with('category:id,name,slug')
             ->withCount('entries')
             ->orderBy('sort_order')
             ->orderBy('title')
@@ -32,6 +34,7 @@ class AdminArchiveController extends Controller
 
         return Inertia::render('Admin/ArchiveIndex', [
             'topics' => $topics,
+            'categoryOptions' => $this->categoryOptions(),
             'rankOptions' => $this->rankOptions(),
             'previewRankLevel' => $previewRankLevel,
         ]);
@@ -42,7 +45,9 @@ class AdminArchiveController extends Controller
         $this->authorize('access-admin-panel');
 
         $data = $this->validateTopic($request);
+        $category = ArchiveCategory::query()->findOrFail($data['archive_category_id']);
         $data['slug'] = $this->normalizeSlug($data['slug'] ?? $data['title']);
+        $data['category_label'] = $category->name;
         $data['created_by'] = $request->user()?->id;
         $data['updated_by'] = $request->user()?->id;
         $data['published_at'] = ($data['is_published'] ?? false) ? now() : null;
@@ -67,6 +72,7 @@ class AdminArchiveController extends Controller
         $this->authorize('access-admin-panel');
 
         $before = $topic->only([
+            'archive_category_id',
             'title',
             'slug',
             'description',
@@ -80,7 +86,9 @@ class AdminArchiveController extends Controller
         ]);
 
         $data = $this->validateTopic($request, $topic);
+        $category = ArchiveCategory::query()->findOrFail($data['archive_category_id']);
         $data['slug'] = $this->normalizeSlug($data['slug'] ?? $data['title']);
+        $data['category_label'] = $category->name;
         $data['updated_by'] = $request->user()?->id;
 
         if (($data['is_published'] ?? false) && ! $topic->published_at) {
@@ -135,6 +143,7 @@ class AdminArchiveController extends Controller
     protected function validateTopic(Request $request, ?ArchiveTopic $topic = null): array
     {
         return $request->validate([
+            'archive_category_id' => ['required', 'integer', 'exists:archive_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
                 'nullable',
@@ -143,7 +152,6 @@ class AdminArchiveController extends Controller
                 Rule::unique('archive_topics', 'slug')->ignore($topic?->id),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
-            'category_label' => ['nullable', 'string', 'max:100'],
             'card_image_path' => ['nullable', 'string', 'max:2048'],
             'banner_image_path' => ['nullable', 'string', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
@@ -159,12 +167,15 @@ class AdminArchiveController extends Controller
 
     protected function presentTopic(ArchiveTopic $topic, ?int $previewRankLevel = null): array
     {
+        $topic->loadMissing('category:id,name,slug');
+
         return [
             'id' => $topic->id,
+            'archive_category_id' => $topic->archive_category_id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'description' => $topic->description,
-            'category_label' => $topic->category_label,
+            'category_label' => $topic->category?->name ?? $topic->category_label,
             'card_image_path' => $topic->card_image_path,
             'banner_image_path' => $topic->banner_image_path,
             'sort_order' => $topic->sort_order,
@@ -232,5 +243,19 @@ class AdminArchiveController extends Controller
             ['value' => 5, 'label' => 'Admiral'],
             ['value' => 6, 'label' => 'Grand Admiral'],
         ];
+    }
+
+    protected function categoryOptions(): array
+    {
+        return ArchiveCategory::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (ArchiveCategory $category) => [
+                'value' => $category->id,
+                'label' => $category->name,
+            ])
+            ->values()
+            ->all();
     }
 }

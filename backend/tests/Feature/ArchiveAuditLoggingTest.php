@@ -18,14 +18,18 @@ class ArchiveAuditLoggingTest extends TestCase
     public function test_topic_create_update_and_delete_are_audit_logged(): void
     {
         $admin = $this->adminUser();
+        $category = $this->archiveCategory([
+            'name' => 'Policy',
+            'slug' => 'policy',
+        ]);
 
         $this
             ->actingAs($admin)
             ->post(route('admin.archive.topics.store'), [
+                'archive_category_id' => $category->id,
                 'title' => 'Doctrine',
                 'slug' => 'doctrine',
                 'description' => 'Operational doctrine.',
-                'category_label' => 'Policy',
                 'card_image_path' => null,
                 'banner_image_path' => null,
                 'sort_order' => 0,
@@ -44,10 +48,10 @@ class ArchiveAuditLoggingTest extends TestCase
         $this
             ->actingAs($admin)
             ->put(route('admin.archive.topics.update', $topic), [
+                'archive_category_id' => $category->id,
                 'title' => 'Doctrine Updated',
                 'slug' => 'doctrine-updated',
                 'description' => 'Updated doctrine.',
-                'category_label' => 'Policy',
                 'card_image_path' => null,
                 'banner_image_path' => null,
                 'sort_order' => 1,
@@ -76,12 +80,6 @@ class ArchiveAuditLoggingTest extends TestCase
     {
         $admin = $this->adminUser();
         $topic = $this->archiveTopic();
-        $category = ArchiveCategory::create([
-            'name' => 'Doctrine',
-            'slug' => 'doctrine',
-            'description' => null,
-            'sort_order' => 0,
-        ]);
 
         $this
             ->actingAs($admin)
@@ -94,7 +92,6 @@ class ArchiveAuditLoggingTest extends TestCase
                 'sort_order' => 0,
                 'minimum_rank_level' => 1,
                 'is_published' => true,
-                'category_ids' => [$category->id],
                 'tag_ids' => [],
             ])
             ->assertRedirect(route('admin.archive.topics.entries.index', $topic));
@@ -117,7 +114,6 @@ class ArchiveAuditLoggingTest extends TestCase
                 'sort_order' => 1,
                 'minimum_rank_level' => 2,
                 'is_published' => true,
-                'category_ids' => [],
                 'tag_ids' => [],
             ])
             ->assertRedirect(route('admin.archive.topics.entries.index', $topic));
@@ -251,6 +247,7 @@ class ArchiveAuditLoggingTest extends TestCase
     private function archiveTopic(array $attributes = []): ArchiveTopic
     {
         return ArchiveTopic::create(array_merge([
+            'archive_category_id' => $this->archiveCategory()->id,
             'title' => 'Archive Topic',
             'slug' => 'archive-topic',
             'description' => 'Test archive topic.',
@@ -262,5 +259,20 @@ class ArchiveAuditLoggingTest extends TestCase
             'is_published' => true,
             'published_at' => now()->subMinute(),
         ], $attributes));
+    }
+
+    private function archiveCategory(array $attributes = []): ArchiveCategory
+    {
+        $payload = array_merge([
+            'name' => 'Test',
+            'slug' => 'test',
+            'description' => null,
+            'sort_order' => 0,
+        ], $attributes);
+
+        return ArchiveCategory::query()->updateOrCreate(
+            ['slug' => $payload['slug']],
+            $payload,
+        );
     }
 }

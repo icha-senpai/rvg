@@ -57,10 +57,7 @@ const props = defineProps({
             <span v-if="entry.updated_label" class="rounded-full border border-white/10 bg-black/10 px-3 py-1">Updated {{ entry.updated_label }}</span>
           </div>
 
-          <div v-if="entry.categories?.length || entry.tags?.length" class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-            <span v-for="category in entry.categories" :key="`entry-category-${category.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-[color:var(--horizon-sunset-blue)]">
-              {{ category.name }}
-            </span>
+          <div v-if="entry.tags?.length" class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             <span v-for="tag in entry.tags" :key="`entry-tag-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-[color:var(--horizon-sunset-magenta)]">
               #{{ tag.name }}
             </span>

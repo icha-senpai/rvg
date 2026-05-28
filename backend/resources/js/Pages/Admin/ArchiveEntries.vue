@@ -15,7 +15,6 @@ import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 const props = defineProps({
   topic: { type: Object, required: true },
   entries: { type: Array, default: () => [] },
-  categoryOptions: { type: Array, default: () => [] },
   tagOptions: { type: Array, default: () => [] },
   rankOptions: { type: Array, default: () => [] },
   previewRankLevel: { type: [Number, null], default: null },
@@ -35,17 +34,14 @@ const blankEntry = {
   banner_image_path: '',
   sort_order: 0,
   minimum_rank_level: null,
-  category_ids: [],
   tag_ids: [],
   is_published: true,
 }
 
-const entryForm = useForm({ ...blankEntry, category_ids: [], tag_ids: [] })
+const entryForm = useForm({ ...blankEntry, tag_ids: [] })
 
 const sortedEntries = computed(() => props.entries ?? [])
-const hasCategories = computed(() => (props.categoryOptions ?? []).length > 0)
 const hasTags = computed(() => (props.tagOptions ?? []).length > 0)
-const categorySelectOptions = computed(() => (props.categoryOptions ?? []).map(category => ({ value: category.id, label: category.name })))
 const tagSelectOptions = computed(() => (props.tagOptions ?? []).map(tag => ({ value: tag.id, label: tag.name })))
 const previewOptions = computed(() => (props.rankOptions ?? []).map(option => ({ ...option, label: option.value === null ? 'All verified members' : option.label })))
 const previewLabel = computed(() => previewOptions.value.find(option => option.value === previewRank.value)?.label ?? 'All verified members')
@@ -78,7 +74,6 @@ function hydrateEntryForm(entry = null) {
   entryForm.banner_image_path = source.banner_image_path ?? ''
   entryForm.sort_order = source.sort_order ?? 0
   entryForm.minimum_rank_level = source.minimum_rank_level ?? null
-  entryForm.category_ids = [...(source.category_ids ?? [])]
   entryForm.tag_ids = [...(source.tag_ids ?? [])]
   entryForm.is_published = Boolean(source.is_published ?? true)
   entryForm.clearErrors()
@@ -148,6 +143,7 @@ function confirmDeleteEntry({ close }) {
               Manage the visible documents inside this archive topic. Draft and rank-gated entries stay hidden from members until published and permitted.
             </p>
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
+              <span class="rounded-full border border-white/10 px-3 py-1">{{ topic.category_label || 'Archive' }}</span>
               <span class="rounded-full border border-white/10 px-3 py-1">{{ topic.minimum_rank_label }}</span>
               <span class="rounded-full border border-white/10 px-3 py-1">{{ topic.is_published ? 'Topic published' : 'Topic draft' }}</span>
               <span class="rounded-full border px-3 py-1" :class="topic.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
@@ -205,8 +201,7 @@ function confirmDeleteEntry({ close }) {
                 <h2 class="mt-3 text-2xl font-black text-horizon-white">{{ entry.title }}</h2>
                 <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
 
-                <div v-if="entry.categories?.length || entry.tags?.length" class="mt-3 flex flex-wrap gap-2">
-                  <span v-for="category in entry.categories" :key="`category-${category.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.name }}</span>
+                <div v-if="entry.tags?.length" class="mt-3 flex flex-wrap gap-2">
                   <span v-for="tag in entry.tags" :key="`tag-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
                 </div>
 
@@ -261,11 +256,6 @@ function confirmDeleteEntry({ close }) {
           <ArchiveMediaPicker v-model="entryForm.banner_image_path" label="Entry Banner Image" />
 
           <div class="grid gap-4 md:grid-cols-2">
-            <div v-if="hasCategories">
-              <HorizonSelect v-model="entryForm.category_ids" label="Categories" multiple :options="categorySelectOptions" />
-              <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>
-            </div>
-
             <div v-if="hasTags">
               <HorizonSelect v-model="entryForm.tag_ids" label="Tags" multiple :options="tagSelectOptions" />
               <p class="mt-1 text-xs text-text-muted">Click items to toggle them on or off.</p>

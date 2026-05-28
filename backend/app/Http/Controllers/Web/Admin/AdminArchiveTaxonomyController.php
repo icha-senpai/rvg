@@ -24,7 +24,7 @@ class AdminArchiveTaxonomyController extends Controller
 
         return Inertia::render('Admin/ArchiveTaxonomy', [
             'categories' => ArchiveCategory::query()
-                ->withCount('entries')
+                ->withCount('topics')
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get()
@@ -87,7 +87,7 @@ class AdminArchiveTaxonomyController extends Controller
     {
         $this->authorize('access-admin-panel');
 
-        $category->loadCount('entries');
+        $category->loadCount('topics');
 
         $snapshot = [
             'category_id' => $category->id,
@@ -95,7 +95,7 @@ class AdminArchiveTaxonomyController extends Controller
             'slug' => $category->slug,
             'description' => $category->description,
             'sort_order' => $category->sort_order,
-            'entries_count' => (int) ($category->entries_count ?? 0),
+            'topics_count' => (int) ($category->topics_count ?? 0),
         ];
 
         $category->delete();
@@ -215,7 +215,7 @@ class AdminArchiveTaxonomyController extends Controller
             'slug' => $category->slug,
             'description' => $category->description,
             'sort_order' => $category->sort_order,
-            'entries_count' => (int) ($category->entries_count ?? 0),
+            'topics_count' => (int) ($category->topics_count ?? 0),
         ];
     }
 

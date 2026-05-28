@@ -11,12 +11,36 @@ const props = defineProps({
 
 const topics = computed(() => props.navigation?.topics ?? [])
 
+const categoryGroups = computed(() => {
+  const groups = new Map()
+
+  for (const topic of topics.value) {
+    const label = topic.category_label || 'Archive'
+
+    if (!groups.has(label)) {
+      groups.set(label, {
+        key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        label,
+        topics: [],
+      })
+    }
+
+    groups.get(label).topics.push(topic)
+  }
+
+  return Array.from(groups.values())
+})
+
 function topicIsActive(topic) {
   return topic.slug === props.activeTopicSlug
 }
 
 function entryIsActive(entry) {
   return entry.slug === props.activeEntrySlug
+}
+
+function topicIsOpen(topic) {
+  return topicIsActive(topic) || (topic.entries ?? []).some(entry => entryIsActive(entry))
 }
 </script>
 
@@ -32,16 +56,25 @@ function entryIsActive(entry) {
           Archive Landing
         </Link>
 
-        <div v-for="topic in topics" :key="`mobile-topic-${topic.id}`" class="rounded-2xl border border-white/10 bg-black/10 p-3">
-          <Link :href="topic.href" class="flex items-start justify-between gap-3 rounded-xl px-2 py-2 text-sm font-black" :class="topicIsActive(topic) ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-secondary hover:text-horizon-white'">
-            <span>{{ topic.title }}</span>
-            <span class="shrink-0 text-xs font-semibold text-text-muted">{{ topic.visible_entries_count }}</span>
-          </Link>
+        <div v-for="category in categoryGroups" :key="`mobile-category-${category.key}`" class="rounded-2xl border border-white/10 bg-black/10 p-3">
+          <div class="flex items-center justify-between gap-3 px-2">
+            <div class="text-xs font-black uppercase tracking-[0.18em] text-text-muted">{{ category.label }}</div>
+            <span class="shrink-0 text-[10px] font-semibold text-text-muted">{{ category.topics.length }} topics</span>
+          </div>
 
-          <div v-if="topicIsActive(topic) && topic.entries?.length" class="mt-2 space-y-1 border-t border-white/10 pt-2">
-            <Link v-for="entry in topic.entries" :key="`mobile-entry-${entry.id}`" :href="entry.href" class="block rounded-lg px-3 py-2 text-xs font-semibold" :class="entryIsActive(entry) ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'">
-              {{ entry.title }}
-            </Link>
+          <div class="mt-2 space-y-2">
+            <div v-for="topic in category.topics" :key="`mobile-topic-${topic.id}`" class="rounded-xl border border-white/10 bg-white/[0.02] p-2">
+              <Link :href="topic.href" class="flex items-start justify-between gap-3 rounded-lg px-2 py-2 text-sm font-black" :class="topicIsOpen(topic) ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-secondary hover:text-horizon-white'">
+                <span>{{ topic.title }}</span>
+                <span class="shrink-0 text-xs font-semibold text-text-muted">{{ topic.visible_entries_count }}</span>
+              </Link>
+
+              <div v-if="topicIsOpen(topic) && topic.entries?.length" class="mt-2 space-y-1 border-t border-white/10 pt-2">
+                <Link v-for="entry in topic.entries" :key="`mobile-entry-${entry.id}`" :href="entry.href" class="block rounded-lg px-3 py-2 text-xs font-semibold" :class="entryIsActive(entry) ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'">
+                  {{ entry.title }}
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -58,26 +91,29 @@ function entryIsActive(entry) {
           </Link>
 
           <div class="mt-4 max-h-[calc(100vh-12rem)] space-y-3 overflow-y-auto pr-1">
-            <div v-for="topic in topics" :key="`desktop-topic-${topic.id}`" class="rounded-2xl border border-white/10 bg-black/10 p-3">
-              <Link :href="topic.href" class="flex items-start justify-between gap-3 rounded-xl px-2 py-2 text-sm font-black" :class="topicIsActive(topic) ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-secondary hover:text-horizon-white'">
-                <span>{{ topic.title }}</span>
-                <span class="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem] font-semibold text-text-muted">{{ topic.visible_entries_count }}</span>
-              </Link>
-
-              <div v-if="topic.categories?.length" class="mt-2 flex flex-wrap gap-1.5 px-2">
-                <span v-for="category in topic.categories" :key="`desktop-category-${topic.id}-${category.slug}`" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] px-2 py-0.5 text-[0.65rem] font-semibold text-[color:var(--horizon-sunset-blue)]">
-                  {{ category.name }}
-                </span>
+            <div v-for="category in categoryGroups" :key="`desktop-category-${category.key}`" class="rounded-2xl border border-white/10 bg-black/10 p-3">
+              <div class="flex items-center justify-between gap-3 px-2">
+                <div class="text-xs font-black uppercase tracking-[0.18em] text-text-muted">{{ category.label }}</div>
+                <span class="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem] font-semibold text-text-muted">{{ category.topics.length }} topics</span>
               </div>
 
-              <div v-if="topicIsActive(topic) && topic.entries?.length" class="mt-3 space-y-1 border-t border-white/10 pt-3">
-                <Link v-for="entry in topic.entries" :key="`desktop-entry-${entry.id}`" :href="entry.href" class="block rounded-lg px-3 py-2 text-xs font-semibold leading-5" :class="entryIsActive(entry) ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'">
-                  {{ entry.title }}
-                </Link>
+              <div class="mt-3 space-y-2">
+                <div v-for="topic in category.topics" :key="`desktop-topic-${topic.id}`" class="rounded-xl border border-white/10 bg-white/[0.02] p-2">
+                  <Link :href="topic.href" class="flex items-start justify-between gap-3 rounded-lg px-2 py-2 text-sm font-black" :class="topicIsOpen(topic) ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-secondary hover:text-horizon-white'">
+                    <span>{{ topic.title }}</span>
+                    <span class="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem] font-semibold text-text-muted">{{ topic.visible_entries_count }}</span>
+                  </Link>
+
+                  <div v-if="topicIsOpen(topic) && topic.entries?.length" class="mt-2 space-y-1 border-t border-white/10 pt-2">
+                    <Link v-for="entry in topic.entries" :key="`desktop-entry-${entry.id}`" :href="entry.href" class="block rounded-lg px-3 py-2 text-xs font-semibold leading-5" :class="entryIsActive(entry) ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'">
+                      {{ entry.title }}
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div v-if="!topics.length" class="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-text-secondary">
+            <div v-if="!categoryGroups.length" class="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-text-secondary">
               No Archive areas are visible to your rank.
             </div>
           </div>

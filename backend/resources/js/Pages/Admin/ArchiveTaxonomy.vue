@@ -161,7 +161,7 @@ function confirmDeleteTag({ close }) {
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Taxonomy</div>
             <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">Categories & Tags</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-              Manage the labels that organize Archive entries. Categories are broader buckets. Tags are smaller searchable signals attached to individual entries.
+              Manage the taxonomy that shapes the Archive hierarchy. Categories are the top-level buckets that hold topics. Tags remain smaller searchable signals attached to individual entries.
             </p>
           </div>
 
@@ -190,7 +190,7 @@ function confirmDeleteTag({ close }) {
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.entries_count }} entries</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.topics_count }} topics</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ category.sort_order }}</span>
                 </div>
 
@@ -249,7 +249,7 @@ function confirmDeleteTag({ close }) {
         <template #header>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category Editor</div>
           <h2 class="mt-1 text-2xl font-black text-horizon-white">{{ categoryDrawerTitle }}</h2>
-          <p class="mt-1 text-sm text-text-secondary">Categories are broad buckets that help entries group into readable sections.</p>
+          <p class="mt-1 text-sm text-text-secondary">Categories are the top-level Archive buckets that topics live inside.</p>
         </template>
 
         <form id="archive-category-form" class="space-y-5" @submit.prevent="submitCategory">
@@ -319,7 +319,7 @@ function confirmDeleteTag({ close }) {
         cancel-label="Cancel"
         variant="danger"
         :close-on-confirm="false"
-        :message="`Delete archive category '${categoryPendingDelete?.name ?? ''}'? Entries will keep their content but lose this category label.`"
+        :message="`Delete archive category '${categoryPendingDelete?.name ?? ''}'? Topics will keep their content but lose this parent bucket.`"
         @confirm="confirmDeleteCategory"
       />
 
