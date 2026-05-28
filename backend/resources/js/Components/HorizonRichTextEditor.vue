@@ -237,15 +237,34 @@ const fontSizeOptions = [
 const textColorOptions = [
   { value: '', label: 'Color: Default' },
   { value: 'hz-rte-color-white', label: 'White' },
+  { value: 'hz-rte-color-white-soft', label: 'White Soft' },
+  { value: 'hz-rte-color-muted-light', label: 'Muted Light' },
   { value: 'hz-rte-color-muted', label: 'Muted' },
+  { value: 'hz-rte-color-muted-dark', label: 'Muted Dark' },
+  { value: 'hz-rte-color-blue-light', label: 'Blue Light' },
   { value: 'hz-rte-color-blue', label: 'Blue' },
+  { value: 'hz-rte-color-blue-dark', label: 'Blue Dark' },
+  { value: 'hz-rte-color-cyan-light', label: 'Cyan Light' },
   { value: 'hz-rte-color-cyan', label: 'Cyan' },
+  { value: 'hz-rte-color-cyan-dark', label: 'Cyan Dark' },
+  { value: 'hz-rte-color-magenta-light', label: 'Magenta Light' },
   { value: 'hz-rte-color-magenta', label: 'Magenta' },
+  { value: 'hz-rte-color-magenta-dark', label: 'Magenta Dark' },
+  { value: 'hz-rte-color-pink-light', label: 'Pink Light' },
   { value: 'hz-rte-color-pink', label: 'Pink' },
+  { value: 'hz-rte-color-pink-dark', label: 'Pink Dark' },
+  { value: 'hz-rte-color-orange-light', label: 'Orange Light' },
   { value: 'hz-rte-color-orange', label: 'Orange' },
+  { value: 'hz-rte-color-orange-dark', label: 'Orange Dark' },
+  { value: 'hz-rte-color-green-light', label: 'Green Light' },
   { value: 'hz-rte-color-green', label: 'Green' },
+  { value: 'hz-rte-color-green-dark', label: 'Green Dark' },
+  { value: 'hz-rte-color-red-light', label: 'Red Light' },
   { value: 'hz-rte-color-red', label: 'Red' },
+  { value: 'hz-rte-color-red-dark', label: 'Red Dark' },
+  { value: 'hz-rte-color-yellow-light', label: 'Yellow Light' },
   { value: 'hz-rte-color-yellow', label: 'Yellow' },
+  { value: 'hz-rte-color-yellow-dark', label: 'Yellow Dark' },
 ]
 
 const currentFontFamilyPreview = computed(() => {
@@ -334,6 +353,8 @@ const editor = new Editor({
     bumpToolbar()
   },
 })
+
+isEditorEmpty.value = editor.isEmpty
 
 const minHeightPx = computed(() => Math.max(120, props.rows * 22 + 20))
 const showPlaceholder = computed(() => Boolean(props.placeholder) && !props.disabled && !isFocused.value && isEditorEmpty.value)
@@ -538,7 +559,7 @@ onBeforeUnmount(() => editor?.destroy())
         <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
       </select>
 
-      <select class="hz-input" style="max-width: 145px; padding: 0.3rem 0.55rem;" title="Text color" :disabled="disabled" :value="currentTextColor" @mousedown.stop @change="applyTextColor($event.target.value)">
+      <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" title="Text color" :disabled="disabled" :value="currentTextColor" @mousedown.stop @change="applyTextColor($event.target.value)">
         <option v-for="opt in textColorOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
       </select>
 

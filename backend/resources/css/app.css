@@ -365,15 +365,34 @@
 .hz-rte-content .hz-rte-font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
 .hz-rte-content .hz-rte-color-white { color: var(--color-horizon-white); }
+.hz-rte-content .hz-rte-color-white-soft { color: color-mix(in srgb, var(--color-horizon-white) 82%, var(--horizon-text-secondary)); }
+.hz-rte-content .hz-rte-color-muted-light { color: color-mix(in srgb, var(--color-text-muted) 45%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-muted { color: var(--color-text-muted); }
+.hz-rte-content .hz-rte-color-muted-dark { color: color-mix(in srgb, var(--color-text-muted) 70%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-blue-light { color: color-mix(in srgb, var(--horizon-sunset-blue) 58%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-blue { color: var(--horizon-sunset-blue); }
+.hz-rte-content .hz-rte-color-blue-dark { color: color-mix(in srgb, var(--horizon-sunset-blue) 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-cyan-light { color: color-mix(in srgb, #38bdf8 62%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-cyan { color: #38bdf8; }
+.hz-rte-content .hz-rte-color-cyan-dark { color: color-mix(in srgb, #38bdf8 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-magenta-light { color: color-mix(in srgb, var(--horizon-sunset-magenta) 60%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-magenta { color: var(--horizon-sunset-magenta); }
+.hz-rte-content .hz-rte-color-magenta-dark { color: color-mix(in srgb, var(--horizon-sunset-magenta) 70%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-pink-light { color: color-mix(in srgb, var(--horizon-sunset-pink) 60%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-pink { color: var(--horizon-sunset-pink); }
+.hz-rte-content .hz-rte-color-pink-dark { color: color-mix(in srgb, var(--horizon-sunset-pink) 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-orange-light { color: color-mix(in srgb, var(--horizon-sunset-orange) 62%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-orange { color: var(--horizon-sunset-orange); }
+.hz-rte-content .hz-rte-color-orange-dark { color: color-mix(in srgb, var(--horizon-sunset-orange) 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-green-light { color: color-mix(in srgb, #22c55e 62%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-green { color: #22c55e; }
+.hz-rte-content .hz-rte-color-green-dark { color: color-mix(in srgb, #22c55e 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-red-light { color: color-mix(in srgb, #ef4444 60%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-red { color: #ef4444; }
+.hz-rte-content .hz-rte-color-red-dark { color: color-mix(in srgb, #ef4444 72%, var(--horizon-void-900)); }
+.hz-rte-content .hz-rte-color-yellow-light { color: color-mix(in srgb, #eab308 68%, var(--color-horizon-white)); }
 .hz-rte-content .hz-rte-color-yellow { color: #eab308; }
+.hz-rte-content .hz-rte-color-yellow-dark { color: color-mix(in srgb, #eab308 76%, var(--horizon-void-900)); }
 
 @media (max-width: 640px) {
   .hz-rte-content img.hz-rich-image-left,
