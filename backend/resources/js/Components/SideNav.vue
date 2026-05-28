@@ -330,44 +330,18 @@ function itemHasOpenChildren(item) {
   return Boolean(item.isActive && item.children?.length)
 }
 
-function groupToggleClass(group) {
-  if (groupIsActive(group)) {
-    return 'border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.055] text-horizon-white'
-  }
-
-  return 'border-white/[0.05] bg-white/[0.025] text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/25 hover:bg-white/[0.045] hover:text-horizon-white'
+function groupLabelClass(group) {
+  return groupIsActive(group)
+    ? 'text-horizon-white'
+    : 'text-text-muted hover:text-text-secondary'
 }
 
-function iconToneClass(item, active = false) {
-  const tone = item?.tone ?? 'blue'
-
-  if (active) {
-    switch (tone) {
-      case 'magenta':
-        return 'border-[color:var(--horizon-sunset-magenta)]/45 bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white shadow-[0_0_18px_rgba(192,38,211,0.18)]'
-      case 'indigo':
-        return 'border-[color:var(--horizon-sunset-indigo)]/45 bg-[color:var(--horizon-sunset-indigo)]/15 text-horizon-white shadow-[0_0_18px_rgba(67,56,202,0.18)]'
-      case 'red':
-        return 'border-red-300/35 bg-red-300/10 text-red-100 shadow-[0_0_18px_rgba(248,113,113,0.16)]'
-      case 'cyan':
-      case 'blue':
-      default:
-        return 'border-[color:var(--horizon-sunset-blue)]/45 bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white shadow-[0_0_18px_rgba(30,64,175,0.18)]'
-    }
+function itemRowClass(item) {
+  if (item.isActive) {
+    return 'bg-white/[0.06] text-horizon-white'
   }
 
-  switch (tone) {
-    case 'magenta':
-      return 'border-white/[0.06] bg-white/[0.035] text-text-secondary group-hover:border-[color:var(--horizon-sunset-magenta)]/35 group-hover:bg-[color:var(--horizon-sunset-magenta)]/10 group-hover:text-horizon-white'
-    case 'indigo':
-      return 'border-white/[0.06] bg-white/[0.035] text-text-secondary group-hover:border-[color:var(--horizon-sunset-indigo)]/35 group-hover:bg-[color:var(--horizon-sunset-indigo)]/10 group-hover:text-horizon-white'
-    case 'red':
-      return 'border-white/[0.06] bg-white/[0.035] text-text-secondary group-hover:border-red-300/35 group-hover:bg-red-300/10 group-hover:text-red-100'
-    case 'cyan':
-    case 'blue':
-    default:
-      return 'border-white/[0.06] bg-white/[0.035] text-text-secondary group-hover:border-[color:var(--horizon-sunset-blue)]/35 group-hover:bg-[color:var(--horizon-sunset-blue)]/10 group-hover:text-horizon-white'
-  }
+  return 'text-text-secondary hover:bg-white/[0.035] hover:text-horizon-white'
 }
 
 function activeRailClass(item) {
@@ -375,24 +349,16 @@ function activeRailClass(item) {
 
   switch (tone) {
     case 'magenta':
-      return 'bg-[color:var(--horizon-sunset-magenta)] shadow-[0_0_18px_rgba(192,38,211,0.95)]'
+      return 'bg-[color:var(--horizon-sunset-magenta)]'
     case 'indigo':
-      return 'bg-[color:var(--horizon-sunset-indigo)] shadow-[0_0_18px_rgba(67,56,202,0.95)]'
+      return 'bg-[color:var(--horizon-sunset-indigo)]'
     case 'red':
-      return 'bg-red-300 shadow-[0_0_18px_rgba(248,113,113,0.85)]'
+      return 'bg-red-300'
     case 'cyan':
     case 'blue':
     default:
-      return 'bg-[color:var(--horizon-sunset-blue)] shadow-[0_0_18px_rgba(30,64,175,0.95)]'
+      return 'bg-[color:var(--horizon-sunset-blue)]'
   }
-}
-
-function itemCardClass(item) {
-  if (item.isActive) {
-    return 'border-[color:var(--horizon-sunset-blue)]/40 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_44%),rgba(255,255,255,0.055)] text-horizon-white shadow-[0_0_24px_rgba(30,64,175,0.20)]'
-  }
-
-  return 'border-white/[0.05] bg-white/[0.025] text-text-secondary hover:border-[color:var(--horizon-sunset-blue)]/30 hover:bg-white/[0.055] hover:text-horizon-white'
 }
 
 watch(
@@ -437,7 +403,7 @@ onBeforeUnmount(() => {
   <button
     v-if="user && !mobileOpen"
     type="button"
-    class="fixed left-3 top-3 z-[80] inline-flex items-center gap-2 rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] px-3 py-2 text-horizon-white shadow-[0_0_28px_rgba(30,64,175,0.25)] md:hidden"
+    class="fixed left-3 top-3 z-[80] inline-flex items-center gap-2 rounded-xl bg-[color:var(--horizon-void-700)] px-3 py-2 text-horizon-white shadow-lg md:hidden"
     @click="openMobileNav"
   >
     <span class="text-sm font-black">☰</span>
@@ -451,26 +417,21 @@ onBeforeUnmount(() => {
     style="height: 100vh; height: 100dvh;"
   >
     <div
-      class="absolute inset-0 bg-black/75 backdrop-blur-md"
+      class="absolute inset-0 bg-black/70 backdrop-blur-sm"
       @click="closeMobileNav"
     ></div>
 
-    <aside class="absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] overflow-hidden border-r border-[color:var(--horizon-sunset-indigo)]/35 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_54px_rgba(67,56,202,0.18)] backdrop-blur-xl">
-      <div class="pointer-events-none absolute inset-0 opacity-50">
-        <div class="absolute left-6 top-0 h-px w-44 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-        <div class="absolute bottom-0 right-6 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
-      </div>
-
-      <div class="relative flex h-full min-h-0 flex-col gap-4 p-4">
-        <div class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-[color:var(--horizon-sunset-blue)]/25 bg-black">
+    <aside class="absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] backdrop-blur-xl">
+      <div class="flex h-full min-h-0 flex-col gap-4 p-4">
+        <div class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-white/10 bg-black">
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
-            class="block h-36 w-full scale-220 object-contain -translate-y-1.5"
+            class="block h-32 w-full scale-200 object-contain -translate-y-1"
           />
         </div>
 
-        <div class="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-3 py-3">
+        <div class="flex shrink-0 items-center justify-between gap-3 px-1 py-1">
           <div class="min-w-0">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Navigation
@@ -483,37 +444,30 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="shrink-0 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-sm font-semibold text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white"
+            class="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.04] hover:text-horizon-white"
             @click="closeMobileNav"
           >
             Close
           </button>
         </div>
 
-        <nav class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-1">
+        <nav class="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-1">
           <section
             v-for="group in navGroups"
             :key="group.key"
-            class="space-y-2"
+            class="space-y-1.5"
           >
             <button
               type="button"
-              class="flex w-full items-center justify-between rounded-2xl border px-3 py-2.5 text-left transition"
-              :class="groupToggleClass(group)"
+              class="flex w-full items-center justify-between px-2 py-1 text-left text-[10px] font-black uppercase tracking-[0.24em] transition"
+              :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
-              <span class="min-w-0">
-                <span class="block text-[10px] font-black uppercase tracking-[0.24em]">
-                  {{ group.label }}
-                </span>
-                <span class="mt-0.5 block truncate text-[10px] text-text-muted/80">
-                  {{ group.eyebrow }}
-                </span>
-              </span>
+              <span class="truncate">{{ group.label }}</span>
               <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
             </button>
 
-            <div v-if="groupIsOpen(group)" class="space-y-2">
+            <div v-if="groupIsOpen(group)" class="space-y-1">
               <template
                 v-for="item in group.items"
                 :key="item.key"
@@ -521,50 +475,30 @@ onBeforeUnmount(() => {
                 <Link
                   v-if="!item.href"
                   :href="getItemHref(item)"
-                  class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
-                  :class="itemCardClass(item)"
+                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
+                  :class="itemRowClass(item)"
                   @click="closeMobileNav"
                 >
                   <span
                     v-if="item.isActive"
-                    class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
+                    class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
                     :class="activeRailClass(item)"
                   />
 
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="flex min-w-0 items-center gap-3">
-                      <span
-                        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                        :class="iconToneClass(item, item.isActive)"
-                      >
-                        <span class="text-base leading-none">
-                          {{ item.icon }}
-                        </span>
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
+                    {{ item.icon }}
+                  </span>
 
-                        <span
-                          v-if="item.isActive"
-                          class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
-                        ></span>
-                      </span>
+                  <span class="min-w-0 flex-1 truncate">
+                    {{ item.label }}
+                  </span>
 
-                      <div class="min-w-0">
-                        <div class="truncate">
-                          {{ item.label }}
-                        </div>
-
-                        <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          {{ item.status }}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span
-                      v-if="item.badge"
-                      class="max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
-                    >
-                      {{ item.badge }}
-                    </span>
-                  </div>
+                  <span
+                    v-if="item.badge"
+                    class="max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-text-secondary"
+                  >
+                    {{ item.badge }}
+                  </span>
                 </Link>
 
                 <a
@@ -572,39 +506,23 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative block rounded-2xl border px-3 py-3 text-base font-semibold transition"
-                  :class="itemCardClass(item)"
+                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
                   @click="closeMobileNav"
                 >
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="flex min-w-0 items-center gap-3">
-                      <span
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                        :class="iconToneClass(item, false)"
-                      >
-                        {{ item.icon }}
-                      </span>
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
+                    {{ item.icon }}
+                  </span>
 
-                      <div class="min-w-0">
-                        <div class="truncate">
-                          {{ item.label }}
-                        </div>
+                  <span class="min-w-0 flex-1 truncate">
+                    {{ item.label }}
+                  </span>
 
-                        <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          {{ item.status }}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span class="text-xs text-text-muted">
-                      ↗
-                    </span>
-                  </div>
+                  <span class="text-xs text-text-muted">↗</span>
                 </a>
 
                 <div
                   v-if="itemHasOpenChildren(item)"
-                  class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
+                  class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
                 >
                   <div
                     v-for="child in item.children"
@@ -613,12 +531,12 @@ onBeforeUnmount(() => {
                   >
                     <Link
                       :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
-                      :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                      :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                       @click="closeMobileNav"
                     >
                       <span class="truncate">{{ child.label }}</span>
-                      <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
+                      <span v-if="child.meta" class="shrink-0 text-[10px] text-text-muted">{{ child.meta }}</span>
                     </Link>
 
                     <div
@@ -630,7 +548,7 @@ onBeforeUnmount(() => {
                         :key="entry.key"
                         :href="entry.href"
                         class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                        :class="entry.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                         @click="closeMobileNav"
                       >
                         {{ entry.label }}
@@ -643,7 +561,7 @@ onBeforeUnmount(() => {
           </section>
         </nav>
 
-        <div class="shrink-0 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_42%),rgba(255,255,255,0.035)] px-3 py-3 shadow-[0_0_28px_rgba(30,64,175,0.14)]">
+        <div class="shrink-0 border-t border-white/10 px-1 pt-4">
           <div class="flex items-center gap-3">
             <Link
               :href="profileHref"
@@ -654,19 +572,19 @@ onBeforeUnmount(() => {
                 v-if="user.discord_avatar"
                 :src="user.discord_avatar"
                 alt=""
-                class="h-12 w-12 rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 object-cover shadow-[0_0_18px_rgba(30,64,175,0.18)]"
+                class="h-11 w-11 rounded-xl object-cover"
               />
 
               <div
                 v-else
-                class="flex h-12 w-12 items-center justify-center rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 bg-white/[0.04] text-sm font-black text-horizon-white"
+                class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.04] text-sm font-black text-horizon-white"
               >
                 {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
               </div>
             </Link>
 
             <div class="min-w-0">
-              <div class="text-xs text-text-secondary">
+              <div class="text-[11px] text-text-muted">
                 Personnel File
               </div>
 
@@ -677,15 +595,8 @@ onBeforeUnmount(() => {
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
               </div>
 
-              <div class="text-xs text-text-secondary">
-                {{ rankName }}
-              </div>
-
-              <div
-                v-if="directorBadgeLabel"
-                class="mt-1 inline-flex rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--horizon-text-primary)]"
-              >
-                {{ directorBadgeLabel }}
+              <div class="truncate text-xs text-text-secondary">
+                {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
               </div>
             </div>
           </div>
@@ -698,30 +609,25 @@ onBeforeUnmount(() => {
   <aside
     v-if="user"
     class="sticky top-0 hidden h-screen shrink-0 transition-[width] duration-300 ease-out md:block"
-    :class="desktopExpanded ? 'w-[19.5rem]' : 'w-[5.5rem]'"
+    :class="desktopExpanded ? 'w-[18rem]' : 'w-[5.25rem]'"
   >
-    <div class="relative h-full overflow-hidden border-r border-[color:var(--horizon-sunset-indigo)]/35 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] shadow-[0_0_54px_rgba(67,56,202,0.18)] backdrop-blur-xl">
-      <div class="pointer-events-none absolute inset-0 opacity-50">
-        <div class="absolute left-6 top-0 h-px w-44 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-        <div class="absolute bottom-0 right-6 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
-      </div>
-
+    <div class="relative h-full overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] backdrop-blur-xl">
       <div class="relative flex h-full min-h-0 flex-col gap-4 p-4">
         <div
-          class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-[color:var(--horizon-sunset-blue)]/25 bg-black transition-all duration-300"
-          :class="desktopExpanded ? 'h-36' : 'h-20'"
+          class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-white/10 bg-black transition-all duration-300"
+          :class="desktopExpanded ? 'h-32' : 'h-20'"
         >
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
             class="block w-full object-contain transition-all duration-300"
-            :class="desktopExpanded ? 'h-36 scale-220 -translate-y-1.5' : 'h-20 scale-175 -translate-y-1'"
+            :class="desktopExpanded ? 'h-32 scale-200 -translate-y-1' : 'h-20 scale-175 -translate-y-1'"
           />
         </div>
 
         <div
-          class="flex shrink-0 items-center rounded-2xl border border-white/10 bg-white/[0.025] py-3 transition-all duration-300"
-          :class="desktopExpanded ? 'justify-between gap-3 px-3' : 'justify-center px-2'"
+          class="flex shrink-0 items-center py-1 transition-all duration-300"
+          :class="desktopExpanded ? 'justify-between gap-3 px-1' : 'justify-center px-0'"
         >
           <div
             class="min-w-0 transition-all duration-200"
@@ -738,7 +644,7 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[color:var(--horizon-sunset-blue)]/25 bg-white/[0.035] text-text-secondary transition hover:border-[color:var(--horizon-sunset-magenta)]/35 hover:bg-[color:var(--horizon-sunset-magenta)]/10 hover:text-horizon-white hover:shadow-[0_0_20px_rgba(192,38,211,0.18)]"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition hover:bg-white/[0.04] hover:text-horizon-white"
             :title="desktopExpanded ? 'Collapse sidebar' : 'Expand sidebar'"
             @click="toggleDesktopNav"
           >
@@ -751,33 +657,26 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <nav class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-1">
+        <nav class="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-1">
           <section
             v-for="group in navGroups"
             :key="group.key"
-            class="space-y-2"
+            class="space-y-1.5"
           >
             <button
               v-if="desktopExpanded"
               type="button"
-              class="flex w-full items-center justify-between rounded-2xl border px-3 py-2.5 text-left transition"
-              :class="groupToggleClass(group)"
+              class="flex w-full items-center justify-between px-2 py-1 text-left text-[10px] font-black uppercase tracking-[0.24em] transition"
+              :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
-              <span class="min-w-0">
-                <span class="block text-[10px] font-black uppercase tracking-[0.24em]">
-                  {{ group.label }}
-                </span>
-                <span class="mt-0.5 block truncate text-[10px] text-text-muted/80">
-                  {{ group.eyebrow }}
-                </span>
-              </span>
+              <span class="truncate">{{ group.label }}</span>
               <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
             </button>
 
             <div
               v-if="desktopExpanded ? groupIsOpen(group) : true"
-              class="space-y-2"
+              class="space-y-1"
             >
               <template
                 v-for="item in group.items"
@@ -786,49 +685,33 @@ onBeforeUnmount(() => {
                 <Link
                   v-if="!item.href"
                   :href="getItemHref(item)"
-                  class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
+                  class="group relative flex items-center rounded-xl text-sm font-semibold transition"
                   :class="[
-                    desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
-                    itemCardClass(item)
+                    desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5',
+                    itemRowClass(item)
                   ]"
-                  :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
+                  :title="desktopExpanded ? undefined : item.label"
                 >
                   <span
                     v-if="item.isActive"
-                    class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full"
+                    class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
                     :class="activeRailClass(item)"
                   />
 
-                  <span
-                    class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                    :class="iconToneClass(item, item.isActive)"
-                  >
-                    <span class="text-base leading-none">
-                      {{ item.icon }}
-                    </span>
-
-                    <span
-                      v-if="item.isActive"
-                      class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[color:var(--horizon-void-900)] bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.75)]"
-                    ></span>
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
+                    {{ item.icon }}
                   </span>
 
-                  <div
-                    class="min-w-0 transition-all duration-200"
+                  <span
+                    class="min-w-0 flex-1 truncate transition-all duration-200"
                     :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
                   >
-                    <div class="truncate">
-                      {{ item.label }}
-                    </div>
-
-                    <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      {{ item.status }}
-                    </div>
-                  </div>
+                    {{ item.label }}
+                  </span>
 
                   <span
                     v-if="desktopExpanded && item.badge"
-                    class="ml-auto max-w-24 shrink-0 truncate rounded-full border border-[color:var(--horizon-sunset-blue)]/25 bg-[color:var(--horizon-sunset-blue)]/10 px-2 py-1 text-[10px] leading-none text-horizon-white"
+                    class="ml-auto max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] leading-none text-text-secondary"
                   >
                     {{ item.badge }}
                   </span>
@@ -839,32 +722,20 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative flex items-center rounded-2xl border text-base font-semibold transition"
-                  :class="[
-                    desktopExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-2 py-3',
-                    itemCardClass(item)
-                  ]"
-                  :title="desktopExpanded ? undefined : `${item.label} · ${item.status}`"
+                  class="group relative flex items-center rounded-xl text-sm font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
+                  :class="desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5'"
+                  :title="desktopExpanded ? undefined : item.label"
                 >
-                  <span
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition"
-                    :class="iconToneClass(item, false)"
-                  >
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
                     {{ item.icon }}
                   </span>
 
-                  <div
-                    class="min-w-0 transition-all duration-200"
+                  <span
+                    class="min-w-0 flex-1 truncate transition-all duration-200"
                     :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
                   >
-                    <div class="truncate">
-                      {{ item.label }}
-                    </div>
-
-                    <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      {{ item.status }}
-                    </div>
-                  </div>
+                    {{ item.label }}
+                  </span>
 
                   <span
                     v-if="desktopExpanded"
@@ -876,7 +747,7 @@ onBeforeUnmount(() => {
 
                 <div
                   v-if="desktopExpanded && itemHasOpenChildren(item)"
-                  class="ml-5 mt-2 space-y-2 border-l border-[color:var(--horizon-sunset-magenta)]/25 pl-3"
+                  class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
                 >
                   <div
                     v-for="child in item.children"
@@ -885,11 +756,11 @@ onBeforeUnmount(() => {
                   >
                     <Link
                       :href="child.href"
-                      class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold transition"
-                      :class="child.isActive ? 'bg-[color:var(--horizon-sunset-magenta)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+                      :class="child.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                     >
                       <span class="truncate">{{ child.label }}</span>
-                      <span v-if="child.meta" class="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-text-muted">{{ child.meta }}</span>
+                      <span v-if="child.meta" class="shrink-0 text-[10px] text-text-muted">{{ child.meta }}</span>
                     </Link>
 
                     <div
@@ -901,7 +772,7 @@ onBeforeUnmount(() => {
                         :key="entry.key"
                         :href="entry.href"
                         class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
-                        :class="entry.isActive ? 'bg-[color:var(--horizon-sunset-blue)]/15 text-horizon-white' : 'text-text-muted hover:bg-white/[0.035] hover:text-text-secondary'"
+                        :class="entry.isActive ? 'bg-white/[0.055] text-horizon-white' : 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'"
                       >
                         {{ entry.label }}
                       </Link>
@@ -915,8 +786,8 @@ onBeforeUnmount(() => {
 
         <Link
           :href="profileHref"
-          class="shrink-0 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/25 bg-[radial-gradient(circle_at_top_left,var(--horizon-glow-blue),transparent_42%),rgba(255,255,255,0.035)] shadow-[0_0_28px_rgba(30,64,175,0.14)] transition-all duration-300"
-          :class="desktopExpanded ? 'px-3 py-3' : 'px-2 py-3'"
+          class="shrink-0 border-t border-white/10 pt-4 transition-all duration-300"
+          :class="desktopExpanded ? 'px-1' : 'px-0'"
         >
           <div
             class="flex items-center"
@@ -926,12 +797,12 @@ onBeforeUnmount(() => {
               v-if="user.discord_avatar"
               :src="user.discord_avatar"
               alt=""
-              class="h-12 w-12 shrink-0 rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 object-cover shadow-[0_0_18px_rgba(30,64,175,0.18)]"
+              class="h-11 w-11 shrink-0 rounded-xl object-cover"
             />
 
             <div
               v-else
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[color:var(--horizon-sunset-blue)]/30 bg-white/[0.04] text-sm font-black text-horizon-white"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] text-sm font-black text-horizon-white"
             >
               {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
             </div>
@@ -940,7 +811,7 @@ onBeforeUnmount(() => {
               class="min-w-0 transition-all duration-200"
               :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
             >
-              <div class="text-xs text-text-secondary">
+              <div class="text-[11px] text-text-muted">
                 Personnel File
               </div>
 
@@ -952,14 +823,7 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="truncate text-xs text-text-secondary">
-                {{ rankName }}
-              </div>
-
-              <div
-                v-if="directorBadgeLabel"
-                class="mt-1 inline-flex rounded-full border border-[color:var(--horizon-sunset-magenta)]/25 bg-[color:var(--horizon-sunset-magenta)]/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--horizon-text-primary)]"
-              >
-                {{ directorBadgeLabel }}
+                {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
               </div>
             </div>
           </div>
@@ -968,6 +832,7 @@ onBeforeUnmount(() => {
     </div>
   </aside>
 </template>
+
 <style scoped>
 @keyframes hz-slide-in-left {
   from {
