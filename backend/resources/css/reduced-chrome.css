@@ -134,16 +134,6 @@ main article > .pointer-events-none {
    Stats and filter panels: one calm surface instead of many competing boxes
 -------------------------------------------------------------------------- */
 
-main section.grid.gap-4.md\:grid-cols-4 > div {
-  border-color: transparent !important;
-  background: rgba(255, 255, 255, 0.026) !important;
-  box-shadow: none !important;
-}
-
-main section.grid.gap-4.md\:grid-cols-4 > div:first-child {
-  border-left: 2px solid rgba(56, 189, 248, 0.38) !important;
-}
-
 main section[class*="Command Filters"],
 main section[class*="Command Board"] {
   box-shadow: none !important;
@@ -235,6 +225,7 @@ main section.grid.gap-4.md\:grid-cols-4 > div {
   border-left: 1px solid var(--hz-chrome-border-soft) !important;
   border-radius: 0 !important;
   background: transparent !important;
+  box-shadow: none !important;
   padding-block: 1rem !important;
 }
 
