@@ -292,3 +292,106 @@ main a.group[class*="rounded-[1.75rem]"] div[class*="rounded-full"] {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* --------------------------------------------------------------------------
+   Member operations index: give accordions the sidebar-clean treatment
+-------------------------------------------------------------------------- */
+
+/* The member index uses a three-card status strip. Make it behave like one bar. */
+main section.grid.gap-4.md\:grid-cols-3 {
+  gap: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--hz-chrome-border-soft);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.024);
+}
+
+main section.grid.gap-4.md\:grid-cols-3 > div {
+  border-left: 1px solid var(--hz-chrome-border-soft) !important;
+  border-radius: 0 !important;
+  border-top: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-block: 1rem !important;
+}
+
+main section.grid.gap-4.md\:grid-cols-3 > div:first-child {
+  border-left: 0 !important;
+}
+
+/* OperationAccordion has an inline glow style. Override it and make rows calm. */
+main article[style][class*="rounded-[1.75rem]"] {
+  border-color: var(--hz-chrome-border-soft) !important;
+  background: rgba(21, 25, 42, 0.64) !important;
+  box-shadow: none !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"]:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(27, 32, 53, 0.68) !important;
+  box-shadow: var(--hz-chrome-shadow-soft) !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > .pointer-events-none {
+  display: none !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > button {
+  padding: 1.125rem 1.25rem !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] span.rounded-full,
+main article[style][class*="rounded-[1.75rem]"] .hz-badge {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.042) !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] img.rounded-full,
+main article[style][class*="rounded-[1.75rem]"] img.rounded-xl,
+main article[style][class*="rounded-[1.75rem]"] span[class*="rounded-full"][class*="border-white/10"],
+main article[style][class*="rounded-[1.75rem]"] span[class*="rounded-xl"][class*="border-white/10"] {
+  border-color: transparent !important;
+}
+
+/* Participants counter and chevron should read like controls, not cards. */
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="rounded-2xl"][class*="text-right"],
+main article[style][class*="rounded-[1.75rem]"] > button div[class*="h-11"][class*="w-11"] {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  box-shadow: none !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > div[class*="border-t"] {
+  border-color: var(--hz-chrome-border-soft) !important;
+}
+
+/* Expanded accordion body: flatten nested briefing/tag/creator panels. */
+main article[style][class*="rounded-[1.75rem]"] > div section[class*="rounded-2xl"] {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+main article[style][class*="rounded-[1.75rem]"] > div section[class*="rounded-2xl"] + section[class*="rounded-2xl"],
+main article[style][class*="rounded-[1.75rem]"] aside section[class*="rounded-2xl"] + section[class*="rounded-2xl"] {
+  border-top: 1px solid var(--hz-chrome-border-soft) !important;
+  padding-top: 1rem !important;
+}
+
+/* Start/deadline blocks become readable time rows instead of colored mini-panels. */
+main article[style][class*="rounded-[1.75rem]"] section.grid div[class*="rounded-2xl"] {
+  border-top: 1px solid var(--hz-chrome-border-soft) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 1rem 0 0 !important;
+}
+
+/* The main list shell should be a calm board, not another glowing container. */
+main section[class*="rounded-[2rem]"][class*="shadow-[0_0_32px"] {
+  border-color: var(--hz-chrome-border-soft) !important;
+  background: rgba(21, 25, 42, 0.42) !important;
+  box-shadow: none !important;
+}
