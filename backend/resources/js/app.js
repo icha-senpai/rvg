@@ -1,5 +1,6 @@
 import '../css/app.css';
 import '../css/reduced-chrome.css';
+import '../css/operation-accordion-polish.css';
 
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
