@@ -217,3 +217,78 @@ main [class*="border-dashed"] {
   border-color: var(--hz-chrome-border-muted) !important;
   background: rgba(255, 255, 255, 0.018) !important;
 }
+
+/* --------------------------------------------------------------------------
+   Second pass: dashboard and dossier surfaces
+-------------------------------------------------------------------------- */
+
+/* Treat the operations stats as a quiet information strip. */
+main section.grid.gap-4.md\:grid-cols-4 {
+  gap: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--hz-chrome-border-soft);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.024);
+}
+
+main section.grid.gap-4.md\:grid-cols-4 > div {
+  border-left: 1px solid var(--hz-chrome-border-soft) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding-block: 1rem !important;
+}
+
+main section.grid.gap-4.md\:grid-cols-4 > div:first-child {
+  border-left: 0 !important;
+}
+
+/* Make filter/board wrappers feel like toolbars instead of boxed rooms. */
+main section[class*="rounded-[2rem]"][class*="bg-[color:var(--horizon-void-700)]"] {
+  background: rgba(21, 25, 42, 0.46) !important;
+  border-color: var(--hz-chrome-border-soft) !important;
+  box-shadow: none !important;
+}
+
+/* Flatten common metadata chunks inside cards and modal content. */
+main article div[class*="rounded-2xl"][class*="p-3"],
+section[role="dialog"] div[class*="rounded-2xl"][class*="p-3"] {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main article div[class*="grid"][class*="md:grid-cols-2"] {
+  gap: 0.75rem 1.5rem !important;
+}
+
+/* Pills are labels, not little fortresses. */
+main span.rounded-full,
+section[role="dialog"] span.rounded-full {
+  box-shadow: none !important;
+}
+
+/* Squadron dossier cards: keep image power, quiet the chrome. */
+main a.group[class*="aspect-square"] {
+  box-shadow: none !important;
+}
+
+main a.group[class*="rounded-[1.75rem]"][class*="shadow-[0_0_32px"] {
+  border-color: var(--hz-chrome-border-soft) !important;
+  background: rgba(21, 25, 42, 0.68) !important;
+  box-shadow: none !important;
+}
+
+main a.group[class*="rounded-[1.75rem]"][class*="shadow-[0_0_32px"]:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(27, 32, 53, 0.72) !important;
+  box-shadow: var(--hz-chrome-shadow-soft) !important;
+}
+
+main a.group[class*="rounded-[1.75rem]"] > .pointer-events-none {
+  display: none !important;
+}
+
+main a.group[class*="rounded-[1.75rem]"] div[class*="rounded-full"] {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
