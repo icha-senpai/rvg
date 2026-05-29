@@ -21,6 +21,8 @@ class MemberDirectoryController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
         $searchNeedle = $search !== '' ? '%' . mb_strtolower($search) . '%' : null;
+        $normalizedSearch = trim((string) preg_replace('/\s+/', ' ', str_replace('_', ' ', mb_strtolower($search))));
+        $normalizedSearchNeedle = $normalizedSearch !== '' ? '%' . $normalizedSearch . '%' : null;
         $dbDriver = DB::connection()->getDriverName();
 
         // Keep the directory payload intentionally lightweight while still
@@ -42,13 +44,20 @@ class MemberDirectoryController extends Controller
             )
             ->with(['roles:id,name,slug'])
             ->where('global_status', User::STATUS_ACTIVE)
-            ->when($searchNeedle, function ($query) use ($dbDriver, $search, $searchNeedle) {
-                $query->where(function ($q) use ($dbDriver, $search, $searchNeedle) {
+            ->when($searchNeedle, function ($query) use ($dbDriver, $search, $searchNeedle, $normalizedSearchNeedle) {
+                $query->where(function ($q) use ($dbDriver, $search, $searchNeedle, $normalizedSearchNeedle) {
                     $q->whereRaw('LOWER(discord_name) LIKE ?', [$searchNeedle])
-                        ->orWhereRaw('LOWER(rsi_handle) LIKE ?', [$searchNeedle]);
+                        ->orWhereRaw('LOWER(rsi_handle) LIKE ?', [$searchNeedle])
+                        ->orWhereRaw('LOWER(rank) LIKE ?', [$searchNeedle])
+                        ->orWhereRaw("CASE WHEN rank = 'cit' THEN 'c i t commander in training' ELSE REPLACE(LOWER(rank), '_', ' ') END LIKE ?", [$normalizedSearchNeedle ?? $searchNeedle]);
 
                     $q->orWhereRaw('LOWER(callsign) LIKE ?', [$searchNeedle])
-                        ->orWhereRaw('LOWER(timezone) LIKE ?', [$searchNeedle]);
+                        ->orWhereRaw('LOWER(timezone) LIKE ?', [$searchNeedle])
+                        ->orWhereHas('roles', function ($roles) use ($searchNeedle, $normalizedSearchNeedle) {
+                            $roles->whereRaw('LOWER(name) LIKE ?', [$searchNeedle])
+                                ->orWhereRaw('LOWER(slug) LIKE ?', [$searchNeedle])
+                                ->orWhereRaw("REPLACE(LOWER(slug), '_', ' ') LIKE ?", [$normalizedSearchNeedle ?? $searchNeedle]);
+                        });
 
                     // JSON-ish profile columns need driver-specific casting so the
                     // same free-text search works across Postgres, SQLite, and the

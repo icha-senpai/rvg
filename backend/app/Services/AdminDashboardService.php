@@ -34,6 +34,8 @@ class AdminDashboardService
     protected function users(string $search)
     {
         $searchNeedle = $search !== '' ? '%' . mb_strtolower($search) . '%' : null;
+        $normalizedSearch = trim((string) preg_replace('/\s+/', ' ', str_replace('_', ' ', mb_strtolower($search))));
+        $normalizedSearchNeedle = $normalizedSearch !== '' ? '%' . $normalizedSearch . '%' : null;
 
         return User::query()
             ->select(
@@ -51,10 +53,17 @@ class AdminDashboardService
                 'loa_note'
             )
             ->with(['roles:id,name,slug'])
-            ->when($searchNeedle, function ($query) use ($search, $searchNeedle) {
-                $query->where(function ($nested) use ($search, $searchNeedle) {
+            ->when($searchNeedle, function ($query) use ($search, $searchNeedle, $normalizedSearchNeedle) {
+                $query->where(function ($nested) use ($search, $searchNeedle, $normalizedSearchNeedle) {
                     $nested->whereRaw('LOWER(discord_name) LIKE ?', [$searchNeedle])
-                        ->orWhereRaw('LOWER(rsi_handle) LIKE ?', [$searchNeedle]);
+                        ->orWhereRaw('LOWER(rsi_handle) LIKE ?', [$searchNeedle])
+                        ->orWhereRaw('LOWER(rank) LIKE ?', [$searchNeedle])
+                        ->orWhereRaw("CASE WHEN rank = 'cit' THEN 'c i t commander in training' ELSE REPLACE(LOWER(rank), '_', ' ') END LIKE ?", [$normalizedSearchNeedle ?? $searchNeedle])
+                        ->orWhereHas('roles', function ($roles) use ($searchNeedle, $normalizedSearchNeedle) {
+                            $roles->whereRaw('LOWER(name) LIKE ?', [$searchNeedle])
+                                ->orWhereRaw('LOWER(slug) LIKE ?', [$searchNeedle])
+                                ->orWhereRaw("REPLACE(LOWER(slug), '_', ' ') LIKE ?", [$normalizedSearchNeedle ?? $searchNeedle]);
+                        });
 
                     if (is_numeric($search)) {
                         $nested->orWhere('id', (int) $search);

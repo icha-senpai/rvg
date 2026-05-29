@@ -13,7 +13,7 @@
           </h2>
 
           <p class="mt-1 text-sm text-text-secondary">
-            Search users by name, RSI handle, Discord name, or internal ID.
+            Search users by name, RSI handle, Discord name, rank, role, or internal ID.
           </p>
         </div>
 
@@ -33,7 +33,7 @@
           v-model="search"
           type="text"
           class="hz-input"
-          placeholder="Search by name, RSI handle, Discord name, or ID..."
+          placeholder="Search by name, RSI handle, Discord name, rank, role, or ID..."
           @keyup.enter="applySearch"
         />
 

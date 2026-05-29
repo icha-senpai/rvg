@@ -324,7 +324,7 @@ function hasFavoriteData(user) {
             </h2>
 
             <p class="mt-1 text-sm text-text-secondary">
-              Search by RSI handle, Discord name, callsign, timezone, favorite ships, favorite guns, experience, or member ID.
+              Search by RSI handle, Discord name, callsign, rank, role, timezone, favorite ships, favorite guns, experience, or member ID.
             </p>
           </div>
 
@@ -347,7 +347,7 @@ function hasFavoriteData(user) {
             v-model="search"
             type="text"
             class="hz-input"
-            placeholder="Search by name, RSI handle, callsign, timezone, ID..."
+            placeholder="Search by name, RSI handle, callsign, rank, role, timezone, ID..."
             @keyup.enter="applySearch"
           />
 
