@@ -18,6 +18,10 @@ use Illuminate\Validation\ValidationException;
  */
 class MembershipPromotionService
 {
+    public function __construct(
+        protected MembershipRuleService $rules
+    ) {}
+
     /**
      * Promote an existing squadron member to lieutenant.
      *
@@ -30,16 +34,7 @@ class MembershipPromotionService
             ->where('squadron_id', $squadron->id)
             ->firstOrFail();
 
-        $ltCount = SquadronMember::where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->count();
-
-        if ($ltCount >= 2) {
-            throw ValidationException::withMessages([
-                'max_lt' => 'This squadron already has the maximum of two Lieutenants.',
-            ]);
-        }
+        $this->rules->assertLieutenantCapacity($squadron);
 
         $member->update([
             'role' => SquadronMember::ROLE_LIEUTENANT,

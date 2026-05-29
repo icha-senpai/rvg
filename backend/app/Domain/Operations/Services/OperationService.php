@@ -16,14 +16,26 @@ use Illuminate\Validation\ValidationException;
  */
 class OperationService
 {
+    public function __construct(
+        protected OperationMediaService $operationMedia
+    ) {}
+
     /**
      * Create a new operation after applying shared defaults to the payload.
      */
     public function create(array $data, ?Squadron $squadron = null): Operation
     {
-        $data = $this->applyDefaults($data);
+        [$data, $mediaId, $shouldSyncMedia] = $this->pullMediaId(
+            $this->applyDefaults($data)
+        );
 
-        return (new CreateOperation)->execute($data, $squadron);
+        $operation = (new CreateOperation)->execute($data, $squadron);
+
+        if ($shouldSyncMedia) {
+            $this->operationMedia->syncOperationImage($operation, $mediaId);
+        }
+
+        return $operation;
     }
 
     /**
@@ -32,9 +44,17 @@ class OperationService
      */
     public function update(Operation $operation, array $data): Operation
     {
-        $data = $this->applyDefaults($data);
+        [$data, $mediaId, $shouldSyncMedia] = $this->pullMediaId(
+            $this->applyDefaults($data)
+        );
 
-        return (new UpdateOperation)->execute($operation, $data);
+        $operation = (new UpdateOperation)->execute($operation, $data);
+
+        if ($shouldSyncMedia) {
+            $this->operationMedia->syncOperationImage($operation, $mediaId);
+        }
+
+        return $operation;
     }
 
     /**
@@ -90,5 +110,17 @@ class OperationService
             'participants.user',
             'roles.participants.user',
         ]);
+    }
+
+    protected function pullMediaId(array $data): array
+    {
+        if (! array_key_exists('media_id', $data)) {
+            return [$data, null, false];
+        }
+
+        $mediaId = $data['media_id'];
+        unset($data['media_id']);
+
+        return [$data, $mediaId, true];
     }
 }

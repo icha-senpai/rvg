@@ -1026,6 +1026,27 @@ watch(
               <div class="text-sm text-text-secondary">
                 {{ viewerMembership ? 'You have an existing relationship with this squadron.' : 'You are not currently assigned to this squadron.' }}
               </div>
+              <div class="flex flex-wrap gap-2 pt-2">
+                <HorizonButton
+                  v-if="permissions?.can_apply"
+                  variant="primary"
+                  size="sm"
+                  :disabled="!!activeAction"
+                  @click="applyToSquadron"
+                >
+                  {{ activeAction === 'apply' ? 'Applying…' : 'Apply' }}
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="permissions?.can_leave"
+                  variant="secondary"
+                  size="sm"
+                  :disabled="!!activeAction"
+                  @click="askLeaveSquadron"
+                >
+                  {{ activeAction === 'leave' ? 'Leaving…' : 'Leave Squadron' }}
+                </HorizonButton>
+              </div>
             </div>
 
             <!-- Officer Tools -->

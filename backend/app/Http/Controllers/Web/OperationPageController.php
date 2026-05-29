@@ -18,7 +18,6 @@ use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
 
 use App\Domain\Operations\Services\OperationService;
-use App\Domain\Operations\Services\OperationMediaService;
 use App\Domain\Operations\Services\OperationShowDataService;
 use App\Domain\Operations\Services\OperationTemplateService;
 use App\Domain\Operations\Presenters\OperationPresenter;
@@ -40,7 +39,6 @@ class OperationPageController extends Controller
     public function __construct(
         protected OperationService $service,
         protected OperationQuery $query,
-        protected OperationMediaService $operationMedia,
         protected OperationShowDataService $showData,
         protected OperationTemplateService $templates,
         protected SquadronService $squadrons
@@ -127,8 +125,6 @@ class OperationPageController extends Controller
 
         $operation = $this->service->create($request->validated(), null);
 
-        $this->attachMediaIfProvided($request, $operation);
-
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'ok',
@@ -174,8 +170,6 @@ class OperationPageController extends Controller
 
         $operation = $this->service->create($request->validated(), $squadron);
 
-        $this->attachMediaIfProvided($request, $operation);
-
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'ok',
@@ -205,8 +199,7 @@ class OperationPageController extends Controller
         $this->authorize('update', $operation);
 
         return Inertia::render('Operations/Components/MissionEditorForm', [
-            'mission'    => OperationPresenter::make($operation)->form(),
-            'squadronId' => $operation->squadron_id,
+            ...$this->showData->editor($operation),
             'squadrons' => SquadronPresenter::collection($this->squadrons->listAll()),
             'operationTemplates' => $this->operationTemplatesFor($request->user()),
         ]);
@@ -279,8 +272,6 @@ class OperationPageController extends Controller
         $this->authorize('update', $operation);
 
         $updated = $this->service->update($operation, $request->validated());
-
-        $this->attachMediaIfProvided($request, $updated);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -362,10 +353,7 @@ class OperationPageController extends Controller
         $operation = Operation::findOrFail((int) $operationId);
         $this->authorize('update', $operation);
 
-        return [
-            'mission' => OperationPresenter::make($operation)->form(),
-            'squadronId' => $operation->squadron_id,
-        ];
+        return $this->showData->editor($operation);
     }
 
     /**
@@ -378,21 +366,6 @@ class OperationPageController extends Controller
         $this->service->cancel($operation);
 
         return back()->with('success', 'Operation canceled.');
-    }
-
-    /**
-     * Sync the optional operation image media referenced by the current request.
-     *
-     * Leaving the field out means "keep the current image". Sending an explicit
-     * empty value lets the media service detach the current image.
-     */
-    private function attachMediaIfProvided(Request $request, Operation $operation): void
-    {
-        if (! $request->has('media_id')) {
-            return;
-        }
-
-        $this->operationMedia->syncOperationImage($operation, $request->input('media_id'));
     }
 
     /**

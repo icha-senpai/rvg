@@ -38,4 +38,12 @@ class OperationShowDataService
             'currentParticipant' => $currentParticipant,
         ];
     }
+
+    public function editor(Operation $operation): array
+    {
+        return [
+            'mission' => OperationPresenter::make($operation)->form(),
+            'squadronId' => $operation->squadron_id,
+        ];
+    }
 }

@@ -18,6 +18,21 @@ use App\Models\SquadronMember;
  */
 class AccessService
 {
+    protected function templates(): OperationTemplateAccessService
+    {
+        return app(OperationTemplateAccessService::class);
+    }
+
+    protected function operations(): OperationAccessService
+    {
+        return app(OperationAccessService::class);
+    }
+
+    protected function squadrons(): SquadronAccessService
+    {
+        return app(SquadronAccessService::class);
+    }
+
     /**
      * Build a UserContext wrapper.
      */
@@ -147,8 +162,7 @@ class AccessService
      */
     public function canViewAnyOperationTemplate(User $user): bool
     {
-        return $this->isDirectorLike($user)
-            || $this->isOfficer($user);
+        return $this->templates()->canViewAnyOperationTemplate($user);
     }
 
     /**
@@ -156,15 +170,7 @@ class AccessService
      */
     public function visibleOperationTemplateSquadronIds(User $user): array
     {
-        if ($this->isDirectorLike($user)) {
-            return [];
-        }
-
-        return $user->squadronMemberships()
-            ->active()
-            ->pluck('squadron_id')
-            ->values()
-            ->all();
+        return $this->templates()->visibleOperationTemplateSquadronIds($user);
     }
 
     /**
@@ -172,22 +178,7 @@ class AccessService
      */
     public function canViewOperationTemplate(User $user, OperationTemplate $template): bool
     {
-        if (! $this->canViewAnyOperationTemplate($user)) {
-            return false;
-        }
-
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        return match ($template->scope) {
-            OperationTemplate::SCOPE_GLOBAL => true,
-            OperationTemplate::SCOPE_PERSONAL => (int) $template->owner_user_id === (int) $user->id,
-            OperationTemplate::SCOPE_SQUADRON => $template->squadron_id
-                ? $this->squadronMembershipForId($user, (int) $template->squadron_id) !== null
-                : false,
-            default => false,
-        };
+        return $this->templates()->canViewOperationTemplate($user, $template);
     }
 
     /**
@@ -195,26 +186,7 @@ class AccessService
      */
     public function canCreateOperationTemplate(User $user, ?string $scope = null, ?int $squadronId = null): bool
     {
-        if (! $this->canViewAnyOperationTemplate($user)) {
-            return false;
-        }
-
-        if ($scope === null) {
-            return true;
-        }
-
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        return match ($scope) {
-            OperationTemplate::SCOPE_GLOBAL => false,
-            OperationTemplate::SCOPE_PERSONAL => true,
-            OperationTemplate::SCOPE_SQUADRON => $squadronId
-                ? $this->squadronMembershipForId($user, $squadronId) !== null
-                : false,
-            default => false,
-        };
+        return $this->templates()->canCreateOperationTemplate($user, $scope, $squadronId);
     }
 
     /**
@@ -222,22 +194,7 @@ class AccessService
      */
     public function canUpdateOperationTemplate(User $user, OperationTemplate $template): bool
     {
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        if (! $this->canViewAnyOperationTemplate($user)) {
-            return false;
-        }
-
-        return match ($template->scope) {
-            OperationTemplate::SCOPE_GLOBAL => false,
-            OperationTemplate::SCOPE_PERSONAL => (int) $template->owner_user_id === (int) $user->id,
-            OperationTemplate::SCOPE_SQUADRON => $template->squadron_id
-                ? $this->canUpdateSquadronTemplate($user, (int) $template->squadron_id, (int) $template->created_by)
-                : false,
-            default => false,
-        };
+        return $this->templates()->canUpdateOperationTemplate($user, $template);
     }
 
     /**
@@ -245,25 +202,7 @@ class AccessService
      */
     public function canDeleteOperationTemplate(User $user, OperationTemplate $template): bool
     {
-        return $this->canUpdateOperationTemplate($user, $template);
-    }
-
-    /**
-     * Determine whether the user can update a squadron-scoped template.
-     */
-    protected function canUpdateSquadronTemplate(User $user, int $squadronId, int $createdBy): bool
-    {
-        $squadron = Squadron::find($squadronId);
-        if (! $squadron) {
-            return false;
-        }
-
-        if ($createdBy === (int) $user->id) {
-            return true;
-        }
-
-        return $this->isSquadronLeader($user, $squadron)
-            || $this->isSquadronLieutenant($user, $squadron);
+        return $this->templates()->canDeleteOperationTemplate($user, $template);
     }
 
     /**
@@ -271,13 +210,7 @@ class AccessService
      */
     public function canViewAnyOperation(User $user): bool
     {
-        // Director-like roles always bypass the normal operation visibility gate.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Otherwise the explicit operation.view permission is enough.
-        return $this->can($user, 'operation.view');
+        return $this->operations()->canViewAnyOperation($user);
     }
 
     /**
@@ -285,30 +218,7 @@ class AccessService
      */
     public function canViewOperation(User $user, Operation $operation): bool
     {
-        // Director-like roles can always inspect operation records.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // A global operation.view permission also bypasses squadron scoping.
-        if ($this->can($user, 'operation.view')) {
-            return true;
-        }
-
-        // Open operations are intentionally visible to any authenticated user.
-        if ($operation->visibility === 'open') {
-            return true;
-        }
-
-        // Squadron-scoped operations are visible only to active members of that
-        // squadron when no broader permission override applies.
-        if ($operation->squadron_id) {
-            return $this->squadronMembershipForId($user, (int) $operation->squadron_id) !== null;
-        }
-
-        // Closed global operations default to deny when no explicit permission or
-        // visibility rule grants access.
-        return false;
+        return $this->operations()->canViewOperation($user, $operation);
     }
 
     /**
@@ -316,23 +226,7 @@ class AccessService
      */
     public function canCreateOperation(User $user, ?Squadron $squadron = null): bool
     {
-        // Director-like roles can always create operations.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Global operations require lieutenant-or-higher role status.
-        if (! $squadron) {
-            return $this->atLeast($user, 'lieutenant');
-        }
-
-        // Squadron operations require lieutenant-or-higher status plus an active
-        // membership in the target squadron.
-        if ($this->atLeast($user, 'lieutenant')) {
-            return $this->isSquadronMember($user, $squadron);
-        }
-
-        return false;
+        return $this->operations()->canCreateOperation($user, $squadron);
     }
 
     /**
@@ -340,42 +234,7 @@ class AccessService
      */
     public function canUpdateOperation(User $user, Operation $operation): bool
     {
-        // Director-like roles can always update operations.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Global operations may be edited only by their creator when that user is
-        // still lieutenant-or-higher.
-        if (! $operation->squadron_id) {
-            return (int) $operation->created_by === (int) $user->id
-                && $this->atLeast($user, 'lieutenant');
-        }
-
-        // Squadron operation creators may edit their own record while they still
-        // satisfy the same squadron-scoped create rule used for new operations.
-        $squadron = Squadron::find($operation->squadron_id);
-        if (! $squadron) {
-            return false;
-        }
-
-        if ((int) $operation->created_by === (int) $user->id
-            && $this->canCreateOperation($user, $squadron)
-        ) {
-            return true;
-        }
-
-        // Leaders and lieutenants of the owning squadron can also update the
-        // operation even if they were not the original creator.
-        if ($this->isSquadronLeader($user, $squadron)) {
-            return true;
-        }
-
-        if ($this->isSquadronLieutenant($user, $squadron)) {
-            return true;
-        }
-
-        return false;
+        return $this->operations()->canUpdateOperation($user, $operation);
     }
 
     /**
@@ -383,7 +242,7 @@ class AccessService
      */
     public function canDeleteOperation(User $user, Operation $operation): bool
     {
-        return $this->canUpdateOperation($user, $operation);
+        return $this->operations()->canDeleteOperation($user, $operation);
     }
 
     /**
@@ -391,26 +250,7 @@ class AccessService
      */
     public function canManageOperationMembers(User $user, Operation $operation): bool
     {
-        // Director-like roles can always manage operation participation.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // A dedicated permission can also grant access outside squadron leadership.
-        if ($this->can($user, 'operation.members.manage')) {
-            return true;
-        }
-
-        // Otherwise only the leader of the owning squadron can manage members.
-        if ($operation->squadron_id) {
-            $squadron = Squadron::find($operation->squadron_id);
-
-            if ($squadron && $this->isSquadronLeader($user, $squadron)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->operations()->canManageOperationMembers($user, $operation);
     }
 
     /**
@@ -418,18 +258,7 @@ class AccessService
      */
     public function canAdjustOperationStats(User $user, Operation $operation): bool
     {
-        // Director-like roles can always adjust operation analytics.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Either of the analytics/stat-management permissions is enough.
-        if ($this->can($user, 'analytics.operation')
-            || $this->can($user, 'operation.stats.manage')) {
-            return true;
-        }
-
-        return false;
+        return $this->operations()->canAdjustOperationStats($user, $operation);
     }
 
     /**
@@ -438,9 +267,7 @@ class AccessService
      */
     public function canManageOperation(User $user, Operation $operation): bool
     {
-        return $this->canUpdateOperation($user, $operation)
-            || $this->canManageOperationMembers($user, $operation)
-            || $this->canAdjustOperationStats($user, $operation);
+        return $this->operations()->canManageOperation($user, $operation);
     }
 
     /**
@@ -448,8 +275,7 @@ class AccessService
      */
     public function canViewAnySquadron(User $user): bool
     {
-        // Squadron listing is intentionally visible to any authenticated user.
-        return true;
+        return $this->squadrons()->canViewAnySquadron($user);
     }
 
     /**
@@ -457,18 +283,7 @@ class AccessService
      */
     public function canViewSquadron(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always inspect squadron records.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // A global squadron.view permission also grants visibility.
-        if ($this->can($user, 'squadron.view')) {
-            return true;
-        }
-
-        // Otherwise the user must currently belong to the squadron.
-        return $this->isSquadronMember($user, $squadron);
+        return $this->squadrons()->canViewSquadron($user, $squadron);
     }
 
     /**
@@ -476,17 +291,7 @@ class AccessService
      */
     public function canCreateSquadron(User $user): bool
     {
-        // Director-like roles can always create squadrons.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Otherwise an explicit create permission is required.
-        if ($this->can($user, 'squadron.create')) {
-            return true;
-        }
-
-        return false;
+        return $this->squadrons()->canCreateSquadron($user);
     }
 
     /**
@@ -494,22 +299,7 @@ class AccessService
      */
     public function canUpdateSquadron(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always update squadrons.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // A global squadron.manage permission also grants access.
-        if ($this->can($user, 'squadron.manage')) {
-            return true;
-        }
-
-        // Otherwise only the squadron leader may update the squadron directly.
-        if ($this->isSquadronLeader($user, $squadron)) {
-            return true;
-        }
-
-        return false;
+        return $this->squadrons()->canUpdateSquadron($user, $squadron);
     }
 
     /**
@@ -517,17 +307,7 @@ class AccessService
      */
     public function canDeleteSquadron(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always delete squadrons.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Deletion stays intentionally narrow because it is a destructive action.
-        if ($this->can($user, 'squadron.delete')) {
-            return true;
-        }
-
-        return false;
+        return $this->squadrons()->canDeleteSquadron($user, $squadron);
     }
 
     /**
@@ -535,22 +315,7 @@ class AccessService
      */
     public function canManageSquadronMembers(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always manage squadron members.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Squadron leaders always manage their own roster.
-        if ($this->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id) {
-            return true;
-        }
-
-        // Active lieutenants of the same squadron may also manage members.
-        return $squadron->members()
-            ->where('user_id', $user->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->exists();
+        return $this->squadrons()->canManageSquadronMembers($user, $squadron);
     }
 
     /**
@@ -558,24 +323,7 @@ class AccessService
      */
     public function canPromoteLieutenant(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always override the normal promotion rule.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Outside director-like roles, only the squadron leader may promote.
-        if (! $this->isSquadronLeader($user, $squadron) && $squadron->leader_id !== $user->id) {
-            return false;
-        }
-
-        // Promotions stop once the squadron already has its maximum lieutenant
-        // count, matching the membership domain rule.
-        $lieutenantCount = $squadron->members()
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->count();
-
-        return $lieutenantCount < 2;
+        return $this->squadrons()->canPromoteLieutenant($user, $squadron);
     }
 
     /**
@@ -583,12 +331,6 @@ class AccessService
      */
     public function canDemoteLieutenant(User $user, Squadron $squadron): bool
     {
-        // Director-like roles can always demote lieutenants.
-        if ($this->isDirectorLike($user)) {
-            return true;
-        }
-
-        // Otherwise only the current squadron leader may demote lieutenants.
-        return $this->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id;
+        return $this->squadrons()->canDemoteLieutenant($user, $squadron);
     }
 }

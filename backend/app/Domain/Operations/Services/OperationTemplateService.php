@@ -2,14 +2,14 @@
 
 namespace App\Domain\Operations\Services;
 
-use App\Domain\AccessControl\AccessService;
+use App\Domain\AccessControl\OperationTemplateAccessService;
 use App\Models\OperationTemplate;
 use App\Models\User;
 
 class OperationTemplateService
 {
     public function __construct(
-        protected AccessService $access
+        protected OperationTemplateAccessService $access
     ) {}
 
     public function listVisibleFor(User $user): array

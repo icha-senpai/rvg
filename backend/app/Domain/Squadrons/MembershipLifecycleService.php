@@ -5,7 +5,6 @@ namespace App\Domain\Squadrons;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Handles self-service membership actions initiated by the user themselves.
@@ -15,6 +14,10 @@ use Illuminate\Validation\ValidationException;
  */
 class MembershipLifecycleService
 {
+    public function __construct(
+        protected MembershipRuleService $rules
+    ) {}
+
     /**
      * Create a pending membership request for the current user.
      *
@@ -23,13 +26,7 @@ class MembershipLifecycleService
      */
     public function userJoin(Squadron $squadron, User $user): SquadronMember
     {
-        $already = SquadronMember::where('user_id', $user->id)->exists();
-
-        if ($already) {
-            throw ValidationException::withMessages([
-                'member' => 'Already in a squadron.',
-            ]);
-        }
+        $this->rules->assertUserCanJoinSingleSquadron($user);
 
         return SquadronMember::create([
             'user_id' => $user->id,
@@ -47,15 +44,7 @@ class MembershipLifecycleService
      */
     public function userLeave(Squadron $squadron, User $user): void
     {
-        $member = SquadronMember::where('user_id', $user->id)
-            ->where('squadron_id', $squadron->id)
-            ->first();
-
-        if (! $member) {
-            throw ValidationException::withMessages([
-                'member' => 'Not a member of this squadron.',
-            ]);
-        }
+        $member = $this->rules->requireMembershipForUser($squadron, $user);
 
         $member->update([
             'left_at' => now(),

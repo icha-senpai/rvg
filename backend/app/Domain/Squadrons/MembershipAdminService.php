@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 class MembershipAdminService
 {
     public function __construct(
-        protected AccessService $access
+        protected AccessService $access,
+        protected MembershipRuleService $rules
     ) {}
 
     /**
@@ -26,15 +27,7 @@ class MembershipAdminService
      */
     public function adminAddMember(Squadron $squadron, int $userId): SquadronMember
     {
-        $exists = SquadronMember::where('user_id', $userId)
-            ->where('squadron_id', $squadron->id)
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'user_id' => 'User already in squadron.',
-            ]);
-        }
+        $this->rules->assertUserCanBeAddedToSquadron($userId);
 
         return SquadronMember::create([
             'user_id' => $userId,
@@ -49,6 +42,8 @@ class MembershipAdminService
      */
     public function adminCreateMember(Squadron $squadron, int $userId): SquadronMember
     {
+        $this->rules->assertUserCanBeAddedToSquadron($userId);
+
         return SquadronMember::create([
             'squadron_id' => $squadron->id,
             'user_id' => $userId,
@@ -193,25 +188,9 @@ class MembershipAdminService
     /**
      * Fail fast when a controller passes a member record from a different squadron.
      */
-    protected function assertMemberBelongsToSquron(Squadron $squadron, SquadronMember $member): void
-    {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
-    }
-
-    /**
-     * Fail fast when a controller passes a member record from a different squadron.
-     */
     protected function assertMemberBelongsToSquadron(Squadron $squadron, SquadronMember $member): void
     {
-        if ($member->squadron_id !== $squadron->id) {
-            throw ValidationException::withMessages([
-                'member' => 'Member does not belong to this squadron.',
-            ]);
-        }
+        $this->rules->assertMemberBelongsToSquadron($squadron, $member);
     }
 
     /**
@@ -220,10 +199,6 @@ class MembershipAdminService
      */
     protected function normalizeRole(?string $role): string
     {
-        if ($role === null || $role === '' || $role === 'null') {
-            return SquadronMember::ROLE_MEMBER;
-        }
-
-        return $role;
+        return $this->rules->normalizeRole($role);
     }
 }
