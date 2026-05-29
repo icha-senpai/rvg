@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Queries\OperationQuery;
+use App\Domain\Operations\Enums\CompletionOutcome;
+use App\Domain\Operations\Enums\OperationStatus;
+use App\Domain\Operations\Services\OperationService;
 use App\Http\Controllers\Controller;
-use App\Domain\Operations\Queries\OperationQuery;
-use Illuminate\Http\Request;
 use App\Http\Requests\Operations\OperationIndexRequest;
+use App\Http\Requests\Operations\OperationStatusUpdateRequest;
 use App\Http\Requests\Operations\OperationStoreRequest;
 use App\Http\Requests\Operations\OperationUpdateRequest;
-use App\Http\Requests\Operations\OperationStatusUpdateRequest;
 use App\Models\Operation;
 use App\Models\Squadron;
-use App\Domain\Operations\Services\OperationService;
-use App\Domain\Operations\Presenters\OperationPresenter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 
 /**
  * JSON API controller for operation listing, detail, lifecycle, and mutation
@@ -118,8 +120,8 @@ class OperationController extends Controller
         $deleted = $this->service->cancel($operation);
 
         return response()->json([
-            'status'    => 'success',
-            'message'   => 'Operation canceled',
+            'status' => 'success',
+            'message' => 'Operation canceled',
             'operation' => OperationPresenter::make($deleted)->summary(),
         ]);
     }
@@ -152,7 +154,7 @@ class OperationController extends Controller
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->transition($operation, 'in_progress');
+        $updated = $this->service->transition($operation, OperationStatus::InProgress->value);
 
         return response()->json(
             OperationPresenter::make($updated)->full()
@@ -167,10 +169,15 @@ class OperationController extends Controller
         $this->authorize('update', $operation);
 
         $data = $request->validate([
-            'outcome' => 'required|in:success,failed',
+            'outcome' => 'required|in:' . implode(',', CompletionOutcome::values()),
         ]);
 
-        $updated = $this->service->transition($operation, 'completed', null, $data['outcome']);
+        $updated = $this->service->transition(
+            $operation,
+            OperationStatus::Completed->value,
+            null,
+            $data['outcome']
+        );
 
         return response()->json(
             OperationPresenter::make($updated)->full()
@@ -190,7 +197,7 @@ class OperationController extends Controller
 
         $updated = $this->service->transition(
             $operation,
-            'canceled',
+            OperationStatus::Canceled->value,
             $data['reason'] ?? null
         );
 
@@ -198,5 +205,4 @@ class OperationController extends Controller
             OperationPresenter::make($updated)->full()
         );
     }
-    
 }

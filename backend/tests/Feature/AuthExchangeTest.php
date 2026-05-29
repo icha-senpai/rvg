@@ -2,62 +2,41 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Cache;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AuthExchangeTest extends TestCase
 {
-    public function test_it_exchanges_a_valid_code_once(): void
+    use RefreshDatabase;
+
+    public function test_login_redirects_guests_to_verify(): void
     {
-        $exchangeCode = 'test-exchange-code-1234567890-abcdefghij';
+        $response = $this->get('/login');
 
-        Cache::put('auth_exchange:' . $exchangeCode, [
-            'access_token' => 'access-token-123',
-            'refresh_token' => 'refresh-token-456',
-            'expires_in' => 86400,
-            'refresh_expires_in' => 604800,
-        ], now()->addMinutes(5));
-
-        $response = $this->postJson('/api/v1/auth/exchange', [
-            'exchange_code' => $exchangeCode,
-        ]);
-
-        $response
-            ->assertOk()
-            ->assertJson([
-                'status' => 'success',
-                'message' => 'Tokens exchanged successfully.',
-                'access_token' => 'access-token-123',
-                'refresh_token' => 'refresh-token-456',
-                'expires_in' => 86400,
-                'refresh_expires_in' => 604800,
-            ]);
-
-        $secondResponse = $this->postJson('/api/v1/auth/exchange', [
-            'exchange_code' => $exchangeCode,
-        ]);
-
-        $secondResponse
-            ->assertStatus(422)
-            ->assertJson([
-                'status' => 'error',
-                'message' => 'Exchange code is invalid or expired. Please verify Discord again.',
-            ]);
+        $response->assertRedirect('/verify');
     }
 
-    public function test_it_rejects_an_unknown_exchange_code(): void
+    public function test_login_redirects_unverified_authenticated_users_to_verify(): void
     {
-        $exchangeCode = 'missing-exchange-code-1234567890-abcdefgh';
+        /** @var User $user */
+        $user = User::factory()->create();
 
-        $response = $this->postJson('/api/v1/auth/exchange', [
-            'exchange_code' => $exchangeCode,
+        $response = $this->actingAs($user)->get('/login');
+
+        $response->assertRedirect('/verify');
+    }
+
+    public function test_login_redirects_verified_authenticated_users_home(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'discord_id' => 'discord-auth-test-user',
+            'rsi_verified_at' => now(),
         ]);
 
-        $response
-            ->assertStatus(422)
-            ->assertJson([
-                'status' => 'error',
-                'message' => 'Exchange code is invalid or expired. Please verify Discord again.',
-            ]);
+        $response = $this->actingAs($user)->get('/login');
+
+        $response->assertRedirect('/');
     }
 }

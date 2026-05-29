@@ -2,11 +2,13 @@
 
 namespace App\Domain\Operations\States;
 
+use App\Domain\Operations\Enums\OperationStatus;
+
 class Canceled extends OperationState
 {
-    public static function name(): string
+    public static function name(): OperationStatus
     {
-        return 'canceled';
+        return OperationStatus::Canceled;
     }
 
     public function allowedTransitions(): array

@@ -2,14 +2,15 @@
 
 namespace App\Domain\States;
 
+use App\Domain\Squadrons\Enums\SquadronStatus;
 use App\Models\Squadron;
 use LogicException;
 
 class SquadronState
 {
-    public const ACTIVE    = 'active';
-    public const INACTIVE  = 'inactive';
-    public const DISBANDED = 'disbanded';
+    public const ACTIVE = SquadronStatus::Active->value;
+    public const INACTIVE = SquadronStatus::Inactive->value;
+    public const DISBANDED = SquadronStatus::Disbanded->value;
 
     /**
      * All valid statuses for squadrons.
@@ -45,11 +46,11 @@ class SquadronState
     {
         $from = $squadron->status;
 
-        if (!in_array($from, self::VALID_STATUSES, true)) {
+        if (! in_array($from, self::VALID_STATUSES, true)) {
             return false;
         }
 
-        if (!in_array($toStatus, self::VALID_STATUSES, true)) {
+        if (! in_array($toStatus, self::VALID_STATUSES, true)) {
             return false;
         }
 

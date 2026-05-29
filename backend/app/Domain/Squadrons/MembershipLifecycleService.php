@@ -2,6 +2,7 @@
 
 namespace App\Domain\Squadrons;
 
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
@@ -31,7 +32,7 @@ class MembershipLifecycleService
         return SquadronMember::create([
             'user_id' => $user->id,
             'squadron_id' => $squadron->id,
-            'membership_status' => SquadronMember::STATUS_PENDING,
+            'membership_status' => SquadronMembershipStatus::Pending->value,
             'joined_at' => now(),
         ]);
     }

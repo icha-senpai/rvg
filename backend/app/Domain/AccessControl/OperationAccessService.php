@@ -9,7 +9,8 @@ use App\Models\User;
 class OperationAccessService
 {
     public function __construct(
-        protected SharedAccessService $shared
+        protected SharedAccessService $shared,
+        protected SquadronMembershipReadService $memberships
     ) {}
 
     public function canViewAnyOperation(User $user): bool
@@ -70,7 +71,7 @@ class OperationAccessService
                 && $this->shared->atLeast($user, 'lieutenant');
         }
 
-        $squadron = Squadron::find($operation->squadron_id);
+        $squadron = $this->memberships->squadronForOperation($operation);
 
         if (! $squadron) {
             return false;
@@ -109,7 +110,7 @@ class OperationAccessService
         }
 
         if ($operation->squadron_id) {
-            $squadron = Squadron::find($operation->squadron_id);
+            $squadron = $this->memberships->squadronForOperation($operation);
 
             if ($squadron && $this->shared->isSquadronLeader($user, $squadron)) {
                 return true;

@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Application\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Domain\AccessControl\AccessService;
+use App\Domain\Squadrons\MembershipService;
 use App\Http\Controllers\Controller;
-use App\Models\Squadron;
-use App\Models\SquadronMember;
 use App\Http\Requests\SquadronMemberAddRequest;
 use App\Http\Requests\SquadronMemberUpdateStatusRequest;
-use App\Domain\Squadrons\MembershipService;
-use App\Domain\AccessControl\AccessService;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Squadron;
+use App\Models\SquadronMember;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 /**
  * JSON API controller for squadron membership management and self-service
@@ -45,9 +46,7 @@ class SquadronMemberController extends Controller
         }
 
         return response()->json(
-            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
-                $member->load('user')
-            ),
+            SquadronMemberPresenter::make($member->load('user')),
             201
         );
     }
@@ -69,18 +68,13 @@ class SquadronMemberController extends Controller
         );
 
         return response()->json(
-            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
-                $member->load('user')
-            ),
+            SquadronMemberPresenter::make($updated->load('user')),
             201
         );
     }
 
     /**
      * Remove a member from the squadron through the API.
-     *
-     * Lieutenants are blocked from removing the leader even if they otherwise
-     * have access to member-management actions.
      */
     public function destroy(Squadron $squadron, SquadronMember $member)
     {
@@ -88,22 +82,19 @@ class SquadronMemberController extends Controller
 
         $this->authorize('manageMembers', $squadron);
 
-        if (
-            $user instanceof User
-            && $this->access->isSquadronLieutenant($user, $squadron)
-            && (
-                $member->user_id === $squadron->leader_id
-                || $member->role === SquadronMember::ROLE_LEADER
-            )
-        ) {
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        try {
+            $this->membership->removeMemberFromManage($squadron, $member, $user);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'success' => false,
-                'message' => 'Lieutenants cannot remove the squadron leader.',
-            ], 403);
+                'message' => collect($e->errors())->flatten()->first() ?? 'Cannot remove member.',
+            ], 409);
         }
-
-        $this->membership->adminRemoveMember($squadron, $member);
 
         return response()->json([
             'status' => 'success',
@@ -128,9 +119,7 @@ class SquadronMemberController extends Controller
         }
 
         return response()->json(
-            \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
-                $member->load('user')
-            ),
+            SquadronMemberPresenter::make($member->load('user')),
             201
         );
     }
@@ -160,10 +149,8 @@ class SquadronMemberController extends Controller
     /**
      * Promote the given user to lieutenant through the API.
      */
-    public function promoteLieutenant(
-        Squadron $squadron,
-        User $user
-    ) {
+    public function promoteLieutenant(Squadron $squadron, User $user)
+    {
         $this->authorize('promoteLieutenant', $squadron);
 
         try {
@@ -185,9 +172,7 @@ class SquadronMemberController extends Controller
         return response()->json([
             'status' => 'success',
             'success' => true,
-            'member' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::make(
-                $member->load('user')
-            ),
+            'member' => SquadronMemberPresenter::make($member->load('user')),
         ]);
     }
 

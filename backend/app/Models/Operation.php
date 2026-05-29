@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Operations\Enums\OperationStatus;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -114,7 +115,7 @@ class Operation extends Model
      */
     public function isDraft(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === OperationStatus::Draft->value;
     }
 
     /**
@@ -122,7 +123,7 @@ class Operation extends Model
      */
     public function isPublished(): bool
     {
-        return $this->status === 'published';
+        return $this->status === OperationStatus::Published->value;
     }
 
     /**
@@ -130,7 +131,7 @@ class Operation extends Model
      */
     public function isInProgress(): bool
     {
-        return $this->status === 'in_progress';
+        return $this->status === OperationStatus::InProgress->value;
     }
 
     /**
@@ -138,7 +139,7 @@ class Operation extends Model
      */
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->status === OperationStatus::Completed->value;
     }
 
     /**
@@ -146,7 +147,7 @@ class Operation extends Model
      */
     public function isCanceled(): bool
     {
-        return $this->status === 'canceled';
+        return $this->status === OperationStatus::Canceled->value;
     }
 
     /**
@@ -170,34 +171,11 @@ class Operation extends Model
      */
     public function scopeActive($q)
     {
-        return $q->whereIn('status', ['draft', 'published', 'in_progress']);
-    }
-
-    /**
-     * Transition the operation to a new lifecycle state.
-     *
-     * The transition map intentionally limits which next states are allowed from
-     * each current status.
-     */
-    public function transitionTo(string $newStatus, ?string $reason = null): bool
-    {
-        $valid = [
-            'draft'       => ['published', 'canceled'],
-            'published'   => ['in_progress', 'canceled'],
-            'in_progress' => ['completed',  'canceled'],
-        ];
-
-        if (! in_array($newStatus, $valid[$this->status] ?? [], true)) {
-            throw new \Exception("Invalid transition from {$this->status} to {$newStatus}");
-        }
-
-        $this->status = $newStatus;
-
-        if ($newStatus === 'canceled') {
-            $this->cancellation_reason = $reason;
-        }
-
-        return $this->save();
+        return $q->whereIn('status', [
+            OperationStatus::Draft->value,
+            OperationStatus::Published->value,
+            OperationStatus::InProgress->value,
+        ]);
     }
 
     /**
@@ -205,6 +183,9 @@ class Operation extends Model
      */
     public function scopeVisibleToUser($query, User $user)
     {
-        return $query->whereIn('status', ['published', 'in_progress']);
+        return $query->whereIn('status', [
+            OperationStatus::Published->value,
+            OperationStatus::InProgress->value,
+        ]);
     }
 }

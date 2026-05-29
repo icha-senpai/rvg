@@ -2,11 +2,14 @@
 
 namespace App\Domain\Squadrons;
 
+use App\Domain\AccessControl\Events\RoleAssigned;
+use App\Domain\AccessControl\Events\RoleRevoked;
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
+use App\Domain\Squadrons\Enums\SquadronRole;
 use App\Models\Role;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -37,8 +40,8 @@ class MembershipPromotionService
         $this->rules->assertLieutenantCapacity($squadron);
 
         $member->update([
-            'role' => SquadronMember::ROLE_LIEUTENANT,
-            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronRole::Lieutenant->value,
+            'membership_status' => SquadronMembershipStatus::Active->value,
         ]);
 
         // Sync the reusable application role so permission checks outside the
@@ -46,6 +49,10 @@ class MembershipPromotionService
         $lieutenantRoleId = Role::where('slug', 'lieutenant')->value('id');
         if ($lieutenantRoleId) {
             $user->roles()->syncWithoutDetaching([$lieutenantRoleId]);
+            $role = Role::find($lieutenantRoleId);
+            if ($role) {
+                RoleAssigned::dispatch($user, $role);
+            }
         }
 
         // Keep the visible user rank in step with the new leadership position if
@@ -53,9 +60,6 @@ class MembershipPromotionService
         if ((int) ($user->rank_level ?? 0) < 2) {
             $user->setRank('lieutenant');
         }
-
-        $this->flushUserAccessCache($user);
-
         return $member->fresh();
     }
 
@@ -69,24 +73,28 @@ class MembershipPromotionService
     {
         $member = SquadronMember::where('user_id', $user->id)
             ->where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
+            ->where('role', SquadronRole::Lieutenant->value)
             ->firstOrFail();
 
-        if ($member->role !== SquadronMember::ROLE_LIEUTENANT) {
+        if ($member->role !== SquadronRole::Lieutenant->value) {
             throw ValidationException::withMessages([
                 'role' => 'User is not a lieutenant.',
             ]);
         }
 
         $member->update([
-            'role' => SquadronMember::ROLE_MEMBER,
+            'role' => SquadronRole::Member->value,
         ]);
 
         // Remove every lieutenant role entry before reattaching the safer member
         // baseline role.
         $lieutenantRoleIds = Role::where('slug', 'lieutenant')->pluck('id')->all();
         if (! empty($lieutenantRoleIds)) {
+            $revokedRoles = Role::whereIn('id', $lieutenantRoleIds)->get();
             $user->roles()->detach($lieutenantRoleIds);
+            foreach ($revokedRoles as $role) {
+                RoleRevoked::dispatch($user, $role);
+            }
         }
 
         $user->unsetRelation('roles');
@@ -94,6 +102,10 @@ class MembershipPromotionService
         $memberRoleId = Role::where('slug', 'member')->value('id');
         if ($memberRoleId) {
             $user->roles()->syncWithoutDetaching([$memberRoleId]);
+            $role = Role::find($memberRoleId);
+            if ($role) {
+                RoleAssigned::dispatch($user, $role);
+            }
         }
 
         // Only lower the visible rank if this user was exactly at lieutenant rank
@@ -101,19 +113,6 @@ class MembershipPromotionService
         if ((int) ($user->rank_level ?? 0) === 2 && $user->rank === 'lieutenant') {
             $user->setRank('member');
         }
-
-        $this->flushUserAccessCache($user);
-
         return $member->fresh();
-    }
-
-    /**
-     * Clear cached roles and permissions so authorization checks see the new
-     * access state immediately after promotion or demotion.
-     */
-    protected function flushUserAccessCache(User $user): void
-    {
-        Cache::forget("user_roles_{$user->id}");
-        Cache::forget("user_permissions_{$user->id}");
     }
 }

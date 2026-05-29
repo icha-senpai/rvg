@@ -2,6 +2,7 @@
 
 namespace App\Domain\Operations\Actions;
 
+use App\Domain\Operations\Enums\OperationStatus;
 use App\Models\Operation;
 use App\Domain\Operations\Events\OperationUpdated;
 
@@ -22,7 +23,7 @@ class UpdateOperation
             'created_by',
         ];
 
-        if ($operation->status === 'published' && $operation->wasChanged($discordEmbedFields)) {
+        if ($operation->status === OperationStatus::Published->value && $operation->wasChanged($discordEmbedFields)) {
             OperationUpdated::dispatch($operation);
         }
 

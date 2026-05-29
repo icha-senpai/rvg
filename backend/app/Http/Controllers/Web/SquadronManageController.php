@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Application\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Application\Squadrons\Presenters\SquadronPresenter;
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
+use App\Domain\Squadrons\Enums\SquadronRole;
 use App\Http\Controllers\Controller;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Domain\Squadrons\MembershipService;
 use App\Domain\Squadrons\SquadronService;
-use App\Domain\Squadrons\Presenters\SquadronPresenter;
-use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -68,8 +70,8 @@ class SquadronManageController extends Controller
 
         $data = $request->validate([
             'id'                => ['required', 'exists:squadron_members,id'],
-            'role'              => ['nullable', 'string', 'in:leader,lieutenant,member,null'],
-            'membership_status' => ['required', 'string', 'in:active,pending,banned'],
+            'role'              => ['nullable', 'string', 'in:' . implode(',', array_merge(SquadronRole::values(), ['null']))],
+            'membership_status' => ['required', 'string', 'in:' . implode(',', SquadronMembershipStatus::values())],
         ]);
 
         $member = SquadronMember::findOrFail($data['id']);

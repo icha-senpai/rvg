@@ -2,15 +2,20 @@
 
 namespace App\Domain\Operations\States;
 
+use App\Domain\Operations\Enums\OperationStatus;
+
 class Published extends OperationState
 {
-    public static function name(): string
+    public static function name(): OperationStatus
     {
-        return 'published';
+        return OperationStatus::Published;
     }
 
     public function allowedTransitions(): array
     {
-        return ['in_progress', 'canceled'];
+        return [
+            OperationStatus::InProgress->value,
+            OperationStatus::Canceled->value,
+        ];
     }
 }

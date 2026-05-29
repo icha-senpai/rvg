@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Domain\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Presenters\OperationPresenter;
+use App\Domain\Operations\Enums\CompletionOutcome;
+use App\Domain\Operations\Enums\OperationStatus;
 use App\Domain\Operations\Services\OperationService;
 use App\Http\Controllers\Controller;
 use App\Models\Operation;
@@ -34,7 +36,7 @@ class OperationTransitionController extends Controller
 
         Log::info("🟢 publish() endpoint hit for operation {$operation->id}");
 
-        $updated = $this->service->transition($operation, 'published');
+        $updated = $this->service->transition($operation, OperationStatus::Published->value);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -66,7 +68,7 @@ class OperationTransitionController extends Controller
     {
         $this->authorize('update', $operation);
 
-        $updated = $this->service->transition($operation, 'in_progress');
+        $updated = $this->service->transition($operation, OperationStatus::InProgress->value);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -89,10 +91,10 @@ class OperationTransitionController extends Controller
         $this->authorize('update', $operation);
 
         $data = $request->validate([
-            'outcome' => 'required|in:success,failed',
+            'outcome' => 'required|in:' . implode(',', CompletionOutcome::values()),
         ]);
 
-        $updated = $this->service->transition($operation, 'completed', null, $data['outcome']);
+        $updated = $this->service->transition($operation, OperationStatus::Completed->value, null, $data['outcome']);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -118,7 +120,7 @@ class OperationTransitionController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $updated = $this->service->transition($operation, 'canceled', $data['reason'] ?? null);
+        $updated = $this->service->transition($operation, OperationStatus::Canceled->value, $data['reason'] ?? null);
 
         if ($request->expectsJson()) {
             return response()->json([

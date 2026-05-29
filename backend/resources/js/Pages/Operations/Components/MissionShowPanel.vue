@@ -510,9 +510,12 @@ const hasMetaInformation = computed(() => {
             <div class="text-xs text-text-secondary">{{ formatLocal(operation.ends_at) }} local</div>
           </div>
           <div>
-            <span class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Deadline</span>
+            <span class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sign ups close at</span>
             <div class="font-semibold" :class="operation.rsvp_deadline ? 'text-horizon-white' : 'text-text-secondary'">
               {{ operation.rsvp_deadline ? formatUTC(operation.rsvp_deadline) : 'None set' }}
+            </div>
+            <div v-if="operation.rsvp_deadline" class="text-xs text-text-secondary">
+              {{ formatLocal(operation.rsvp_deadline) }} local
             </div>
           </div>
         </div>

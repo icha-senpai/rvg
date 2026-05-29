@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -130,6 +131,14 @@ class UserControllerTest extends TestCase
             'description' => 'Test director role',
             'is_system' => true,
         ]);
+
+        $manageUsersPermission = Permission::create([
+            'name' => 'Manage users',
+            'slug' => 'user.manage',
+            'description' => 'Manage user data, roles, and status.',
+        ]);
+
+        $directorRole->permissions()->attach($manageUsersPermission->id);
 
         $user = User::factory()->create(array_merge([
             'global_status' => User::STATUS_ACTIVE,

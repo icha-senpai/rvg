@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Squadron;
 use App\Models\Operation;
 use App\Models\OperationTemplate;
-use App\Models\SquadronMember;
 
 /**
  * Centralizes higher-level authorization rules that combine roles, permissions,
@@ -105,22 +104,9 @@ class AccessService
     }
 
     /**
-     * Return the current active membership for the given squadron id.
-     */
-    public function squadronMembershipForId(User $user, int $squadronId): ?SquadronMember
-    {
-        return SquadronMember::query()
-            ->where('user_id', $user->id)
-            ->where('squadron_id', $squadronId)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->latest('joined_at')
-            ->first();
-    }
-
-    /**
      * Return the current active membership for the given squadron.
      */
-    public function squadronMembership(User $user, Squadron $squadron): ?SquadronMember
+    public function squadronMembership(User $user, Squadron $squadron)
     {
         return $this->squadronMembershipForId($user, $squadron->id);
     }

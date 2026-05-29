@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Application\Operations\OperationShowDataService;
+use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Queries\OperationQuery;
+use App\Application\Squadrons\Presenters\SquadronPresenter;
 use App\Http\Controllers\Controller;
 use App\Domain\AccessControl\RoleHierarchy;
-use App\Domain\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\Squadrons\SquadronService;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
@@ -18,10 +21,7 @@ use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
 
 use App\Domain\Operations\Services\OperationService;
-use App\Domain\Operations\Services\OperationShowDataService;
 use App\Domain\Operations\Services\OperationTemplateService;
-use App\Domain\Operations\Presenters\OperationPresenter;
-use App\Domain\Operations\Queries\OperationQuery;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Application\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Application\Squadrons\Presenters\SquadronPresenter;
 use App\Http\Controllers\Controller;
-use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
-use App\Domain\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\Squadrons\SquadronService;
 use App\Models\Squadron;
 use App\Models\User;

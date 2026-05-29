@@ -2,6 +2,8 @@
 
 namespace App\Domain\Squadrons;
 
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
+use App\Domain\Squadrons\Enums\SquadronRole;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
@@ -122,7 +124,7 @@ class MembershipRuleService
     public function normalizeRole(?string $role): string
     {
         if ($role === null || $role === '' || $role === 'null') {
-            return SquadronMember::ROLE_MEMBER;
+            return SquadronRole::Member->value;
         }
 
         return $role;
@@ -135,8 +137,8 @@ class MembershipRuleService
     {
         return SquadronMember::query()
             ->where('squadron_id', $squadron->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
+            ->where('role', SquadronRole::Lieutenant->value)
+            ->where('membership_status', SquadronMembershipStatus::Active->value)
             ->count();
     }
 

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Operations\States;
 
+use App\Domain\Operations\Enums\CompletionOutcome;
+use App\Domain\Operations\Enums\OperationStatus;
 use App\Models\Operation;
 use Illuminate\Validation\ValidationException;
 
@@ -17,7 +19,7 @@ abstract class OperationState
     /**
      * Human / internal name for this state.
      */
-    abstract public static function name(): string;
+    abstract public static function name(): OperationStatus;
 
     /**
      * Which statuses this state is allowed to transition to.
@@ -31,12 +33,12 @@ abstract class OperationState
      */
     public static function from(Operation $operation): self
     {
-        return match ($operation->status) {
-            'draft'       => new Draft($operation),
-            'published'   => new Published($operation),
-            'in_progress' => new InProgress($operation),
-            'completed'   => new Completed($operation),
-            'canceled'    => new Canceled($operation),
+        return match (OperationStatus::from($operation->status)) {
+            OperationStatus::Draft => new Draft($operation),
+            OperationStatus::Published => new Published($operation),
+            OperationStatus::InProgress => new InProgress($operation),
+            OperationStatus::Completed => new Completed($operation),
+            OperationStatus::Canceled => new Canceled($operation),
             default       => throw new \RuntimeException("Unknown operation status: {$operation->status}"),
         };
     }
@@ -46,20 +48,22 @@ abstract class OperationState
      */
     public function transitionTo(string $targetStatus, ?string $reason = null, ?string $outcome = null): Operation
     {
+        $target = OperationStatus::from($targetStatus);
+
         if (! in_array($targetStatus, $this->allowedTransitions(), true)) {
             throw ValidationException::withMessages([
-                'status' => "Invalid transition from ".static::name()." to {$targetStatus}",
+                'status' => 'Invalid transition from ' . static::name()->value . " to {$target->value}",
             ]);
         }
 
-        $this->operation->status = $targetStatus;
+        $this->operation->status = $target->value;
 
-        if ($targetStatus === 'canceled' && $reason) {
+        if ($target === OperationStatus::Canceled && $reason) {
             $this->operation->cancellation_reason = $reason;
         }
 
-        if ($targetStatus === 'completed') {
-            if ($outcome !== null && ! in_array($outcome, ['success', 'failed'], true)) {
+        if ($target === OperationStatus::Completed) {
+            if ($outcome !== null && ! in_array($outcome, CompletionOutcome::values(), true)) {
                 throw ValidationException::withMessages([
                     'outcome' => 'Invalid completion outcome.',
                 ]);

@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Api\v1;
 
-use App\Http\Controllers\Controller;
-use App\Models\Squadron;
-use App\Models\Media;
-use App\Http\Requests\SquadronStoreRequest;
-use App\Http\Requests\SquadronUpdateRequest;
-use App\Domain\Squadrons\SquadronService;
-use App\Domain\Squadrons\Presenters\SquadronPresenter;
-use App\Domain\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Application\Squadrons\Presenters\SquadronMemberPresenter;
+use App\Application\Squadrons\Presenters\SquadronPresenter;
 use App\Domain\AccessControl\AccessService;
 use App\Domain\Media\MediaService;
+use App\Domain\Squadrons\SquadronService;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\SquadronStoreRequest;
+use App\Http\Requests\SquadronUpdateRequest;
+use App\Models\Media;
+use App\Models\Squadron;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -60,12 +60,8 @@ class SquadronController extends Controller
             $user = null;
         }
 
-        // Load the related squadron graph once so the presenter and permission
-        // payload can reuse the same in-memory relationships.
         $squadron = $this->squadrons->show($squadron);
 
-        // The viewer can only have one membership row in this squadron, so the
-        // first matching member record is enough for the UI payload.
         $viewerMembership = null;
         if ($user) {
             $viewerMembership = $squadron->members
@@ -75,35 +71,24 @@ class SquadronController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => null,
-            'squadron' => \App\Domain\Squadrons\Presenters\SquadronPresenter::make($squadron),
-
-            'members' => \App\Domain\Squadrons\Presenters\SquadronMemberPresenter::collection(
-                $squadron->members
-            ),
-
+            'squadron' => SquadronPresenter::make($squadron),
+            'members' => SquadronMemberPresenter::collection($squadron->members),
             'viewer_membership' => $viewerMembership
                 ? SquadronMemberPresenter::make($viewerMembership)
                 : null,
-
             'permissions' => [
                 'can_manage_members' => $user
                     ? $user->can('manageMembers', $squadron)
                     : false,
-
                 'can_promote_lieutenant' => $user
                     ? $user->can('promoteLieutenant', $squadron)
                     : false,
-
-                // These convenience flags keep the frontend from having to repeat
-                // basic squadron membership-state checks.
                 'can_apply' => $user
                     && ! $viewerMembership
                     && $squadron->recruiting,
-
                 'can_leave' => $user
                     && $viewerMembership
                     && $viewerMembership->membership_status === \App\Models\SquadronMember::STATUS_ACTIVE,
-
                 'can_wait' => $user
                     && $viewerMembership
                     && $viewerMembership->membership_status === \App\Models\SquadronMember::STATUS_PENDING,
@@ -128,9 +113,6 @@ class SquadronController extends Controller
 
     /**
      * Update a squadron and optionally replace or clear its emblem media.
-     *
-     * Non-emblem updates use the normal squadron update policy. Emblem changes
-     * also require the specialized emblem-management capability check.
      */
     public function update(SquadronUpdateRequest $request, Squadron $squadron)
     {
@@ -154,8 +136,6 @@ class SquadronController extends Controller
                 abort(403);
             }
 
-            // Emblem changes have their own authorization rule because some users
-            // may manage media without having full squadron-edit access.
             $canUpdateEmblem = $this->access->isDirectorLike($user)
                 || $this->access->isSquadronLeader($user, $squadron)
                 || (
@@ -172,14 +152,12 @@ class SquadronController extends Controller
 
         if ($emblemKeyExists) {
             if ($emblemMediaId === null) {
-                // Clearing the emblem detaches the current emblem media without
-                // deleting the media record itself.
                 Media::where('mediable_type', Squadron::class)
                     ->where('mediable_id', $squadron->id)
                     ->where('collection', Media::COLLECTION_SQUADRON_EMBLEM)
                     ->update([
                         'mediable_type' => null,
-                        'mediable_id'   => null,
+                        'mediable_id' => null,
                     ]);
             } else {
                 $media = Media::findOrFail((int) $emblemMediaId);
@@ -194,8 +172,6 @@ class SquadronController extends Controller
                     ], 422);
                 }
 
-                // Reuse the shared media attach flow so emblem replacement follows
-                // the same rules as the rest of the media domain.
                 $this->media->attach($media, $squadron, true);
             }
         }

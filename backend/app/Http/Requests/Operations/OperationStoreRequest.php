@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Operations;
 
+use App\Domain\Operations\Enums\OperationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OperationStoreRequest extends FormRequest
@@ -56,7 +57,7 @@ class OperationStoreRequest extends FormRequest
             'notes'                => 'nullable|string|max:5000',
             'extended_description'  => 'nullable|string|max:5000',
 
-            'status'               => 'nullable|in:draft,published',
+            'status'               => 'nullable|in:' . implode(',', OperationStatus::creatableValues()),
 
             'media_id'             => 'nullable|integer|exists:media,id',
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Operations;
 
+use App\Domain\Operations\Enums\OperationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OperationUpdateRequest extends FormRequest
@@ -59,7 +60,7 @@ class OperationUpdateRequest extends FormRequest
             'slots'                => 'sometimes|array|nullable',
             'slots.*'              => 'required|string|max:255|regex:/\S/',
 
-            'status'               => 'sometimes|in:draft,published,in_progress,completed,canceled',
+            'status'               => 'sometimes|in:' . implode(',', OperationStatus::values()),
 
             'media_id'             => 'nullable|integer|exists:media,id',
         ];

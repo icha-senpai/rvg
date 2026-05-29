@@ -2,48 +2,14 @@
 
 namespace App\Domain\Operations\Services;
 
-use App\Domain\Operations\Presenters\OperationPresenter;
-use App\Models\Operation;
+use App\Application\Operations\OperationShowDataService as ApplicationOperationShowDataService;
 
-class OperationShowDataService
+/**
+ * @deprecated Use App\Application\Operations\OperationShowDataService.
+ *
+ * Operation show/edit payload assembly is now treated as an application concern.
+ * This wrapper keeps older imports working during the transition.
+ */
+class OperationShowDataService extends ApplicationOperationShowDataService
 {
-    public function build(Operation $operation, int|string|null $userId): array
-    {
-        $operation->load([
-            'squadron',
-            'creator',
-            'participants.user',
-            'images',
-        ]);
-
-        $participants = $operation->participants;
-
-        $participantsBySlot = $participants
-            ->whereNotNull('slot')
-            ->groupBy('slot');
-
-        $unassignedParticipants = $participants
-            ->whereNull('slot')
-            ->values();
-
-        $currentParticipant = $userId
-            ? $participants->firstWhere('user_id', $userId)
-            : null;
-
-        return [
-            'operation' => OperationPresenter::make($operation)->full(),
-            'participants' => $participants,
-            'participantsBySlot' => $participantsBySlot,
-            'unassignedParticipants' => $unassignedParticipants,
-            'currentParticipant' => $currentParticipant,
-        ];
-    }
-
-    public function editor(Operation $operation): array
-    {
-        return [
-            'mission' => OperationPresenter::make($operation)->form(),
-            'squadronId' => $operation->squadron_id,
-        ];
-    }
 }

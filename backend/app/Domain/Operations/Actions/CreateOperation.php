@@ -2,21 +2,20 @@
 
 namespace App\Domain\Operations\Actions;
 
+use App\Domain\Operations\Enums\OperationStatus;
+use App\Domain\Operations\Events\OperationPublished;
 use App\Models\Operation;
 use App\Models\Squadron;
 use App\Models\User;
-use App\Domain\Operations\Actions\JoinOperation;
 use Illuminate\Support\Facades\Auth;
-use App\Domain\Operations\Events\OperationPublished; // <-- ADD THIS if using events
 
 class CreateOperation
 {
     public function execute(array $data, ?Squadron $squadron = null): Operation
     {
-        // Determine status
-        $status = in_array($data['status'] ?? null, ['draft', 'published'])
+        $status = in_array($data['status'] ?? null, OperationStatus::creatableValues(), true)
             ? $data['status']
-            : 'draft';
+            : OperationStatus::Draft->value;
 
         $creatorId = Auth::id();
 
@@ -37,17 +36,8 @@ class CreateOperation
             }
         }
 
-        // FIRE PUBLISH CODE IF NEEDED
-        if ($status === 'published') {
-            // If you're using Laravel Events:
-            event(new OperationPublished($operation));
-
-            // OR if you're hitting the bot directly:
-            // Http::post(env('BOT_WEBHOOK_URL'), [
-            //     'operation_id' => $operation->id,
-            //     'title' => $operation->title,
-            //     ...
-            // ]);
+        if ($status === OperationStatus::Published->value) {
+            OperationPublished::dispatch($operation->fresh());
         }
 
         return $operation;

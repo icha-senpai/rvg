@@ -556,7 +556,7 @@ const hasMetaInformation = computed(() => {
 
             <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                Sign Up Deadline
+                Sign ups close at
               </div>
 
               <template v-if="operation.rsvp_deadline">
@@ -577,30 +577,25 @@ const hasMetaInformation = computed(() => {
 
           <!-- Briefing -->
           <section
-            v-if="operation.description"
+            v-if="operation.description || operation.extended_description || operation.notes"
             class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 "
           >
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Operation Briefing
             </div>
 
-            <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">
-              {{ operation.description }}
-            </p>
-          </section>
+            <div class="mt-3 space-y-4">
+              <p v-if="operation.description" class="whitespace-pre-line text-sm leading-7 text-text-secondary">
+                {{ operation.description }}
+              </p>
 
-          <!-- Extended briefing -->
-          <section
-            v-if="operation.extended_description || operation.notes"
-            class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6"
-          >
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Extended Briefing
+              <p
+                v-if="operation.extended_description || operation.notes"
+                class="whitespace-pre-line border-t border-white/[0.055] pt-4 text-sm leading-7 text-text-secondary"
+              >
+                {{ operation.extended_description ?? operation.notes }}
+              </p>
             </div>
-
-            <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">
-              {{ operation.extended_description ?? operation.notes }}
-            </p>
           </section>
 
           <!-- Meta information -->

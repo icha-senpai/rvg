@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\AccessControl\RoleHierarchy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -90,19 +91,8 @@ class User extends Authenticatable
      */
     public function setRank(string $rank): void
     {
-        $map = [
-            'member'         => 1,
-            'lieutenant'     => 2,
-            'cit'            => 3,
-            'commander'      => 4,
-            'wing_commander' => 5,
-            'admiral'        => 6,
-            'grand_admiral'  => 7,
-            'director'       => 8,
-        ];
-
         $this->attributes['rank'] = $rank;
-        $this->attributes['rank_level'] = $map[$rank] ?? 1;
+        $this->attributes['rank_level'] = RoleHierarchy::levelFor($rank) ?: 1;
         $this->save();
     }
 

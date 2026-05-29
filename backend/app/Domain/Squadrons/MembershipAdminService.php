@@ -3,6 +3,8 @@
 namespace App\Domain\Squadrons;
 
 use App\Domain\AccessControl\AccessService;
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
+use App\Domain\Squadrons\Enums\SquadronRole;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
@@ -32,7 +34,7 @@ class MembershipAdminService
         return SquadronMember::create([
             'user_id' => $userId,
             'squadron_id' => $squadron->id,
-            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'membership_status' => SquadronMembershipStatus::Active->value,
             'joined_at' => now(),
         ]);
     }
@@ -47,7 +49,7 @@ class MembershipAdminService
         return SquadronMember::create([
             'squadron_id' => $squadron->id,
             'user_id' => $userId,
-            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'membership_status' => SquadronMembershipStatus::Active->value,
             'role' => null,
             'joined_at' => now(),
         ]);
@@ -124,13 +126,13 @@ class MembershipAdminService
 
         $isSelf = $member->user_id === $actingUser->id;
         $isSelfAcceptance = $isSelf
-            && $member->membership_status === SquadronMember::STATUS_PENDING
-            && $status === SquadronMember::STATUS_ACTIVE;
+            && $member->membership_status === SquadronMembershipStatus::Pending->value
+            && $status === SquadronMembershipStatus::Active->value;
 
         $isSelfDemotion = $isSelf
             && ! $isSelfAcceptance
-            && $member->role === SquadronMember::ROLE_LEADER
-            && $normalizedRole !== SquadronMember::ROLE_LEADER;
+            && $member->role === SquadronRole::Leader->value
+            && $normalizedRole !== SquadronRole::Leader->value;
 
         if ($isSelfDemotion) {
             throw ValidationException::withMessages([
@@ -141,7 +143,7 @@ class MembershipAdminService
         $member->update([
             'role' => $normalizedRole,
             'membership_status' => $status,
-            'joined_at' => $status === SquadronMember::STATUS_ACTIVE && ! $member->joined_at
+            'joined_at' => $status === SquadronMembershipStatus::Active->value && ! $member->joined_at
                 ? now()
                 : $member->joined_at,
         ]);
@@ -174,7 +176,7 @@ class MembershipAdminService
             $this->access->isSquadronLieutenant($actingUser, $squadron)
             && (
                 $member->user_id === $squadron->leader_id
-                || $member->role === SquadronMember::ROLE_LEADER
+                || $member->role === SquadronRole::Leader->value
             )
         ) {
             throw ValidationException::withMessages([

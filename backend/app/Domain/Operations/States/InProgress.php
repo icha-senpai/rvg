@@ -2,15 +2,20 @@
 
 namespace App\Domain\Operations\States;
 
+use App\Domain\Operations\Enums\OperationStatus;
+
 class InProgress extends OperationState
 {
-    public static function name(): string
+    public static function name(): OperationStatus
     {
-        return 'in_progress';
+        return OperationStatus::InProgress;
     }
 
     public function allowedTransitions(): array
     {
-            return ['completed', 'canceled'];
+        return [
+            OperationStatus::Completed->value,
+            OperationStatus::Canceled->value,
+        ];
     }
 }

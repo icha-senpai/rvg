@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Operations;
 
+use App\Domain\Operations\Enums\CompletionOutcome;
+use App\Domain\Operations\Enums\OperationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OperationStatusUpdateRequest extends FormRequest
@@ -14,9 +16,9 @@ class OperationStatusUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|in:published,in_progress,completed,canceled',
+            'status' => 'required|in:' . implode(',', OperationStatus::transitionableValues()),
             'reason' => 'nullable|string|max:500',
-            'outcome' => 'required_if:status,completed|in:success,failed',
+            'outcome' => 'required_if:status,' . OperationStatus::Completed->value . '|in:' . implode(',', CompletionOutcome::values()),
         ];
     }
 }

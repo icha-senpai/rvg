@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Domain\AccessControl\RoleLifecycleService;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ class AdminRoleController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        protected RoleLifecycleService $roles
+    ) {}
+
     /**
      * Create a new application role.
      */
@@ -27,10 +32,7 @@ class AdminRoleController extends Controller
             'slug' => ['required', 'string', 'max:255', Rule::unique('roles', 'slug')],
         ]);
 
-        Role::create([
-            'name' => $data['name'],
-            'slug' => $data['slug'],
-        ]);
+        $this->roles->create($data);
 
         return redirect()
             ->back()
@@ -56,10 +58,7 @@ class AdminRoleController extends Controller
         ]);
 
         $role = Role::findOrFail($data['id']);
-        $role->update([
-            'name' => $data['name'],
-            'slug' => $data['slug'],
-        ]);
+        $this->roles->update($role, $data);
 
         return redirect()
             ->back()
@@ -78,10 +77,7 @@ class AdminRoleController extends Controller
         ]);
 
         $role = Role::findOrFail($data['id']);
-
-        $role->users()->detach();
-        $role->permissions()->detach();
-        $role->delete();
+        $this->roles->delete($role);
 
         return redirect()
             ->back()

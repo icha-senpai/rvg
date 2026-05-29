@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Squadrons\Enums\SquadronStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Squadron extends Model
@@ -61,13 +62,13 @@ class Squadron extends Model
     }
 
     /* Status helpers */
-    public function isActive()    { return $this->status === 'active'; }
-    public function isInactive()  { return $this->status === 'inactive'; }
-    public function isDisbanded() { return $this->status === 'disbanded'; }
+    public function isActive()    { return $this->status === SquadronStatus::Active->value; }
+    public function isInactive()  { return $this->status === SquadronStatus::Inactive->value; }
+    public function isDisbanded() { return $this->status === SquadronStatus::Disbanded->value; }
 
     /* Scopes */
     public function scopeActive($q)
     {
-        return $q->where('status', 'active');
+        return $q->where('status', SquadronStatus::Active->value);
     }
 }

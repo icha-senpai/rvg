@@ -9,6 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class SharedAccessService
 {
+    public function __construct(
+        protected SquadronMembershipReadService $memberships
+    ) {}
+
     public function context(User $user): UserContext
     {
         return UserContext::for($user);
@@ -54,17 +58,12 @@ class SharedAccessService
 
     public function squadronMembershipForId(User $user, int $squadronId): ?SquadronMember
     {
-        return SquadronMember::query()
-            ->where('user_id', $user->id)
-            ->where('squadron_id', $squadronId)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->latest('joined_at')
-            ->first();
+        return $this->memberships->activeMembershipForId($user, $squadronId);
     }
 
     public function squadronMembership(User $user, Squadron $squadron): ?SquadronMember
     {
-        return $this->squadronMembershipForId($user, $squadron->id);
+        return $this->memberships->activeMembership($user, $squadron);
     }
 
     public function isSquadronMember(User $user, Squadron $squadron): bool
@@ -74,12 +73,12 @@ class SharedAccessService
 
     public function isSquadronLeader(User $user, Squadron $squadron): bool
     {
-        return $this->context($user)->isSquadronLeader($squadron);
+        return $this->memberships->isLeader($user, $squadron);
     }
 
     public function isSquadronLieutenant(User $user, Squadron $squadron): bool
     {
-        return $this->context($user)->isSquadronLieutenant($squadron);
+        return $this->memberships->isLieutenant($user, $squadron);
     }
 
     public function isOfficer(User $user): bool

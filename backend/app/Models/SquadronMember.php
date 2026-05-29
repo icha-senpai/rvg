@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domain\Squadrons\Enums\SquadronMembershipStatus;
+use App\Domain\Squadrons\Enums\SquadronRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +25,13 @@ class SquadronMember extends Model
         'removed_at',
     ];
 
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_ACTIVE  = 'active';
-    public const STATUS_BANNED  = 'banned';
+    public const STATUS_PENDING = SquadronMembershipStatus::Pending->value;
+    public const STATUS_ACTIVE  = SquadronMembershipStatus::Active->value;
+    public const STATUS_BANNED  = SquadronMembershipStatus::Banned->value;
 
-    public const ROLE_MEMBER     = 'member';
-    public const ROLE_LEADER     = 'leader';
-    public const ROLE_LIEUTENANT = 'lieutenant';
+    public const ROLE_MEMBER = SquadronRole::Member->value;
+    public const ROLE_LEADER = SquadronRole::Leader->value;
+    public const ROLE_LIEUTENANT = SquadronRole::Lieutenant->value;
 
     /**
      * Return the squadron that owns this membership record.
