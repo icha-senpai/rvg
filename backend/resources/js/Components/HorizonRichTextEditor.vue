@@ -120,8 +120,8 @@ const CalloutNode = Node.create({
     }
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const tone = HTMLAttributes.tone || 'blue'
+  renderHTML({ node, HTMLAttributes }) {
+    const tone = node.attrs.tone || 'blue'
 
     return [
       'div',
