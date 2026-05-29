@@ -187,7 +187,7 @@ const CalloutNode = Node.create({
         'data-type': 'hz-rte-callout',
         class: `hz-rte-callout hz-rte-callout-${isCustomTone ? 'custom' : tone}`,
         style: isCustomTone
-          ? `border-color: color-mix(in srgb, ${customColor} 45%, transparent); background: color-mix(in srgb, ${customColor} 14%, rgb(27 32 53 / 1));`
+          ? `border-color: color-mix(in srgb, ${customColor} 45%, transparent); background: color-mix(in srgb, ${customColor} 100%, rgb(27 32 53 / 1));`
           : null,
       }),
       0,

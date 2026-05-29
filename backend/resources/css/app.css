@@ -398,9 +398,9 @@
   margin: 1rem 0;
   padding: 1rem 1.1rem;
   border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: 1rem;
-  background: rgb(27 32 53 / 0.82);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  border-radius: 0;
+  background: rgb(27 32 53 / 1);
+  box-shadow: none;
 }
 
 .hz-rte-content .hz-rte-callout > :first-child {
@@ -413,32 +413,32 @@
 
 .hz-rte-content .hz-rte-callout-blue {
   border-color: color-mix(in srgb, var(--horizon-sunset-blue) 45%, transparent);
-  background: color-mix(in srgb, var(--horizon-sunset-blue) 16%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, var(--horizon-sunset-blue) 100%, rgb(27 32 53 / 1));
 }
 
 .hz-rte-content .hz-rte-callout-cyan {
   border-color: rgb(56 189 248 / 0.42);
-  background: color-mix(in srgb, #38bdf8 14%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, #38bdf8 100%, rgb(27 32 53 / 1));
 }
 
 .hz-rte-content .hz-rte-callout-magenta {
   border-color: color-mix(in srgb, var(--horizon-sunset-magenta) 45%, transparent);
-  background: color-mix(in srgb, var(--horizon-sunset-magenta) 14%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, var(--horizon-sunset-magenta) 100%, rgb(27 32 53 / 1));
 }
 
 .hz-rte-content .hz-rte-callout-orange {
   border-color: color-mix(in srgb, var(--horizon-sunset-orange) 45%, transparent);
-  background: color-mix(in srgb, var(--horizon-sunset-orange) 15%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, var(--horizon-sunset-orange) 100%, rgb(27 32 53 / 1));
 }
 
 .hz-rte-content .hz-rte-callout-green {
   border-color: rgb(34 197 94 / 0.42);
-  background: color-mix(in srgb, #22c55e 14%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, #22c55e 100%, rgb(27 32 53 / 1));
 }
 
 .hz-rte-content .hz-rte-callout-red {
   border-color: rgb(239 68 68 / 0.45);
-  background: color-mix(in srgb, #ef4444 14%, rgb(27 32 53 / 1));
+  background: color-mix(in srgb, #ef4444 100%, rgb(27 32 53 / 1));
 }
 
 @media (max-width: 640px) {

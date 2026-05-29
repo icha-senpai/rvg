@@ -348,7 +348,7 @@ class SquadronSettingsService
     protected function buildCustomCalloutStyle(string $hexColor): string
     {
         return sprintf(
-            'border-color: color-mix(in srgb, %1$s 45%%, transparent); background: color-mix(in srgb, %1$s 14%%, rgb(27 32 53 / 1));',
+            'border-color: color-mix(in srgb, %1$s 45%%, transparent); background: color-mix(in srgb, %1$s 100%%, rgb(27 32 53 / 1));',
             $hexColor
         );
     }

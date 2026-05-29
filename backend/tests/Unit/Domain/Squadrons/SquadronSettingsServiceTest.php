@@ -47,7 +47,7 @@ class SquadronSettingsServiceTest extends TestCase
         $this->assertStringContainsString('data-tone="custom"', $updated->description);
         $this->assertStringContainsString('data-accent-color="#aabbcc"', $updated->description);
         $this->assertStringContainsString('class="hz-rte-callout hz-rte-callout-custom"', $updated->description);
-        $this->assertStringContainsString('border-color: color-mix(in srgb, #aabbcc 45%, transparent); background: color-mix(in srgb, #aabbcc 14%, rgb(27 32 53 / 1));', $updated->description);
+        $this->assertStringContainsString('border-color: color-mix(in srgb, #aabbcc 45%, transparent); background: color-mix(in srgb, #aabbcc 100%, rgb(27 32 53 / 1));', $updated->description);
         $this->assertStringContainsString('class="hz-rte-color-cyan hz-rte-size-18"', $updated->description);
         $this->assertStringNotContainsString('nope', $updated->description);
     }
