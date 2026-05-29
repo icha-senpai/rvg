@@ -62,11 +62,13 @@ class SquadronSettingsServiceTest extends TestCase
         ]);
 
         $updated = $service->updateSettings($squadron, [
-            'recruitment_propaganda' => '<p><img src="https://example.com/banner.png" alt="Banner" class="hz-rich-image hz-rich-image-right ignored" data-align="right" onclick="alert(1)"></p>',
+            'recruitment_propaganda' => '<p><img src="https://example.com/banner.png" alt="Banner" class="hz-rich-image hz-rich-image-right ignored" data-align="right" data-width="63" style="width: 63%; height: auto; border: 0;" onclick="alert(1)"></p>',
         ]);
 
         $this->assertStringContainsString('class="hz-rich-image hz-rich-image-right"', $updated->recruitment_propaganda);
         $this->assertStringContainsString('data-align="right"', $updated->recruitment_propaganda);
+        $this->assertStringContainsString('data-width="63"', $updated->recruitment_propaganda);
+        $this->assertStringContainsString('style="width: 63%; height: auto"', $updated->recruitment_propaganda);
         $this->assertStringContainsString('loading="lazy"', $updated->recruitment_propaganda);
         $this->assertStringNotContainsString('onclick', $updated->recruitment_propaganda);
         $this->assertStringNotContainsString('ignored', $updated->recruitment_propaganda);

@@ -156,6 +156,11 @@ class SquadronSettingsService
                 $node->setAttribute('rel', 'noopener noreferrer');
             } elseif ($tag === 'img') {
                 $src = $node->getAttribute('src');
+                $widthPercent = $this->normalizeImageWidthPercent(
+                    $node->getAttribute('data-width') !== ''
+                        ? $node->getAttribute('data-width')
+                        : $this->extractImageWidthFromStyle($node->getAttribute('style'))
+                );
 
                 if (! $this->isSafeSrc($src)) {
                     // Images are removed entirely when the source is unsafe because
@@ -165,7 +170,7 @@ class SquadronSettingsService
                 }
 
                 foreach (iterator_to_array($node->attributes ?? []) as $attr) {
-                    if (! in_array(strtolower($attr->name), ['src', 'alt', 'title', 'class', 'data-align'], true)) {
+                    if (! in_array(strtolower($attr->name), ['src', 'alt', 'title', 'class', 'data-align', 'data-width'], true)) {
                         $node->removeAttribute($attr->name);
                     }
                 }
@@ -182,6 +187,14 @@ class SquadronSettingsService
 
                 if (! in_array($align, ['left', 'center', 'right'], true)) {
                     $node->removeAttribute('data-align');
+                }
+
+                if ($widthPercent !== null) {
+                    $node->setAttribute('data-width', (string) $widthPercent);
+                    $node->setAttribute('style', $this->buildImageStyle($widthPercent));
+                } else {
+                    $node->removeAttribute('data-width');
+                    $node->removeAttribute('style');
                 }
 
                 $node->setAttribute('loading', 'lazy');
@@ -357,6 +370,40 @@ class SquadronSettingsService
         }
 
         return implode(' ', $allowed);
+    }
+
+    protected function normalizeImageWidthPercent($value): ?int
+    {
+        $raw = trim((string) $value);
+        $raw = rtrim($raw, '%');
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (! is_numeric($raw)) {
+            return null;
+        }
+
+        $width = (int) round((float) $raw);
+
+        return max(15, min(100, $width));
+    }
+
+    protected function extractImageWidthFromStyle(?string $style): ?int
+    {
+        $style = (string) $style;
+
+        if (preg_match('/(?:^|;)\s*width\s*:\s*(\d{1,3}(?:\.\d+)?)%/i', $style, $matches) !== 1) {
+            return null;
+        }
+
+        return $this->normalizeImageWidthPercent($matches[1]);
+    }
+
+    protected function buildImageStyle(int $widthPercent): string
+    {
+        return 'width: ' . $widthPercent . '%; height: auto';
     }
 
     protected function sanitizeRichTextSpanClassList(?string $className): string

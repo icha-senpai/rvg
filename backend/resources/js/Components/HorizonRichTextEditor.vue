@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Editor, EditorContent } from '@tiptap/vue-3'
+import { NodeSelection } from '@tiptap/pm/state'
 import StarterKit from '@tiptap/starter-kit'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
@@ -82,6 +83,30 @@ const ExtendedTextStyle = TextStyle.extend({
   },
 })
 
+function normalizeImageWidthPercent(value) {
+  const raw = String(value ?? '').trim().replace(/%$/, '')
+  if (!raw) return null
+
+  const parsed = Number.parseFloat(raw)
+  if (!Number.isFinite(parsed)) return null
+
+  return Math.max(15, Math.min(100, Math.round(parsed)))
+}
+
+function extractImageWidthFromStyle(style) {
+  const match = String(style || '').match(/(?:^|;)\s*width\s*:\s*(\d{1,3}(?:\.\d+)?)%/i)
+  return match ? normalizeImageWidthPercent(match[1]) : null
+}
+
+function buildImageStyle(widthPercent) {
+  const normalized = normalizeImageWidthPercent(widthPercent)
+  return normalized ? `width: ${normalized}%; height: auto;` : null
+}
+
+function defaultImageWidthForAlign(align) {
+  return align === 'center' ? 72 : 42
+}
+
 const WrappedImage = BaseImage.extend({
   addAttributes() {
     return {
@@ -95,6 +120,24 @@ const WrappedImage = BaseImage.extend({
         default: 'center',
         parseHTML: element => element.getAttribute('data-align') || 'center',
         renderHTML: attributes => ({ 'data-align': attributes['data-align'] || 'center' }),
+      },
+      widthPercent: {
+        default: null,
+        parseHTML: element => normalizeImageWidthPercent(
+          element.getAttribute('data-width') || extractImageWidthFromStyle(element.getAttribute('style'))
+        ),
+        renderHTML: attributes => {
+          const normalized = normalizeImageWidthPercent(attributes.widthPercent)
+
+          if (!normalized) {
+            return {}
+          }
+
+          return {
+            'data-width': String(normalized),
+            style: buildImageStyle(normalized),
+          }
+        },
       },
     }
   },
@@ -178,6 +221,11 @@ const uploadInput = ref(null)
 const pendingImageAlign = ref('center')
 const isUploadingImage = ref(false)
 const uploadError = ref('')
+const editorViewport = ref(null)
+const selectedImageFrame = ref(null)
+const isResizingImage = ref(false)
+
+let imageResizeCleanup = null
 
 function bumpToolbar() {
   toolbarTick.value += 1
@@ -185,14 +233,24 @@ function bumpToolbar() {
 
 function rememberSelection() {
   if (!editor) return
+
+   const selection = editor.state.selection
+
   lastSelection.value = {
-    from: editor.state.selection.from,
-    to: editor.state.selection.to,
+    from: selection.from,
+    to: selection.to,
+    type: selection instanceof NodeSelection ? 'node' : 'text',
   }
 }
 
 function restoreSelection() {
   if (!editor || !lastSelection.value) return
+
+  if (lastSelection.value.type === 'node') {
+    editor.commands.setNodeSelection(lastSelection.value.from)
+    return
+  }
+
   editor.commands.setTextSelection(lastSelection.value)
 }
 
@@ -298,6 +356,28 @@ const currentCalloutCustomColor = computed(() => {
 const currentImageAlign = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('image')?.['data-align'] || 'center'
+})
+const currentImageWidthPercent = computed(() => {
+  toolbarTick.value
+  const width = normalizeImageWidthPercent(editor?.getAttributes('image')?.widthPercent)
+  return width || defaultImageWidthForAlign(currentImageAlign.value)
+})
+
+const imageWidthPresetOptions = [
+  { value: 25, label: 'Image: Small (25%)' },
+  { value: 40, label: 'Image: Medium (40%)' },
+  { value: 60, label: 'Image: Large (60%)' },
+  { value: 80, label: 'Image: XL (80%)' },
+  { value: 100, label: 'Image: Full Width' },
+]
+
+const currentImageWidthSelectValue = computed(() => {
+  if (!isImageActive.value) return ''
+
+  const current = currentImageWidthPercent.value
+  const match = imageWidthPresetOptions.find(option => option.value === current)
+
+  return match ? String(match.value) : '__custom'
 })
 
 const fontFamilyOptions = [
@@ -466,6 +546,173 @@ function imageClassForAlign(align) {
   return 'hz-rich-image hz-rich-image-center'
 }
 
+function getSelectedImageElement() {
+  if (!editor?.isActive('image')) return null
+
+  const nodeDom = editor.view.nodeDOM(editor.state.selection.from)
+
+  if (nodeDom instanceof HTMLImageElement) {
+    return nodeDom
+  }
+
+  if (nodeDom instanceof HTMLElement) {
+    const nestedImage = nodeDom.querySelector('img')
+
+    if (nestedImage instanceof HTMLImageElement) {
+      return nestedImage
+    }
+  }
+
+  const fallback = editor.view.dom.querySelector('img.ProseMirror-selectednode')
+
+  return fallback instanceof HTMLImageElement ? fallback : null
+}
+
+function updateSelectedImageFrame() {
+  if (isResizingImage.value) {
+    return
+  }
+
+  const viewport = editorViewport.value
+  const image = getSelectedImageElement()
+
+  if (!(viewport instanceof HTMLElement) || !(image instanceof HTMLImageElement)) {
+    selectedImageFrame.value = null
+    return
+  }
+
+  const viewportRect = viewport.getBoundingClientRect()
+  const imageRect = image.getBoundingClientRect()
+
+  if (imageRect.width <= 0 || imageRect.height <= 0) {
+    selectedImageFrame.value = null
+    return
+  }
+
+  selectedImageFrame.value = {
+    top: imageRect.top - viewportRect.top,
+    left: imageRect.left - viewportRect.left,
+    width: imageRect.width,
+    height: imageRect.height,
+  }
+}
+
+function queueSelectedImageFrameUpdate() {
+  nextTick(() => updateSelectedImageFrame())
+}
+
+function buildResizedImageFrame({ top, left, width, align, aspectRatio }, nextWidth) {
+  const normalizedWidth = Math.max(0, nextWidth)
+  const widthDelta = normalizedWidth - width
+
+  let nextLeft = left
+
+  if (align === 'center') {
+    nextLeft = left - (widthDelta / 2)
+  } else if (align === 'right') {
+    nextLeft = left - widthDelta
+  }
+
+  return {
+    top,
+    left: nextLeft,
+    width: normalizedWidth,
+    height: normalizedWidth * aspectRatio,
+  }
+}
+
+function setImageWidth(widthPercent) {
+  if (!editor?.isActive('image')) return
+
+  const normalized = normalizeImageWidthPercent(widthPercent)
+
+  if (!normalized) return
+
+  focusAndRestoreSelection()
+  editor.chain().updateAttributes('image', { widthPercent: normalized }).run()
+  bumpToolbar()
+  queueSelectedImageFrameUpdate()
+}
+
+function applyImageWidthPreset(value) {
+  if (value === '__custom') return
+
+  const normalized = normalizeImageWidthPercent(value)
+
+  if (!normalized) return
+
+  setImageWidth(normalized)
+}
+
+function stopImageResize() {
+  imageResizeCleanup?.()
+  imageResizeCleanup = null
+  isResizingImage.value = false
+  queueSelectedImageFrameUpdate()
+}
+
+function startImageResize(event, handle = 'right') {
+  if (props.disabled || !editor?.isActive('image')) return
+
+  const viewport = editorViewport.value
+  const image = getSelectedImageElement()
+
+  if (!(viewport instanceof HTMLElement) || !(image instanceof HTMLImageElement)) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  rememberSelection()
+  focusAndRestoreSelection()
+
+  const viewportRect = viewport.getBoundingClientRect()
+  const imageRect = image.getBoundingClientRect()
+  const startX = event.clientX
+  const startWidth = imageRect.width
+  const minWidth = viewportRect.width * 0.15
+  const imageAlign = currentImageAlign.value
+  const startFrame = {
+    top: imageRect.top - viewportRect.top,
+    left: imageRect.left - viewportRect.left,
+    width: imageRect.width,
+    align: imageAlign,
+    aspectRatio: imageRect.width > 0 ? imageRect.height / imageRect.width : 1,
+  }
+
+  isResizingImage.value = true
+
+  const onMouseMove = moveEvent => {
+    const horizontalDelta = moveEvent.clientX - startX
+    const resizeFromLeft = ['left', 'top-left', 'bottom-left'].includes(handle)
+    const deltaMultiplier = resizeFromLeft ? -1 : 1
+    const nextWidthPx = Math.max(minWidth, Math.min(viewportRect.width, startWidth + (horizontalDelta * deltaMultiplier)))
+    const normalized = normalizeImageWidthPercent((nextWidthPx / viewportRect.width) * 100)
+
+    if (!normalized) {
+      return
+    }
+
+    restoreSelection()
+    editor.commands.updateAttributes('image', { widthPercent: normalized })
+    bumpToolbar()
+    selectedImageFrame.value = buildResizedImageFrame(startFrame, nextWidthPx)
+  }
+
+  const onMouseUp = () => {
+    stopImageResize()
+  }
+
+  imageResizeCleanup = () => {
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseup', onMouseUp)
+  }
+
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+}
+
 function mediaDisplayUrl(media) {
   return media?.display_url || media?.medium_url || media?.url || media?.thumbnail_url || ''
 }
@@ -510,21 +757,25 @@ const editor = new Editor({
     emit('update:modelValue', editor.getHTML())
     isEditorEmpty.value = editor.isEmpty
     bumpToolbar()
+    queueSelectedImageFrameUpdate()
   },
   onSelectionUpdate: () => {
     rememberSelection()
     bumpToolbar()
+    queueSelectedImageFrameUpdate()
   },
   onFocus: () => {
     isFocused.value = true
     rememberSelection()
     bumpToolbar()
+    queueSelectedImageFrameUpdate()
   },
   onBlur: ({ editor }) => {
     isFocused.value = false
     isEditorEmpty.value = editor.isEmpty
     rememberSelection()
     bumpToolbar()
+    queueSelectedImageFrameUpdate()
   },
 })
 
@@ -674,9 +925,16 @@ function addTableRow() { focusAndRestoreSelection(); editor.chain().addRowAfter(
 function addTableColumn() { focusAndRestoreSelection(); editor.chain().addColumnAfter().run() }
 function deleteTable() { focusAndRestoreSelection(); editor.chain().deleteTable().run() }
 
-function insertImageWithAttributes(src, alt = '', align = 'center') {
+function insertImageWithAttributes(src, alt = '', align = 'center', widthPercent = defaultImageWidthForAlign(align)) {
   focusAndRestoreSelection()
-  editor.chain().setImage({ src, alt, class: imageClassForAlign(align), 'data-align': align }).run()
+  editor.chain().setImage({
+    src,
+    alt,
+    class: imageClassForAlign(align),
+    'data-align': align,
+    widthPercent: normalizeImageWidthPercent(widthPercent),
+  }).run()
+  queueSelectedImageFrameUpdate()
 }
 
 function insertImage(align = 'center') {
@@ -693,8 +951,13 @@ function setImageAlign(align) {
     return
   }
   focusAndRestoreSelection()
-  editor.chain().updateAttributes('image', { class: imageClassForAlign(align), 'data-align': align }).run()
+  editor.chain().updateAttributes('image', {
+    class: imageClassForAlign(align),
+    'data-align': align,
+    widthPercent: currentImageWidthPercent.value,
+  }).run()
   bumpToolbar()
+  queueSelectedImageFrameUpdate()
 }
 
 function triggerImageUpload(align = 'center') {
@@ -765,9 +1028,23 @@ watch(
       editor.commands.setContent(next, false)
       isEditorEmpty.value = editor.isEmpty
       bumpToolbar()
+      queueSelectedImageFrameUpdate()
     }
   }
 )
+
+function handleWindowResize() {
+  queueSelectedImageFrameUpdate()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleWindowResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleWindowResize)
+  stopImageResize()
+})
 
 onBeforeUnmount(() => editor?.destroy())
 </script>
@@ -903,6 +1180,13 @@ onBeforeUnmount(() => editor?.destroy())
       <div class="rich-editor-tooltip" data-tooltip="Float image right">
         <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
       </div>
+      <div class="rich-editor-tooltip" data-tooltip="Image size preset">
+        <select class="hz-input" style="max-width: 170px; padding: 0.3rem 0.55rem;" :disabled="disabled || !isImageActive" :value="currentImageWidthSelectValue" @mousedown.stop @change="applyImageWidthPreset($event.target.value)">
+          <option value="" disabled>Image Size</option>
+          <option v-if="currentImageWidthSelectValue === '__custom'" value="__custom" disabled>Image: Custom ({{ currentImageWidthPercent }}%)</option>
+          <option v-for="option in imageWidthPresetOptions" :key="option.value" :value="String(option.value)">{{ option.label }}</option>
+        </select>
+      </div>
 
       <div class="rich-editor-tooltip" data-tooltip="Insert table">
         <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
@@ -926,7 +1210,7 @@ onBeforeUnmount(() => editor?.destroy())
 
     <p v-if="uploadError" class="text-xs text-red-300">{{ uploadError }}</p>
 
-    <div class="relative">
+    <div ref="editorViewport" class="relative">
       <div v-if="showPlaceholder" class="pointer-events-none absolute left-3 top-3 text-horizon-muted">{{ placeholder }}</div>
       <EditorContent
         :editor="editor"
@@ -934,6 +1218,72 @@ onBeforeUnmount(() => editor?.destroy())
         :class="disabled ? 'opacity-70 pointer-events-none' : ''"
         :style="{ minHeight: `${minHeightPx}px` }"
       />
+      <div
+        v-if="selectedImageFrame"
+        class="rich-editor-image-frame"
+        :style="{
+          top: `${selectedImageFrame.top}px`,
+          left: `${selectedImageFrame.left}px`,
+          width: `${selectedImageFrame.width}px`,
+          height: `${selectedImageFrame.height}px`,
+        }"
+      >
+        <div class="rich-editor-image-size-chip">{{ currentImageWidthPercent }}%</div>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-top"
+          aria-label="Resize selected image from top"
+          @mousedown="startImageResize($event, 'top')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-right"
+          aria-label="Resize selected image from right"
+          @mousedown="startImageResize($event, 'right')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-bottom"
+          aria-label="Resize selected image from bottom"
+          @mousedown="startImageResize($event, 'bottom')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-left"
+          aria-label="Resize selected image from left"
+          @mousedown="startImageResize($event, 'left')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-top-left"
+          aria-label="Resize selected image from top left"
+          @mousedown="startImageResize($event, 'top-left')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-top-right"
+          aria-label="Resize selected image from top right"
+          @mousedown="startImageResize($event, 'top-right')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle rich-editor-image-handle-bottom-left"
+          aria-label="Resize selected image from bottom left"
+          @mousedown="startImageResize($event, 'bottom-left')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle-rail"
+          aria-label="Resize selected image"
+          @mousedown="startImageResize($event, 'right')"
+        ></button>
+        <button
+          type="button"
+          class="rich-editor-image-handle-corner"
+          aria-label="Resize selected image"
+          @mousedown="startImageResize($event, 'bottom-right')"
+        ></button>
+      </div>
     </div>
   </div>
 </template>
@@ -1028,6 +1378,125 @@ onBeforeUnmount(() => editor?.destroy())
   min-width: 7.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-transform: uppercase;
+}
+
+.rich-editor-image-frame {
+  position: absolute;
+  border: 1px solid rgb(96 165 250 / 0.85);
+  border-radius: 1rem;
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.7), 0 12px 26px rgb(2 6 23 / 0.22);
+  pointer-events: none;
+  z-index: 15;
+}
+
+.rich-editor-image-size-chip {
+  position: absolute;
+  top: -0.85rem;
+  left: 0.65rem;
+  padding: 0.22rem 0.45rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 999px;
+  background: rgb(9 12 18 / 0.96);
+  color: rgb(238 242 255 / 1);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rich-editor-image-handle-rail {
+  position: absolute;
+  top: 0.2rem;
+  right: -0.85rem;
+  bottom: 0.2rem;
+  width: 1.7rem;
+  border: 0;
+  background: transparent;
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.rich-editor-image-handle {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.rich-editor-image-handle-top {
+  top: -0.8rem;
+  left: 0.8rem;
+  right: 0.8rem;
+  height: 1.6rem;
+  cursor: ns-resize;
+}
+
+.rich-editor-image-handle-right {
+  top: 0.8rem;
+  right: -0.8rem;
+  bottom: 0.8rem;
+  width: 1.6rem;
+  cursor: ew-resize;
+}
+
+.rich-editor-image-handle-bottom {
+  left: 0.8rem;
+  right: 0.8rem;
+  bottom: -0.8rem;
+  height: 1.6rem;
+  cursor: ns-resize;
+}
+
+.rich-editor-image-handle-left {
+  top: 0.8rem;
+  left: -0.8rem;
+  bottom: 0.8rem;
+  width: 1.6rem;
+  cursor: ew-resize;
+}
+
+.rich-editor-image-handle-top-left,
+.rich-editor-image-handle-top-right,
+.rich-editor-image-handle-bottom-left {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+}
+
+.rich-editor-image-handle-top-left {
+  top: -0.7rem;
+  left: -0.7rem;
+  cursor: nwse-resize;
+}
+
+.rich-editor-image-handle-top-right {
+  top: -0.7rem;
+  right: -0.7rem;
+  cursor: nesw-resize;
+}
+
+.rich-editor-image-handle-bottom-left {
+  bottom: -0.7rem;
+  left: -0.7rem;
+  cursor: nesw-resize;
+}
+
+.rich-editor-image-handle-corner {
+  position: absolute;
+  right: -0.55rem;
+  bottom: -0.55rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgb(96 165 250 / 1), rgb(59 130 246 / 0.92));
+  box-shadow: 0 4px 14px rgb(37 99 235 / 0.45);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.rich-editor-body :deep(img.ProseMirror-selectednode) {
+  outline: 2px solid rgb(96 165 250 / 0.85);
+  outline-offset: 2px;
 }
 
 .rich-editor-body :deep(p::after) {
