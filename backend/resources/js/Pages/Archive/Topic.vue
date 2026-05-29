@@ -111,7 +111,7 @@ function clearFilters() {
         ← Back to Archive
       </Link>
 
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -146,7 +146,7 @@ function clearFilters() {
       </section>
 
       <!-- Filters -->
-      <section class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3">
+      <section class="hz-surface-welcome rounded-xl border border-white/[0.055] p-3">
         <div class="flex flex-col gap-3 md:flex-row md:items-end">
           <HorizonInput v-model="search" type="search" placeholder="Search entries..." class="md:flex-1" />
           <div class="flex gap-2">
@@ -173,7 +173,7 @@ function clearFilters() {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group relative overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group relative overflow-hidden rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
             <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div class="relative flex flex-wrap gap-2">
@@ -187,7 +187,7 @@ function clearFilters() {
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No visible entries matched this topic and filter set.
         </div>
       </section>

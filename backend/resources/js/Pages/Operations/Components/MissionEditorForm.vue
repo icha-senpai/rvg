@@ -833,7 +833,7 @@ function confirmDestroyOperation({ close }) {
   <HorizonContainer class="py-0">
     <div class="mx-auto max-w-5xl space-y-6">
       <!-- Editor command hero -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6">
+      <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-6">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -884,7 +884,7 @@ function confirmDestroyOperation({ close }) {
       </section>
 
       <!-- Editor status strip -->
-      <section class="grid overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024] md:grid-cols-3">
+      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-3">
         <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Mode
@@ -929,7 +929,7 @@ function confirmDestroyOperation({ close }) {
       </section>
 
       <!-- UTC warning -->
-      <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+      <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -950,7 +950,7 @@ function confirmDestroyOperation({ close }) {
       <!-- Main Layout -->
       <div class="space-y-6">
         <!-- Templates command section -->
-        <section class="relative z-40 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+        <section class="hz-surface-welcome relative z-40 overflow-visible rounded-[2rem] border border-white/[0.055] p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -968,7 +968,7 @@ function confirmDestroyOperation({ close }) {
 
             <div
               v-if="selectedTemplate"
-              class="rounded-2xl border border-white/[0.055] bg-white/[0.024] px-4 py-3"
+              class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3"
             >
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Selected
@@ -1032,7 +1032,7 @@ function confirmDestroyOperation({ close }) {
             </div>
           </div>
 
-          <div class="mt-5 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+          <div class="hz-surface-welcome mt-5 rounded-[1.5rem] border border-white/[0.055] p-4">
             <div class="mb-3">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Save Current Setup
@@ -1077,7 +1077,7 @@ function confirmDestroyOperation({ close }) {
         </section>
 
                 <!-- Operation Details -->
-        <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5 ">
+        <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1093,7 +1093,7 @@ function confirmDestroyOperation({ close }) {
               </p>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Current Status
               </div>
@@ -1105,7 +1105,7 @@ function confirmDestroyOperation({ close }) {
           </div>
 
           <div class="space-y-5">
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonInput
                 v-model="form.title"
                 label="Title"
@@ -1121,7 +1121,7 @@ function confirmDestroyOperation({ close }) {
             </div>
 
             <div class="grid gap-4 lg:grid-cols-2">
-              <div class="relative z-[9999] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome relative z-[9999] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="form.operation_type"
                   label="Operation Type"
@@ -1143,7 +1143,7 @@ function confirmDestroyOperation({ close }) {
                 </p>
               </div>
 
-              <div class="relative z-[9998] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome relative z-[9998] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="form.branch"
                   label="Branch"
@@ -1166,7 +1166,7 @@ function confirmDestroyOperation({ close }) {
             </div>
 
             <div class="grid gap-4 lg:grid-cols-2">
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonInput
                   v-model="form.gameplay_type"
                   label="Gameplay Type"
@@ -1181,7 +1181,7 @@ function confirmDestroyOperation({ close }) {
                 </p>
               </div>
 
-              <div class="relative z-[9997] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome relative z-[9997] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="selectedSquadronNames"
                   label="Squadron Assignment"
@@ -1203,7 +1203,7 @@ function confirmDestroyOperation({ close }) {
             </div>
 
             <div class="grid gap-4 lg:grid-cols-3">
-              <div class="relative z-[9996] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome relative z-[9996] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="form.visibility"
                   label="Visibility"
@@ -1222,7 +1222,7 @@ function confirmDestroyOperation({ close }) {
                 </p>
               </div>
 
-              <div class="relative z-[9995] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome relative z-[9995] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="form.operation_strictness"
                   label="Comms Strictness"
@@ -1245,7 +1245,7 @@ function confirmDestroyOperation({ close }) {
 
               </div>
 
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Identity Preview
               </div>
@@ -1275,7 +1275,7 @@ function confirmDestroyOperation({ close }) {
         </section>
 
                 <!-- Schedule -->
-        <section class="relative z-20 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5 ">
+        <section class="hz-surface-welcome relative z-20 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1308,7 +1308,7 @@ function confirmDestroyOperation({ close }) {
           </div>
 
           <div class="grid gap-4 lg:grid-cols-3">
-            <div class="relative z-[9999] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome relative z-[9999] rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonDateTimePicker
                 v-model="startDateTime"
                 label="Start Time"
@@ -1327,7 +1327,7 @@ function confirmDestroyOperation({ close }) {
               </p>
             </div>
 
-            <div class="relative z-[9998] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome relative z-[9998] rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonDateTimePicker
                 v-model="endDateTime"
                 label="End Time"
@@ -1346,7 +1346,7 @@ function confirmDestroyOperation({ close }) {
               </p>
             </div>
 
-            <div class="relative z-[9997] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
+            <div class="hz-surface-welcome relative z-[9997] rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonDateTimePicker
                 v-model="rsvpDateTime"
                 label="RSVP Deadline"
@@ -1366,7 +1366,7 @@ function confirmDestroyOperation({ close }) {
             </div>
           </div>
 
-          <div class="mt-5 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+          <div class="hz-surface-welcome mt-5 rounded-[1.5rem] border border-white/[0.055] p-4">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Schedule Notes
             </div>
@@ -1402,7 +1402,7 @@ function confirmDestroyOperation({ close }) {
           </div>
         </section>
                 <!-- Locations -->
-        <section class="relative z-10 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+        <section class="hz-surface-welcome relative z-10 overflow-visible rounded-[2rem] border border-white/[0.055] p-5">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Deployment Geography
@@ -1418,7 +1418,7 @@ function confirmDestroyOperation({ close }) {
           </div>
 
           <div class="grid gap-4 lg:grid-cols-2">
-            <div class="relative z-[9996] rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome relative z-[9996] rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonSelect
                 v-model="form.start_location"
                 label="Start Location"
@@ -1440,7 +1440,7 @@ function confirmDestroyOperation({ close }) {
               </p>
             </div>
 
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonInput
                 v-model="form.operation_location"
                 label="Operation Location"
@@ -1460,7 +1460,7 @@ function confirmDestroyOperation({ close }) {
             </div>
           </div>
 
-          <div class="mt-5 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+          <div class="hz-surface-welcome mt-5 rounded-[1.5rem] border border-white/[0.055] p-4">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Location Preview
             </div>
@@ -1489,7 +1489,7 @@ function confirmDestroyOperation({ close }) {
           </div>
         </section>
                 <!-- Briefings -->
-        <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5 ">
+        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Mission Writing
@@ -1505,7 +1505,7 @@ function confirmDestroyOperation({ close }) {
           </div>
 
           <div class="grid gap-4 lg:grid-cols-2">
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Public Briefing
               </label>
@@ -1529,7 +1529,7 @@ function confirmDestroyOperation({ close }) {
               </p>
             </div>
 
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Extended Briefing
               </label>
@@ -1565,7 +1565,7 @@ function confirmDestroyOperation({ close }) {
 
 
                 <!-- Media -->
-        <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1604,7 +1604,7 @@ function confirmDestroyOperation({ close }) {
 
           <div
             v-if="selectedMedia"
-            class="overflow-hidden rounded-[1.5rem] border border-white/[0.055] bg-[color:var(--horizon-void-800)]"
+            class="hz-surface-welcome overflow-hidden rounded-[1.5rem] border border-white/[0.055]"
           >
             <img
               :src="selectedMedia.medium_url || selectedMedia.url"
@@ -1613,7 +1613,7 @@ function confirmDestroyOperation({ close }) {
               loading="lazy"
             />
 
-            <div class="border-t border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome border-t border-white/[0.055] p-4">
               <div class="text-sm font-semibold text-horizon-white">
                 {{ selectedMedia.name || 'Selected media' }}
               </div>
@@ -1626,7 +1626,7 @@ function confirmDestroyOperation({ close }) {
 
           <div
             v-else
-            class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-8 text-center"
+            class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/15 p-8 text-center"
           >
             <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
               No Image Selected
@@ -1656,7 +1656,7 @@ function confirmDestroyOperation({ close }) {
         </section>
 
                <!-- Role Slots -->
-        <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-5 ">
+        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1685,7 +1685,7 @@ function confirmDestroyOperation({ close }) {
             <div
               v-for="(slot, index) in form.slots"
               :key="index"
-              class="grid gap-3 rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"
+              class="hz-surface-welcome grid gap-3 rounded-[1.25rem] border border-white/[0.055] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"
             >
               <HorizonInput
                 v-model="form.slots[index]"
@@ -1706,7 +1706,7 @@ function confirmDestroyOperation({ close }) {
 
           <div
             v-else
-            class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-6 text-center"
+            class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/15 p-6 text-center"
           >
             <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
               No Role Slots
@@ -1727,7 +1727,7 @@ function confirmDestroyOperation({ close }) {
 
 
                <!-- Form Actions -->
-        <section class="sticky bottom-0 z-30 rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+        <section class="hz-surface-welcome sticky bottom-0 z-30 rounded-[2rem] border border-white/[0.055] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">

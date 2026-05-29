@@ -721,17 +721,17 @@ function formatDate(value) {
 function statusCardClass(status) {
   switch (status) {
     case 'draft':
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
     case 'published':
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
     case 'in_progress':
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
     case 'completed':
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
     case 'canceled':
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
     default:
-      return 'border-white/[0.075] bg-[rgba(21,25,42,0.64)]'
+      return 'border-white/[0.075]'
   }
 }
 </script>
@@ -740,7 +740,7 @@ function statusCardClass(status) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command header -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6">
+      <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-6">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -808,7 +808,7 @@ function statusCardClass(status) {
       </section>
 
       <!-- Stats strip -->
-      <section class="grid overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024] md:grid-cols-4">
+      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-4">
         <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Active
@@ -859,7 +859,7 @@ function statusCardClass(status) {
       </section>
 
       <!-- Filters -->
-      <section class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3">
+      <section class="hz-surface-welcome rounded-xl border border-white/[0.055] p-3">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex flex-wrap items-center gap-2">
             <HorizonButton
@@ -884,7 +884,7 @@ function statusCardClass(status) {
       </section>
 
       <!-- Operation command cards -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-4 md:p-5">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4 md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -905,7 +905,7 @@ function statusCardClass(status) {
           <article
             v-for="op in filteredOperations"
             :key="op.id"
-            class="group relative overflow-visible rounded-[1.75rem] border border-white/[0.075] bg-[rgba(21,25,42,0.64)] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[rgba(27,32,53,0.68)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+            class="hz-surface-welcome group relative overflow-visible rounded-[1.75rem] border border-white/[0.075] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
             :class="statusCardClass(op.status)"
           >
             <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
@@ -949,7 +949,7 @@ function statusCardClass(status) {
               </div>
 
               <div class="grid gap-3 md:grid-cols-2">
-                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
+                <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Starts
                   </div>
@@ -958,7 +958,7 @@ function statusCardClass(status) {
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
+                <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Ends
                   </div>
@@ -969,7 +969,7 @@ function statusCardClass(status) {
               </div>
 
               <div class="grid gap-3 md:grid-cols-2">
-                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
+                <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Squadron
                   </div>
@@ -978,7 +978,7 @@ function statusCardClass(status) {
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3">
+                <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
                     Creator
                   </div>

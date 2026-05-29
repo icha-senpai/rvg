@@ -1,5 +1,5 @@
 <template>
-  <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
+  <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">

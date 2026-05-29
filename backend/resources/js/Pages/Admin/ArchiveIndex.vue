@@ -191,7 +191,7 @@ function confirmDeleteTopic({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Director Tools</div>
@@ -212,7 +212,7 @@ function confirmDeleteTopic({ close }) {
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+      <section class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
@@ -237,7 +237,7 @@ function confirmDeleteTopic({ close }) {
         </div>
 
         <div v-if="groupedTopics.length" class="space-y-6">
-          <section v-for="group in groupedTopics" :key="group.key" class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.34)] p-5 md:p-6">
+          <section v-for="group in groupedTopics" :key="group.key" class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
             <div class="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
@@ -255,7 +255,7 @@ function confirmDeleteTopic({ close }) {
               </div>
             </div>
 
-            <div class="mt-5 rounded-3xl border border-white/[0.055] bg-white/[0.02] p-4 md:p-5">
+            <div class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-4 md:p-5">
               <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Direct Entries</div>
@@ -269,7 +269,7 @@ function confirmDeleteTopic({ close }) {
               </div>
 
               <div v-if="group.directEntries.length" class="mt-4 grid gap-4 xl:grid-cols-2">
-                <article v-for="entry in group.directEntries" :key="`direct-${group.key}-${entry.id}`" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+                <article v-for="entry in group.directEntries" :key="`direct-${group.key}-${entry.id}`" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
                   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                     <div>
                       <div class="flex flex-wrap gap-2">
@@ -294,13 +294,13 @@ function confirmDeleteTopic({ close }) {
                 </article>
               </div>
 
-              <div v-else class="mt-4 rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-text-secondary">
+              <div v-else class="hz-surface-welcome mt-4 rounded-3xl border border-dashed border-white/10 p-5 text-sm text-text-secondary">
                 No direct entries yet. Use <span class="font-bold text-horizon-white">Create Direct Entry</span> to add one without making a topic first.
               </div>
             </div>
 
             <div v-if="group.topics.length" class="mt-5 space-y-4">
-              <article v-for="topic in group.topics" :key="topic.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+              <article v-for="topic in group.topics" :key="topic.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
                 <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <div>
                     <div class="flex flex-wrap gap-2">
@@ -327,13 +327,13 @@ function confirmDeleteTopic({ close }) {
               </article>
             </div>
 
-            <div v-else class="mt-5 rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+            <div v-else class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
               No topics exist in this category yet. You can still use the direct entry actions above to add category-level documents right now.
             </div>
           </section>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No archive topics exist yet. Use New Topic to create the first card.
         </div>
       </section>

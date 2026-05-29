@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-6xl space-y-6">
     <!-- Roles admin header -->
-    <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-5 ">
+    <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-5 ">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -45,7 +45,7 @@
     </section>
 
     <!-- Roles cards -->
-    <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
+    <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4  md:p-5">
       <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -69,7 +69,7 @@
         <article
           v-for="role in roles"
           :key="role.id"
-          class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[rgba(21,25,42,0.64)] p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+          class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -131,7 +131,7 @@
 
       <div
         v-else
-        class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-10 text-center"
+        class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/15 p-10 text-center"
       >
         <div class="text-2xl font-black text-horizon-white">
           No Roles Found
@@ -163,13 +163,13 @@
         <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
       </div>
 
-      <div class="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop">
+      <div class="hz-surface-welcome relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <header class="relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] p-5">
+        <header class="hz-surface-welcome relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 p-5">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -197,7 +197,7 @@
         </header>
 
         <div class="relative flex-1 overflow-y-auto p-5">
-          <section class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
+          <section class="hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-4">
             <div class="mb-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Role Identity
@@ -232,7 +232,7 @@
           </section>
         </div>
 
-        <footer class="relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] p-5">
+        <footer class="hz-surface-welcome relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 p-5">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="text-sm text-text-secondary">
               {{ isEditing ? 'Save changes to this role record.' : 'Create a new access role.' }}

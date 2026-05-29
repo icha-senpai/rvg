@@ -103,7 +103,7 @@ watch(search, value => {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="relative overflow-visible rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6  md:p-8">
+      <section class="hz-surface-welcome relative overflow-visible rounded-[2rem] border border-white/[0.055] p-6  md:p-8">
         <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -126,7 +126,7 @@ watch(search, value => {
           </div>
 
           <!-- Search -->
-          <form class="rounded-xl border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-3" @submit.prevent="applySearch">
+          <form class="hz-surface-welcome rounded-xl border border-white/[0.055] p-3" @submit.prevent="applySearch">
             <div class="flex flex-col gap-2 md:flex-row md:items-end">
               <HorizonInput v-model="search" type="search" placeholder="Search archive..." class="md:flex-1" />
               <HorizonSelect v-model="sort" :options="sortOptions" placeholder="Sort" @update:model-value="applySort" class="min-w-[8rem]" />
@@ -148,7 +148,7 @@ watch(search, value => {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">{{ entry.topic?.title ?? entry.category?.name ?? 'Archive Entry' }}</div>
             <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
             <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
@@ -160,7 +160,7 @@ watch(search, value => {
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No visible archive entries matched this search.</div>
+        <div v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">No visible archive entries matched this search.</div>
       </section>
 
       <section class="space-y-4">
@@ -170,7 +170,7 @@ watch(search, value => {
         </div>
 
         <div v-if="categoryGroups.length" class="space-y-6">
-          <section v-for="group in categoryGroups" :key="group.id" class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.34)] p-5 md:p-6">
+          <section v-for="group in categoryGroups" :key="group.id" class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
             <div class="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
@@ -189,7 +189,7 @@ watch(search, value => {
             <div v-if="group.direct_entries?.length" class="mt-5 space-y-3">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">Direct Entries</div>
               <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Link v-for="entry in group.direct_entries" :key="`direct-entry-${entry.id}`" :href="entry.href" class="group rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+                <Link v-for="entry in group.direct_entries" :key="`direct-entry-${entry.id}`" :href="entry.href" class="hz-surface-welcome group rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
                   <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Direct Category Entry</div>
                   <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
                   <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
@@ -203,7 +203,7 @@ watch(search, value => {
             </div>
 
             <div v-if="group.topics?.length" class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <Link v-for="topic in group.topics" :key="topic.id" :href="topic.href" class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
+              <Link v-for="topic in group.topics" :key="topic.id" :href="topic.href" class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
                 <div class="pointer-events-none absolute inset-0 opacity-70">
                   <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
                   <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
@@ -232,13 +232,13 @@ watch(search, value => {
               </Link>
             </div>
 
-            <div v-if="!group.topics?.length && !group.direct_entries?.length" class="mt-5 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+            <div v-if="!group.topics?.length && !group.direct_entries?.length" class="hz-surface-welcome mt-5 rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
               No visible archive content is currently available in this category.
             </div>
           </section>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No archive categories are currently visible to your rank.</div>
+        <div v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">No archive categories are currently visible to your rank.</div>
       </section>
     </div>
   </HorizonContainer>

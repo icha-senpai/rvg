@@ -180,7 +180,7 @@ function closeViewModal() {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -213,7 +213,7 @@ function closeViewModal() {
       </section>
 
       <!-- Status strip -->
-      <section class="grid overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024] md:grid-cols-3">
+      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-3">
         <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Listed
@@ -252,7 +252,7 @@ function closeViewModal() {
       </section>
 
       <!-- Operations list shell -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-4 md:p-5">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4 md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -268,7 +268,7 @@ function closeViewModal() {
             </p>
           </div>
 
-          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
             {{ sortedOperations.length }} visible
           </div>
         </div>
@@ -284,7 +284,7 @@ function closeViewModal() {
 
         <div
           v-else
-          class="rounded-[1.5rem] border border-dashed border-white/[0.075] bg-white/[0.018] p-8 text-center"
+          class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/[0.075] p-8 text-center"
         >
           <div class="text-sm font-bold uppercase tracking-[0.22em] text-text-muted">
             No Operations Found

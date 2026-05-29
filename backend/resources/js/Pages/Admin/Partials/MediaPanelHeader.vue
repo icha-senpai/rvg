@@ -1,5 +1,5 @@
 <template>
-  <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-5 ">
+  <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-5 ">
     <div class="pointer-events-none absolute inset-0 opacity-40">
       <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
       <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>

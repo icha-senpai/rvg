@@ -1,5 +1,5 @@
 <template>
-  <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
+  <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4  md:p-5">
     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -25,7 +25,7 @@
 
     <div
       v-if="loading"
-      class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-10 text-center"
+      class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-10 text-center"
     >
       <div class="text-2xl font-black text-horizon-white">
         Loading Media…
@@ -38,7 +38,7 @@
 
     <div
       v-else-if="!media.length"
-      class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-10 text-center"
+      class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/15 p-10 text-center"
     >
       <div class="text-2xl font-black text-horizon-white">
         No Media Found
@@ -56,7 +56,7 @@
       <article
         v-for="item in media"
         :key="item.id"
-        class="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-[rgba(21,25,42,0.64)]  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+        class="hz-surface-welcome group relative overflow-hidden rounded-[1.5rem] border border-white/10  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
         @click="$emit('select', item)"
       >
         <div class="aspect-[16/10] bg-black/30">

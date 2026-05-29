@@ -636,7 +636,7 @@ watch(
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Personnel command header -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -712,7 +712,7 @@ watch(
       </div>
 
       <!-- Identity dossier card -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.64)] p-6 ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute left-10 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         </div>
@@ -770,7 +770,7 @@ watch(
           </div>
 
           <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
               </div>
@@ -780,7 +780,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Style
               </div>
@@ -790,7 +790,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Timezone
               </div>
@@ -800,7 +800,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Availability
               </div>
@@ -814,7 +814,7 @@ watch(
 
         <div
           v-if="me?.bio"
-          class="relative mt-6 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4"
+          class="hz-surface-welcome relative mt-6 rounded-[1.5rem] border border-white/[0.055] p-4"
         >
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Member Bio
@@ -828,7 +828,7 @@ watch(
 
 
       <!-- Operation stats + readiness -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -845,10 +845,10 @@ watch(
           </div>
 
           <div
-            class="rounded-2xl border px-4 py-3"
+            class="hz-surface-welcome rounded-2xl border px-4 py-3"
             :class="canViewRestrictedOperationStats
-              ? 'border-white/[0.055] bg-white/[0.042]'
-              : 'border-transparent bg-white/[0.024] shadow-none'"
+              ? 'border-white/[0.055]'
+              : 'border-transparent shadow-none'"
           >
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Visibility
@@ -864,7 +864,7 @@ watch(
           v-if="canViewRestrictedOperationStats"
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
         >
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Created
             </div>
@@ -900,7 +900,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Completed
             </div>
@@ -932,7 +932,7 @@ watch(
           v-else
           class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
         >
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Created
             </div>
@@ -950,7 +950,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
             <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
               Completed
             </div>
@@ -981,7 +981,7 @@ watch(
 
       <!-- Readiness profile -->
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
+        <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Readiness Profile
@@ -997,7 +997,7 @@ watch(
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Primary Role
               </div>
@@ -1006,7 +1006,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Secondary Role
               </div>
@@ -1015,7 +1015,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Gameplay Style
               </div>
@@ -1024,7 +1024,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Operation Commitment
               </div>
@@ -1052,7 +1052,7 @@ watch(
         </div>
 
         <aside class="space-y-6">
-          <div class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+          <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Availability
             </div>
@@ -1068,7 +1068,7 @@ watch(
 
             <div
               v-if="me?.loa_note"
-              class="mt-4 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
+              class="hz-surface-welcome mt-4 rounded-2xl border border-white/[0.055] p-4"
             >
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 LOA Note
@@ -1080,7 +1080,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-5">
+          <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Squadron Assignment
             </div>
@@ -1089,7 +1089,7 @@ watch(
               <div
                 v-for="squadron in inertiaSquadrons"
                 :key="squadron.id"
-                class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4"
+                class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4"
               >
                 <div class="text-sm font-bold text-horizon-white">
                   {{ squadron.name }}
@@ -1105,7 +1105,7 @@ watch(
 
               <div
                 v-if="!inertiaSquadrons.length"
-                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+                class="hz-surface-welcome rounded-2xl border border-dashed border-white/15 p-4 text-sm text-text-secondary"
               >
                 No squadron assignment found.
               </div>
@@ -1115,7 +1115,7 @@ watch(
       </section>
 
       <!-- Equipment preferences -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1131,7 +1131,7 @@ watch(
             </p>
           </div>
 
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Loadout
             </div>
@@ -1144,7 +1144,7 @@ watch(
 
         <div class="grid gap-6 lg:grid-cols-2">
           <!-- Ships -->
-          <div class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-5">
+          <div class="hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-5">
             <div class="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -1156,7 +1156,7 @@ watch(
                 </div>
               </div>
 
-              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
+              <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold text-horizon-white">
                 {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }}
               </div>
             </div>
@@ -1177,7 +1177,7 @@ watch(
 
                 <span
                   v-if="profilePreviewList(me?.favorite_ships).moreCount > 0"
-                  class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-horizon-white"
+                  class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-semibold text-horizon-white"
                 >
                   +{{ profilePreviewList(me?.favorite_ships).moreCount }} more
                 </span>
@@ -1185,7 +1185,7 @@ watch(
 
               <div
                 v-else
-                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+                class="hz-surface-welcome rounded-2xl border border-dashed border-white/15 p-4 text-sm text-text-secondary"
               >
                 No favorite ships listed.
               </div>
@@ -1253,7 +1253,7 @@ watch(
           </div>
 
           <!-- Guns -->
-          <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-5">
+          <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5">
             <div class="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
@@ -1265,7 +1265,7 @@ watch(
                 </div>
               </div>
 
-              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
+              <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold text-horizon-white">
                 {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }}
               </div>
             </div>
@@ -1286,7 +1286,7 @@ watch(
 
                 <span
                   v-if="profilePreviewList(me?.favorite_guns).moreCount > 0"
-                  class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-horizon-white"
+                  class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-semibold text-horizon-white"
                 >
                   +{{ profilePreviewList(me?.favorite_guns).moreCount }} more
                 </span>
@@ -1294,7 +1294,7 @@ watch(
 
               <div
                 v-else
-                class="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-sm text-text-secondary"
+                class="hz-surface-welcome rounded-2xl border border-dashed border-white/15 p-4 text-sm text-text-secondary"
               >
                 No favorite guns listed.
               </div>
@@ -1344,7 +1344,7 @@ watch(
       <!-- Profile edit console -->
       <section
         v-if="isEditing"
-        class="rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))] p-5 "
+        class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 "
       >
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -1384,7 +1384,7 @@ watch(
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div class="space-y-5">
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Bio
               </div>
@@ -1398,7 +1398,7 @@ watch(
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Timezone
                 </div>
@@ -1410,7 +1410,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Availability
                 </div>
@@ -1423,7 +1423,7 @@ watch(
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Vacation / LOA Note
               </div>
@@ -1438,7 +1438,7 @@ watch(
           </div>
 
           <aside class="space-y-5">
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.042] p-4">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
               <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                 Callsign
               </div>
@@ -1451,7 +1451,7 @@ watch(
             </div>
 
             <div class="grid gap-4">
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Primary Role
                 </div>
@@ -1464,7 +1464,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Secondary Role
                 </div>
@@ -1477,7 +1477,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Preferred Gameplay Style
                 </div>
@@ -1490,7 +1490,7 @@ watch(
                 />
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+              <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Typical Op Commitment
                 </div>
@@ -1506,7 +1506,7 @@ watch(
           </aside>
         </div>
 
-        <div class="mt-6 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
+        <div class="hz-surface-welcome mt-6 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-4">
           <div class="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
             Experience Ratings
           </div>

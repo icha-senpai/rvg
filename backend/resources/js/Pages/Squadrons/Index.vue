@@ -63,7 +63,7 @@ function squadronHref(squadron) {
       <!-- Empty state -->
       <section
         v-if="!squadrons.length"
-        class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
+        class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 text-text-secondary"
       >
         No squadrons are currently listed.
       </section>
@@ -74,7 +74,7 @@ function squadronHref(squadron) {
           v-for="squadron in squadrons"
           :key="squadron.id"
           :href="squadronHref(squadron)"
-          class="group relative flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] transition hover:border-white/[0.08]"
+          class="hz-surface-welcome group relative flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/[0.055] transition hover:border-white/[0.08]"
         >
           <!-- Emblem area -->
           <div class="relative aspect-square w-full overflow-hidden bg-[color:var(--horizon-void-800)]">

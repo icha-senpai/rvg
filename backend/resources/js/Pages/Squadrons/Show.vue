@@ -672,14 +672,14 @@ watch(
     <div class="mx-auto max-w-6xl space-y-8" :style="squadronAccentStyle">
       <div
         v-if="!squadron"
-        class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/80 p-6 text-text-secondary"
+        class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 text-text-secondary"
       >
         Squadron data could not be loaded.
       </div>
 
       <template v-else>
         <!-- Main content card -->
-        <div class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 md:p-8">
+        <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
           <!-- Header -->
           <div class="border-b border-white/[0.055] pb-6">
             <div class="flex items-center gap-4">
@@ -867,7 +867,7 @@ watch(
                     <article
                       v-for="member in lieutenantMembers"
                       :key="member.id"
-                      class="rounded-2xl border border-[color:var(--squadron-accent-a)]/15 bg-white/[0.024] p-3"
+                      class="hz-surface-welcome rounded-2xl border border-[color:var(--squadron-accent-a)]/15 p-3"
                     >
                       <div class="flex items-start gap-3">
                         <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[color:var(--squadron-accent-a)]/25 bg-white/[0.042]">
@@ -931,7 +931,7 @@ watch(
                     </article>
                   </div>
 
-                  <p v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 text-sm text-text-secondary">
+                  <p v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3 text-sm text-text-secondary">
                     No lieutenants are assigned yet.
                   </p>
                 </section>
@@ -946,7 +946,7 @@ watch(
                     <article
                       v-for="member in sortedRegularMembers"
                       :key="member.id"
-                      class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3"
+                      class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3"
                     >
                       <div class="flex items-start gap-3">
                         <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/[0.055] bg-white/[0.042]">
@@ -1010,7 +1010,7 @@ watch(
                     </article>
                   </div>
 
-                  <p v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 text-sm text-text-secondary">
+                  <p v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3 text-sm text-text-secondary">
                     No regular members are listed yet.
                   </p>
                 </section>
@@ -1094,7 +1094,7 @@ watch(
           class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           @click.self="closeEditModal"
         >
-          <section class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.95)]">
+          <section class="hz-surface-welcome max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/[0.055]">
             <header class="flex items-start justify-between gap-4 border-b border-white/[0.055] p-5">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">

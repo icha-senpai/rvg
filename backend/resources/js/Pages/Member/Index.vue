@@ -218,7 +218,7 @@ function hasFavoriteData(user) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command hero -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -256,7 +256,7 @@ function hasFavoriteData(user) {
             </div>
           </div>
 
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3 text-right">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Visible
             </div>
@@ -274,7 +274,7 @@ function hasFavoriteData(user) {
 
       <!-- Stats strip -->
       <section class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 ">
+        <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5 ">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Registry Total
           </div>
@@ -286,7 +286,7 @@ function hasFavoriteData(user) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(67,56,202,0.14),rgba(255,255,255,0.025))] p-5 ">
+        <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5 ">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Callsigns
           </div>
@@ -298,7 +298,7 @@ function hasFavoriteData(user) {
           </div>
         </div>
 
-        <div class="rounded-[1.5rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+        <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Timezones
           </div>
@@ -312,7 +312,7 @@ function hasFavoriteData(user) {
       </section>
 
       <!-- Search command panel -->
-      <section class="relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-5 ">
+      <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
         <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -330,7 +330,7 @@ function hasFavoriteData(user) {
 
           <div
             v-if="activeSearch"
-            class="rounded-2xl border border-white/[0.055] bg-white/[0.042] px-4 py-3"
+            class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3"
           >
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Active Filter
@@ -372,7 +372,7 @@ function hasFavoriteData(user) {
       </section>
 
       <!-- Members registry -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4  md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -400,7 +400,7 @@ function hasFavoriteData(user) {
           <article
             v-for="member in members"
             :key="member.id"
-            class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[rgba(21,25,42,0.64)] p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+            class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
           >
             <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
               <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -493,7 +493,7 @@ function hasFavoriteData(user) {
 
                 <!-- Detail grid -->
                 <div class="grid gap-4 xl:grid-cols-2">
-                  <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+                  <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                     <div class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                       Experience
                     </div>
@@ -518,7 +518,7 @@ function hasFavoriteData(user) {
                     </div>
                   </section>
 
-                  <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+                  <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                     <div class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                       Favorites
                     </div>
@@ -605,7 +605,7 @@ function hasFavoriteData(user) {
 
         <div
           v-else
-          class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-10 text-center"
+          class="hz-surface-welcome rounded-[1.5rem] border border-dashed border-white/15 p-10 text-center"
         >
           <div class="text-2xl font-black text-horizon-white">
             No Members Found

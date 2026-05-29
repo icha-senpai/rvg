@@ -790,7 +790,7 @@ watch(
 
   <section
     v-else-if="isEmbedded"
-    class="flex w-full flex-col rounded-[2rem] border! border-white/[0.055]! bg-[rgba(21,25,42,0.64)] "
+    class="hz-surface-welcome flex w-full flex-col rounded-[2rem] border! border-white/[0.055]! "
   >
     <header
       class="flex shrink-0 items-start justify-between border-b border-[color:var(--horizon-sunset-blue)]/20 px-6 py-4"

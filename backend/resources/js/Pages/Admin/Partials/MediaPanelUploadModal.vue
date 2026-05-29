@@ -9,13 +9,13 @@
       <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
     </div>
 
-    <div class="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]  hz-animate-pop">
+    <div class="hz-surface-welcome relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
       </div>
 
-      <header class="relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] p-5">
+      <header class="hz-surface-welcome relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 p-5">
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -44,7 +44,7 @@
 
       <div class="relative flex-1 overflow-y-auto p-5">
         <div class="space-y-5">
-          <section class="relative z-30 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
+          <section class="hz-surface-welcome relative z-30 rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-4">
             <div class="mb-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Upload Target
@@ -63,7 +63,7 @@
             />
           </section>
 
-          <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-4">
+          <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
             <div class="mb-4">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 File Metadata
@@ -106,7 +106,7 @@
 
           <section
             v-if="uploadPreviewUrl"
-            class="overflow-hidden rounded-[1.5rem] border border-white/[0.055] bg-black/30"
+            class="hz-surface-welcome overflow-hidden rounded-[1.5rem] border border-white/[0.055]"
           >
             <img
               :src="uploadPreviewUrl"
@@ -114,7 +114,7 @@
               class="max-h-80 w-full object-contain"
             />
 
-            <div class="border-t border-white/[0.055] bg-white/[0.024] p-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+            <div class="hz-surface-welcome border-t border-white/[0.055] p-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
               Preview
             </div>
           </section>
@@ -128,7 +128,7 @@
         </div>
       </div>
 
-      <footer class="relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] p-5">
+      <footer class="hz-surface-welcome relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 p-5">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="text-sm text-text-secondary">
             {{ uploadForm.file ? 'Ready to upload selected file.' : 'Select a file to enable upload.' }}

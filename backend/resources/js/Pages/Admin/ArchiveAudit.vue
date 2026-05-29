@@ -52,7 +52,7 @@ function prettyMeta(meta) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Security Trail</div>
@@ -69,7 +69,7 @@ function prettyMeta(meta) {
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+      <section class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
         <form class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_auto] lg:items-end" @submit.prevent="applyFilters">
           <HorizonSelect v-model="selectedAction" label="Action" :options="actionOptions" />
           <HorizonInput v-model="search" label="Search" placeholder="Search title, name, slug, action..." />
@@ -82,7 +82,7 @@ function prettyMeta(meta) {
       </section>
 
       <section class="space-y-4">
-        <article v-for="log in rows" :key="log.id" class="overflow-hidden rounded-3xl border border-white/[0.055] bg-white/[0.024]">
+        <article v-for="log in rows" :key="log.id" class="hz-surface-welcome overflow-hidden rounded-3xl border border-white/[0.055]">
           <div class="grid gap-4 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
               <div class="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ function prettyMeta(meta) {
           </details>
         </article>
 
-        <div v-if="!rows.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-if="!rows.length" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No archive audit logs matched your filters.
         </div>
       </section>

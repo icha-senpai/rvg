@@ -30,7 +30,7 @@ const props = defineProps({
         </template>
       </nav>
 
-      <header class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] ">
+      <header class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -72,7 +72,7 @@ const props = defineProps({
         </div>
       </header>
 
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] p-6 shadow-[0_18px_55px_rgba(0,0,0,0.20)] md:p-8">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-[0_18px_55px_rgba(0,0,0,0.20)] md:p-8">
         <div class="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)]/50 to-transparent"></div>
 
         <div
@@ -98,7 +98,7 @@ const props = defineProps({
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="group relative overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+          <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="hz-surface-welcome group relative overflow-hidden rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
             <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div v-if="related.categories?.length || related.tags?.length" class="relative mb-3 flex flex-wrap gap-2 text-xs font-semibold">

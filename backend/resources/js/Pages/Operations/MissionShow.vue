@@ -526,7 +526,7 @@ const hasMetaInformation = computed(() => {
         <main class="space-y-6">
           <!-- Time command strip -->
           <section class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(255,255,255,0.025))] p-5 ">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5 ">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Start Window
               </div>
@@ -554,7 +554,7 @@ const hasMetaInformation = computed(() => {
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] border border-white/[0.055] bg-[rgba(21,25,42,0.42)] p-5">
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5">
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                 Sign Up Deadline
               </div>
@@ -578,7 +578,7 @@ const hasMetaInformation = computed(() => {
           <!-- Briefing -->
           <section
             v-if="operation.description"
-            class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-6 "
+            class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 "
           >
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Operation Briefing
@@ -592,7 +592,7 @@ const hasMetaInformation = computed(() => {
           <!-- Extended briefing -->
           <section
             v-if="operation.extended_description || operation.notes"
-            class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6"
+            class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6"
           >
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Extended Briefing

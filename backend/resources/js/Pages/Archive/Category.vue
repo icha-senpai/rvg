@@ -17,7 +17,7 @@ const props = defineProps({
         ← Back to Archive
       </Link>
 
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 md:p-8">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -53,7 +53,7 @@ const props = defineProps({
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group relative overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group relative overflow-hidden rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
             <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div class="relative flex flex-wrap gap-2">
@@ -67,7 +67,7 @@ const props = defineProps({
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No direct category entries are currently visible here.
         </div>
       </section>
@@ -79,7 +79,7 @@ const props = defineProps({
         </div>
 
         <div v-if="topics.length" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="topic in topics" :key="topic.id" :href="topic.href" class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
+          <Link v-for="topic in topics" :key="topic.id" :href="topic.href" class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
             <div class="pointer-events-none absolute inset-0 opacity-70">
               <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
               <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
@@ -108,7 +108,7 @@ const props = defineProps({
           </Link>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No archive topics are currently visible in this category.
         </div>
       </section>

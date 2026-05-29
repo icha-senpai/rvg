@@ -93,7 +93,7 @@ function confirmForceDelete({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Recovery Bay</div>
@@ -102,7 +102,7 @@ function confirmForceDelete({ close }) {
               Restore soft-deleted Archive content or permanently delete records that should be removed forever. Topic deletes are bundled with their entries so whole sections can be recovered cleanly.
             </p>
             <div class="mt-4 flex flex-wrap gap-2">
-              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
+              <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-semibold text-text-secondary inline-flex">
                 {{ totalTrashCount }} deleted item{{ totalTrashCount === 1 ? '' : 's' }}
               </div>
               <div v-if="trashIsEmpty" class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200 inline-flex">
@@ -118,7 +118,7 @@ function confirmForceDelete({ close }) {
         </div>
       </section>
 
-      <section v-if="trashIsEmpty" class="rounded-[2rem] border border-emerald-300/20 bg-emerald-300/10 p-6 md:p-8">
+      <section v-if="trashIsEmpty" class="hz-surface-welcome rounded-[2rem] border border-emerald-300/20 p-6 md:p-8">
         <div class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-200/80">Nothing to restore</div>
         <h2 class="mt-2 text-2xl font-black text-emerald-100">The Archive trash is empty.</h2>
         <p class="mt-2 max-w-3xl text-sm leading-6 text-emerald-100/80">
@@ -134,7 +134,7 @@ function confirmForceDelete({ close }) {
         </div>
 
         <div v-if="group.items.length" class="grid gap-4 lg:grid-cols-2">
-          <article v-for="item in group.items" :key="`${group.key}-${item.id}`" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+          <article v-for="item in group.items" :key="`${group.key}-${item.id}`" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="min-w-0">
                 <div class="flex flex-wrap gap-2">
@@ -157,7 +157,7 @@ function confirmForceDelete({ close }) {
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           {{ group.empty }}
         </div>
       </section>

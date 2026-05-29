@@ -227,7 +227,7 @@ onBeforeUnmount(() => {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Admin command hero -->
-      <section class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] p-6 ">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -312,17 +312,17 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Topics</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.topics }}</div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Entries</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.entries }}</div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Taxonomy</div>
           <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.categories + archiveSummary.tags }}</div>
         </div>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Active console shell -->
-      <section class="rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-700)]/70 p-4  md:p-5">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4  md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
             </p>
           </div>
 
-          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+          <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
             {{ activeTab }}
           </div>
         </div>

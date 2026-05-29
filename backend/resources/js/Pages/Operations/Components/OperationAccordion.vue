@@ -285,7 +285,7 @@ function toDate(value) {
 
 <template>
   <article
-    class="group relative overflow-hidden rounded-[1.75rem] border bg-[rgba(21,25,42,0.64)] transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[rgba(27,32,53,0.68)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+    class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
     :class="operationAccentClass.border"
   >
     <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
@@ -409,7 +409,7 @@ function toDate(value) {
             </div>
           </div>
 
-          <div class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-semibold text-text-secondary transition group-hover:border-white/[0.12] group-hover:bg-white/[0.042] group-hover:text-horizon-white">
+          <div class="hz-surface-welcome rounded-xl border border-white/[0.055] px-4 py-2 text-sm font-semibold text-text-secondary transition group-hover:border-white/[0.12] group-hover:text-horizon-white">
             View
           </div>
         </div>
