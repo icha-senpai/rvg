@@ -84,6 +84,7 @@ class SquadronSettingsService
             'blockquote',
             'hr',
             'code', 'pre',
+            'div',
             'mark', 'span',
             'a',
             'img',
@@ -125,6 +126,16 @@ class SquadronSettingsService
                 continue;
             }
 
+            if ($tag === 'div') {
+                if (! $this->isAllowedCalloutNode($node)) {
+                    $this->unwrapNode($node);
+                    continue;
+                }
+
+                $this->sanitizeCalloutNode($node);
+                continue;
+            }
+
             if ($tag === 'a') {
                 $href = $node->getAttribute('href');
 
@@ -154,9 +165,23 @@ class SquadronSettingsService
                 }
 
                 foreach (iterator_to_array($node->attributes ?? []) as $attr) {
-                    if (! in_array(strtolower($attr->name), ['src', 'alt', 'title'], true)) {
+                    if (! in_array(strtolower($attr->name), ['src', 'alt', 'title', 'class', 'data-align'], true)) {
                         $node->removeAttribute($attr->name);
                     }
+                }
+
+                $className = $this->sanitizeRichImageClassList($node->getAttribute('class'));
+
+                if ($className === '') {
+                    $node->removeAttribute('class');
+                } else {
+                    $node->setAttribute('class', $className);
+                }
+
+                $align = strtolower(trim($node->getAttribute('data-align')));
+
+                if (! in_array($align, ['left', 'center', 'right'], true)) {
+                    $node->removeAttribute('data-align');
                 }
 
                 $node->setAttribute('loading', 'lazy');
@@ -182,6 +207,16 @@ class SquadronSettingsService
                 foreach (iterator_to_array($node->attributes ?? []) as $attr) {
                     if (! in_array(strtolower($attr->name), $allowedAttrs, true)) {
                         $node->removeAttribute($attr->name);
+                    }
+                }
+
+                if ($tag === 'span' && $node->hasAttribute('class')) {
+                    $className = $this->sanitizeRichTextSpanClassList($node->getAttribute('class'));
+
+                    if ($className === '') {
+                        $node->removeAttribute('class');
+                    } else {
+                        $node->setAttribute('class', $className);
                     }
                 }
 
@@ -230,6 +265,109 @@ class SquadronSettingsService
         }
 
         return $clean;
+    }
+
+    protected function isAllowedCalloutNode($node): bool
+    {
+        return strtolower($node->getAttribute('data-type')) === 'hz-rte-callout';
+    }
+
+    protected function sanitizeCalloutNode($node): void
+    {
+        foreach (iterator_to_array($node->attributes ?? []) as $attr) {
+            if (! in_array(strtolower($attr->name), ['data-type', 'data-tone', 'data-accent-color', 'class', 'style'], true)) {
+                $node->removeAttribute($attr->name);
+            }
+        }
+
+        $customColor = $this->normalizeHexColor($node->getAttribute('data-accent-color'));
+        $tone = $customColor !== null
+            ? 'custom'
+            : $this->sanitizeCalloutTone($node->getAttribute('data-tone'));
+
+        $node->setAttribute('data-type', 'hz-rte-callout');
+        $node->setAttribute('data-tone', $tone);
+        $node->setAttribute('class', 'hz-rte-callout hz-rte-callout-' . $tone);
+
+        if ($customColor !== null) {
+            $node->setAttribute('data-accent-color', $customColor);
+            $node->setAttribute('style', $this->buildCustomCalloutStyle($customColor));
+
+            return;
+        }
+
+        $node->removeAttribute('data-accent-color');
+        $node->removeAttribute('style');
+    }
+
+    protected function sanitizeCalloutTone(?string $tone): string
+    {
+        $tone = strtolower(trim((string) $tone));
+
+        return in_array($tone, ['blue', 'cyan', 'magenta', 'orange', 'green', 'red'], true)
+            ? $tone
+            : 'blue';
+    }
+
+    protected function normalizeHexColor(?string $value): ?string
+    {
+        $value = strtolower(trim((string) $value));
+
+        if (preg_match('/^#[0-9a-f]{3}([0-9a-f]{3})?$/', $value) !== 1) {
+            return null;
+        }
+
+        if (strlen($value) === 4) {
+            return sprintf(
+                '#%s%s%s%s%s%s',
+                $value[1],
+                $value[1],
+                $value[2],
+                $value[2],
+                $value[3],
+                $value[3]
+            );
+        }
+
+        return $value;
+    }
+
+    protected function buildCustomCalloutStyle(string $hexColor): string
+    {
+        return sprintf(
+            'border-color: color-mix(in srgb, %1$s 45%%, transparent); background: color-mix(in srgb, %1$s 14%%, rgb(27 32 53 / 1));',
+            $hexColor
+        );
+    }
+
+    protected function sanitizeRichImageClassList(?string $className): string
+    {
+        $tokens = preg_split('/\s+/', trim((string) $className), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $allowed = [];
+
+        if (in_array('hz-rich-image', $tokens, true)) {
+            $allowed[] = 'hz-rich-image';
+        }
+
+        foreach (['hz-rich-image-left', 'hz-rich-image-center', 'hz-rich-image-right'] as $alignClass) {
+            if (in_array($alignClass, $tokens, true)) {
+                $allowed[] = $alignClass;
+                break;
+            }
+        }
+
+        return implode(' ', $allowed);
+    }
+
+    protected function sanitizeRichTextSpanClassList(?string $className): string
+    {
+        $tokens = preg_split('/\s+/', trim((string) $className), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        $allowed = array_values(array_filter($tokens, function (string $token): bool {
+            return preg_match('/^hz-rte-(size|font|color)-[a-z0-9-]+$/', $token) === 1;
+        }));
+
+        return implode(' ', array_unique($allowed));
     }
 
     /**
