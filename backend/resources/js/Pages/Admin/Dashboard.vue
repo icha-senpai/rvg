@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
           v-for="link in commandLinks"
           :key="link.label"
           :href="link.href"
-          class="group rounded-[1.5rem] border p-5 transition duration-200 hover:-translate-y-0.5"
+          class="hz-surface-welcome group rounded-[1.5rem] border p-5 transition duration-200 hover:-translate-y-0.5"
           :class="commandCardClass(link)"
         >
           <div class="flex items-center justify-between gap-3">

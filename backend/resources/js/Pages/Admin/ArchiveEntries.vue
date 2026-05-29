@@ -134,7 +134,7 @@ function confirmDeleteEntry({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Entries</div>
@@ -160,7 +160,7 @@ function confirmDeleteEntry({ close }) {
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+      <section class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
@@ -186,7 +186,7 @@ function confirmDeleteEntry({ close }) {
         </div>
 
         <div v-if="sortedEntries.length" class="space-y-4">
-          <article v-for="entry in sortedEntries" :key="entry.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+          <article v-for="entry in sortedEntries" :key="entry.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -217,7 +217,7 @@ function confirmDeleteEntry({ close }) {
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No archive entries exist for this topic yet. Use New Entry to create the first document.
         </div>
       </section>

@@ -114,20 +114,38 @@ const CalloutNode = Node.create({
     return {
       tone: {
         default: 'blue',
-        parseHTML: element => element.getAttribute('data-tone') || 'blue',
+        parseHTML: element => element.getAttribute('data-tone') || (element.getAttribute('data-accent-color') ? 'custom' : 'blue'),
         renderHTML: attributes => ({ 'data-tone': attributes.tone || 'blue' }),
+      },
+      customColor: {
+        default: null,
+        parseHTML: element => normalizeHexColor(element.getAttribute('data-accent-color') || '') || null,
+        renderHTML: attributes => {
+          const normalized = normalizeHexColor(attributes.customColor)
+
+          if (!normalized) {
+            return {}
+          }
+
+          return { 'data-accent-color': normalized }
+        },
       },
     }
   },
 
   renderHTML({ node, HTMLAttributes }) {
     const tone = node.attrs.tone || 'blue'
+    const customColor = normalizeHexColor(node.attrs.customColor)
+    const isCustomTone = Boolean(customColor)
 
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
         'data-type': 'hz-rte-callout',
-        class: `hz-rte-callout hz-rte-callout-${tone}`,
+        class: `hz-rte-callout hz-rte-callout-${isCustomTone ? 'custom' : tone}`,
+        style: isCustomTone
+          ? `border-color: color-mix(in srgb, ${customColor} 45%, transparent); background: color-mix(in srgb, ${customColor} 14%, rgb(27 32 53 / 1));`
+          : null,
       }),
       0,
     ]
@@ -273,6 +291,10 @@ const currentCalloutTone = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('calloutBox')?.tone || ''
 })
+const currentCalloutCustomColor = computed(() => {
+  toolbarTick.value
+  return normalizeHexColor(editor?.getAttributes('calloutBox')?.customColor || '')
+})
 const currentImageAlign = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('image')?.['data-align'] || 'center'
@@ -345,19 +367,21 @@ const highlightColorOptions = [
 ]
 
 const calloutToneOptions = [
-  { value: '', label: 'Field: None' },
-  { value: 'blue', label: 'Field: Blue' },
-  { value: 'cyan', label: 'Field: Cyan' },
-  { value: 'magenta', label: 'Field: Magenta' },
-  { value: 'orange', label: 'Field: Orange' },
-  { value: 'green', label: 'Field: Green' },
-  { value: 'red', label: 'Field: Red' },
+  { value: '', label: 'Field: None', hex: '#1b2035' },
+  { value: 'blue', label: 'Field: Blue', hex: '#1e40af' },
+  { value: 'cyan', label: 'Field: Cyan', hex: '#38bdf8' },
+  { value: 'magenta', label: 'Field: Magenta', hex: '#c026d3' },
+  { value: 'orange', label: 'Field: Orange', hex: '#ff8a3d' },
+  { value: 'green', label: 'Field: Green', hex: '#22c55e' },
+  { value: 'red', label: 'Field: Red', hex: '#ef4444' },
 ]
 
 const defaultTextColorHex = '#b6c2d3'
 const defaultHighlightHex = '#1e293b'
+const defaultCalloutHex = '#1e40af'
 const textColorHexLookup = new Map(textColorOptions.filter(option => option.value).map(option => [option.value, option.hex]))
 const highlightColorValueLookup = new Set(highlightColorOptions.filter(option => option.value).map(option => option.value))
+const calloutToneHexLookup = new Map(calloutToneOptions.filter(option => option.value).map(option => [option.value, option.hex]))
 
 const currentFontFamilyPreview = computed(() => {
   const match = fontFamilyOptions.find(option => option.value === currentFontFamily.value)
@@ -377,6 +401,14 @@ const currentHighlightSelectValue = computed(() => {
 })
 
 const currentHighlightHex = computed(() => currentHighlightColor.value || defaultHighlightHex)
+
+const currentCalloutSelectValue = computed(() => {
+  if (!isCalloutActive.value) return ''
+  if (currentCalloutCustomColor.value) return '__custom'
+  return currentCalloutTone.value || ''
+})
+
+const currentCalloutHex = computed(() => currentCalloutCustomColor.value || calloutToneHexLookup.get(currentCalloutTone.value) || defaultCalloutHex)
 
 function normalizeHexColor(value) {
   const raw = String(value || '').trim()
@@ -572,6 +604,8 @@ function applyHighlightColor(value) {
 }
 
 function applyCalloutTone(value) {
+  if (value === '__custom') return
+
   focusAndRestoreSelection()
 
   if (!value) {
@@ -582,11 +616,31 @@ function applyCalloutTone(value) {
   }
 
   if (editor.isActive('calloutBox')) {
-    editor.chain().updateAttributes('calloutBox', { tone: value }).run()
+    editor.chain().updateAttributes('calloutBox', { tone: value, customColor: null }).run()
     return
   }
 
-  editor.chain().setCallout({ tone: value }).run()
+  editor.chain().setCallout({ tone: value, customColor: null }).run()
+}
+
+function applyCustomCalloutColor(value) {
+  const normalized = normalizeHexColor(value)
+
+  focusAndRestoreSelection()
+
+  if (!normalized) {
+    if (editor.isActive('calloutBox')) {
+      editor.chain().unsetCallout().run()
+    }
+    return
+  }
+
+  if (editor.isActive('calloutBox')) {
+    editor.chain().updateAttributes('calloutBox', { tone: 'custom', customColor: normalized }).run()
+    return
+  }
+
+  editor.chain().setCallout({ tone: 'custom', customColor: normalized }).run()
 }
 
 function applyFontFamily(value) {
@@ -723,81 +777,151 @@ onBeforeUnmount(() => editor?.destroy())
     <input ref="uploadInput" type="file" accept="image/*" class="hidden" @change="uploadImage" />
 
     <div class="rich-editor-toolbar hz-row gap-2 flex-wrap">
-      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Block style" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
-        <option value="p">Paragraph</option>
-        <option value="h1">Heading 1</option>
-        <option value="h2">Heading 2</option>
-        <option value="h3">Heading 3</option>
-        <option value="h4">Heading 4</option>
-        <option value="h5">Heading 5</option>
-        <option value="h6">Heading 6</option>
-      </select>
-
-      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Text alignment" :disabled="disabled" :value="currentTextAlign" @mousedown.stop @change="setTextAlign($event.target.value)">
-        <option value="left">Align Left</option>
-        <option value="center">Align Center</option>
-        <option value="right">Align Right</option>
-        <option value="justify">Justify</option>
-      </select>
-
-      <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Font family" :disabled="disabled" :value="currentFontFamily" :style="{ fontFamily: currentFontFamilyPreview }" @mousedown.stop @change="applyFontFamily($event.target.value)">
-        <option v-for="opt in fontFamilyOptions" :key="opt.value || '__default'" :value="opt.value" :style="{ fontFamily: opt.preview }">{{ opt.label }}</option>
-      </select>
-
-      <select class="hz-input" style="max-width: 130px; padding: 0.3rem 0.55rem;" title="Font size" :disabled="disabled" :value="currentFontSize" @mousedown.stop @change="applyFontSize($event.target.value)">
-        <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
-      </select>
-
-      <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" title="Text color preset" :disabled="disabled" :value="currentTextColorSelectValue" @mousedown.stop @change="applyTextColor($event.target.value)">
-        <option value="">Text: Default</option>
-        <option value="__custom" disabled>Text: Custom</option>
-        <option v-for="opt in textColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-      </select>
-
-      <div class="rich-editor-color-group">
-        <input type="color" class="rich-editor-color-chip" title="Custom text color" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @input="applyCustomTextColor($event.target.value)" />
-        <input type="text" class="hz-input rich-editor-hex-input" title="Custom text color hex" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @change="applyCustomTextColor($event.target.value)" />
+      <div class="rich-editor-tooltip" data-tooltip="Block style">
+        <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
+          <option value="p">Paragraph</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="h4">Heading 4</option>
+          <option value="h5">Heading 5</option>
+          <option value="h6">Heading 6</option>
+        </select>
       </div>
 
-      <select class="hz-input" style="max-width: 200px; padding: 0.3rem 0.55rem;" title="Highlight color preset" :disabled="disabled" :value="currentHighlightSelectValue" @mousedown.stop @change="applyHighlightColor($event.target.value)">
-        <option value="">Highlight: None</option>
-        <option value="__custom" disabled>Highlight: Custom</option>
-        <option v-for="opt in highlightColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-      </select>
-
-      <div class="rich-editor-color-group">
-        <input type="color" class="rich-editor-color-chip" title="Custom highlight color" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @input="applyHighlightColor($event.target.value)" />
-        <input type="text" class="hz-input rich-editor-hex-input" title="Custom highlight color hex" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @change="applyHighlightColor($event.target.value)" />
+      <div class="rich-editor-tooltip" data-tooltip="Text alignment">
+        <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentTextAlign" @mousedown.stop @change="setTextAlign($event.target.value)">
+          <option value="left">Align Left</option>
+          <option value="center">Align Center</option>
+          <option value="right">Align Right</option>
+          <option value="justify">Justify</option>
+        </select>
       </div>
 
-      <select class="hz-input" style="max-width: 180px; padding: 0.3rem 0.55rem;" title="Colored field" :disabled="disabled" :value="isCalloutActive ? currentCalloutTone : ''" @mousedown.stop @change="applyCalloutTone($event.target.value)">
-        <option v-for="opt in calloutToneOptions" :key="opt.value || '__none'" :value="opt.value">{{ opt.label }}</option>
-      </select>
+      <div class="rich-editor-tooltip" data-tooltip="Font family">
+        <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentFontFamily" :style="{ fontFamily: currentFontFamilyPreview }" @mousedown.stop @change="applyFontFamily($event.target.value)">
+          <option v-for="opt in fontFamilyOptions" :key="opt.value || '__default'" :value="opt.value" :style="{ fontFamily: opt.preview }">{{ opt.label }}</option>
+        </select>
+      </div>
 
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isBulletListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnorderedList">• List</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isOrderedListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleOrderedList">1. List</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isBlockquoteActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBlockquote">Quote</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertDivider">Divider</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isLinkActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="insertLink">Link</HorizonButton>
+      <div class="rich-editor-tooltip" data-tooltip="Font size">
+        <select class="hz-input" style="max-width: 130px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentFontSize" @mousedown.stop @change="applyFontSize($event.target.value)">
+          <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
 
-      <HorizonButton type="button" size="xs" variant="ghost" title="Insert image URL centered" :disabled="disabled" @mousedown.prevent @click="insertImage('center')">Image URL</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" title="Upload centered image" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload Image' }}</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'left' ? 'primary' : 'ghost'" title="Image left with text wrap" :disabled="disabled" @mousedown.prevent @click="setImageAlign('left')">Img Left</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'center' ? 'primary' : 'ghost'" title="Image centered" :disabled="disabled" @mousedown.prevent @click="setImageAlign('center')">Img Center</HorizonButton>
-      <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" title="Image right with text wrap" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
+      <div class="rich-editor-tooltip" data-tooltip="Text color preset">
+        <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentTextColorSelectValue" @mousedown.stop @change="applyTextColor($event.target.value)">
+          <option value="">Text: Default</option>
+          <option value="__custom" disabled>Text: Custom</option>
+          <option v-for="opt in textColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
 
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableRow">+Row</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableColumn">+Col</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canUndo" @mousedown.prevent @click="undo">Undo</HorizonButton>
-      <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canRedo" @mousedown.prevent @click="redo">Redo</HorizonButton>
+      <div class="rich-editor-tooltip" data-tooltip="Custom text color">
+        <div class="rich-editor-color-group">
+          <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @input="applyCustomTextColor($event.target.value)" />
+          <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @change="applyCustomTextColor($event.target.value)" />
+        </div>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Highlight color preset">
+        <select class="hz-input" style="max-width: 200px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentHighlightSelectValue" @mousedown.stop @change="applyHighlightColor($event.target.value)">
+          <option value="">Highlight: None</option>
+          <option value="__custom" disabled>Highlight: Custom</option>
+          <option v-for="opt in highlightColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Custom highlight color">
+        <div class="rich-editor-color-group">
+          <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @input="applyHighlightColor($event.target.value)" />
+          <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @change="applyHighlightColor($event.target.value)" />
+        </div>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Field preset">
+        <select class="hz-input" style="max-width: 180px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentCalloutSelectValue" @mousedown.stop @change="applyCalloutTone($event.target.value)">
+          <option value="__custom" disabled>Field: Custom</option>
+          <option v-for="opt in calloutToneOptions" :key="opt.value || '__none'" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Custom field color">
+        <div class="rich-editor-color-group">
+          <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentCalloutHex" @mousedown.stop @input="applyCustomCalloutColor($event.target.value)" />
+          <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentCalloutHex" @mousedown.stop @change="applyCustomCalloutColor($event.target.value)" />
+        </div>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Clear custom text styling">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Remove highlight">
+        <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Bold">
+        <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Italic">
+        <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Underline">
+        <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Strikethrough">
+        <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Bulleted list">
+        <HorizonButton type="button" size="xs" :variant="isBulletListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnorderedList">• List</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Numbered list">
+        <HorizonButton type="button" size="xs" :variant="isOrderedListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleOrderedList">1. List</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Block quote">
+        <HorizonButton type="button" size="xs" :variant="isBlockquoteActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBlockquote">Quote</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Horizontal divider">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertDivider">Divider</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Insert or edit link">
+        <HorizonButton type="button" size="xs" :variant="isLinkActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="insertLink">Link</HorizonButton>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Insert image from URL">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertImage('center')">Image URL</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Upload image">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload Image' }}</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Float image left">
+        <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'left' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('left')">Img Left</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Center image">
+        <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'center' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('center')">Img Center</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Float image right">
+        <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
+      </div>
+
+      <div class="rich-editor-tooltip" data-tooltip="Insert table">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Add table row">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableRow">+Row</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Add table column">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableColumn">+Col</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Delete table">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Undo">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canUndo" @mousedown.prevent @click="undo">Undo</HorizonButton>
+      </div>
+      <div class="rich-editor-tooltip" data-tooltip="Redo">
+        <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canRedo" @mousedown.prevent @click="redo">Redo</HorizonButton>
+      </div>
     </div>
 
     <p v-if="uploadError" class="text-xs text-red-300">{{ uploadError }}</p>
@@ -828,6 +952,58 @@ onBeforeUnmount(() => editor?.destroy())
   border-radius: 1rem;
   background: rgb(16 19 28 / 0.88);
   backdrop-filter: blur(14px);
+}
+
+.rich-editor-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rich-editor-tooltip::before,
+.rich-editor-tooltip::after {
+  position: absolute;
+  left: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 30;
+}
+
+.rich-editor-tooltip::before {
+  content: '';
+  bottom: calc(100% + 0.15rem);
+  transform: translateX(-50%) translateY(0.35rem);
+  border-width: 0.35rem 0.35rem 0;
+  border-style: solid;
+  border-color: rgb(9 12 18 / 0.96) transparent transparent;
+}
+
+.rich-editor-tooltip::after {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 0.45rem);
+  transform: translateX(-50%) translateY(0.35rem);
+  width: max-content;
+  max-width: 13rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 0.75rem;
+  background: rgb(9 12 18 / 0.96);
+  color: rgb(238 242 255 / 1);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 14px 28px rgb(0 0 0 / 0.32);
+}
+
+.rich-editor-tooltip:hover::before,
+.rich-editor-tooltip:hover::after,
+.rich-editor-tooltip:focus-within::before,
+.rich-editor-tooltip:focus-within::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .rich-editor-color-group {
