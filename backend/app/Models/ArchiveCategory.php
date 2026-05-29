@@ -41,4 +41,18 @@ class ArchiveCategory extends Model
             'archive_entry_id'
         )->withTimestamps();
     }
+
+    public function directEntries(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ArchiveEntry::class,
+            'archive_category_entry',
+            'archive_category_id',
+            'archive_entry_id'
+        )
+            ->whereNull('archive_entries.archive_topic_id')
+            ->orderBy('archive_entries.sort_order')
+            ->orderBy('archive_entries.title')
+            ->withTimestamps();
+    }
 }

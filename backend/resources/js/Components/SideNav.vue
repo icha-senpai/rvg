@@ -8,7 +8,7 @@ import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 const page = usePage()
 
 const user = computed(() => page.props?.auth?.user ?? null)
-const archiveNavigation = computed(() => page.props?.archiveNavigation ?? { topics: [] })
+const archiveNavigation = computed(() => page.props?.archiveNavigation ?? { categories: [] })
 
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0))
 
@@ -93,61 +93,68 @@ function normalizeArchiveHref(href) {
 
 const archiveCategoryChildren = computed(() => {
   const url = page.url ?? ''
-  const groups = new Map()
-
-  for (const topic of archiveNavigation.value?.topics ?? []) {
-    const topicHref = normalizeArchiveHref(topic.href)
-    const topicIsActive = url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`)
-    const entries = (topic.entries ?? []).map(entry => {
+  return (archiveNavigation.value?.categories ?? []).map(category => {
+    const categoryHref = normalizeArchiveHref(category.href)
+    const directEntries = (category.entries ?? []).map(entry => {
       const entryHref = normalizeArchiveHref(entry.href)
 
       return {
-        key: `archive-entry-${entry.id}`,
+        key: `archive-category-entry-${entry.id}`,
         label: entry.title,
         href: entry.href,
         isActive: url === entryHref || url.startsWith(`${entryHref}?`),
       }
     })
 
-    const categoryLabel = topic.category_label || 'Archive'
-    const categoryKey = `archive-category-${categoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+    const topics = (category.topics ?? []).map(topic => {
+      const topicHref = normalizeArchiveHref(topic.href)
+      const topicEntries = (topic.entries ?? []).map(entry => {
+        const entryHref = normalizeArchiveHref(entry.href)
 
-    if (!groups.has(categoryKey)) {
-      groups.set(categoryKey, {
-        key: categoryKey,
-        label: categoryLabel,
-        sortOrder: Number(topic.category_sort_order ?? Number.MAX_SAFE_INTEGER),
-        topics: [],
-        visibleEntriesCount: 0,
-        isActive: false,
+        return {
+          key: `archive-entry-${entry.id}`,
+          label: entry.title,
+          href: entry.href,
+          isActive: url === entryHref || url.startsWith(`${entryHref}?`),
+        }
       })
+
+      const topicIsActive = url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`) || topicEntries.some(entry => entry.isActive)
+
+      return {
+        key: `archive-topic-${topic.id}`,
+        label: topic.title,
+        href: topic.href,
+        isActive: topicIsActive,
+        meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
+        entries: topicEntries,
+      }
+    })
+
+    const isActive = url === categoryHref
+      || url.startsWith(`${categoryHref}/`)
+      || url.startsWith(`${categoryHref}?`)
+      || directEntries.some(entry => entry.isActive)
+      || topics.some(topic => topic.isActive)
+
+    return {
+      key: `archive-category-${category.id}`,
+      label: category.name,
+      href: category.href,
+      sortOrder: Number(category.sort_order ?? Number.MAX_SAFE_INTEGER),
+      topics,
+      entries: directEntries,
+      visibleEntriesCount: Number(category.visible_entries_count ?? 0),
+      isActive,
+      meta: category.visible_entries_count ? `${category.visible_entries_count}` : null,
+    }
+  }).sort((left, right) => {
+    if (left.sortOrder !== right.sortOrder) {
+      return left.sortOrder - right.sortOrder
     }
 
-    const group = groups.get(categoryKey)
-    group.topics.push({
-      key: `archive-topic-${topic.id}`,
-      label: topic.title,
-      href: topic.href,
-      isActive: topicIsActive,
-      meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
-      entries,
-    })
-    group.visibleEntriesCount += Number(topic.visible_entries_count ?? 0)
-    group.isActive = group.isActive || topicIsActive || entries.some(entry => entry.isActive)
-  }
-
-  return Array.from(groups.values())
-    .sort((left, right) => {
-      if (left.sortOrder !== right.sortOrder) {
-        return left.sortOrder - right.sortOrder
-      }
-
-      return left.label.localeCompare(right.label)
-    })
-    .map(group => ({
-      ...group,
-      meta: group.visibleEntriesCount ? `${group.visibleEntriesCount}` : null,
-    }))
+    return left.label.localeCompare(right.label)
+  })
 })
 
 const navGroups = computed(() => {
@@ -673,8 +680,15 @@ onBeforeUnmount(() => {
                         </div>
                       </button>
 
+                      <Link
+                        :href="child.href"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                      >
+                        ↗
+                      </Link>
+
                       <button
-                        v-if="child.topics?.length"
+                        v-if="child.topics?.length || child.entries?.length"
                         type="button"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
@@ -684,9 +698,19 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                      v-if="itemChildrenAreOpen(child) && child.topics?.length"
+                      v-if="itemChildrenAreOpen(child) && (child.entries?.length || child.topics?.length)"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
+                      <Link
+                        v-for="entry in child.entries"
+                        :key="entry.key"
+                        :href="entry.href"
+                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                        :class="archiveEntryRowClass(entry)"
+                      >
+                        {{ entry.label }}
+                      </Link>
+
                       <div
                         v-for="topic in child.topics"
                         :key="topic.key"
@@ -951,8 +975,15 @@ onBeforeUnmount(() => {
                         </div>
                       </button>
 
+                      <Link
+                        :href="child.href"
+                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                      >
+                        ↗
+                      </Link>
+
                       <button
-                        v-if="child.topics?.length"
+                        v-if="child.topics?.length || child.entries?.length"
                         type="button"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
@@ -962,9 +993,19 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                      v-if="itemChildrenAreOpen(child) && child.topics?.length"
+                      v-if="itemChildrenAreOpen(child) && (child.entries?.length || child.topics?.length)"
                       class="ml-3 space-y-1 border-l border-white/10 pl-2"
                     >
+                      <Link
+                        v-for="entry in child.entries"
+                        :key="entry.key"
+                        :href="entry.href"
+                        class="block rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 transition"
+                        :class="archiveEntryRowClass(entry)"
+                      >
+                        {{ entry.label }}
+                      </Link>
+
                       <div
                         v-for="topic in child.topics"
                         :key="topic.key"

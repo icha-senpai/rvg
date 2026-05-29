@@ -30,13 +30,17 @@ class AdminArchiveTrashController extends Controller
                 ->map(fn (ArchiveTopic $topic) => $this->presentTopic($topic)),
             'entries' => ArchiveEntry::onlyTrashed()
                 ->whereDoesntHave('topic', fn ($query) => $query->onlyTrashed())
+                ->where(function ($query) {
+                    $query->whereNotNull('archive_topic_id')
+                        ->orWhereDoesntHave('categories', fn ($categoryQuery) => $categoryQuery->onlyTrashed());
+                })
                 ->with(['topic' => fn ($query) => $query->withTrashed()])
                 ->withCount(['categories' => fn ($query) => $query->withTrashed(), 'tags' => fn ($query) => $query->withTrashed()])
                 ->latest('deleted_at')
                 ->get()
                 ->map(fn (ArchiveEntry $entry) => $this->presentEntry($entry)),
             'categories' => ArchiveCategory::onlyTrashed()
-                ->withCount(['entries' => fn ($query) => $query->withTrashed()])
+                ->withCount(['directEntries as entries_count' => fn ($query) => $query->withTrashed()])
                 ->latest('deleted_at')
                 ->get()
                 ->map(fn (ArchiveCategory $category) => $this->presentCategory($category)),
@@ -122,28 +126,38 @@ class AdminArchiveTrashController extends Controller
         $this->authorize('access-admin-panel');
 
         $model = ArchiveCategory::onlyTrashed()->findOrFail($category);
+        $entriesCount = $model->directEntries()->withTrashed()->onlyTrashed()->count();
+
         $model->restore();
+        $model->directEntries()->withTrashed()->onlyTrashed()->restore();
 
         $this->logArchiveAction($request, 'archive.category.restored', [
             'category_id' => $model->id,
             'name' => $model->name,
             'slug' => $model->slug,
+            'entries_restored_count' => $entriesCount,
         ]);
 
-        return back()->with('success', 'Archive category restored.');
+        return back()->with('success', 'Archive category and its direct entries restored.');
     }
 
     public function forceDeleteCategory(Request $request, int $category): RedirectResponse
     {
         $this->authorize('access-admin-panel');
 
-        $model = ArchiveCategory::onlyTrashed()->withCount(['entries' => fn ($query) => $query->withTrashed()])->findOrFail($category);
+        $model = ArchiveCategory::onlyTrashed()->withCount(['directEntries as entries_count' => fn ($query) => $query->withTrashed()])->findOrFail($category);
         $snapshot = $this->presentCategory($model);
+        $entriesCount = $model->directEntries()->withTrashed()->count();
+
+        $model->directEntries()->withTrashed()->forceDelete();
         $model->forceDelete();
 
-        $this->logArchiveAction($request, 'archive.category.force_deleted', $snapshot);
+        $this->logArchiveAction($request, 'archive.category.force_deleted', [
+            ...$snapshot,
+            'entries_force_deleted_count' => $entriesCount,
+        ]);
 
-        return back()->with('success', 'Archive category permanently deleted.');
+        return back()->with('success', 'Archive category and its direct entries permanently deleted.');
     }
 
     public function restoreTag(Request $request, int $tag): RedirectResponse

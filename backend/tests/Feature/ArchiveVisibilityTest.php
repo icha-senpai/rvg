@@ -167,6 +167,88 @@ class ArchiveVisibilityTest extends TestCase
             );
     }
 
+    public function test_direct_category_entry_url_returns_not_found_for_lower_rank(): void
+    {
+        $member = $this->verifiedUser(rankLevel: 1);
+        $category = $this->archiveCategory([
+            'name' => 'Black Vault',
+            'slug' => 'black-vault',
+        ]);
+
+        $this->directCategoryEntry($category, [
+            'slug' => 'commander-doctrine',
+            'minimum_rank_level' => 3,
+        ]);
+
+        $this
+            ->actingAs($member)
+            ->get('/archive/category/black-vault/commander-doctrine')
+            ->assertNotFound();
+    }
+
+    public function test_direct_category_entry_url_is_visible_to_required_rank(): void
+    {
+        $commander = $this->verifiedUser(rankLevel: 3);
+        $category = $this->archiveCategory([
+            'name' => 'Black Vault',
+            'slug' => 'black-vault',
+        ]);
+
+        $this->directCategoryEntry($category, [
+            'title' => 'Commander Doctrine',
+            'slug' => 'commander-doctrine',
+            'minimum_rank_level' => 3,
+        ]);
+
+        $response = $this
+            ->actingAs($commander)
+            ->get('/archive/category/black-vault/commander-doctrine');
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Archive/Entry')
+                ->where('category.name', 'Black Vault')
+                ->where('topic', null)
+                ->where('entry.title', 'Commander Doctrine')
+            );
+    }
+
+    public function test_category_page_lists_visible_direct_entries(): void
+    {
+        $member = $this->verifiedUser(rankLevel: 1);
+        $category = $this->archiveCategory([
+            'name' => 'Black Vault',
+            'slug' => 'black-vault',
+            'description' => 'Restricted category marker.',
+        ]);
+
+        $this->directCategoryEntry($category, [
+            'title' => 'Public Notice',
+            'slug' => 'public-notice',
+            'minimum_rank_level' => 1,
+        ]);
+
+        $this->directCategoryEntry($category, [
+            'title' => 'Commander Doctrine',
+            'slug' => 'commander-doctrine',
+            'minimum_rank_level' => 3,
+        ]);
+
+        $response = $this
+            ->actingAs($member)
+            ->get('/archive/category/black-vault');
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Archive/Category')
+                ->where('category.name', 'Black Vault')
+                ->where('entries.0.title', 'Public Notice')
+                ->missing('entries.1')
+            );
+    }
+
     private function verifiedUser(int $rankLevel, ?string $roleSlug = null): User
     {
         /** @var User $user */
@@ -238,5 +320,25 @@ class ArchiveVisibilityTest extends TestCase
             'is_published' => true,
             'published_at' => now()->subMinute(),
         ], $attributes));
+    }
+
+    private function directCategoryEntry(ArchiveCategory $category, array $attributes = []): ArchiveEntry
+    {
+        $entry = ArchiveEntry::create(array_merge([
+            'archive_topic_id' => null,
+            'title' => 'Direct Archive Entry',
+            'slug' => 'direct-archive-entry',
+            'excerpt' => 'Test direct archive entry excerpt.',
+            'body' => 'Test direct archive entry body.',
+            'banner_image_path' => null,
+            'sort_order' => 0,
+            'minimum_rank_level' => null,
+            'is_published' => true,
+            'published_at' => now()->subMinute(),
+        ], $attributes));
+
+        $entry->categories()->sync([$category->id]);
+
+        return $entry;
     }
 }

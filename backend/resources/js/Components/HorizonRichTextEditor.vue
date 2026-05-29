@@ -2,8 +2,11 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import { Node, mergeAttributes } from '@tiptap/core'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import Color from '@tiptap/extension-color'
+import Highlight from '@tiptap/extension-highlight'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import BaseImage from '@tiptap/extension-image'
@@ -93,6 +96,48 @@ const WrappedImage = BaseImage.extend({
         parseHTML: element => element.getAttribute('data-align') || 'center',
         renderHTML: attributes => ({ 'data-align': attributes['data-align'] || 'center' }),
       },
+    }
+  },
+})
+
+const CalloutNode = Node.create({
+  name: 'calloutBox',
+  group: 'block',
+  content: 'block+',
+  defining: true,
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="hz-rte-callout"]' }]
+  },
+
+  addAttributes() {
+    return {
+      tone: {
+        default: 'blue',
+        parseHTML: element => element.getAttribute('data-tone') || 'blue',
+        renderHTML: attributes => ({ 'data-tone': attributes.tone || 'blue' }),
+      },
+    }
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const tone = HTMLAttributes.tone || 'blue'
+
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-type': 'hz-rte-callout',
+        class: `hz-rte-callout hz-rte-callout-${tone}`,
+      }),
+      0,
+    ]
+  },
+
+  addCommands() {
+    return {
+      setCallout: attributes => ({ commands }) => commands.wrapIn(this.name, attributes),
+      unsetCallout: () => ({ commands }) => commands.lift(this.name),
+      toggleCallout: attributes => ({ commands }) => commands.toggleWrap(this.name, attributes),
     }
   },
 })
@@ -208,6 +253,26 @@ const currentTextColor = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('textStyle')?.rteColor || ''
 })
+const currentInlineTextColor = computed(() => {
+  toolbarTick.value
+  return normalizeHexColor(editor?.getAttributes('textStyle')?.color || '')
+})
+const isHighlightActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('highlight') ?? false
+})
+const currentHighlightColor = computed(() => {
+  toolbarTick.value
+  return normalizeHexColor(editor?.getAttributes('highlight')?.color || '')
+})
+const isCalloutActive = computed(() => {
+  toolbarTick.value
+  return editor?.isActive('calloutBox') ?? false
+})
+const currentCalloutTone = computed(() => {
+  toolbarTick.value
+  return editor?.getAttributes('calloutBox')?.tone || ''
+})
 const currentImageAlign = computed(() => {
   toolbarTick.value
   return editor?.getAttributes('image')?.['data-align'] || 'center'
@@ -235,42 +300,116 @@ const fontSizeOptions = [
 ]
 
 const textColorOptions = [
-  { value: '', label: 'Color: Default' },
-  { value: 'hz-rte-color-white', label: 'White' },
-  { value: 'hz-rte-color-white-soft', label: 'White Soft' },
-  { value: 'hz-rte-color-muted-light', label: 'Muted Light' },
-  { value: 'hz-rte-color-muted', label: 'Muted' },
-  { value: 'hz-rte-color-muted-dark', label: 'Muted Dark' },
-  { value: 'hz-rte-color-blue-light', label: 'Blue Light' },
-  { value: 'hz-rte-color-blue', label: 'Blue' },
-  { value: 'hz-rte-color-blue-dark', label: 'Blue Dark' },
-  { value: 'hz-rte-color-cyan-light', label: 'Cyan Light' },
-  { value: 'hz-rte-color-cyan', label: 'Cyan' },
-  { value: 'hz-rte-color-cyan-dark', label: 'Cyan Dark' },
-  { value: 'hz-rte-color-magenta-light', label: 'Magenta Light' },
-  { value: 'hz-rte-color-magenta', label: 'Magenta' },
-  { value: 'hz-rte-color-magenta-dark', label: 'Magenta Dark' },
-  { value: 'hz-rte-color-pink-light', label: 'Pink Light' },
-  { value: 'hz-rte-color-pink', label: 'Pink' },
-  { value: 'hz-rte-color-pink-dark', label: 'Pink Dark' },
-  { value: 'hz-rte-color-orange-light', label: 'Orange Light' },
-  { value: 'hz-rte-color-orange', label: 'Orange' },
-  { value: 'hz-rte-color-orange-dark', label: 'Orange Dark' },
-  { value: 'hz-rte-color-green-light', label: 'Green Light' },
-  { value: 'hz-rte-color-green', label: 'Green' },
-  { value: 'hz-rte-color-green-dark', label: 'Green Dark' },
-  { value: 'hz-rte-color-red-light', label: 'Red Light' },
-  { value: 'hz-rte-color-red', label: 'Red' },
-  { value: 'hz-rte-color-red-dark', label: 'Red Dark' },
-  { value: 'hz-rte-color-yellow-light', label: 'Yellow Light' },
-  { value: 'hz-rte-color-yellow', label: 'Yellow' },
-  { value: 'hz-rte-color-yellow-dark', label: 'Yellow Dark' },
+  { value: '', label: 'Text: Default', hex: '#b6c2d3' },
+  { value: 'hz-rte-color-white', label: 'White', hex: '#ffffff' },
+  { value: 'hz-rte-color-white-soft', label: 'White Soft', hex: '#eef2ff' },
+  { value: 'hz-rte-color-muted-light', label: 'Muted Light', hex: '#cbd5e1' },
+  { value: 'hz-rte-color-muted', label: 'Muted', hex: '#6b7280' },
+  { value: 'hz-rte-color-muted-dark', label: 'Muted Dark', hex: '#475569' },
+  { value: 'hz-rte-color-blue-light', label: 'Blue Light', hex: '#60a5fa' },
+  { value: 'hz-rte-color-blue', label: 'Blue', hex: '#1e40af' },
+  { value: 'hz-rte-color-blue-dark', label: 'Blue Dark', hex: '#172554' },
+  { value: 'hz-rte-color-cyan-light', label: 'Cyan Light', hex: '#67e8f9' },
+  { value: 'hz-rte-color-cyan', label: 'Cyan', hex: '#38bdf8' },
+  { value: 'hz-rte-color-cyan-dark', label: 'Cyan Dark', hex: '#0e7490' },
+  { value: 'hz-rte-color-magenta-light', label: 'Magenta Light', hex: '#e879f9' },
+  { value: 'hz-rte-color-magenta', label: 'Magenta', hex: '#c026d3' },
+  { value: 'hz-rte-color-magenta-dark', label: 'Magenta Dark', hex: '#86198f' },
+  { value: 'hz-rte-color-pink-light', label: 'Pink Light', hex: '#ff8db4' },
+  { value: 'hz-rte-color-pink', label: 'Pink', hex: '#ff3d81' },
+  { value: 'hz-rte-color-pink-dark', label: 'Pink Dark', hex: '#be185d' },
+  { value: 'hz-rte-color-orange-light', label: 'Orange Light', hex: '#fdba74' },
+  { value: 'hz-rte-color-orange', label: 'Orange', hex: '#ff8a3d' },
+  { value: 'hz-rte-color-orange-dark', label: 'Orange Dark', hex: '#c2410c' },
+  { value: 'hz-rte-color-green-light', label: 'Green Light', hex: '#86efac' },
+  { value: 'hz-rte-color-green', label: 'Green', hex: '#22c55e' },
+  { value: 'hz-rte-color-green-dark', label: 'Green Dark', hex: '#166534' },
+  { value: 'hz-rte-color-red-light', label: 'Red Light', hex: '#fca5a5' },
+  { value: 'hz-rte-color-red', label: 'Red', hex: '#ef4444' },
+  { value: 'hz-rte-color-red-dark', label: 'Red Dark', hex: '#b91c1c' },
+  { value: 'hz-rte-color-yellow-light', label: 'Yellow Light', hex: '#fde047' },
+  { value: 'hz-rte-color-yellow', label: 'Yellow', hex: '#eab308' },
+  { value: 'hz-rte-color-yellow-dark', label: 'Yellow Dark', hex: '#a16207' },
 ]
+
+const highlightColorOptions = [
+  { value: '', label: 'Highlight: None', hex: '#1e293b' },
+  { value: '#60a5fa', label: 'Highlight Blue', hex: '#60a5fa' },
+  { value: '#67e8f9', label: 'Highlight Cyan', hex: '#67e8f9' },
+  { value: '#e879f9', label: 'Highlight Magenta', hex: '#e879f9' },
+  { value: '#ff8db4', label: 'Highlight Pink', hex: '#ff8db4' },
+  { value: '#fdba74', label: 'Highlight Orange', hex: '#fdba74' },
+  { value: '#86efac', label: 'Highlight Green', hex: '#86efac' },
+  { value: '#fca5a5', label: 'Highlight Red', hex: '#fca5a5' },
+  { value: '#fde047', label: 'Highlight Yellow', hex: '#fde047' },
+]
+
+const calloutToneOptions = [
+  { value: '', label: 'Field: None' },
+  { value: 'blue', label: 'Field: Blue' },
+  { value: 'cyan', label: 'Field: Cyan' },
+  { value: 'magenta', label: 'Field: Magenta' },
+  { value: 'orange', label: 'Field: Orange' },
+  { value: 'green', label: 'Field: Green' },
+  { value: 'red', label: 'Field: Red' },
+]
+
+const defaultTextColorHex = '#b6c2d3'
+const defaultHighlightHex = '#1e293b'
+const textColorHexLookup = new Map(textColorOptions.filter(option => option.value).map(option => [option.value, option.hex]))
+const highlightColorValueLookup = new Set(highlightColorOptions.filter(option => option.value).map(option => option.value))
 
 const currentFontFamilyPreview = computed(() => {
   const match = fontFamilyOptions.find(option => option.value === currentFontFamily.value)
   return match?.preview || ''
 })
+
+const currentTextColorSelectValue = computed(() => {
+  if (currentTextColor.value) return currentTextColor.value
+  return currentInlineTextColor.value ? '__custom' : ''
+})
+
+const currentTextColorHex = computed(() => currentInlineTextColor.value || textColorHexLookup.get(currentTextColor.value) || defaultTextColorHex)
+
+const currentHighlightSelectValue = computed(() => {
+  if (!currentHighlightColor.value) return ''
+  return highlightColorValueLookup.has(currentHighlightColor.value) ? currentHighlightColor.value : '__custom'
+})
+
+const currentHighlightHex = computed(() => currentHighlightColor.value || defaultHighlightHex)
+
+function normalizeHexColor(value) {
+  const raw = String(value || '').trim()
+
+  if (!raw) return ''
+
+  const shortHex = raw.match(/^#([\da-f]{3})$/i)
+  if (shortHex) {
+    return `#${shortHex[1].split('').map(part => part + part).join('').toLowerCase()}`
+  }
+
+  const longHex = raw.match(/^#([\da-f]{6})$/i)
+  if (longHex) {
+    return `#${longHex[1].toLowerCase()}`
+  }
+
+  const rgbMatch = raw.match(/^rgba?\(([^)]+)\)$/i)
+  if (!rgbMatch) return ''
+
+  const parts = rgbMatch[1]
+    .split(',')
+    .slice(0, 3)
+    .map(part => Number.parseInt(part.trim(), 10))
+
+  if (parts.length !== 3 || parts.some(part => Number.isNaN(part))) {
+    return ''
+  }
+
+  return `#${parts
+    .map(part => Math.max(0, Math.min(255, part)))
+    .map(part => part.toString(16).padStart(2, '0'))
+    .join('')}`
+}
 
 function normalizeIncomingHtml(html) {
   const value = String(html || '').trim()
@@ -315,9 +454,12 @@ const editor = new Editor({
       code: false,
       codeBlock: false,
     }),
+    Color.configure({ types: ['textStyle'] }),
+    Highlight.configure({ multicolor: true }),
     Underline,
     WrappedImage.configure({ inline: false, allowBase64: false, HTMLAttributes: { loading: 'lazy' } }),
     ExtendedTextStyle,
+    CalloutNode,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Table.configure({ resizable: false }),
     TableRow,
@@ -392,12 +534,59 @@ function setTextAlign(value) {
 }
 
 function applyTextColor(value) {
+  if (value === '__custom') return
   focusAndRestoreSelection()
   if (!value) {
-    editor.chain().unsetRteColor().run()
+    editor.chain().unsetColor().unsetRteColor().run()
     return
   }
-  editor.chain().setRteColor(value).run()
+  editor.chain().unsetColor().setRteColor(value).run()
+}
+
+function applyCustomTextColor(value) {
+  const normalized = normalizeHexColor(value)
+
+  focusAndRestoreSelection()
+
+  if (!normalized) {
+    editor.chain().unsetColor().unsetRteColor().run()
+    return
+  }
+
+  editor.chain().unsetRteColor().setColor(normalized).run()
+}
+
+function applyHighlightColor(value) {
+  if (value === '__custom') return
+
+  const normalized = normalizeHexColor(value)
+
+  focusAndRestoreSelection()
+
+  if (!normalized) {
+    editor.chain().unsetHighlight().run()
+    return
+  }
+
+  editor.chain().setHighlight({ color: normalized }).run()
+}
+
+function applyCalloutTone(value) {
+  focusAndRestoreSelection()
+
+  if (!value) {
+    if (editor.isActive('calloutBox')) {
+      editor.chain().unsetCallout().run()
+    }
+    return
+  }
+
+  if (editor.isActive('calloutBox')) {
+    editor.chain().updateAttributes('calloutBox', { tone: value }).run()
+    return
+  }
+
+  editor.chain().setCallout({ tone: value }).run()
 }
 
 function applyFontFamily(value) {
@@ -420,7 +609,7 @@ function applyFontSize(value) {
 
 function clearTypography() {
   focusAndRestoreSelection()
-  editor.chain().unsetRteColor().unsetRteFontFamily().unsetRteFontSize().run()
+  editor.chain().unsetColor().unsetRteColor().unsetRteFontFamily().unsetRteFontSize().run()
 }
 
 function insertTable() {
@@ -530,10 +719,10 @@ onBeforeUnmount(() => editor?.destroy())
 </script>
 
 <template>
-  <div class="hz-stack gap-2">
+  <div class="hz-stack gap-2 rich-editor-shell">
     <input ref="uploadInput" type="file" accept="image/*" class="hidden" @change="uploadImage" />
 
-    <div class="hz-row gap-2 flex-wrap">
+    <div class="rich-editor-toolbar hz-row gap-2 flex-wrap">
       <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" title="Block style" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
         <option value="p">Paragraph</option>
         <option value="h1">Heading 1</option>
@@ -559,11 +748,34 @@ onBeforeUnmount(() => editor?.destroy())
         <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
       </select>
 
-      <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" title="Text color" :disabled="disabled" :value="currentTextColor" @mousedown.stop @change="applyTextColor($event.target.value)">
-        <option v-for="opt in textColorOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
+      <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" title="Text color preset" :disabled="disabled" :value="currentTextColorSelectValue" @mousedown.stop @change="applyTextColor($event.target.value)">
+        <option value="">Text: Default</option>
+        <option value="__custom" disabled>Text: Custom</option>
+        <option v-for="opt in textColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+      </select>
+
+      <div class="rich-editor-color-group">
+        <input type="color" class="rich-editor-color-chip" title="Custom text color" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @input="applyCustomTextColor($event.target.value)" />
+        <input type="text" class="hz-input rich-editor-hex-input" title="Custom text color hex" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @change="applyCustomTextColor($event.target.value)" />
+      </div>
+
+      <select class="hz-input" style="max-width: 200px; padding: 0.3rem 0.55rem;" title="Highlight color preset" :disabled="disabled" :value="currentHighlightSelectValue" @mousedown.stop @change="applyHighlightColor($event.target.value)">
+        <option value="">Highlight: None</option>
+        <option value="__custom" disabled>Highlight: Custom</option>
+        <option v-for="opt in highlightColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+      </select>
+
+      <div class="rich-editor-color-group">
+        <input type="color" class="rich-editor-color-chip" title="Custom highlight color" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @input="applyHighlightColor($event.target.value)" />
+        <input type="text" class="hz-input rich-editor-hex-input" title="Custom highlight color hex" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @change="applyHighlightColor($event.target.value)" />
+      </div>
+
+      <select class="hz-input" style="max-width: 180px; padding: 0.3rem 0.55rem;" title="Colored field" :disabled="disabled" :value="isCalloutActive ? currentCalloutTone : ''" @mousedown.stop @change="applyCalloutTone($event.target.value)">
+        <option v-for="opt in calloutToneOptions" :key="opt.value || '__none'" :value="opt.value">{{ opt.label }}</option>
       </select>
 
       <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
+      <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
       <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
@@ -603,6 +815,45 @@ onBeforeUnmount(() => editor?.destroy())
 </template>
 
 <style scoped>
+.rich-editor-shell {
+  position: relative;
+}
+
+.rich-editor-toolbar {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  padding: 0.7rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 1rem;
+  background: rgb(16 19 28 / 0.88);
+  backdrop-filter: blur(14px);
+}
+
+.rich-editor-color-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.rich-editor-color-chip {
+  width: 2.5rem;
+  height: 2.35rem;
+  padding: 0.2rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0.85rem;
+  background: rgb(27 32 53 / 1);
+  cursor: pointer;
+}
+
+.rich-editor-hex-input {
+  width: 7.5rem;
+  min-width: 7.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-transform: uppercase;
+}
+
 .rich-editor-body :deep(p::after) {
   content: '';
   display: block;

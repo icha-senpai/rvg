@@ -147,6 +147,61 @@ class ArchiveTrashTest extends TestCase
         ]);
     }
 
+    public function test_deleting_category_moves_direct_entries_to_trash_and_hides_them_from_entry_list(): void
+    {
+        $admin = $this->adminUser();
+        $category = $this->archiveCategory();
+        $entry = $this->directCategoryEntry($category);
+
+        $this
+            ->actingAs($admin)
+            ->delete(route('admin.archive.taxonomy.categories.destroy', $category))
+            ->assertRedirect(route('admin.archive.taxonomy.index'));
+
+        $this->assertSoftDeleted('archive_categories', [
+            'id' => $category->id,
+        ]);
+
+        $this->assertSoftDeleted('archive_entries', [
+            'id' => $entry->id,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->get(route('admin.archive.trash.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/ArchiveTrash')
+                ->where('categories.0.title', 'Test')
+                ->where('entries', [])
+            );
+    }
+
+    public function test_restoring_category_restores_its_direct_entries(): void
+    {
+        $admin = $this->adminUser();
+        $category = $this->archiveCategory();
+        $entry = $this->directCategoryEntry($category);
+
+        $entry->delete();
+        $category->delete();
+
+        $this
+            ->actingAs($admin)
+            ->post(route('admin.archive.trash.categories.restore', $category->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('archive_categories', [
+            'id' => $category->id,
+            'deleted_at' => null,
+        ]);
+
+        $this->assertDatabaseHas('archive_entries', [
+            'id' => $entry->id,
+            'deleted_at' => null,
+        ]);
+    }
+
     private function adminUser(): User
     {
         $role = Role::create([
@@ -216,5 +271,25 @@ class ArchiveTrashTest extends TestCase
             'is_published' => true,
             'published_at' => now()->subMinute(),
         ], $attributes));
+    }
+
+    private function directCategoryEntry(ArchiveCategory $category, array $attributes = []): ArchiveEntry
+    {
+        $entry = ArchiveEntry::create(array_merge([
+            'archive_topic_id' => null,
+            'title' => 'Archive Entry',
+            'slug' => 'archive-entry',
+            'excerpt' => 'Test archive entry.',
+            'body' => '<p>Entry body.</p>',
+            'banner_image_path' => null,
+            'sort_order' => 0,
+            'minimum_rank_level' => null,
+            'is_published' => true,
+            'published_at' => now()->subMinute(),
+        ], $attributes));
+
+        $entry->categories()->sync([$category->id]);
+
+        return $entry;
     }
 }

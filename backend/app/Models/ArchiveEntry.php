@@ -55,6 +55,26 @@ class ArchiveEntry extends Model
         )->withTimestamps();
     }
 
+    public function primaryCategory(): ?ArchiveCategory
+    {
+        if ($this->relationLoaded('categories')) {
+            return $this->categories->sortBy([
+                ['sort_order', 'asc'],
+                ['name', 'asc'],
+            ])->first();
+        }
+
+        return $this->categories()
+            ->orderBy('archive_categories.sort_order')
+            ->orderBy('archive_categories.name')
+            ->first();
+    }
+
+    public function isDirectCategoryEntry(): bool
+    {
+        return $this->archive_topic_id === null;
+    }
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(

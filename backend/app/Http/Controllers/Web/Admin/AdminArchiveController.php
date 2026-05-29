@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArchiveCategory;
+use App\Models\ArchiveEntry;
 use App\Models\ArchiveTopic;
 use App\Models\AuthAuditLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -24,6 +25,18 @@ class AdminArchiveController extends Controller
 
         $previewRankLevel = $this->previewRankLevel($request);
 
+        $categories = ArchiveCategory::query()
+            ->with(['directEntries' => function ($query) {
+                $query->orderBy('sort_order')
+                    ->orderBy('title');
+            }])
+            ->withCount('topics')
+            ->withCount(['directEntries as direct_entries_count'])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (ArchiveCategory $category) => $this->presentCategory($category, $previewRankLevel));
+
         $topics = ArchiveTopic::query()
             ->with('category:id,name,slug')
             ->withCount('entries')
@@ -33,6 +46,7 @@ class AdminArchiveController extends Controller
             ->map(fn (ArchiveTopic $topic) => $this->presentTopic($topic, $previewRankLevel));
 
         return Inertia::render('Admin/ArchiveIndex', [
+            'categories' => $categories,
             'topics' => $topics,
             'categoryOptions' => $this->categoryOptions(),
             'rankOptions' => $this->rankOptions(),
@@ -191,6 +205,50 @@ class AdminArchiveController extends Controller
         ];
     }
 
+    protected function presentCategory(ArchiveCategory $category, ?int $previewRankLevel = null): array
+    {
+        return [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'description' => $category->description,
+            'sort_order' => $category->sort_order,
+            'topics_count' => (int) ($category->topics_count ?? 0),
+            'direct_entries_count' => (int) ($category->direct_entries_count ?? 0),
+            'direct_entries' => $category->directEntries
+                ->map(fn (ArchiveEntry $entry) => $this->presentDirectCategoryEntry($entry, $category, $previewRankLevel))
+                ->values(),
+            'entries_admin_href' => route('admin.archive.categories.entries.index', $category),
+            'create_entry_admin_href' => route('admin.archive.categories.entries.index', [
+                'category' => $category,
+                'create' => 1,
+            ]),
+            'public_href' => route('archive.category', $category),
+        ];
+    }
+
+    protected function presentDirectCategoryEntry(ArchiveEntry $entry, ArchiveCategory $category, ?int $previewRankLevel = null): array
+    {
+        return [
+            'id' => $entry->id,
+            'title' => $entry->title,
+            'slug' => $entry->slug,
+            'excerpt' => $entry->excerpt,
+            'sort_order' => $entry->sort_order,
+            'minimum_rank_level' => $entry->minimum_rank_level,
+            'minimum_rank_label' => $entry->minimumRankLabel(),
+            'is_published' => $entry->is_published,
+            'published_label' => $entry->published_at?->format('M j, Y'),
+            'updated_label' => $entry->updated_at?->format('M j, Y'),
+            'preview_visible' => $this->isVisibleAtRank($entry, $previewRankLevel),
+            'public_href' => route('archive.category.entry', [$category, $entry]),
+            'edit_admin_href' => route('admin.archive.categories.entries.index', [
+                'category' => $category,
+                'entry' => $entry->id,
+            ]),
+        ];
+    }
+
     protected function previewRankLevel(Request $request): ?int
     {
         $value = $request->query('preview_rank_level');
@@ -204,21 +262,21 @@ class AdminArchiveController extends Controller
         return $rankLevel >= 1 && $rankLevel <= 6 ? $rankLevel : null;
     }
 
-    protected function isVisibleAtRank(ArchiveTopic $topic, ?int $rankLevel): bool
+    protected function isVisibleAtRank(ArchiveTopic|ArchiveEntry $item, ?int $rankLevel): bool
     {
-        if (! $topic->is_published) {
+        if (! $item->is_published) {
             return false;
         }
 
-        if ($topic->published_at && $topic->published_at->isFuture()) {
+        if ($item->published_at && $item->published_at->isFuture()) {
             return false;
         }
 
-        if ($topic->minimum_rank_level === null || $rankLevel === null) {
+        if ($item->minimum_rank_level === null || $rankLevel === null) {
             return true;
         }
 
-        return (int) $topic->minimum_rank_level <= $rankLevel;
+        return (int) $item->minimum_rank_level <= $rankLevel;
     }
 
     protected function logArchiveAction(Request $request, string $action, array $meta): void

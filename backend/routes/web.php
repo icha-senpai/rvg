@@ -236,6 +236,8 @@ Route::middleware(['auth', 'rsi.verified'])
     ->scopeBindings()
     ->group(function () {
         Route::get('/', [ArchiveController::class, 'index'])->name('index');
+        Route::get('/category/{category:slug}', [ArchiveController::class, 'category'])->name('category');
+        Route::get('/category/{category:slug}/{entry:slug}', [ArchiveController::class, 'categoryEntry'])->name('category.entry');
         Route::get('/{topic:slug}', [ArchiveController::class, 'topic'])->name('topic');
         Route::get('/{topic:slug}/{entry:slug}', [ArchiveController::class, 'entry'])->name('entry');
     });

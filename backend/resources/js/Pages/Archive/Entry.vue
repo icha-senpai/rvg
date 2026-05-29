@@ -4,6 +4,7 @@ import { route } from 'ziggy-js'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 
 const props = defineProps({
+  category: { type: Object, default: null },
   topic: Object,
   entry: Object,
   relatedEntries: { type: Array, default: () => [] },
@@ -18,9 +19,15 @@ const props = defineProps({
           Archive
         </Link>
         <span class="text-text-muted">/</span>
-        <Link :href="topic.href" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-1.5 hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
-          {{ topic.title }}
+        <Link v-if="category?.href" :href="category.href" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-1.5 hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
+          {{ category.name }}
         </Link>
+        <template v-if="topic?.href">
+          <span class="text-text-muted">/</span>
+          <Link :href="topic.href" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-1.5 hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
+            {{ topic.title }}
+          </Link>
+        </template>
       </nav>
 
       <header class="relative overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.46)] ">
@@ -37,7 +44,7 @@ const props = defineProps({
         <div class="relative p-6 md:p-8">
           <div class="flex flex-wrap gap-2">
             <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
-              {{ topic.category_label || 'Archive Entry' }}
+              {{ category?.name || topic?.category_label || 'Archive Entry' }}
             </span>
             <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
               {{ entry.minimum_rank_label }}
@@ -82,11 +89,11 @@ const props = defineProps({
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Related Records</div>
-            <h2 class="text-2xl font-black text-horizon-white">More from {{ topic.title }}</h2>
+            <h2 class="text-2xl font-black text-horizon-white">More from {{ topic?.title || category?.name || 'this archive area' }}</h2>
           </div>
 
-          <Link :href="topic.href" class="text-sm font-bold text-text-secondary hover:text-horizon-white">
-            View all in topic →
+          <Link :href="topic?.href || category?.href" class="text-sm font-bold text-text-secondary hover:text-horizon-white">
+            View all in {{ topic ? 'topic' : 'category' }} →
           </Link>
         </div>
 

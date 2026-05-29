@@ -9,7 +9,7 @@ import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 const props = defineProps({
-  topics: { type: Array, default: () => [] },
+  categories: { type: Array, default: () => [] },
   entries: { type: Array, default: () => [] },
   filters: { type: Object, default: () => ({}) },
 })
@@ -19,31 +19,10 @@ const sort = ref(props.filters?.sort ?? 'recent')
 let searchDebounceId = null
 
 const hasSearch = computed(() => String(props.filters?.search ?? '').trim().length > 0)
-const topicCount = computed(() => props.topics.length)
-const categoryCount = computed(() => groupedTopics.value.length)
+const categoryGroups = computed(() => props.categories ?? [])
+const topicCount = computed(() => categoryGroups.value.reduce((count, category) => count + Number(category.visible_topics_count ?? category.topics?.length ?? 0), 0))
+const categoryCount = computed(() => categoryGroups.value.length)
 const resultCount = computed(() => props.entries.length)
-const groupedTopics = computed(() => {
-  const groups = new Map()
-
-  for (const topic of props.topics ?? []) {
-    const key = String(topic.category_label ?? 'Archive')
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        key,
-        label: topic.category_label || 'Archive',
-        topics: [],
-        visibleEntriesCount: 0,
-      })
-    }
-
-    const group = groups.get(key)
-    group.topics.push(topic)
-    group.visibleEntriesCount += Number(topic.visible_entries_count ?? 0)
-  }
-
-  return Array.from(groups.values())
-})
 
 const sortOptions = [
   { value: 'recent', label: 'Recently updated' },
@@ -75,7 +54,7 @@ function runSearch(value = search.value) {
     preserveState: true,
     preserveScroll: true,
     replace: true,
-    only: ['topics', 'entries', 'filters'],
+    only: ['categories', 'entries', 'filters'],
   })
 }
 
@@ -94,7 +73,7 @@ function applySort() {
     preserveState: true,
     preserveScroll: true,
     replace: true,
-    only: ['topics', 'entries', 'filters'],
+    only: ['categories', 'entries', 'filters'],
   })
 }
 
@@ -111,7 +90,7 @@ function clearSearch() {
     preserveState: true,
     preserveScroll: true,
     replace: true,
-    only: ['topics', 'entries', 'filters'],
+    only: ['categories', 'entries', 'filters'],
   })
 }
 
@@ -170,7 +149,7 @@ watch(search, value => {
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="group rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
-            <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">{{ entry.topic?.title ?? 'Archive Entry' }}</div>
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">{{ entry.topic?.title ?? entry.category?.name ?? 'Archive Entry' }}</div>
             <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
             <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
@@ -186,25 +165,44 @@ watch(search, value => {
 
       <section class="space-y-4">
         <div>
-          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category → Topic Library</div>
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category Library</div>
           <h2 class="text-2xl font-black text-horizon-white">Curated knowledge blocks by category</h2>
         </div>
 
-        <div v-if="groupedTopics.length" class="space-y-6">
-          <section v-for="group in groupedTopics" :key="group.key" class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.34)] p-5 md:p-6">
+        <div v-if="categoryGroups.length" class="space-y-6">
+          <section v-for="group in categoryGroups" :key="group.id" class="rounded-[2rem] border border-white/[0.055] bg-[rgba(21,25,42,0.34)] p-5 md:p-6">
             <div class="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
-                <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.label }}</h3>
+                <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.name }}</h3>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{{ group.description || 'No category description has been written yet.' }}</p>
               </div>
 
               <div class="flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
-                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.topics.length }} topic{{ group.topics.length === 1 ? '' : 's' }}</span>
-                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visibleEntriesCount }} visible entries</span>
+                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_topics_count }} topic{{ group.visible_topics_count === 1 ? '' : 's' }}</span>
+                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_direct_entries_count }} direct entr{{ group.visible_direct_entries_count === 1 ? 'y' : 'ies' }}</span>
+                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_entries_count }} visible entries</span>
+                <Link :href="group.href" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Open Category</Link>
               </div>
             </div>
 
-            <div class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div v-if="group.direct_entries?.length" class="mt-5 space-y-3">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">Direct Entries</div>
+              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Link v-for="entry in group.direct_entries" :key="`direct-entry-${entry.id}`" :href="entry.href" class="group rounded-2xl border border-white/[0.055] bg-white/[0.024] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
+                  <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Direct Category Entry</div>
+                  <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
+                  <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
+                  <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
+                    <span class="rounded-full border border-white/10 px-2.5 py-1">{{ entry.minimum_rank_label }}</span>
+                    <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-2.5 py-1">Updated {{ entry.updated_label }}</span>
+                    <span v-for="tag in entry.tags" :key="`direct-search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            <div v-if="group.topics?.length" class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               <Link v-for="topic in group.topics" :key="topic.id" :href="topic.href" class="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
                 <div class="pointer-events-none absolute inset-0 opacity-70">
                   <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
@@ -233,10 +231,14 @@ watch(search, value => {
                 </div>
               </Link>
             </div>
+
+            <div v-if="!group.topics?.length && !group.direct_entries?.length" class="mt-5 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+              No visible archive content is currently available in this category.
+            </div>
           </section>
         </div>
 
-        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No archive topics are currently visible to your rank.</div>
+        <div v-else class="rounded-2xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">No archive categories are currently visible to your rank.</div>
       </section>
     </div>
   </HorizonContainer>

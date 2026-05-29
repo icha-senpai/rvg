@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\Admin\AdminArchiveAuditController;
 use App\Http\Controllers\Web\Admin\AdminArchiveController;
+use App\Http\Controllers\Web\Admin\AdminArchiveCategoryEntryController;
 use App\Http\Controllers\Web\Admin\AdminArchiveEntryController;
 use App\Http\Controllers\Web\Admin\AdminArchiveTaxonomyController;
 use App\Http\Controllers\Web\Admin\AdminArchiveTrashController;
@@ -31,6 +32,11 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/taxonomy/tags', [AdminArchiveTaxonomyController::class, 'storeTag'])->name('taxonomy.tags.store');
         Route::put('/taxonomy/tags/{tag}', [AdminArchiveTaxonomyController::class, 'updateTag'])->name('taxonomy.tags.update');
         Route::delete('/taxonomy/tags/{tag}', [AdminArchiveTaxonomyController::class, 'destroyTag'])->name('taxonomy.tags.destroy');
+
+        Route::get('/categories/{category}/entries', [AdminArchiveCategoryEntryController::class, 'index'])->name('categories.entries.index');
+        Route::post('/categories/{category}/entries', [AdminArchiveCategoryEntryController::class, 'store'])->name('categories.entries.store');
+        Route::put('/categories/{category}/entries/{entry}', [AdminArchiveCategoryEntryController::class, 'update'])->name('categories.entries.update');
+        Route::delete('/categories/{category}/entries/{entry}', [AdminArchiveCategoryEntryController::class, 'destroy'])->name('categories.entries.destroy');
 
         Route::post('/topics', [AdminArchiveController::class, 'store'])->name('topics.store');
         Route::put('/topics/{topic}', [AdminArchiveController::class, 'update'])->name('topics.update');

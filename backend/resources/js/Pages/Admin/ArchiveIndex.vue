@@ -12,6 +12,7 @@ import HorizonSelect from '@/Components/HorizonSelect.vue'
 import ArchiveMediaPicker from './Components/ArchiveMediaPicker.vue'
 
 const props = defineProps({
+  categories: { type: Array, default: () => [] },
   topics: { type: Array, default: () => [] },
   categoryOptions: { type: Array, default: () => [] },
   rankOptions: { type: Array, default: () => [] },
@@ -38,6 +39,7 @@ const blankTopic = {
 
 const topicForm = useForm({ ...blankTopic })
 
+const categories = computed(() => props.categories ?? [])
 const sortedTopics = computed(() => props.topics ?? [])
 const categoryOptions = computed(() => props.categoryOptions ?? [])
 const categoryPositionLookup = computed(() => {
@@ -45,6 +47,23 @@ const categoryPositionLookup = computed(() => {
 })
 const groupedTopics = computed(() => {
   const groups = new Map()
+
+  for (const category of categories.value) {
+    const key = String(category.id)
+
+    groups.set(key, {
+      key,
+      label: category.name,
+      description: category.description,
+      topics: [],
+      directEntries: category.direct_entries ?? [],
+      entriesCount: 0,
+      directEntriesCount: Number(category.direct_entries_count ?? 0),
+      entriesAdminHref: category.entries_admin_href,
+      createEntryAdminHref: category.create_entry_admin_href,
+      publicHref: category.public_href,
+    })
+  }
 
   for (const topic of sortedTopics.value) {
     const key = String(topic.archive_category_id ?? topic.category_label ?? 'uncategorized')
@@ -54,8 +73,14 @@ const groupedTopics = computed(() => {
       groups.set(key, {
         key,
         label,
+        description: null,
         topics: [],
+        directEntries: [],
         entriesCount: 0,
+        directEntriesCount: 0,
+        entriesAdminHref: null,
+        createEntryAdminHref: null,
+        publicHref: null,
       })
     }
 
@@ -172,7 +197,7 @@ function confirmDeleteTopic({ close }) {
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Director Tools</div>
             <h1 class="mt-2 text-3xl font-black text-horizon-white md:text-5xl">Archive Management</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-              Build the archive in its new hierarchy: create Categories first, place Topics inside them, and then use Manage Entries to author the documents that live inside each topic.
+              Build the archive in its new hierarchy: create Categories first, place Topics inside them, and use the entry controls here to manage both topic entries and direct category entries.
             </p>
           </div>
 
@@ -205,6 +230,7 @@ function confirmDeleteTopic({ close }) {
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category → Topic Structure</div>
             <h2 class="text-2xl font-black text-horizon-white">{{ groupedTopics.length }} categor{{ groupedTopics.length === 1 ? 'y' : 'ies' }} · {{ sortedTopics.length }} topic{{ sortedTopics.length === 1 ? '' : 's' }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">Direct category entries now live inline with their category so you can scan them without drilling into a second screen first.</p>
           </div>
 
           <HorizonButton type="button" variant="ghost" @click="openCreateDrawer">Create Topic</HorizonButton>
@@ -216,15 +242,64 @@ function confirmDeleteTopic({ close }) {
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
                 <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.label }}</h3>
+                <p v-if="group.description" class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{{ group.description }}</p>
               </div>
 
               <div class="flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.topics.length }} topic{{ group.topics.length === 1 ? '' : 's' }}</span>
-                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.entriesCount }} entries</span>
+                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.directEntriesCount }} direct entr{{ group.directEntriesCount === 1 ? 'y' : 'ies' }}</span>
+                <span class="rounded-full border border-white/10 px-3 py-1">{{ group.entriesCount }} topic entr{{ group.entriesCount === 1 ? 'y' : 'ies' }}</span>
+                <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">New Direct Entry</Link>
+                <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-horizon-white hover:bg-white/[0.05]">Manage Direct Entries</Link>
+                <Link v-if="group.publicHref" :href="group.publicHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-text-secondary hover:text-horizon-white">View Category</Link>
               </div>
             </div>
 
-            <div class="mt-5 space-y-4">
+            <div class="mt-5 rounded-3xl border border-white/[0.055] bg-white/[0.02] p-4 md:p-5">
+              <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Direct Entries</div>
+                  <p class="mt-1 text-sm text-text-secondary">Category-level documents that are not nested under a topic.</p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Create Direct Entry</Link>
+                  <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Open Direct Entry Editor</Link>
+                </div>
+              </div>
+
+              <div v-if="group.directEntries.length" class="mt-4 grid gap-4 xl:grid-cols-2">
+                <article v-for="entry in group.directEntries" :key="`direct-${group.key}-${entry.id}`" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+                  <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                    <div>
+                      <div class="flex flex-wrap gap-2">
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ entry.minimum_rank_label }}</span>
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="entry.is_published ? 'text-emerald-300' : 'text-red-300'">{{ entry.is_published ? 'Published' : 'Draft' }}</span>
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ entry.sort_order }}</span>
+                        <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="entry.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                          {{ entry.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
+                        </span>
+                      </div>
+
+                      <h4 class="mt-3 text-xl font-black text-horizon-white">{{ entry.title }}</h4>
+                      <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
+                      <div class="mt-3 text-xs text-text-muted">/{{ group.label }}/{{ entry.slug }}</div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 lg:flex-col">
+                      <Link :href="entry.edit_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Edit</Link>
+                      <Link :href="entry.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <div v-else class="mt-4 rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-text-secondary">
+                No direct entries yet. Use <span class="font-bold text-horizon-white">Create Direct Entry</span> to add one without making a topic first.
+              </div>
+            </div>
+
+            <div v-if="group.topics.length" class="mt-5 space-y-4">
               <article v-for="topic in group.topics" :key="topic.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
                 <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <div>
@@ -243,13 +318,17 @@ function confirmDeleteTopic({ close }) {
                   </div>
 
                   <div class="flex flex-wrap gap-2 lg:flex-col">
-                    <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
+                    <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Topic Entries</Link>
                     <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                     <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
                     <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTopic(topic)">Delete</HorizonButton>
                   </div>
                 </div>
               </article>
+            </div>
+
+            <div v-else class="mt-5 rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+              No topics exist in this category yet. You can still use the direct entry actions above to add category-level documents right now.
             </div>
           </section>
         </div>

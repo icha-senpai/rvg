@@ -191,6 +191,7 @@ function confirmDeleteTag({ close }) {
               <div>
                 <div class="flex flex-wrap gap-2">
                   <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-blue)]">{{ category.topics_count }} topics</span>
+                  <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-horizon-white">{{ category.direct_entries_count }} direct entr{{ category.direct_entries_count === 1 ? 'y' : 'ies' }}</span>
                   <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ category.sort_order }}</span>
                 </div>
 
@@ -200,6 +201,8 @@ function confirmDeleteTag({ close }) {
               </div>
 
               <div class="flex flex-wrap gap-2 md:flex-col">
+                <Link :href="category.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Entries</Link>
+                <Link :href="category.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
                 <HorizonButton type="button" variant="ghost" size="sm" @click="startCategoryEdit(category)">Edit</HorizonButton>
                 <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteCategory(category)">Delete</HorizonButton>
               </div>

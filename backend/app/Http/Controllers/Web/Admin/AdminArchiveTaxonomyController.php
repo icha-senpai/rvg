@@ -25,6 +25,7 @@ class AdminArchiveTaxonomyController extends Controller
         return Inertia::render('Admin/ArchiveTaxonomy', [
             'categories' => ArchiveCategory::query()
                 ->withCount('topics')
+                ->withCount(['entries as direct_entries_count' => fn ($query) => $query->whereNull('archive_entries.archive_topic_id')])
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get()
@@ -87,7 +88,7 @@ class AdminArchiveTaxonomyController extends Controller
     {
         $this->authorize('access-admin-panel');
 
-        $category->loadCount('topics');
+        $category->loadCount(['topics', 'directEntries']);
 
         $snapshot = [
             'category_id' => $category->id,
@@ -96,8 +97,10 @@ class AdminArchiveTaxonomyController extends Controller
             'description' => $category->description,
             'sort_order' => $category->sort_order,
             'topics_count' => (int) ($category->topics_count ?? 0),
+            'direct_entries_count' => (int) ($category->direct_entries_count ?? 0),
         ];
 
+        $category->directEntries()->get()->each->delete();
         $category->delete();
 
         $this->logArchiveAction($request, 'archive.category.deleted', $snapshot);
@@ -216,6 +219,9 @@ class AdminArchiveTaxonomyController extends Controller
             'description' => $category->description,
             'sort_order' => $category->sort_order,
             'topics_count' => (int) ($category->topics_count ?? 0),
+            'direct_entries_count' => (int) ($category->direct_entries_count ?? 0),
+            'entries_admin_href' => route('admin.archive.categories.entries.index', $category),
+            'public_href' => route('archive.category', $category),
         ];
     }
 
