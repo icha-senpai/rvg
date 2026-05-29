@@ -634,28 +634,6 @@ watch(search, () => {
    Stats
 ---------------------------------------- */
 
-const activeCount = computed(() =>
-  operationsList.value.filter(op =>
-    ['published', 'in_progress'].includes(op.status)
-  ).length
-)
-
-const draftCount = computed(() =>
-  operationsList.value.filter(op => op.status === 'draft').length
-)
-
-const completedCount = computed(() =>
-  operationsList.value.filter(op => op.status === 'completed').length
-)
-
-const plannedCount = computed(() =>
-  operationsList.value.filter(op => op.status === 'published').length
-)
-
-const operationsTotalCount = computed(() => {
-  return operationsPaginator.value?.total ?? operationsList.value.length
-})
-
 const statusFilterLabel = computed(() => {
   return statusFilters.find(item => item.value === statusFilter.value)?.label ?? 'All'
 })
@@ -760,18 +738,15 @@ function statusCardClass(status) {
               Create, edit, start, complete, cancel, and inspect Horizon operations from one command board.
             </p>
 
-            <div class="mt-4 flex flex-wrap gap-2">
-              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)] shadow-none">
-                {{ operationsTotalCount }} Total
-              </span>
-
-              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)] shadow-none">
-                {{ statusFilterLabel }} View
-              </span>
-
-              <span class="rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-semibold text-text-secondary shadow-none">
-                {{ todayLabel }}
-              </span>
+            <div class="mt-4 inline-flex rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-left">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Today
+                </div>
+                <div class="mt-1 text-sm font-semibold text-horizon-white">
+                  {{ todayLabel }}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -803,57 +778,6 @@ function statusCardClass(status) {
                 Create Operation
               </HorizonButton>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Stats strip -->
-      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-4">
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Active
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ activeCount }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Published or live
-          </div>
-        </div>
-
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Drafts
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ draftCount }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            In planning
-          </div>
-        </div>
-
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Published
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ plannedCount }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Ready to run
-          </div>
-        </div>
-
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Completed
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ completedCount }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Archived results
           </div>
         </div>
       </section>

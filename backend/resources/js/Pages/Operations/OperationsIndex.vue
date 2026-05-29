@@ -46,22 +46,6 @@ const todayLabel = computed(() => {
   })
 })
 
-const operationStats = computed(() => {
-  const list = operationsList.value ?? []
-
-  return {
-    total: list.length,
-    joined: list.filter(op => {
-      if (typeof op.joined_by_me === 'boolean') return op.joined_by_me
-      return Number(op.joined_by_me ?? 0) > 0
-    }).length,
-    upcoming: list.filter(op => {
-      const date = parseDate(op.starts_at)
-      return date && date.getTime() >= Date.now()
-    }).length,
-  }
-})
-
 const sortedOperations = computed(() => {
   const now = new Date()
 
@@ -208,45 +192,6 @@ function closeViewModal() {
             <div class="mt-1 text-sm font-semibold text-horizon-white">
               {{ todayLabel }}
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Status strip -->
-      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-3">
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Listed
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ operationStats.total }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Operations in this view
-          </div>
-        </div>
-
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Upcoming
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ operationStats.upcoming }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Still ahead of current time
-          </div>
-        </div>
-
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Joined
-          </div>
-          <div class="mt-2 text-3xl font-black text-horizon-white">
-            {{ operationStats.joined }}
-          </div>
-          <div class="mt-1 text-sm text-text-secondary">
-            Missions you are signed up for
           </div>
         </div>
       </section>
