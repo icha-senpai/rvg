@@ -131,6 +131,7 @@ defineExpose({ show, close, finish })
   <div
     v-if="open"
     class="hz-overlay flex items-center justify-center p-4"
+    style="z-index: 110;"
     @click.self="close"
   >
     <div
