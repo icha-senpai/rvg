@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\AccessControl\RoleHierarchy;
+use App\Domain\AccessControl\SquadronMembershipReadService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -139,36 +140,38 @@ class User extends Authenticatable
 
     /**
      * Return the user's current active membership for the given squadron.
+     *
+     * @deprecated Prefer App\Domain\AccessControl\SquadronMembershipReadService
+     * when resolving squadron membership outside the model layer.
      */
     public function squadronMembershipFor(Squadron $squadron): ?SquadronMember
     {
-        return $this->squadronMemberships()
-            ->where('squadron_id', $squadron->id)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->latest('joined_at')
-            ->first();
+        return app(SquadronMembershipReadService::class)
+            ->activeMembership($this, $squadron);
     }
 
     /**
      * Check whether the user is the active leader of the given squadron.
+     *
+     * @deprecated Prefer App\Domain\AccessControl\SquadronMembershipReadService
+     * or AccessService when resolving squadron leadership checks.
      */
     public function isSquadronLeader(Squadron $squadron): bool
     {
-        $membership = $this->squadronMembershipFor($squadron);
-
-        return $membership?->isLeader() ?? false;
+        return app(SquadronMembershipReadService::class)
+            ->isLeader($this, $squadron);
     }
 
     /**
      * Check whether the user is an active lieutenant of the given squadron.
+     *
+     * @deprecated Prefer App\Domain\AccessControl\SquadronMembershipReadService
+     * or AccessService when resolving squadron lieutenant checks.
      */
     public function isSquadronLieutenant(Squadron $squadron): bool
     {
-        $membership = $this->squadronMembershipFor($squadron);
-
-        return $membership
-            && $membership->role === SquadronMember::ROLE_LIEUTENANT
-            && $membership->membership_status === SquadronMember::STATUS_ACTIVE;
+        return app(SquadronMembershipReadService::class)
+            ->isLieutenant($this, $squadron);
     }
 
     /**

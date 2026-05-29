@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Helpers\WebAuthRedirect;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,7 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        if ($request->expectsJson() || $request->is('api/*')) {
+        if (WebAuthRedirect::shouldReturnJson($request)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthenticated',
@@ -24,7 +25,7 @@ class Handler extends ExceptionHandler
             ], 401);
         }
 
-        return redirect()->guest('/');
+        return WebAuthRedirect::redirectToVerify($request);
     }
 
     protected function invalidJson($request, ValidationException $exception)

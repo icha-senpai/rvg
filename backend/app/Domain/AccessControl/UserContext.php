@@ -2,22 +2,23 @@
 
 namespace App\Domain\AccessControl;
 
-use App\Models\User;
 use App\Models\Squadron;
-use App\Models\SquadronMember;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class UserContext
 {
     protected User $user;
+    protected SquadronMembershipReadService $memberships;
 
     protected ?Collection $roles = null;
     protected ?Collection $permissions = null;
 
-    public function __construct(User $user)
+    public function __construct(User $user, ?SquadronMembershipReadService $memberships = null)
     {
         $this->user = $user;
+        $this->memberships = $memberships ?? app(SquadronMembershipReadService::class);
     }
 
     public static function for(User $user): self
@@ -99,26 +100,12 @@ class UserContext
 
     public function isSquadronLeader(Squadron $squadron): bool
     {
-        $membership = SquadronMember::query()
-            ->where('user_id', $this->user->id)
-            ->where('squadron_id', $squadron->id)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->latest('joined_at')
-            ->first();
-
-        return $membership?->isLeader() ?? false;
+        return $this->memberships->isLeader($this->user, $squadron);
     }
 
     public function isSquadronLieutenant(Squadron $squadron): bool
     {
-        $membership = SquadronMember::query()
-            ->where('user_id', $this->user->id)
-            ->where('squadron_id', $squadron->id)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->latest('joined_at')
-            ->first();
-
-        return $membership?->isLieutenant() ?? false;
+        return $this->memberships->isLieutenant($this->user, $squadron);
     }
 
     /**

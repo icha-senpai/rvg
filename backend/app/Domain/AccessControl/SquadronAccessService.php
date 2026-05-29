@@ -4,14 +4,14 @@ namespace App\Domain\AccessControl;
 
 use App\Domain\Squadrons\MembershipRuleService;
 use App\Models\Squadron;
-use App\Models\SquadronMember;
 use App\Models\User;
 
 class SquadronAccessService
 {
     public function __construct(
         protected SharedAccessService $shared,
-        protected MembershipRuleService $membershipRules
+        protected MembershipRuleService $membershipRules,
+        protected SquadronMembershipReadService $memberships
     ) {}
 
     public function canViewAnySquadron(User $user): bool
@@ -73,11 +73,7 @@ class SquadronAccessService
             return true;
         }
 
-        return $squadron->members()
-            ->where('user_id', $user->id)
-            ->where('role', SquadronMember::ROLE_LIEUTENANT)
-            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
-            ->exists();
+        return $this->memberships->isLieutenant($user, $squadron);
     }
 
     public function canPromoteLieutenant(User $user, Squadron $squadron): bool

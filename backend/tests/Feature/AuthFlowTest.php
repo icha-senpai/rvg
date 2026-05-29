@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Helpers\WebAuthRedirect;
 use App\Models\User;
 use App\Services\DiscordGuildMembershipService;
 use App\Services\DiscordOAuthService;
@@ -42,11 +43,32 @@ class AuthFlowTest extends TestCase
         $response->assertRedirect('/');
     }
 
+    public function test_verify_page_redirects_verified_users_to_their_intended_url(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'discord_id' => 'discord-verified-user-intended',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $response = $this
+            ->withSession([
+                WebAuthRedirect::INTENDED_URL_SESSION_KEY => url('/members'),
+            ])
+            ->actingAs($user)
+            ->get('/verify');
+
+        $response
+            ->assertRedirect('/members')
+            ->assertSessionMissing(WebAuthRedirect::INTENDED_URL_SESSION_KEY);
+    }
+
     public function test_generate_code_requires_authentication(): void
     {
         $response = $this->post('/verify/code');
 
-        $response->assertStatus(401);
+        $response->assertRedirect('/verify');
     }
 
     public function test_generate_code_returns_and_persists_a_code_for_an_authenticated_user(): void
@@ -95,7 +117,7 @@ class AuthFlowTest extends TestCase
             'rsi_handle' => 'PilotHandle',
         ]);
 
-        $response->assertStatus(401);
+        $response->assertRedirect('/verify');
     }
 
     public function test_verify_rsi_marks_the_authenticated_user_as_verified(): void
@@ -126,6 +148,35 @@ class AuthFlowTest extends TestCase
         $this->assertNotNull($user->rsi_verified_at);
         $this->assertNull($user->verification_code);
         $this->assertNull($user->verification_expires_at);
+    }
+
+    public function test_verify_rsi_redirects_to_their_intended_url_after_success(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_PENDING,
+            'discord_id' => 'discord-user-intended-rsi',
+            'verification_code' => 'ABC-123',
+            'verification_expires_at' => now()->addMinutes(10),
+        ]);
+
+        Http::fake([
+            'https://robertsspaceindustries.com/*' => Http::response('<html><a href="/orgs/SRN">SRN</a><div>ABC-123</div></html>', 200),
+        ]);
+
+        $response = $this
+            ->withSession([
+                WebAuthRedirect::INTENDED_URL_SESSION_KEY => url('/members'),
+            ])
+            ->actingAs($user)
+            ->post('/verify/rsi', [
+                'rsi_handle' => 'PilotHandle',
+            ]);
+
+        $response
+            ->assertRedirect('/members')
+            ->assertSessionHas('success', 'Account verified successfully!')
+            ->assertSessionMissing(WebAuthRedirect::INTENDED_URL_SESSION_KEY);
     }
 
     public function test_discord_redirect_uses_the_oauth_service_redirect(): void
@@ -179,6 +230,153 @@ class AuthFlowTest extends TestCase
             ->assertSessionHas('hz_auth_started_at');
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_discord_callback_redirects_verified_users_to_their_intended_url(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'discord_id' => 'discord-user-verified-intended',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $discordUser = $this->fakeDiscordUser('discord-user-verified-intended', 'Discord User', 'Discord Nick');
+
+        $this->mock(DiscordOAuthService::class, function (MockInterface $mock) use ($discordUser): void {
+            $mock->shouldReceive('getUser')
+                ->once()
+                ->with(true)
+                ->andReturn($discordUser);
+        });
+
+        $this->mock(DiscordGuildMembershipService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('checkMembership')
+                ->once()
+                ->with('discord-user-verified-intended')
+                ->andReturn(true);
+        });
+
+        $this->mock(DiscordUserSyncService::class, function (MockInterface $mock) use ($discordUser, $user): void {
+            $mock->shouldReceive('syncBasicUser')
+                ->once()
+                ->with($discordUser)
+                ->andReturn($user);
+        });
+
+        $response = $this
+            ->withSession([
+                WebAuthRedirect::INTENDED_URL_SESSION_KEY => url('/members'),
+            ])
+            ->get('/auth/discord/callback');
+
+        $response
+            ->assertRedirect('/members')
+            ->assertSessionHas('hz_auth_started_at')
+            ->assertSessionMissing(WebAuthRedirect::INTENDED_URL_SESSION_KEY);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_discord_callback_falls_back_home_when_intended_url_is_invalid(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'discord_id' => 'discord-user-invalid-intended',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $discordUser = $this->fakeDiscordUser('discord-user-invalid-intended', 'Discord User', 'Discord Nick');
+
+        $this->mock(DiscordOAuthService::class, function (MockInterface $mock) use ($discordUser): void {
+            $mock->shouldReceive('getUser')
+                ->once()
+                ->with(true)
+                ->andReturn($discordUser);
+        });
+
+        $this->mock(DiscordGuildMembershipService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('checkMembership')
+                ->once()
+                ->with('discord-user-invalid-intended')
+                ->andReturn(true);
+        });
+
+        $this->mock(DiscordUserSyncService::class, function (MockInterface $mock) use ($discordUser, $user): void {
+            $mock->shouldReceive('syncBasicUser')
+                ->once()
+                ->with($discordUser)
+                ->andReturn($user);
+        });
+
+        $response = $this
+            ->withSession([
+                WebAuthRedirect::INTENDED_URL_SESSION_KEY => 'https://evil.example/steal-session',
+            ])
+            ->get('/auth/discord/callback');
+
+        $response
+            ->assertRedirect('/')
+            ->assertSessionMissing(WebAuthRedirect::INTENDED_URL_SESSION_KEY);
+    }
+
+    public function test_protected_web_page_redirects_guests_to_verify_and_stores_intended_url(): void
+    {
+        $response = $this->get('/members');
+
+        $response
+            ->assertRedirect('/verify')
+            ->assertSessionHas(WebAuthRedirect::INTENDED_URL_SESSION_KEY, url('/members'));
+    }
+
+    public function test_protected_inertia_page_visit_forces_a_verify_location_redirect(): void
+    {
+        $response = $this
+            ->withHeaders([
+                'X-Inertia' => 'true',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])
+            ->get('/members');
+
+        $response
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', route('verify'))
+            ->assertSessionHas(WebAuthRedirect::INTENDED_URL_SESSION_KEY, url('/members'));
+    }
+
+    public function test_expired_web_session_redirects_to_verify_and_stores_intended_url(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'discord_id' => 'discord-user-expired-session',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $response = $this
+            ->withSession([
+                'hz_auth_started_at' => now()->subDays(8)->toIso8601String(),
+            ])
+            ->actingAs($user)
+            ->get('/members');
+
+        $response
+            ->assertRedirect('/verify')
+            ->assertSessionHas(WebAuthRedirect::INTENDED_URL_SESSION_KEY, url('/members'));
+
+        $this->assertGuest();
+    }
+
+    public function test_protected_api_endpoint_returns_json_401_for_guests(): void
+    {
+        $response = $this->getJson('/api/v1/me');
+
+        $response
+            ->assertStatus(401)
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     public function test_discord_callback_redirects_to_not_in_guild_when_membership_fails(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Helpers\WebAuthRedirect;
 use App\Http\Controllers\Controller;
 use App\Services\DiscordGuildMembershipService;
 use App\Services\DiscordLogger;
@@ -86,6 +87,10 @@ class DiscordAuthController extends Controller
                 'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
                 'user_agent' => $request->userAgent(),
             ]);
+
+            if ($user->rsi_verified_at) {
+                return WebAuthRedirect::redirectToIntendedOrFallback($request);
+            }
 
             return redirect()->route('verify');
         } catch (\Exception $e) {

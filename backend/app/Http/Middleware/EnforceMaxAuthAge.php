@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\WebAuthRedirect;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,7 +12,7 @@ class EnforceMaxAuthAge
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->is('verify') || $request->is('verify/*')) {
+        if (WebAuthRedirect::shouldIgnore($request)) {
             return $next($request);
         }
 
@@ -39,13 +40,13 @@ class EnforceMaxAuthAge
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            if ($request->expectsJson()) {
+            if (WebAuthRedirect::shouldReturnJson($request)) {
                 return response()->json([
                     'message' => 'Unauthenticated.',
                 ], 401);
             }
 
-            return redirect('/verify');
+            return WebAuthRedirect::redirectToVerify($request);
         }
 
         return $next($request);

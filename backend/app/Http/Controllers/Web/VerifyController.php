@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Helpers\WebAuthRedirect;
 use App\Http\Controllers\Controller;
 use App\Services\DiscordLogger;
 use App\Services\RsiVerificationService;
@@ -37,7 +38,7 @@ class VerifyController extends Controller
         $user = $request->user();
 
         if ($user?->rsi_verified_at) {
-            return redirect()->to('/');
+            return WebAuthRedirect::redirectToIntendedOrFallback($request);
         }
 
         $verificationCode = null;
@@ -69,7 +70,7 @@ class VerifyController extends Controller
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('login');
+            return WebAuthRedirect::redirectToVerify($request);
         }
 
         $this->verification->generateCode($user);
@@ -118,7 +119,7 @@ class VerifyController extends Controller
                     'user_agent' => $request->userAgent(),
                 ]);
 
-                return redirect()->route('login');
+                return WebAuthRedirect::redirectToVerify($request);
             }
 
             // The domain service performs the actual RSI profile fetch, org check,
@@ -127,7 +128,8 @@ class VerifyController extends Controller
 
             RateLimiter::clear($throttleKey);
 
-            return redirect()->to('/')->with('success', 'Account verified successfully!');
+            return WebAuthRedirect::redirectToIntendedOrFallback($request)
+                ->with('success', 'Account verified successfully!');
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {

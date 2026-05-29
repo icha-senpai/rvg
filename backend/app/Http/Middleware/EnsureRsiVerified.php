@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\WebAuthRedirect;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -16,8 +17,8 @@ class EnsureRsiVerified
 
         // Not logged in
         if (! $user) {
-            if (! $request->expectsJson()) {
-                return redirect()->to('/verify');
+            if (! WebAuthRedirect::shouldReturnJson($request)) {
+                return WebAuthRedirect::redirectToVerify($request);
             }
 
             return response()->json([
@@ -27,8 +28,8 @@ class EnsureRsiVerified
 
         // Check RSI verification status
         if (! $user->rsi_verified_at) {
-            if (! $request->expectsJson()) {
-                return redirect()->to('/verify');
+            if (! WebAuthRedirect::shouldReturnJson($request)) {
+                return WebAuthRedirect::redirectToVerify($request);
             }
 
             return response()->json([

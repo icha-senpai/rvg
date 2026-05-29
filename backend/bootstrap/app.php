@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\WebAuthRedirect;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,7 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         | - API / JSON requests receive a clean 401 instead of a redirect
         */
         $middleware->redirectGuestsTo(function ($request) {
-            if ($request->expectsJson()) {
+            if (WebAuthRedirect::shouldReturnJson($request)) {
                 return null;
             }
 
@@ -89,6 +90,10 @@ return Application::configure(basePath: dirname(__DIR__))
         | Ensures APIs and bots always receive JSON 401 responses
         */
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if (! WebAuthRedirect::shouldReturnJson($request)) {
+                return WebAuthRedirect::redirectToVerify($request);
+            }
+
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);
