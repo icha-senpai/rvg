@@ -23,6 +23,7 @@ class ParticipantService
      */
     public function join(Operation $operation, User $user, array $data): OperationParticipant
     {
+        $this->assertOperationCanJoin($operation);
         $data = $this->normalizePayload($data);
         $role = $this->resolveRole($operation, $data['operation_role_id'] ?? null);
         $this->assertRoleCapacity($role);
@@ -35,6 +36,7 @@ class ParticipantService
      */
     public function leave(Operation $operation, User $user): void
     {
+        $this->assertOperationParticipationMutable($operation);
         (new LeaveOperation)->execute($operation, $user);
     }
 
@@ -43,6 +45,7 @@ class ParticipantService
      */
     public function updateSlot(Operation $operation, OperationParticipant $participant, array $data): OperationParticipant
     {
+        $this->assertOperationParticipationMutable($operation);
         $data = $this->normalizePayload($data);
         $role = $this->resolveRole($operation, $data['operation_role_id'] ?? null);
         $this->assertRoleCapacity($role, $participant);
@@ -97,6 +100,42 @@ class ParticipantService
         if ($filled >= $role->capacity) {
             throw ValidationException::withMessages([
                 'operation_role_id' => 'Role is full',
+            ]);
+        }
+    }
+
+    protected function assertOperationCanJoin(Operation $operation): void
+    {
+        if ($operation->isCompleted() || $operation->isCanceled()) {
+            throw ValidationException::withMessages([
+                'participant' => 'Sign-ups are closed for completed or canceled operations.',
+            ]);
+        }
+
+        if ($operation->isInProgress()) {
+            throw ValidationException::withMessages([
+                'participant' => 'This operation is already underway. Sign-ups are closed.',
+            ]);
+        }
+
+        if ($operation->starts_at && now()->greaterThanOrEqualTo($operation->starts_at)) {
+            throw ValidationException::withMessages([
+                'participant' => 'This operation has already started. Sign-ups are closed.',
+            ]);
+        }
+
+        if ($operation->rsvp_deadline && now()->greaterThanOrEqualTo($operation->rsvp_deadline)) {
+            throw ValidationException::withMessages([
+                'participant' => 'The sign-up deadline for this operation has passed.',
+            ]);
+        }
+    }
+
+    protected function assertOperationParticipationMutable(Operation $operation): void
+    {
+        if ($operation->isCompleted() || $operation->isCanceled()) {
+            throw ValidationException::withMessages([
+                'participant' => 'Participation is locked for completed or canceled operations.',
             ]);
         }
     }

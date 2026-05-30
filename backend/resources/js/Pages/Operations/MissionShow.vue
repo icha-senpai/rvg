@@ -214,6 +214,17 @@ function formatTitle(value) {
     .join(' ')
 }
 
+function firstErrorMessage(errors, fallback) {
+  const values = Object.values(errors ?? {})
+  const first = values[0]
+
+  if (Array.isArray(first)) {
+    return first[0] ?? fallback
+  }
+
+  return first ?? fallback
+}
+
 function formatUTC(value) {
   if (!value) return 'TBD'
 
@@ -305,6 +316,67 @@ const joinForm = reactive({
   notes: '',
 })
 
+const participationLockedByStatus = computed(() => {
+  return ['completed', 'canceled'].includes(operation?.status ?? '')
+})
+
+const rsvpDeadlineDate = computed(() => toDate(operation?.rsvp_deadline))
+const operationStartDate = computed(() => toDate(operation?.starts_at))
+
+const signUpsClosedByDeadline = computed(() => {
+  if (!rsvpDeadlineDate.value) return false
+
+  return Date.now() >= rsvpDeadlineDate.value.getTime()
+})
+
+const signUpsClosedByStart = computed(() => {
+  if (operation?.status === 'in_progress') return true
+  if (!operationStartDate.value) return false
+
+  return Date.now() >= operationStartDate.value.getTime()
+})
+
+const canJoinOperation = computed(() => {
+  return !currentParticipant.value
+    && !participationLockedByStatus.value
+    && !signUpsClosedByStart.value
+    && !signUpsClosedByDeadline.value
+})
+
+const canUpdateParticipation = computed(() => {
+  return !!currentParticipant.value && !participationLockedByStatus.value
+})
+
+const participationStatusMessage = computed(() => {
+  if (operation?.status === 'completed') {
+    return 'This operation is completed. Participation is locked.'
+  }
+
+  if (operation?.status === 'canceled') {
+    return 'This operation was canceled. Participation is locked.'
+  }
+
+  if (operation?.status === 'in_progress') {
+    return currentParticipant.value
+      ? 'This operation is underway. New sign-ups are closed.'
+      : 'This operation is underway. Sign-ups are closed.'
+  }
+
+  if (signUpsClosedByStart.value) {
+    return currentParticipant.value
+      ? 'This operation has already started. New sign-ups are closed.'
+      : 'This operation has already started. Sign-ups are closed.'
+  }
+
+  if (signUpsClosedByDeadline.value) {
+    return currentParticipant.value
+      ? 'Sign-ups are closed. You are already on the roster.'
+      : 'The sign-up deadline has passed.'
+  }
+
+  return null
+})
+
 const slotOptions = computed(() => {
   const slots = (operation.slots || []).map(slot => ({
     label: slot,
@@ -335,6 +407,7 @@ const joinProcessing = ref(false)
 
 async function join() {
   if (joinProcessing.value) return
+  if (!canJoinOperation.value) return
 
   joinProcessing.value = true
 
@@ -347,8 +420,10 @@ async function join() {
     },
     {
       preserveScroll: true,
-      onError: () => {
-        window.hzNotifyError?.({ message: 'Failed to join operation.' })
+      onError: (errors) => {
+        window.hzNotifyError?.({
+          message: firstErrorMessage(errors, 'Failed to join operation.'),
+        })
       },
       onFinish: () => {
         joinProcessing.value = false
@@ -362,6 +437,7 @@ const leaveConfirmDialog = ref(null)
 
 function askLeave() {
   if (joinProcessing.value) return
+  if (!canUpdateParticipation.value) return
 
   leaveConfirmDialog.value?.show()
 }
@@ -379,8 +455,10 @@ function confirmLeave({ close }) {
       onSuccess: () => {
         close()
       },
-      onError: () => {
-        window.hzNotifyError?.({ message: 'Failed to leave operation.' })
+      onError: (errors) => {
+        window.hzNotifyError?.({
+          message: firstErrorMessage(errors, 'Failed to leave operation.'),
+        })
       },
       onFinish: () => {
         joinProcessing.value = false
@@ -393,6 +471,7 @@ function confirmLeave({ close }) {
 async function updateSlot() {
   if (!currentParticipant.value) return
   if (joinProcessing.value) return
+  if (!canUpdateParticipation.value) return
 
   joinProcessing.value = true
 
@@ -407,8 +486,10 @@ async function updateSlot() {
     },
     {
       preserveScroll: true,
-      onError: () => {
-        window.hzNotifyError?.({ message: 'Failed to update role.' })
+      onError: (errors) => {
+        window.hzNotifyError?.({
+          message: firstErrorMessage(errors, 'Failed to update role.'),
+        })
       },
       onFinish: () => {
         joinProcessing.value = false
@@ -689,6 +770,13 @@ const hasMetaInformation = computed(() => {
               Your Status
             </div>
 
+            <p
+              v-if="participationStatusMessage"
+              class="mt-3 rounded-2xl border border-white/[0.055] bg-white/[0.03] px-3 py-2 text-xs text-text-secondary"
+            >
+              {{ participationStatusMessage }}
+            </p>
+
             <template v-if="currentParticipant">
               <div class="mt-3 text-2xl font-black text-horizon-white">
                 Joined
@@ -701,7 +789,7 @@ const hasMetaInformation = computed(() => {
                 <strong class="text-horizon-white">{{ formatTitle(currentParticipant.attendance_status) }}</strong>.
               </p>
 
-              <div class="mt-4 space-y-3">
+              <div v-if="canUpdateParticipation" class="mt-4 space-y-3">
                 <HorizonSelect
                   label="Role"
                   v-model="joinForm.slot"
@@ -739,7 +827,7 @@ const hasMetaInformation = computed(() => {
                 Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }} with an optional role.
               </p>
 
-              <div class="mt-4 space-y-3">
+              <div v-if="canJoinOperation" class="mt-4 space-y-3">
                 <HorizonSelect
                   label="Role (optional)"
                   v-model="joinForm.slot"
@@ -843,9 +931,6 @@ const hasMetaInformation = computed(() => {
     @confirm="confirmLeave"
   />
 </template>
-
-
-
 
 
 

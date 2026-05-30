@@ -41,6 +41,7 @@ const todayLabel = computed(() => {
 const createDrawerOpen = ref(false)
 const createEditorSquadronId = ref(null)
 const editorPrefillTemplateId = ref(null)
+const templateToolsOpen = ref(false)
 
 const templates = computed(() => page.props?.operationTemplates ?? [])
 const activeOperation = computed(() => page.props?.activeOperation ?? null)
@@ -243,6 +244,7 @@ function openCreateDrawer() {
   createDrawerOpen.value = true
   createEditorSquadronId.value = userSquadronId.value
   editorPrefillTemplateId.value = null
+  templateToolsOpen.value = false
 
   const query = {
     ...getCurrentQueryParams(),
@@ -262,6 +264,7 @@ function openCreateDrawerFromTemplate() {
   createDrawerOpen.value = true
   createEditorSquadronId.value = template?.squadron_id ?? userSquadronId.value
   editorPrefillTemplateId.value = id
+  templateToolsOpen.value = true
 
   const query = {
     ...getCurrentQueryParams(),
@@ -276,6 +279,7 @@ function openEditDrawer(op) {
   createDrawerOpen.value = false
   createEditorSquadronId.value = null
   editorPrefillTemplateId.value = null
+  templateToolsOpen.value = false
 
   const query = {
     ...getCurrentQueryParams(),
@@ -301,6 +305,10 @@ function closeDrawer() {
   delete query.edit
 
   visitDashboard(query, ['editingOperation'])
+}
+
+function toggleTemplateTools() {
+  templateToolsOpen.value = !templateToolsOpen.value
 }
 
 function handleDrawerSaved(payload) {
@@ -718,28 +726,30 @@ function statusCardClass(status) {
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-6xl space-y-8">
       <!-- Command header -->
-      <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-6">
+      <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055]">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-          <div class="min-w-0">
-            <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
-              Horizon Officer Command
+        <div class="relative p-6">
+          <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+            <div class="min-w-0 pt-4 md:pt-5">
+              <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
+                Horizon Officer Command
+              </div>
+
+              <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+                Operations Dashboard
+              </h1>
+
+              <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
+                Create, edit, start, complete, cancel, and inspect Horizon operations from one command board.
+              </p>
             </div>
 
-            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
-              Operations Dashboard
-            </h1>
-
-            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-              Create, edit, start, complete, cancel, and inspect Horizon operations from one command board.
-            </p>
-
-            <div class="mt-4 inline-flex rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-left">
-              <div>
+            <div v-if="canCreateOperation" class="flex flex-col items-start gap-3 xl:items-end">
+              <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Today
                 </div>
@@ -747,43 +757,59 @@ function statusCardClass(status) {
                   {{ todayLabel }}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div v-if="canCreateOperation" class="relative z-[9999] grid gap-3 xl:min-w-[34rem] xl:grid-cols-[minmax(0,1fr)_auto]">
-            <div class="min-w-0">
-              <HorizonSelect
-                v-model="createTemplateId"
-                :options="templateOptions"
-              />
-            </div>
-
-            <div class="flex flex-col gap-2 sm:flex-row xl:flex-col">
-              <HorizonButton
-                variant="ghost"
-                size="md"
-                :disabled="!createTemplateId"
-                class="w-full whitespace-nowrap"
-                @click="openCreateDrawerFromTemplate"
-              >
-                From Template
-              </HorizonButton>
 
               <HorizonButton
                 variant="primary"
                 size="md"
-                class="w-full whitespace-nowrap"
+                class="min-w-[12rem]"
                 @click="openCreateDrawer"
               >
                 Create Operation
               </HorizonButton>
+
+              <HorizonButton
+                variant="ghost"
+                size="sm"
+                @click="toggleTemplateTools"
+              >
+                {{ templateToolsOpen ? 'Hide Template' : 'Use Template' }}
+              </HorizonButton>
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- Filters -->
-      <section class="hz-surface-welcome rounded-xl border border-white/[0.055] p-3">
+        <div
+          v-if="canCreateOperation && templateToolsOpen"
+          class="relative border-t border-white/[0.055] px-6 pb-6 pt-4"
+        >
+          <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] bg-white/[0.02] p-4">
+            <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+              <div class="min-w-0">
+                <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Create From Template
+                </label>
+
+                <HorizonSelect
+                  v-model="createTemplateId"
+                  :options="templateOptions"
+                />
+              </div>
+
+              <div class="flex flex-wrap gap-2 xl:justify-end">
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="!createTemplateId"
+                  @click="openCreateDrawerFromTemplate"
+                >
+                  Create From Template
+                </HorizonButton>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Filters -->
+        <div class="relative border-t border-white/[0.055] p-3">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex flex-wrap items-center gap-2">
             <HorizonButton
@@ -805,10 +831,10 @@ function statusCardClass(status) {
             />
           </div>
         </div>
-      </section>
+        </div>
 
-      <!-- Operation command cards -->
-      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4 md:p-5">
+        <!-- Operation command cards -->
+        <div class="relative border-t border-white/[0.055] p-4 md:p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1055,6 +1081,7 @@ function statusCardClass(status) {
             Next
           </HorizonButton>
         </div>
+        </div>
       </section>
 
       <OperationDrawer
@@ -1150,9 +1177,6 @@ function statusCardClass(status) {
     @confirm="confirmCancelOperation"
   />
 </template>
-
-
-
 
 
 
