@@ -88,7 +88,6 @@ const branchLogoAlt = computed(() => {
 })
 
 const startsAt = computed(() => toDate(props.operation?.starts_at))
-const rsvpDeadline = computed(() => toDate(props.operation?.rsvp_deadline))
 
 const isUpcoming = computed(() => {
   if (!startsAt.value) return false
@@ -114,8 +113,8 @@ const collapsedMetaParts = computed(() => {
   }
 
   return parts
-    .filter(part => part && String(part).trim() !== '')
-    .map(part => String(part))
+    .filter((part) => part && String(part).trim() !== '')
+    .map((part) => String(part))
 })
 
 const operationAccentClass = computed(() => {
@@ -123,42 +122,36 @@ const operationAccentClass = computed(() => {
     case 'squadron_training':
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
-        glow: 'rgba(30,64,175,0.16)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'wing_training':
       return {
         border: 'border-white/[0.055]',
-        glow: 'rgba(67,56,202,0.16)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'roleplay':
       return {
         border: 'border-white/[0.055]',
-        glow: 'rgba(192,38,211,0.16)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'meeting':
       return {
         border: 'border-white/15',
-        glow: 'rgba(255,255,255,0.08)',
         chip: 'border-white/15 bg-white/[0.04]',
       }
 
     case 'event':
       return {
         border: 'border-[color:var(--horizon-sunset-pink)]/35',
-        glow: 'rgba(255,61,129,0.16)',
         chip: 'border-[color:var(--horizon-sunset-pink)]/30 bg-[color:var(--horizon-sunset-pink)]/10',
       }
 
     default:
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
-        glow: 'rgba(30,64,175,0.16)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
   }
@@ -205,32 +198,8 @@ function formatTitle(value) {
   return raw
     .replace(/[_-]+/g, ' ')
     .split(' ')
-    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
     .join(' ')
-}
-
-function formatUTC(dt) {
-  if (!dt) return 'TBD'
-
-  const d = toDate(dt)
-  if (!d) return 'TBD'
-
-  const date = new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(d)
-
-  const time = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).format(d)
-
-  return `${date} ${time} UTC`
 }
 
 function formatLocal(dt) {
@@ -252,9 +221,9 @@ function formatLocal(dt) {
     hour12: true,
   }).formatToParts(d)
 
-  const hour = timeParts.find(p => p.type === 'hour')?.value
-  const minute = timeParts.find(p => p.type === 'minute')?.value
-  const dayPeriod = (timeParts.find(p => p.type === 'dayPeriod')?.value ?? '').toLowerCase()
+  const hour = timeParts.find((p) => p.type === 'hour')?.value
+  const minute = timeParts.find((p) => p.type === 'minute')?.value
+  const dayPeriod = (timeParts.find((p) => p.type === 'dayPeriod')?.value ?? '').toLowerCase()
 
   const time = hour && minute && dayPeriod
     ? `${hour}:${minute} ${dayPeriod}`
@@ -295,7 +264,7 @@ function toDate(value) {
 
     <button
       type="button"
-      class="relative block w-full p-5 text-left md:p-6 cursor-pointer group"
+      class="relative block w-full cursor-pointer p-5 text-left group md:p-6"
       @click="viewOperation"
     >
       <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -403,24 +372,18 @@ function toDate(value) {
         </div>
 
         <div class="flex shrink-0 items-center gap-3">
-          <div class="hidden text-right sm:block">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">
-              {{ joinedCount }} joined
-            </div>
-          </div>
-
           <div class="hz-surface-welcome rounded-xl border border-white/[0.055] px-4 py-2 text-sm font-semibold text-text-secondary transition group-hover:border-white/[0.12] group-hover:text-horizon-white">
             View
           </div>
         </div>
       </div>
     </button>
+
+    <div
+      v-if="$slots.actions"
+      class="relative border-t border-white/10 px-5 pb-5 pt-4 md:px-6 md:pb-6"
+    >
+      <slot name="actions" :operation="operation" />
+    </div>
   </article>
 </template>
-
-
-
-
-
-
-

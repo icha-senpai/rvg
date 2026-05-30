@@ -308,12 +308,21 @@ class OperationPageController extends Controller
             return redirect()->route('operations.index');
         }
 
+        $canCreateOperation = $user->can('create', Operation::class);
+
         $operations = $this->query->forUser($user)
             ->withQueryString();
 
         return Inertia::render('Operations/OperationsIndex', [
             'operations' => $operations,
             'activeOperation' => $this->resolveActiveOperation($request),
+            'editingOperation' => $this->resolveEditingOperation($request),
+            'squadrons' => $canCreateOperation
+                ? SquadronPresenter::collection($this->squadrons->listAll())
+                : [],
+            'operationTemplates' => $canCreateOperation
+                ? $this->operationTemplatesFor($user)
+                : [],
         ]);
     }
 
