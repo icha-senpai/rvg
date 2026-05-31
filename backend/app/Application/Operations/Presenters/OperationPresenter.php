@@ -2,7 +2,9 @@
 
 namespace App\Application\Operations\Presenters;
 
+use App\Domain\Media\Presenters\MediaPresenter;
 use App\Models\Operation;
+use App\Models\Squadron;
 use App\Models\User;
 
 /**
@@ -19,6 +21,7 @@ class OperationPresenter
         $this->operation = $operation;
         $this->operation->loadMissing([
             'squadron',
+            'squadron.emblem',
             'squadron.leader',
             'creator',
             'creator.roles',
@@ -70,10 +73,17 @@ class OperationPresenter
             'squadron' => [
                 'id' => $this->operation->squadron?->id,
                 'name' => $this->operation->squadron?->name,
+                'emblem_url' => $this->operation->squadron?->emblem
+                    ? $this->operation->squadron->emblem->display_url
+                    : ($this->operation->squadron?->emblem_path ? asset('storage/' . $this->operation->squadron->emblem_path) : null),
+                'emblem' => $this->operation->squadron?->emblem
+                    ? MediaPresenter::make($this->operation->squadron->emblem)->embedded()
+                    : null,
                 'leader' => $this->operation->squadron?->leader
                     ? $this->operation->squadron->leader->only(['id', 'rsi_handle'])
                     : null,
             ],
+            'selected_squadrons' => $this->selectedSquadronsPayload(),
         ];
     }
 
@@ -142,7 +152,14 @@ class OperationPresenter
                 'id' => $this->operation->squadron?->id,
                 'name' => $this->operation->squadron?->name,
                 'rsi_handle' => $this->operation->squadron?->rsi_handle,
+                'emblem_url' => $this->operation->squadron?->emblem
+                    ? $this->operation->squadron->emblem->display_url
+                    : ($this->operation->squadron?->emblem_path ? asset('storage/' . $this->operation->squadron->emblem_path) : null),
+                'emblem' => $this->operation->squadron?->emblem
+                    ? MediaPresenter::make($this->operation->squadron->emblem)->embedded()
+                    : null,
             ],
+            'selected_squadrons' => $this->selectedSquadronsPayload(),
             'participants' => $this->operation->participants->map(function ($participant) {
                 return [
                     'id' => $participant->id,
@@ -164,12 +181,20 @@ class OperationPresenter
                     ],
                 ];
             })->values(),
-            'roles' => $this->operation->roles->map(function ($role) {
+            'roles' => $this->operation->roles->sortBy('sort_order')->values()->map(function ($role) {
+                $filledCount = $role->participants->count();
+                $remainingSpots = $role->capacity !== null
+                    ? max(0, $role->capacity - $filledCount)
+                    : null;
+
                 return [
                     'id' => $role->id,
                     'role_name' => $role->role_name,
                     'role_display_name' => $role->role_display_name,
                     'capacity' => $role->capacity,
+                    'filled_count' => $filledCount,
+                    'remaining_spots' => $remainingSpots,
+                    'is_full' => $role->capacity !== null && $filledCount >= $role->capacity,
                     'min_required' => $role->min_required,
                     'description' => $role->description,
                     'requirements' => $role->requirements,
@@ -180,8 +205,28 @@ class OperationPresenter
 
     public function form(): array
     {
-        $this->operation->loadMissing('images');
+        $this->operation->loadMissing(['images', 'roles']);
         $primaryImage = $this->operation->images->first();
+        $formRoles = $this->operation->roles->isNotEmpty()
+            ? $this->operation->roles
+                ->sortBy('sort_order')
+                ->map(fn ($role) => [
+                    'id' => $role->id,
+                    'role_name' => $role->role_name,
+                    'role_display_name' => $role->role_display_name,
+                    'capacity' => $role->capacity,
+                ])
+                ->values()
+                ->all()
+            : collect($this->operation->slots ?? [])
+                ->map(fn ($slot) => [
+                    'id' => null,
+                    'role_name' => '',
+                    'role_display_name' => $slot,
+                    'capacity' => null,
+                ])
+                ->values()
+                ->all();
 
         return [
             'id' => $this->operation->id,
@@ -206,6 +251,7 @@ class OperationPresenter
             'status' => $this->operation->status,
             'completion_outcome' => $this->operation->completion_outcome,
             'slots' => $this->operation->slots,
+            'roles' => $formRoles,
             'media_image' => $primaryImage ? [
                 'id' => $primaryImage->id,
                 'url' => $primaryImage->url,
@@ -224,5 +270,56 @@ class OperationPresenter
         }
 
         return strlen($text) > $limit ? substr($text, 0, $limit) . '…' : $text;
+    }
+
+    protected function selectedSquadronsPayload(): array
+    {
+        $names = collect(explode(',', (string) ($this->operation->squadron_name ?? '')))
+            ->map(fn (string $name) => trim($name))
+            ->filter()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return [];
+        }
+
+        $squadrons = Squadron::query()
+            ->with('emblem')
+            ->whereIn('name', $names->all())
+            ->get()
+            ->keyBy('name');
+
+        return $names
+            ->map(function (string $name) use ($squadrons) {
+                $squadron = $squadrons->get($name);
+
+                if (! $squadron) {
+                    return [
+                        'id' => null,
+                        'name' => $name,
+                        'emblem_url' => null,
+                        'emblem' => null,
+                    ];
+                }
+
+                $emblemUrl = null;
+
+                if ($squadron->relationLoaded('emblem') && $squadron->emblem) {
+                    $emblemUrl = $squadron->emblem->display_url;
+                } elseif ($squadron->emblem_path) {
+                    $emblemUrl = asset('storage/' . $squadron->emblem_path);
+                }
+
+                return [
+                    'id' => $squadron->id,
+                    'name' => $squadron->name,
+                    'emblem_url' => $emblemUrl,
+                    'emblem' => $squadron->relationLoaded('emblem') && $squadron->emblem
+                        ? MediaPresenter::make($squadron->emblem)->embedded()
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

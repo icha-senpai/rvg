@@ -506,59 +506,7 @@ function submitCompleteOperation(outcome) {
               :key="op.id"
               :operation="op"
               @view="openViewModal"
-            >
-              <template
-                v-if="canUseOfficerCommands && canManageOperation(op)"
-                #actions
-              >
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Officer Tools
-                  </div>
-
-                  <div class="flex flex-wrap gap-2">
-                    <HorizonButton
-                      variant="ghost"
-                      size="sm"
-                      @click.stop="openEditDrawer(op)"
-                    >
-                      Edit
-                    </HorizonButton>
-
-                    <HorizonButton
-                      v-if="op.status === 'published'"
-                      variant="primary"
-                      size="sm"
-                      :disabled="isTransitionProcessing(op.id)"
-                      @click.stop="askStartOperation(op)"
-                    >
-                      {{ isTransitionProcessing(op.id) ? 'Starting…' : 'Start' }}
-                    </HorizonButton>
-
-                    <HorizonButton
-                      v-if="op.status === 'in_progress'"
-                      variant="primary"
-                      size="sm"
-                      :disabled="isTransitionProcessing(op.id)"
-                      @click.stop="openCompleteDialog(op)"
-                    >
-                      {{ isTransitionProcessing(op.id) ? 'Completing…' : 'Complete' }}
-                    </HorizonButton>
-
-                    <HorizonButton
-                      v-if="['published', 'in_progress'].includes(op.status)"
-                      variant="ghost"
-                      size="sm"
-                      class="border-red-300/25! bg-red-300/10! text-red-100! hover:bg-red-300/15!"
-                      :disabled="isTransitionProcessing(op.id)"
-                      @click.stop="askCancelOperation(op)"
-                    >
-                      Cancel
-                    </HorizonButton>
-                  </div>
-                </div>
-              </template>
-            </OperationAccordion>
+            />
           </div>
 
           <div
@@ -651,6 +599,12 @@ function submitCompleteOperation(outcome) {
           :participants-by-slot="activeOperation.participantsBySlot"
           :unassigned-participants="activeOperation.unassignedParticipants"
           :current-participant="activeOperation.currentParticipant"
+          :can-manage-operation="canUseOfficerCommands && canManageOperation(activeOperation.operation)"
+          :transition-processing="isTransitionProcessing(activeOperation.operation.id)"
+          @edit-operation="openEditDrawer"
+          @start-operation="askStartOperation"
+          @complete-operation="({ operation }) => openCompleteDialog(operation)"
+          @cancel-operation="askCancelOperation"
         />
       </OperationModal>
     </div>

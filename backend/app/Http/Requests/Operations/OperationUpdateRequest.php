@@ -59,6 +59,11 @@ class OperationUpdateRequest extends FormRequest
 
             'slots'                => 'sometimes|array|nullable',
             'slots.*'              => 'required|string|max:255|regex:/\S/',
+            'roles'                => 'sometimes|array|nullable',
+            'roles.*.id'           => 'nullable|integer|exists:operation_roles,id',
+            'roles.*.role_name'    => 'nullable|string|max:255',
+            'roles.*.role_display_name' => 'required|string|max:255|regex:/\S/',
+            'roles.*.capacity'     => 'nullable|integer|min:0',
 
             'status'               => 'sometimes|in:' . implode(',', OperationStatus::values()),
 

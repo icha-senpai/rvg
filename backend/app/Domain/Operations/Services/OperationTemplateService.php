@@ -109,12 +109,43 @@ class OperationTemplateService
             'start_location',
             'operation_location',
             'slots',
+            'roles',
         ];
 
         $safe = array_intersect_key($payload, array_flip($allowedKeys));
 
         if (array_key_exists('slots', $safe)) {
             $safe['slots'] = is_array($safe['slots']) ? array_values($safe['slots']) : [];
+        }
+
+        if (array_key_exists('roles', $safe)) {
+            $safe['roles'] = collect(is_array($safe['roles']) ? $safe['roles'] : [])
+                ->map(function ($role) {
+                    if (! is_array($role)) {
+                        return null;
+                    }
+
+                    $displayName = trim((string) ($role['role_display_name'] ?? ''));
+                    if ($displayName === '') {
+                        return null;
+                    }
+
+                    $capacity = $role['capacity'] ?? null;
+
+                    return [
+                        'role_name' => trim((string) ($role['role_name'] ?? '')),
+                        'role_display_name' => $displayName,
+                        'capacity' => $capacity === '' || $capacity === null ? null : (int) $capacity,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            $safe['slots'] = collect($safe['roles'])
+                ->pluck('role_display_name')
+                ->values()
+                ->all();
         }
 
         return $safe;

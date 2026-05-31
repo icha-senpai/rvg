@@ -6,7 +6,8 @@ import ProgressPill from '@/Components/ProgressPill.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 import { ref, reactive, computed, watch } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
+import { canCreateOperation as userCanCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 
 const props = defineProps({
   operation: Object,
@@ -16,7 +17,9 @@ const props = defineProps({
   currentParticipant: Object,
 })
 
+const page = usePage()
 const operation = props.operation ?? {}
+const user = computed(() => page.props.auth?.user ?? page.props.authUser ?? null)
 
 const currentParticipant = computed(() => props.currentParticipant ?? null)
 const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
@@ -24,6 +27,27 @@ const participantsBySlotSafe = computed(() => props.participantsBySlot ?? {})
 const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassignedParticipants) ? props.unassignedParticipants : [])
 const canViewSlots = computed(() => !!operation?.permissions?.can_view_slots)
 const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots)
+const participantCount = computed(() => Number(operation?.participants_count ?? participantsList.value.length ?? 0))
+const canUseOfficerCommands = computed(() => userCanCreateOperation(user.value))
+const isDirectorLike = computed(() => userIsDirectorLike(user.value))
+const hasSlotOptions = computed(() => Array.isArray(operation?.slots) && operation.slots.length > 0)
+const operationRoles = computed(() => {
+  if (Array.isArray(operation?.roles) && operation.roles.length) {
+    return operation.roles
+  }
+
+  return Array.isArray(operation?.slots)
+    ? operation.slots.map((slot) => ({
+        id: `slot:${slot}`,
+        role_name: slot,
+        role_display_name: slot,
+        capacity: null,
+        filled_count: null,
+        remaining_spots: null,
+        is_full: false,
+      }))
+    : []
+})
 
 const calendarChoice = ref('')
 const calendarOptions = [
@@ -33,7 +57,53 @@ const calendarOptions = [
   { label: 'Outlook Web', value: 'outlook' },
 ]
 
-const canAddToCalendar = computed(() => !!operation?.starts_at)
+const canAddToCalendar = computed(() => {
+  if (!operation?.starts_at) return false
+
+  return !['completed', 'canceled', 'in_progress'].includes(operation?.status ?? '')
+})
+const canManageOperation = computed(() => {
+  if (!user.value) return false
+  if (isDirectorLike.value) return true
+
+  const squadronId = operation?.squadron?.id
+
+  if (!squadronId) {
+    const creatorId = operation?.creator?.id ?? operation?.created_by ?? null
+
+    if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
+      return false
+    }
+
+    return canUseOfficerCommands.value
+  }
+
+  const creatorId = operation?.creator?.id ?? operation?.created_by ?? null
+  const membership = user.value?.squadrons?.find((squadron) => Number(squadron?.id) === Number(squadronId))
+
+  if (!membership) return false
+
+  const membershipStatus = membership.pivot?.membership_status
+  if (membershipStatus && membershipStatus !== 'active') return false
+
+  if (creatorId && Number(creatorId) === Number(user.value?.id)) {
+    return canUseOfficerCommands.value
+  }
+
+  const role = membership.pivot?.role
+
+  return role === 'leader' || role === 'lieutenant'
+})
+const canStartOperation = computed(() => canManageOperation.value && operation?.status === 'published')
+const canCompleteOperation = computed(() => canManageOperation.value && operation?.status === 'in_progress')
+const canCancelOperation = computed(() => {
+  return canManageOperation.value && ['published', 'in_progress'].includes(operation?.status ?? '')
+})
+const startConfirmMessage = computed(() => {
+  return operation?.title
+    ? `You are about to mark "${operation.title}" as In Progress.`
+    : 'You are about to start this operation.'
+})
 
 function operationKindLabel(kind) {
   switch (kind) {
@@ -314,6 +384,7 @@ const statusVariant = computed(() => {
 })
 
 const joinForm = reactive({
+  roleId: '',
   slot: '',
   notes: '',
 })
@@ -326,6 +397,29 @@ const participationLockedByStatus = computed(() => {
 
 const rsvpDeadlineDate = computed(() => toDate(operation?.rsvp_deadline))
 const operationStartDate = computed(() => toDate(operation?.starts_at))
+
+const signUpCloseValue = computed(() => operation?.rsvp_deadline ?? operation?.starts_at ?? null)
+
+const signUpCloseLeadMinutes = computed(() => {
+  if (!operationStartDate.value || !signUpCloseValue.value) return null
+
+  const closeDate = toDate(signUpCloseValue.value)
+  if (!closeDate) return null
+
+  const diffMs = operationStartDate.value.getTime() - closeDate.getTime()
+  if (diffMs <= 0) return 0
+
+  return Math.round(diffMs / 60000)
+})
+
+const signUpCloseSummary = computed(() => {
+  if (!signUpCloseValue.value) return 'Not set'
+  if (signUpCloseLeadMinutes.value === null) return formatLocal(signUpCloseValue.value)
+  if (signUpCloseLeadMinutes.value === 0) return 'At operation start'
+
+  const noun = signUpCloseLeadMinutes.value === 1 ? 'minute' : 'minutes'
+  return `${signUpCloseLeadMinutes.value} ${noun} before start`
+})
 
 const signUpsClosedByDeadline = computed(() => {
   if (!rsvpDeadlineDate.value) return false
@@ -349,6 +443,10 @@ const canJoinOperation = computed(() => {
 
 const canUpdateParticipation = computed(() => {
   return !!currentParticipant.value && !participationLockedByStatus.value
+})
+
+const currentParticipantSlotChanged = computed(() => {
+  return String(joinForm.roleId ?? '') !== String(currentParticipant.value?.role?.id ?? '')
 })
 
 const participationStatusMessage = computed(() => {
@@ -381,17 +479,59 @@ const participationStatusMessage = computed(() => {
   return null
 })
 
-const slotOptions = computed(() => {
-  const slots = (operation.slots || []).map(slot => ({
-    label: slot,
-    value: slot,
-  }))
+function roleCapacityLabel(role, selectedRoleId = null) {
+  if (!role) return ''
 
+  const roleId = String(role.id ?? '')
+  const isSelectedRole = String(selectedRoleId ?? '') === roleId
+
+  if (role.is_full && !isSelectedRole) {
+    return `${role.role_display_name} - FULL`
+  }
+
+  if (typeof role.remaining_spots === 'number') {
+    const noun = role.remaining_spots === 1 ? 'spot' : 'spots'
+    return `${role.role_display_name} - ${role.remaining_spots} ${noun} left`
+  }
+
+  return role.role_display_name
+}
+
+function roleOptionsFor(selectedRoleId = null) {
   return [
     { label: 'No Role', value: '' },
-    ...slots,
+    ...operationRoles.value.map(role => ({
+      label: roleCapacityLabel(role, selectedRoleId),
+      value: String(role.id),
+    })),
   ]
-})
+}
+
+function findRoleById(roleId) {
+  if (roleId === null || roleId === undefined || roleId === '') return null
+
+  return operationRoles.value.find(role => String(role.id) === String(roleId)) ?? null
+}
+
+function roleIdForParticipant(participant) {
+  return participant?.role?.id ? String(participant.role.id) : ''
+}
+
+function payloadForSelectedRole(roleId) {
+  const role = findRoleById(roleId)
+
+  if (!role) {
+    return {
+      slot: null,
+      operation_role_id: null,
+    }
+  }
+
+  return {
+    slot: role.role_display_name,
+    operation_role_id: String(role.id).startsWith('slot:') ? null : role.id,
+  }
+}
 
 watch(
   participantsList,
@@ -400,7 +540,7 @@ watch(
 
     participants.forEach((participant) => {
       activeParticipantIds.add(String(participant.id))
-      managedSlotAssignments[participant.id] = participant.slot ?? ''
+      managedSlotAssignments[participant.id] = roleIdForParticipant(participant)
     })
 
     Object.keys(managedSlotAssignments).forEach((participantId) => {
@@ -416,9 +556,11 @@ watch(
   currentParticipant,
   (participant) => {
     if (participant) {
+      joinForm.roleId = roleIdForParticipant(participant)
       joinForm.slot = participant.slot ?? ''
       joinForm.notes = participant.notes ?? ''
     } else {
+      joinForm.roleId = ''
       joinForm.slot = ''
       joinForm.notes = ''
     }
@@ -437,9 +579,8 @@ async function join() {
   router.post(
     route('operations.join', operation.id),
     {
-      slot: canAssignSlots.value ? joinForm.slot : null,
+      ...payloadForSelectedRole(joinForm.roleId),
       notes: joinForm.notes,
-      operation_role_id: null,
     },
     {
       preserveScroll: true,
@@ -450,6 +591,37 @@ async function join() {
       },
       onFinish: () => {
         joinProcessing.value = false
+        router.reload({ preserveScroll: true })
+      },
+    }
+  )
+}
+
+async function updateOwnSlot() {
+  if (!currentParticipant.value?.id) return
+  if (!canUpdateParticipation.value) return
+  if (slotUpdateParticipantId.value) return
+  if (!currentParticipantSlotChanged.value) return
+
+  slotUpdateParticipantId.value = currentParticipant.value.id
+
+  router.post(
+    route('operations.participants.slot', {
+      operation: operation.id,
+      participant: currentParticipant.value.id,
+    }),
+    {
+      ...payloadForSelectedRole(joinForm.roleId),
+    },
+    {
+      preserveScroll: true,
+      onError: (errors) => {
+        window.hzNotifyError?.({
+          message: firstErrorMessage(errors, 'Failed to update role request.'),
+        })
+      },
+      onFinish: () => {
+        slotUpdateParticipantId.value = null
         router.reload({ preserveScroll: true })
       },
     }
@@ -492,11 +664,11 @@ function confirmLeave({ close }) {
 }
 
 function selectedSlotForParticipant(participant) {
-  return managedSlotAssignments[participant.id] ?? participant?.slot ?? ''
+  return managedSlotAssignments[participant.id] ?? roleIdForParticipant(participant)
 }
 
 function participantSlotChanged(participant) {
-  return selectedSlotForParticipant(participant) !== (participant?.slot ?? '')
+  return String(selectedSlotForParticipant(participant) ?? '') !== String(roleIdForParticipant(participant) ?? '')
 }
 
 async function updateParticipantSlot(participant) {
@@ -513,8 +685,7 @@ async function updateParticipantSlot(participant) {
       participant: participant.id,
     }),
     {
-      slot: selectedSlotForParticipant(participant),
-      operation_role_id: null,
+      ...payloadForSelectedRole(selectedSlotForParticipant(participant)),
     },
     {
       preserveScroll: true,
@@ -549,6 +720,10 @@ function participantInitial(participant) {
   return String(participantName(participant) ?? 'U').slice(0, 1).toUpperCase()
 }
 
+function participantRoleLabel(participant) {
+  return participant?.role?.role_display_name ?? participant?.slot ?? null
+}
+
 function creatorName() {
   return operation.creator?.rsi_handle
     ?? operation.creator?.display_name
@@ -566,6 +741,12 @@ function creatorInitial() {
   return String(creatorName() ?? 'C').slice(0, 1).toUpperCase()
 }
 
+const creatorRankLabel = computed(() => {
+  return operation?.creator?.rank_name
+    ?? operation?.creator?.rank
+    ?? 'Operation Lead'
+})
+
 function branchLogoSrc(branch) {
   switch (branch) {
     case 'defence': return '/images/Horizon_Defence_Logo.png'
@@ -574,6 +755,24 @@ function branchLogoSrc(branch) {
     case 'lifelines': return '/images/Horizon_Lifeline_logo.png'
     default: return null
   }
+}
+
+const selectedSquadrons = computed(() => {
+  if (Array.isArray(operation?.selected_squadrons) && operation.selected_squadrons.length) {
+    return operation.selected_squadrons
+  }
+
+  return typeof operation?.squadron_name === 'string' && operation.squadron_name.trim()
+    ? operation.squadron_name.split(',').map((name) => ({ id: null, name: name.trim(), emblem_url: null, emblem: null })).filter((squadron) => squadron.name)
+    : []
+})
+
+function squadronEmblemSrc(squadron) {
+  return squadron?.emblem?.thumbnail_url
+    ?? squadron?.emblem?.medium_url
+    ?? squadron?.emblem?.url
+    ?? squadron?.emblem_url
+    ?? null
 }
 
 const operationImageSrc = computed(() => {
@@ -592,192 +791,561 @@ const hasMetaInformation = computed(() => {
     || operation.type
   )
 })
+
+const transitionProcessing = ref(false)
+const startConfirmDialog = ref(null)
+const cancelConfirmDialog = ref(null)
+const completeDialogOpen = ref(false)
+
+function askStartOperation() {
+  if (!canStartOperation.value || transitionProcessing.value) return
+
+  startConfirmDialog.value?.show()
+}
+
+function confirmStartOperation({ close, finish }) {
+  if (!canStartOperation.value) {
+    finish()
+    return
+  }
+
+  transitionProcessing.value = true
+
+  router.post(route('operations.start', operation.id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      close()
+    },
+    onError: () => {
+      window.hzNotifyError?.({ message: 'Failed to start operation.' })
+      finish()
+    },
+    onFinish: () => {
+      transitionProcessing.value = false
+    },
+  })
+}
+
+function askCancelOperation() {
+  if (!canCancelOperation.value || transitionProcessing.value) return
+
+  cancelConfirmDialog.value?.show()
+}
+
+function confirmCancelOperation({ close, finish, text }) {
+  if (!canCancelOperation.value) {
+    finish()
+    return
+  }
+
+  transitionProcessing.value = true
+
+  router.post(route('operations.cancel', operation.id), {
+    reason: text,
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      close()
+    },
+    onError: () => {
+      window.hzNotifyError?.({ message: 'Failed to cancel operation.' })
+      finish()
+    },
+    onFinish: () => {
+      transitionProcessing.value = false
+    },
+  })
+}
+
+function openCompleteDialog() {
+  if (!canCompleteOperation.value || transitionProcessing.value) return
+
+  completeDialogOpen.value = true
+}
+
+function closeCompleteDialog() {
+  if (transitionProcessing.value) return
+
+  completeDialogOpen.value = false
+}
+
+function submitCompleteOperation(outcome) {
+  if (!canCompleteOperation.value || !outcome || transitionProcessing.value) return
+
+  transitionProcessing.value = true
+
+  router.post(route('operations.complete', operation.id), {
+    outcome,
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      completeDialogOpen.value = false
+    },
+    onError: () => {
+      window.hzNotifyError?.({ message: 'Failed to complete operation.' })
+    },
+    onFinish: () => {
+      transitionProcessing.value = false
+    },
+  })
+}
 </script>
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8">
-      <!-- Header -->
-      <div class="border-b border-white/[0.055] pb-5">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
-            {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
-          </span>
-          <span class="text-xs text-text-muted">•</span>
-          <ProgressPill :variant="statusVariant" size="sm">
-            {{ formatTitle(operation.status) }}
-          </ProgressPill>
+    <div class="mx-auto max-w-6xl space-y-6">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055]">
+        <div class="pointer-events-none absolute inset-0 opacity-20">
+          <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-4xl">
-          {{ displayTitle }}
-        </h1>
-
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-text-secondary">{{ formatTitle(operation.visibility ?? 'open') }}</span>
-          <span class="text-xs text-text-muted">•</span>
-          <span class="text-xs font-semibold text-text-secondary">{{ participantsList.length }} participants</span>
-        </div>
-
-      </div>
-
-      <!-- Operation image -->
-      <section
-        v-if="operationImageSrc"
-        class="relative z-0 overflow-hidden rounded-[2rem] border border-white/[0.055] bg-[color:var(--horizon-void-800)] "
-      >
-        <img
-          :src="operationImageSrc"
-          :alt="operation.media_image?.alt_text || operation.title"
-          class="max-h-[560px] w-full object-contain"
-          loading="lazy"
-        />
-      </section>
-
-      <!-- Main layout -->
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <main class="space-y-6">
-          <!-- Time command strip -->
-          <section class="grid gap-4 md:grid-cols-2">
-            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5 ">
+        <div class="relative p-5 md:p-6">
+          <div class="grid gap-8 xl:grid-cols-[16rem_minmax(0,1fr)]">
+          <aside class="space-y-5 xl:border-r xl:border-white/[0.055] xl:pr-8">
+            <section>
               <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                Start Window
+                Operation Leader
               </div>
 
-              <div class="mt-2 text-sm font-semibold text-horizon-white">
-                {{ formatUTC(operation.starts_at) }}
-              </div>
+              <div class="mt-4 flex flex-col items-center text-center">
+                <img
+                  v-if="creatorAvatar()"
+                  :src="creatorAvatar()"
+                  :alt="creatorName()"
+                  class="h-28 w-28 rounded-full border border-white/10 object-cover shadow-[0_16px_34px_rgb(0_0_0/0.28)]"
+                  loading="lazy"
+                />
+                <div
+                  v-else
+                  class="flex h-28 w-28 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-3xl font-black text-horizon-white shadow-[0_16px_34px_rgb(0_0_0/0.28)]"
+                >
+                  {{ creatorInitial() }}
+                </div>
 
-              <div class="mt-1 text-xs text-text-secondary">
-                {{ formatLocal(operation.starts_at) }} local
-              </div>
+                <div class="mt-4 text-sm font-black uppercase tracking-[0.08em] text-horizon-white">
+                  {{ creatorName() }}
+                </div>
 
-              <div v-if="operation.ends_at" class="mt-4 border-t border-white/10 pt-4">
+                <div class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--horizon-sunset-orange)]">
+                  {{ creatorRankLabel }}
+                </div>
+              </div>
+            </section>
+
+            <section v-if="canManageOperation || canAddToCalendar" class="space-y-3 border-t border-white/[0.055] pt-5">
+              <div v-if="canManageOperation" class="space-y-2">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                  End Window
+                  Officer Tools
                 </div>
 
-                <div class="mt-2 text-sm font-semibold text-horizon-white">
-                  {{ formatUTC(operation.ends_at) }}
-                </div>
+                <HorizonButton
+                  v-if="canStartOperation"
+                  variant="primary"
+                  class="w-full"
+                  :disabled="transitionProcessing"
+                  @click="askStartOperation"
+                >
+                  {{ transitionProcessing ? 'Running…' : 'Run Operation' }}
+                </HorizonButton>
 
-                <div class="mt-1 text-xs text-text-secondary">
-                  {{ formatLocal(operation.ends_at) }} local
-                </div>
+                <HorizonButton
+                  v-if="canCompleteOperation"
+                  variant="primary"
+                  class="w-full"
+                  :disabled="transitionProcessing"
+                  @click="openCompleteDialog"
+                >
+                  {{ transitionProcessing ? 'Finishing…' : 'Finish Operation' }}
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="canCancelOperation"
+                  variant="danger"
+                  class="w-full"
+                  :disabled="transitionProcessing"
+                  @click="askCancelOperation"
+                >
+                  {{ transitionProcessing ? 'Canceling…' : 'Cancel Operation' }}
+                </HorizonButton>
               </div>
-            </div>
 
-            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-5">
-              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                Sign ups close at
+              <div v-if="canAddToCalendar" class="space-y-2">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Calendar
+                </div>
+                <HorizonSelect v-model="calendarChoice" :options="calendarOptions" size="sm" />
               </div>
 
-              <template v-if="operation.rsvp_deadline">
-                <div class="mt-2 text-sm font-semibold text-horizon-white">
-                  {{ formatUTC(operation.rsvp_deadline) }}
+              <div class="space-y-3 border-t border-white/[0.055] pt-4">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Your Status
                 </div>
 
-                <div class="mt-1 text-xs text-text-secondary">
-                  {{ formatLocal(operation.rsvp_deadline) }} local
-                </div>
-              </template>
-
-              <div v-else class="mt-2 text-sm text-text-secondary">
-                No sign up deadline set.
-              </div>
-            </div>
-          </section>
-
-          <!-- Briefing -->
-          <section
-            class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 "
-          >
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Operation Briefing
-            </div>
-
-            <div class="mt-3 space-y-4">
-              <p v-if="operation.description" class="whitespace-pre-line text-sm leading-7 text-text-secondary">
-                {{ operation.description }}
-              </p>
-
-              <p
-                v-if="operation.extended_description || operation.notes"
-                class="whitespace-pre-line border-t border-white/[0.055] pt-4 text-sm leading-7 text-text-secondary"
-              >
-                {{ operation.extended_description ?? operation.notes }}
-              </p>
-
-              <div class="border-t border-white/[0.055] pt-4 space-y-4">
-                <p class="whitespace-pre-line text-sm leading-7 text-text-secondary">
-                  If you want to join, please use the signup button. Make sure your character is at the designated location and you are in the voice channel at least 10 minutes before the operation starts.
+                <p
+                  v-if="participationStatusMessage"
+                  class="rounded-2xl border border-white/[0.055] bg-white/[0.03] px-3 py-2 text-xs text-text-secondary"
+                >
+                  {{ participationStatusMessage }}
                 </p>
 
-                <p class="whitespace-pre-line text-sm font-semibold leading-7 text-horizon-white">
-                  For optimal deployment, please have OP Leader added to your contact list beforehand.
-                </p>
+                <template v-if="currentParticipant">
+                  <div class="text-2xl font-black text-horizon-white">
+                    Joined
+                  </div>
+
+                  <p class="text-sm text-text-secondary">
+                    You are signed up with status
+                    <strong class="text-horizon-white">{{ formatTitle(currentParticipant.attendance_status) }}</strong>.
+                    <template v-if="participantRoleLabel(currentParticipant)">
+                      Your current slot is
+                      <strong class="text-horizon-white">{{ participantRoleLabel(currentParticipant) }}</strong>.
+                    </template>
+                  </p>
+
+                  <div v-if="hasSlotOptions && canUpdateParticipation && !canAssignSlots" class="space-y-3">
+                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Your Role Request</div>
+                    <HorizonSelect v-model="joinForm.roleId" :options="roleOptionsFor(currentParticipant?.role?.id)" size="sm" />
+                    <HorizonButton
+                      variant="outline"
+                      class="w-full"
+                      :disabled="slotUpdateParticipantId === currentParticipant.id || !currentParticipantSlotChanged"
+                      @click="updateOwnSlot"
+                    >
+                      {{ slotUpdateParticipantId === currentParticipant.id ? 'Updating…' : 'Update Role Request' }}
+                    </HorizonButton>
+                  </div>
+
+                  <div v-if="canUpdateParticipation">
+                    <HorizonButton variant="outline" class="w-full" :disabled="joinProcessing" @click="askLeave">
+                      Leave Operation
+                    </HorizonButton>
+                  </div>
+
+                  <p v-if="canAssignSlots" class="text-xs text-text-secondary">
+                    Slot assignments can be changed in the roster section.
+                  </p>
+                </template>
+
+                <template v-else>
+                  <div class="text-2xl font-black text-horizon-white">
+                    Not Joined
+                  </div>
+
+                  <p class="text-sm text-text-secondary">
+                    Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }} when you are ready to deploy.
+                  </p>
+
+                  <div v-if="canJoinOperation" class="space-y-3">
+                    <div v-if="hasSlotOptions" class="space-y-2">
+                      <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Requested Role</div>
+                      <HorizonSelect v-model="joinForm.roleId" :options="roleOptionsFor()" size="sm" />
+                    </div>
+
+                    <HorizonButton variant="primary" class="w-full" :disabled="joinProcessing" @click="join">
+                      {{ joinProcessing ? 'Joining…' : 'Join Operation' }}
+                    </HorizonButton>
+                  </div>
+                </template>
+              </div>
+            </section>
+          </aside>
+
+          <main class="min-w-0 divide-y divide-white/[0.055]">
+            <div class="min-w-0 pb-6">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+                  {{ operationKindLabel(operation.operation_type ?? operation.operation_kind) }}
+                </span>
+                <span class="text-xs text-text-muted">•</span>
+                <ProgressPill :variant="statusVariant" size="sm">
+                  {{ formatTitle(operation.status) }}
+                </ProgressPill>
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary">
+                  {{ formatTitle(operation.visibility ?? 'open') }}
+                </span>
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-secondary">
+                  {{ participantCount }} joined
+                </span>
+              </div>
+
+              <h1 class="mt-3 text-3xl font-black tracking-tight text-horizon-white md:text-4xl">
+                {{ displayTitle }}
+              </h1>
+
+              <div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-secondary">
+                <span v-if="operation.branch" class="inline-flex items-center gap-2">
+                  <img
+                    v-if="branchLogoSrc(operation.branch)"
+                    :src="branchLogoSrc(operation.branch)"
+                    :alt="formatTitle(operation.branch)"
+                    class="h-5 w-5 object-contain"
+                    loading="lazy"
+                  />
+                  <span>{{ formatTitle(operation.branch) }}</span>
+                </span>
+
+                <template v-if="selectedSquadrons.length">
+                  <span
+                    v-for="squadron in selectedSquadrons"
+                    :key="`hero-squadron-${squadron.id ?? squadron.name}`"
+                    class="inline-flex items-center gap-2"
+                  >
+                    <img
+                      v-if="squadronEmblemSrc(squadron)"
+                      :src="squadronEmblemSrc(squadron)"
+                      :alt="`${squadron.name} emblem`"
+                      class="h-5 w-5 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                    <span>{{ squadron.name }}</span>
+                  </span>
+                </template>
+
+                <span v-if="operation.gameplay_type || operation.type">
+                  {{ formatTitle(operation.gameplay_type ?? operation.type) }}
+                </span>
               </div>
             </div>
-          </section>
 
-          <!-- Meta information -->
-          <div v-if="hasMetaInformation" class="space-y-3">
-            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Details</div>
-            <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-              <div v-if="operation.start_location">
-                <span class="text-text-muted">Start</span>
-                <div class="font-semibold text-horizon-white">{{ operation.start_location }}</div>
-              </div>
-              <div v-if="operation.operation_location">
-                <span class="text-text-muted">Location</span>
-                <div class="font-semibold text-horizon-white">{{ operation.operation_location }}</div>
-              </div>
-              <div v-if="operation.branch">
-                <span class="text-text-muted">Branch</span>
-                <div class="flex items-center gap-2 font-semibold text-horizon-white">
-                  <img v-if="branchLogoSrc(operation.branch)" :src="branchLogoSrc(operation.branch)" class="h-4 w-4 object-contain" loading="lazy" />
-                  {{ formatTitle(operation.branch) }}
-                </div>
-              </div>
-              <div v-if="operation.squadron_name">
-                <span class="text-text-muted">Squadron</span>
-                <div class="font-semibold text-horizon-white">{{ operation.squadron_name }}</div>
-              </div>
-              <div v-if="operation.gameplay_type || operation.type">
-                <span class="text-text-muted">Type</span>
-                <div class="font-semibold text-horizon-white">{{ formatTitle(operation.gameplay_type ?? operation.type) }}</div>
-              </div>
+            <section
+              v-if="operationImageSrc"
+              class="relative z-0 overflow-hidden pt-6"
+            >
+              <img
+                :src="operationImageSrc"
+                :alt="operation.media_image?.alt_text || operation.title"
+                class="max-h-[560px] w-full object-contain"
+                loading="lazy"
+              />
+            </section>
+
+            <section class="grid gap-6 pt-6 md:grid-cols-2 xl:grid-cols-3">
               <div>
-                <span class="text-text-muted">Comms</span>
-                <div class="font-semibold text-horizon-white">{{ formatTitle(operation.operation_strictness ?? 'normal') }}</div>
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">When</div>
+                <div class="mt-2 text-sm font-semibold text-horizon-white">{{ formatLocal(operation.starts_at) }}</div>
+                <div class="mt-1 text-xs text-text-secondary">{{ formatUTC(operation.starts_at) }}</div>
               </div>
-            </div>
-          </div>
 
-          <!-- Roles -->
-          <div v-if="canViewSlots" class="space-y-4">
-            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-              Slots ({{ participantsList.length }} total)
-            </div>
-
-            <div v-if="(operation.slots || []).length" class="space-y-4">
-              <div v-for="slotName in operation.slots" :key="slotName" class="space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="font-semibold text-horizon-white">{{ slotName }}</span>
-                  <span class="text-xs text-text-muted">{{ (participantsBySlotSafe[slotName] || []).length }}</span>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Where</div>
+                <div class="mt-2 text-sm font-semibold text-horizon-white">
+                  {{ operation.operation_location || operation.start_location || 'TBD' }}
                 </div>
-                <div class="space-y-1">
-                  <div v-for="p in participantsBySlotSafe[slotName] || []" :key="p.id" class="flex flex-wrap items-center justify-between gap-3 py-1">
+                <div
+                  v-if="operation.operation_location && operation.start_location && operation.operation_location !== operation.start_location"
+                  class="mt-1 text-xs text-text-secondary"
+                >
+                  Start point: {{ operation.start_location }}
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Strictness</div>
+                <div class="mt-2 text-sm font-semibold text-horizon-white">{{ formatTitle(operation.operation_strictness ?? 'normal') }}</div>
+                <div class="mt-1 text-xs text-text-secondary">Voice and deployment expectations</div>
+              </div>
+
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Sign-ups Close</div>
+                <div class="mt-2 text-sm font-semibold" :class="signUpCloseValue ? 'text-horizon-white' : 'text-text-secondary'">
+                  {{ signUpCloseSummary }}
+                </div>
+                <div v-if="signUpCloseValue" class="mt-1 text-xs text-text-secondary">
+                  {{ formatLocal(signUpCloseValue) }}
+                </div>
+                <div v-if="signUpCloseValue" class="mt-1 text-xs text-text-secondary">
+                  {{ formatUTC(signUpCloseValue) }}
+                </div>
+              </div>
+
+              <div v-if="hasMetaInformation">
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Overview</div>
+                <div class="mt-2 space-y-1 text-sm text-text-secondary">
+                  <div v-if="operation.branch" class="flex items-center gap-2">
+                    <img
+                      v-if="branchLogoSrc(operation.branch)"
+                      :src="branchLogoSrc(operation.branch)"
+                      :alt="formatTitle(operation.branch)"
+                      class="h-4 w-4 object-contain"
+                      loading="lazy"
+                    />
+                    <span class="font-semibold text-horizon-white">{{ formatTitle(operation.branch) }}</span>
+                  </div>
+                  <div v-if="selectedSquadrons.length" class="space-y-1">
+                    <div
+                      v-for="squadron in selectedSquadrons"
+                      :key="`overview-squadron-${squadron.id ?? squadron.name}`"
+                      class="flex items-center gap-2"
+                    >
+                      <img
+                        v-if="squadronEmblemSrc(squadron)"
+                        :src="squadronEmblemSrc(squadron)"
+                        :alt="`${squadron.name} emblem`"
+                        class="h-4 w-4 rounded-full object-cover"
+                        loading="lazy"
+                      />
+                      <span>{{ squadron.name }}</span>
+                    </div>
+                  </div>
+                  <div v-if="operation.gameplay_type || operation.type">{{ formatTitle(operation.gameplay_type ?? operation.type) }}</div>
+                  <div v-if="operation.ends_at">Ends {{ formatLocal(operation.ends_at) }}</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="pt-6">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Description
+              </div>
+
+              <div class="mt-4 space-y-4">
+                <p v-if="operation.description" class="whitespace-pre-line text-sm leading-7 text-text-secondary">
+                  {{ operation.description }}
+                </p>
+
+                <p
+                  v-if="operation.extended_description || operation.notes"
+                  class="whitespace-pre-line border-t border-white/[0.055] pt-4 text-sm leading-7 text-text-secondary"
+                >
+                  {{ operation.extended_description ?? operation.notes }}
+                </p>
+
+                <div class="border-t border-white/[0.055] pt-4 space-y-4">
+                  <p class="whitespace-pre-line text-sm leading-7 text-text-secondary">
+                    If you want to join, please use the signup button. Make sure your character is at the designated location and you are in the voice channel at least 10 minutes before the operation starts.
+                  </p>
+
+                  <p class="whitespace-pre-line text-sm font-semibold leading-7 text-horizon-white">
+                    For optimal deployment, please have OP Leader added to your contact list beforehand.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section v-if="canViewSlots" class="pt-6">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Players
+                </div>
+                <div class="text-sm font-semibold text-horizon-white">
+                  {{ participantCount }} joined
+                </div>
+              </div>
+
+              <div class="mt-4 max-h-72 space-y-1 overflow-y-auto pr-1">
+                <div
+                  v-for="p in participantsList"
+                  :key="p.id"
+                  class="flex items-center justify-between gap-3 border-t border-white/[0.055] px-1 py-3 first:border-t-0"
+                >
+                  <div class="flex min-w-0 items-center gap-3">
+                    <img
+                      v-if="participantAvatar(p)"
+                      :src="participantAvatar(p)"
+                      :alt="participantName(p)"
+                      class="h-8 w-8 shrink-0 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                    <div
+                      v-else
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-xs font-bold text-horizon-white"
+                    >
+                      {{ participantInitial(p) }}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="truncate text-sm font-semibold text-horizon-white">
+                        {{ participantName(p) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span class="shrink-0 text-xs text-text-muted">
+                    {{ participantRoleLabel(p) ?? '—' }}
+                  </span>
+                </div>
+
+                <div v-if="!participantsList.length" class="rounded-[1rem] border border-dashed border-white/[0.08] px-4 py-5 text-sm text-text-secondary">
+                  No participants yet.
+                </div>
+              </div>
+            </section>
+
+            <section v-if="canViewSlots" class="space-y-4 pt-6">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                Roster Assignments
+              </div>
+
+              <div v-if="(operation.slots || []).length" class="space-y-4">
+                <div v-for="slotName in operation.slots" :key="slotName" class="border-t border-white/[0.055] pt-4 first:border-t-0 first:pt-0">
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="font-semibold text-horizon-white">{{ slotName }}</span>
+                    <span class="text-xs text-text-muted">{{ (participantsBySlotSafe[slotName] || []).length }}</span>
+                  </div>
+
+                  <div class="mt-3 space-y-2">
+                    <div
+                      v-for="p in participantsBySlotSafe[slotName] || []"
+                      :key="p.id"
+                      class="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.04] px-1 py-3 first:border-t-0"
+                    >
+                      <div class="flex min-w-0 items-center gap-2">
+                        <img v-if="participantAvatar(p)" :src="participantAvatar(p)" :alt="participantName(p)" class="h-6 w-6 shrink-0 rounded-full object-cover" loading="lazy" />
+                        <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
+                        <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
+                      </div>
+
+                      <div class="flex flex-wrap items-center justify-end gap-2">
+                        <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+
+                        <template v-if="canAssignSlots">
+                          <div class="min-w-[12rem]">
+                            <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="roleOptionsFor(roleIdForParticipant(p))" size="sm" />
+                          </div>
+                          <HorizonButton
+                            variant="outline"
+                            size="sm"
+                            :disabled="slotUpdateParticipantId === p.id || !participantSlotChanged(p)"
+                            @click="updateParticipantSlot(p)"
+                          >
+                            {{ slotUpdateParticipantId === p.id ? 'Moving…' : 'Move' }}
+                          </HorizonButton>
+                        </template>
+                      </div>
+                    </div>
+
+                    <div v-if="!(participantsBySlotSafe[slotName] || []).length" class="border-t border-dashed border-white/[0.08] px-1 py-4 text-sm italic text-text-muted">
+                      Empty
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="rounded-[1.5rem] border border-dashed border-white/[0.08] bg-white/[0.015] px-4 py-5 text-sm text-text-secondary">
+                No slots defined.
+              </div>
+
+              <div v-if="unassignedParticipantsSafe.length" class="border-t border-white/[0.055] pt-4">
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">No Role</div>
+
+                <div class="mt-3 space-y-2">
+                  <div
+                    v-for="p in unassignedParticipantsSafe"
+                    :key="p.id"
+                    class="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.04] px-1 py-3 first:border-t-0"
+                  >
                     <div class="flex min-w-0 items-center gap-2">
-                      <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
-                      <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
+                      <img v-if="participantAvatar(p)" :src="participantAvatar(p)" :alt="participantName(p)" class="h-6 w-6 shrink-0 rounded-full object-cover" loading="lazy" />
+                      <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
                       <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                     </div>
+
                     <div class="flex flex-wrap items-center justify-end gap-2">
                       <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+
                       <template v-if="canAssignSlots">
                         <div class="min-w-[12rem]">
-                          <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="slotOptions" size="sm" />
+                          <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="roleOptionsFor(roleIdForParticipant(p))" size="sm" />
                         </div>
                         <HorizonButton
                           variant="outline"
@@ -790,190 +1358,87 @@ const hasMetaInformation = computed(() => {
                       </template>
                     </div>
                   </div>
-                  <div v-if="!(participantsBySlotSafe[slotName] || []).length" class="py-1 text-sm text-text-muted italic">Empty</div>
                 </div>
               </div>
-            </div>
-
-            <div v-else class="text-sm text-text-secondary">No slots defined.</div>
-
-            <div v-if="unassignedParticipantsSafe.length" class="border-t border-white/[0.055] pt-4">
-              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted mb-2">No Role</div>
-              <div class="space-y-1">
-                <div v-for="p in unassignedParticipantsSafe" :key="p.id" class="flex flex-wrap items-center justify-between gap-3 py-1">
-                  <div class="flex min-w-0 items-center gap-2">
-                    <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
-                    <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
-                    <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
-                  </div>
-                  <div class="flex flex-wrap items-center justify-end gap-2">
-                    <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
-                    <template v-if="canAssignSlots">
-                      <div class="min-w-[12rem]">
-                        <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="slotOptions" size="sm" />
-                      </div>
-                      <HorizonButton
-                        variant="outline"
-                        size="sm"
-                        :disabled="slotUpdateParticipantId === p.id || !participantSlotChanged(p)"
-                        @click="updateParticipantSlot(p)"
-                      >
-                        {{ slotUpdateParticipantId === p.id ? 'Moving…' : 'Move' }}
-                      </HorizonButton>
-                    </template>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </section>
+          </main>
           </div>
-        </main>
-
-        <aside class="space-y-6">
-          <!-- Calendar -->
-          <div v-if="canAddToCalendar" class="space-y-2">
-            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Calendar</div>
-            <HorizonSelect v-model="calendarChoice" :options="calendarOptions" size="sm" />
-          </div>
-
-          <!-- Your status -->
-          <section class="rounded-[2rem] border border-white/[0.055] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(255,255,255,0.025))] p-5 ">
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              Your Status
-            </div>
-
-            <p
-              v-if="participationStatusMessage"
-              class="mt-3 rounded-2xl border border-white/[0.055] bg-white/[0.03] px-3 py-2 text-xs text-text-secondary"
-            >
-              {{ participationStatusMessage }}
-            </p>
-
-            <template v-if="currentParticipant">
-              <div class="mt-3 text-2xl font-black text-horizon-white">
-                Joined
-              </div>
-
-              <p class="mt-2 text-sm text-text-secondary">
-                You are signed up with status
-                <strong class="text-horizon-white">{{ formatTitle(currentParticipant.attendance_status) }}</strong>.
-                <template v-if="currentParticipant.slot">
-                  Your current slot is
-                  <strong class="text-horizon-white">{{ currentParticipant.slot }}</strong>.
-                </template>
-              </p>
-
-              <div v-if="canUpdateParticipation" class="mt-4">
-                <HorizonButton
-                  variant="outline"
-                  class="w-full"
-                  :disabled="joinProcessing"
-                  @click="askLeave"
-                >
-                  Leave Operation
-                </HorizonButton>
-              </div>
-
-              <p v-if="canAssignSlots" class="mt-3 text-xs text-text-secondary">
-                Slot assignments can be changed in the roster section.
-              </p>
-            </template>
-
-            <template v-else>
-              <div class="mt-3 text-2xl font-black text-horizon-white">
-                Not Joined
-              </div>
-
-              <p class="mt-2 text-sm text-text-secondary">
-                Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }}.
-              </p>
-
-              <div v-if="canJoinOperation" class="mt-4 space-y-3">
-                <HorizonButton
-                  variant="primary"
-                  class="w-full"
-                  :disabled="joinProcessing"
-                  @click="join"
-                >
-                  {{ joinProcessing ? 'Joining…' : 'Join Operation' }}
-                </HorizonButton>
-              </div>
-            </template>
-          </section>
-
-          <!-- Quick facts -->
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between gap-2">
-              <span class="text-text-muted">Status</span>
-              <span class="font-semibold text-horizon-white">{{ formatTitle(operation.status) }}</span>
-            </div>
-            <div class="flex justify-between gap-2">
-              <span class="text-text-muted">Visibility</span>
-              <span class="font-semibold text-horizon-white">{{ formatTitle(operation.visibility ?? 'open') }}</span>
-            </div>
-            <div class="flex justify-between gap-2">
-              <span class="text-text-muted">Participants</span>
-              <span class="font-semibold text-horizon-white">{{ participantsList.length }}</span>
-            </div>
-            <div class="flex justify-between gap-2">
-              <span class="text-text-muted">Creator</span>
-              <span class="font-semibold text-horizon-white">{{ creatorName() }}</span>
-            </div>
-          </div>
-
-          <!-- Creator -->
-          <div class="space-y-2">
-            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Creator</div>
-            <div class="flex items-center gap-2">
-              <img v-if="creatorAvatar()" :src="creatorAvatar()" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover" loading="lazy" />
-              <div v-else class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-xs font-bold text-horizon-white">{{ creatorInitial() }}</div>
-              <span class="text-sm font-semibold text-horizon-white">{{ creatorName() }}</span>
-            </div>
-          </div>
-
-          <!-- Participants -->
-          <div class="space-y-2">
-            <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-              Participants ({{ participantsList.length }})
-            </div>
-
-            <div class="max-h-64 space-y-1 overflow-y-auto pr-1">
-              <div
-                v-for="p in participantsList"
-                :key="p.id"
-                class="flex items-center justify-between gap-2 py-1.5"
-              >
-                <div class="flex min-w-0 items-center gap-2">
-                  <img
-                    v-if="participantAvatar(p)"
-                    :src="participantAvatar(p)"
-                    alt=""
-                    class="h-7 w-7 shrink-0 rounded-md object-cover"
-                    loading="lazy"
-                  />
-                  <div
-                    v-else
-                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-[10px] font-bold text-horizon-white"
-                  >
-                    {{ participantInitial(p) }}
-                  </div>
-                <div class="min-w-0">
-                  <div class="truncate text-sm text-horizon-white">
-                    {{ participantName(p) }}
-                  </div>
-                </div>
-              </div>
-                <span v-if="canViewSlots" class="shrink-0 text-xs text-text-muted">{{ p.slot ?? '—' }}</span>
-              </div>
-
-              <div v-if="!participantsList.length" class="py-2 text-sm text-text-secondary">
-                No participants yet.
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
+        </div>
+      </section>
     </div>
   </HorizonContainer>
+
+  <HorizonConfirmDialog
+    ref="startConfirmDialog"
+    title="Start Operation"
+    confirm-label="Start Operation"
+    cancel-label="Back"
+    variant="success"
+    :message="startConfirmMessage"
+    :close-on-confirm="false"
+    @confirm="confirmStartOperation"
+  />
+
+  <HorizonConfirmDialog
+    ref="cancelConfirmDialog"
+    title="Cancel Operation"
+    confirm-label="Cancel Operation"
+    cancel-label="Back"
+    variant="danger"
+    message="This action cannot be undone."
+    :close-on-confirm="false"
+    :requires-text-input="true"
+    text-input-label="Cancellation reason:"
+    text-input-placeholder="Enter reason..."
+    @confirm="confirmCancelOperation"
+  />
+
+  <div
+    v-if="completeDialogOpen"
+    class="hz-overlay flex items-center justify-center p-4"
+    style="z-index: 110;"
+    @click.self="closeCompleteDialog"
+  >
+    <div class="w-full max-w-xl rounded-[2rem] border border-white/[0.08] bg-[color:var(--horizon-void-900)] p-6 shadow-[0_24px_90px_rgb(0_0_0/0.45)]">
+      <div class="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">
+        Complete Operation
+      </div>
+
+      <div class="mt-3 text-2xl font-black text-horizon-white">
+        How should "{{ operation.title }}" be closed?
+      </div>
+
+      <p class="mt-3 text-sm text-text-secondary">
+        Pick the outcome for this operation. The after action report tools will become available once it is completed.
+      </p>
+
+      <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <HorizonButton
+          variant="ghost"
+          :disabled="transitionProcessing"
+          @click="closeCompleteDialog"
+        >
+          Back
+        </HorizonButton>
+
+        <HorizonButton
+          variant="danger"
+          :disabled="transitionProcessing"
+          @click="submitCompleteOperation('failed')"
+        >
+          {{ transitionProcessing ? 'Saving…' : 'Finish as Failed' }}
+        </HorizonButton>
+
+        <HorizonButton
+          variant="primary"
+          :disabled="transitionProcessing"
+          @click="submitCompleteOperation('success')"
+        >
+          {{ transitionProcessing ? 'Saving…' : 'Finish as Success' }}
+        </HorizonButton>
+      </div>
+    </div>
+  </div>
 
   <HorizonConfirmDialog
     ref="leaveConfirmDialog"
@@ -985,4 +1450,3 @@ const hasMetaInformation = computed(() => {
     @confirm="confirmLeave"
   />
 </template>
-

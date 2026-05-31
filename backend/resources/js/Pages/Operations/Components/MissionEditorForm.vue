@@ -24,9 +24,9 @@ import { notifyError, notifyErrorFromErrors } from '@/errors'
 import {
   applyTemplatePayload as applySharedTemplatePayload,
   buildDateTime,
+  normalizeOperationRoles,
   buildTemplatePayload as buildSharedTemplatePayload,
   computeRsvpPartsFromStart,
-  normalizeOperationSlots,
   normalizeSquadronName,
   parseSquadronNames,
   resolveOperationIdFromResponse,
@@ -63,6 +63,28 @@ const props = defineProps({
   embedded: { type: Boolean, default: false },
   prefillTemplateId: { type: [Number, String], default: null },
 })
+
+function initialRoleRows(mission) {
+  if (Array.isArray(mission?.roles) && mission.roles.length) {
+    return mission.roles.map((role) => ({
+      id: role?.id ?? null,
+      role_name: role?.role_name ?? '',
+      role_display_name: role?.role_display_name ?? '',
+      capacity: role?.capacity ?? '',
+    }))
+  }
+
+  if (Array.isArray(mission?.slots) && mission.slots.length) {
+    return mission.slots.map((slot) => ({
+      id: null,
+      role_name: '',
+      role_display_name: slot ?? '',
+      capacity: '',
+    }))
+  }
+
+  return []
+}
 
 const page = usePage()
 
@@ -276,6 +298,7 @@ const templatesUpdating = ref(false)
 const templatesDeleting = ref(false)
 const selectedTemplateId = ref('')
 const prefillAppliedId = ref(null)
+const templateConsoleOpen = ref(false)
 
 const selectedTemplate = computed(() => {
   if (!selectedTemplateId.value) return null
@@ -306,6 +329,10 @@ function applyTemplateById(id) {
 function applySelectedTemplate() {
   if (!selectedTemplateId.value) return
   applyTemplateById(selectedTemplateId.value)
+}
+
+function toggleTemplateConsole() {
+  templateConsoleOpen.value = !templateConsoleOpen.value
 }
 
 const saveTemplateConfirmDialog = ref(null)
@@ -424,6 +451,7 @@ const form = useForm({
   icon: props.mission?.icon ?? '',
   image_url: props.mission?.image_url ?? '',
   slots: props.mission?.slots ?? [],
+  roles: initialRoleRows(props.mission),
   status: props.mission?.status ?? 'draft',
   squadron_id: props.squadronId,
   squadron_name: props.mission?.squadron_name ?? '',
@@ -472,6 +500,15 @@ watch(
 
     if (flash.event === 'created' || flash.event === 'updated') {
       selectedTemplateId.value = flash.id
+    }
+  }
+)
+
+watch(
+  () => selectedTemplateId.value,
+  (value) => {
+    if (value) {
+      templateConsoleOpen.value = true
     }
   }
 )
@@ -555,6 +592,29 @@ const rsvpDateTime = computed({
   },
 })
 
+const signUpCloseSummary = computed(() => {
+  if (!form.start_date || !form.start_time || !form.rsvp_date || !form.rsvp_time) {
+    return 'Not set'
+  }
+
+  const startValue = Date.parse(`${form.start_date}T${form.start_time}:00Z`)
+  const closeValue = Date.parse(`${form.rsvp_date}T${form.rsvp_time}:00Z`)
+
+  if (Number.isNaN(startValue) || Number.isNaN(closeValue)) {
+    return rsvpDateTime.value || 'Not set'
+  }
+
+  const diffMs = startValue - closeValue
+  if (diffMs <= 0) {
+    return 'At operation start'
+  }
+
+  const minutes = Math.round(diffMs / 60000)
+  const noun = minutes === 1 ? 'minute' : 'minutes'
+
+  return `${minutes} ${noun} before start`
+})
+
 // ----------------------
 // MEDIA PICKER
 // ----------------------
@@ -588,11 +648,16 @@ watch(
 // SLOT HANDLERS
 // ----------------------
 function addSlot() {
-  form.slots.push('')
+  form.roles.push({
+    id: null,
+    role_name: '',
+    role_display_name: '',
+    capacity: '',
+  })
 }
 
 function removeSlot(index) {
-  form.slots.splice(index, 1)
+  form.roles.splice(index, 1)
 }
 
 // ----------------------
@@ -626,8 +691,12 @@ async function submit(mode) {
     return
   }
 
-  if (Array.isArray(form.slots) && form.slots.length) {
-    const { trimmedSlots, invalidIndexes } = normalizeOperationSlots(form.slots)
+  if (Array.isArray(form.roles) && form.roles.length) {
+    const {
+      normalizedRoles,
+      invalidIndexes,
+      invalidCapacityIndexes,
+    } = normalizeOperationRoles(form.roles)
 
     if (invalidIndexes.length) {
       openSlotWarning(
@@ -636,7 +705,18 @@ async function submit(mode) {
       return
     }
 
-    form.slots = trimmedSlots
+    if (invalidCapacityIndexes.length) {
+      openSlotWarning(
+        `Role amounts must be whole numbers of 0 or more. Fix role(s): ${invalidCapacityIndexes.join(', ')}`
+      )
+      return
+    }
+
+    form.roles = normalizedRoles
+    form.slots = normalizedRoles.map(role => role.role_display_name)
+  } else {
+    form.roles = []
+    form.slots = []
   }
 
   if (props.embedded) {
@@ -883,9 +963,10 @@ function confirmDestroyOperation({ close, text }) {
         </div>
       </section>
 
-      <!-- Editor status strip -->
-      <section class="hz-surface-welcome grid overflow-hidden rounded-3xl border border-white/[0.055] md:grid-cols-3">
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
+      <section class="hz-surface-welcome overflow-hidden rounded-[2rem] border border-white/[0.055] divide-y divide-white/[0.055]">
+        <!-- Editor status strip -->
+        <div class="grid overflow-hidden md:grid-cols-3">
+          <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Mode
           </div>
@@ -897,11 +978,11 @@ function confirmDestroyOperation({ close, text }) {
           <div class="mt-1 text-sm text-text-secondary">
             {{ isEdit ? 'Saving changes to an existing operation.' : 'Building a new operation draft.' }}
           </div>
-        </div>
+          </div>
 
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
+          <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            RSVP Logic
+            Sign-up Close Logic
           </div>
 
           <div class="mt-2 text-2xl font-black text-horizon-white">
@@ -909,11 +990,11 @@ function confirmDestroyOperation({ close, text }) {
           </div>
 
           <div class="mt-1 text-sm text-text-secondary">
-            RSVP defaults from the start time unless manually overridden.
+            Sign-ups close 30 minutes before start unless manually overridden.
           </div>
-        </div>
+          </div>
 
-        <div class="border-l border-white/[0.055] p-5 first:border-l-0">
+          <div class="border-l border-white/[0.055] p-5 first:border-l-0">
           <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
             Templates
           </div>
@@ -925,12 +1006,12 @@ function confirmDestroyOperation({ close, text }) {
           <div class="mt-1 text-sm text-text-secondary">
             Available operation templates.
           </div>
+          </div>
         </div>
-      </section>
 
-      <!-- UTC warning -->
-      <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
-        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <!-- UTC warning -->
+        <section class="p-5">
+          <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Time Handling
@@ -944,15 +1025,17 @@ function confirmDestroyOperation({ close, text }) {
           <div class="shrink-0 rounded-full border-transparent bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-text-primary)] shadow-none">
             UTC Source of Truth
           </div>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <!-- Main Layout -->
-      <div class="space-y-6">
         <!-- Templates command section -->
-        <section class="hz-surface-welcome relative z-40 overflow-visible rounded-[2rem] border border-white/[0.055] p-5">
-          <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
+        <section class="relative z-40 overflow-visible p-5">
+          <button
+            type="button"
+            class="flex w-full flex-col gap-3 text-left lg:flex-row lg:items-start lg:justify-between"
+            @click="toggleTemplateConsole"
+          >
+            <div class="min-w-0">
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
                 Template Console
               </div>
@@ -966,21 +1049,28 @@ function confirmDestroyOperation({ close, text }) {
               </p>
             </div>
 
-            <div
-              v-if="selectedTemplate"
-              class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3"
-            >
-              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                Selected
+            <div class="flex items-center gap-3 self-start lg:self-auto">
+              <div
+                v-if="selectedTemplate"
+                class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3"
+              >
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Selected
+                </div>
+
+                <div class="mt-1 max-w-60 truncate text-sm font-semibold text-horizon-white">
+                  {{ selectedTemplate.name }}
+                </div>
               </div>
 
-              <div class="mt-1 max-w-60 truncate text-sm font-semibold text-horizon-white">
-                {{ selectedTemplate.name }}
-              </div>
+              <span class="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.055] bg-white/[0.03] text-lg font-bold text-horizon-white">
+                {{ templateConsoleOpen ? '−' : '+' }}
+              </span>
             </div>
-          </div>
+          </button>
 
-          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <div v-if="templateConsoleOpen" class="mt-5 space-y-5 border-t border-white/[0.055] pt-5">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div class="relative z-[9999] min-w-0">
               <HorizonSelect
                 label="Load Template"
@@ -1030,54 +1120,55 @@ function confirmDestroyOperation({ close, text }) {
                 Delete
               </HorizonButton>
             </div>
-          </div>
-
-          <div class="hz-surface-welcome mt-5 rounded-[1.5rem] border border-white/[0.055] p-4">
-            <div class="mb-3">
-              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                Save Current Setup
-              </div>
-
-              <p class="mt-1 text-sm text-text-secondary">
-                Save the current form values as a reusable template scope.
-              </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
-              <HorizonButton
-                size="sm"
-                variant="ghost"
-                :disabled="templatesSaving"
-                @click="askSaveTemplate('personal')"
-              >
-                Save Personal
-              </HorizonButton>
+            <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+              <div class="mb-3">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                  Save Current Setup
+                </div>
 
-              <HorizonButton
-                v-if="canSaveSquadronTemplate"
-                size="sm"
-                variant="ghost"
-                :disabled="templatesSaving"
-                @click="askSaveTemplate('squadron')"
-              >
-                Save Squadron
-              </HorizonButton>
+                <p class="mt-1 text-sm text-text-secondary">
+                  Save the current form values as a reusable template scope.
+                </p>
+              </div>
 
-              <HorizonButton
-                v-if="isDirectorLike"
-                size="sm"
-                variant="ghost"
-                :disabled="templatesSaving"
-                @click="askSaveTemplate('global')"
-              >
-                Save Global
-              </HorizonButton>
+              <div class="flex flex-wrap gap-2">
+                <HorizonButton
+                  size="sm"
+                  variant="ghost"
+                  :disabled="templatesSaving"
+                  @click="askSaveTemplate('personal')"
+                >
+                  Save Personal
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="canSaveSquadronTemplate"
+                  size="sm"
+                  variant="ghost"
+                  :disabled="templatesSaving"
+                  @click="askSaveTemplate('squadron')"
+                >
+                  Save Squadron
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="isDirectorLike"
+                  size="sm"
+                  variant="ghost"
+                  :disabled="templatesSaving"
+                  @click="askSaveTemplate('global')"
+                >
+                  Save Global
+                </HorizonButton>
+              </div>
             </div>
           </div>
         </section>
 
                 <!-- Operation Details -->
-        <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
+        <section class="relative z-30 overflow-visible p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1275,7 +1366,7 @@ function confirmDestroyOperation({ close, text }) {
         </section>
 
                 <!-- Schedule -->
-        <section class="hz-surface-welcome relative z-20 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
+        <section class="relative z-20 overflow-visible p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1287,7 +1378,7 @@ function confirmDestroyOperation({ close, text }) {
               </h2>
 
               <p class="mt-1 text-sm text-text-secondary">
-                Set the operation start, optional end window, and RSVP deadline. Saved values are calculated in UTC.
+                Set the operation start, optional end window, and when sign-ups close. Saved values are calculated in UTC.
               </p>
             </div>
 
@@ -1298,11 +1389,11 @@ function confirmDestroyOperation({ close, text }) {
                 : 'border-white/[0.055] bg-white/[0.042]'"
             >
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                RSVP Mode
+                Close Window Mode
               </div>
 
               <div class="mt-1 text-sm font-semibold text-horizon-white">
-                {{ rsvpAuto ? 'Auto Calculated' : 'Manual Override' }}
+                {{ rsvpAuto ? 'Auto From Start' : 'Manual Override' }}
               </div>
             </div>
           </div>
@@ -1349,12 +1440,12 @@ function confirmDestroyOperation({ close, text }) {
             <div class="hz-surface-welcome relative z-[9997] rounded-[1.5rem] border border-white/[0.055] p-4">
               <HorizonDateTimePicker
                 v-model="rsvpDateTime"
-                label="RSVP Deadline"
+                label="Sign-ups Close"
                 :minute-options="quarterHourMinuteOptions"
               />
 
               <p class="mt-2 text-xs text-text-muted">
-                Auto-follows the start time until manually changed.
+                Defaults to 30 minutes before start until manually changed.
               </p>
 
               <p
@@ -1392,9 +1483,12 @@ function confirmDestroyOperation({ close, text }) {
 
               <div class="rounded-xl border border-white/10 bg-black/10 p-3">
                 <div class="text-xs uppercase tracking-wide text-text-muted">
-                  RSVP
+                  Sign-ups Close
                 </div>
                 <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
+                  {{ signUpCloseSummary }}
+                </div>
+                <div class="mt-1 truncate text-xs text-text-secondary">
                   {{ rsvpDateTime || 'Not set' }}
                 </div>
               </div>
@@ -1402,7 +1496,7 @@ function confirmDestroyOperation({ close, text }) {
           </div>
         </section>
                 <!-- Locations -->
-        <section class="hz-surface-welcome relative z-10 overflow-visible rounded-[2rem] border border-white/[0.055] p-5">
+        <section class="relative z-10 overflow-visible p-5">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Deployment Geography
@@ -1489,7 +1583,7 @@ function confirmDestroyOperation({ close, text }) {
           </div>
         </section>
                 <!-- Briefings -->
-        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
+        <section class="p-5">
           <div class="mb-5">
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Mission Writing
@@ -1554,18 +1648,8 @@ function confirmDestroyOperation({ close, text }) {
             </div>
           </div>
         </section>
-
-      </div>
-      
-
-
-     
-      <div class="space-y-6">
-
-
-
                 <!-- Media -->
-        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
+        <section class="p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1656,7 +1740,7 @@ function confirmDestroyOperation({ close, text }) {
         </section>
 
                <!-- Role Slots -->
-        <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 ">
+        <section class="p-5">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1681,16 +1765,24 @@ function confirmDestroyOperation({ close, text }) {
             </HorizonButton>
           </div>
 
-          <div v-if="form.slots.length" class="space-y-3">
+          <div v-if="form.roles.length" class="space-y-3">
             <div
-              v-for="(slot, index) in form.slots"
+              v-for="(role, index) in form.roles"
               :key="index"
-              class="hz-surface-welcome grid gap-3 rounded-[1.25rem] border border-white/[0.055] p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"
+              class="hz-surface-welcome grid gap-3 rounded-[1.25rem] border border-white/[0.055] p-3 md:grid-cols-[minmax(0,1fr)_12rem_auto] md:items-end"
             >
               <HorizonInput
-                v-model="form.slots[index]"
+                v-model="form.roles[index].role_display_name"
                 :label="`Role Slot ${index + 1}`"
                 placeholder="Pilot, Medic, Gunner, Salvage Lead..."
+              />
+
+              <HorizonInput
+                v-model="form.roles[index].capacity"
+                :label="`Spots`"
+                type="number"
+                min="0"
+                placeholder="Unlimited"
               />
 
               <HorizonButton
@@ -1718,16 +1810,16 @@ function confirmDestroyOperation({ close, text }) {
           </div>
 
           <p
-            v-if="form.errors.slots"
+            v-if="form.errors.slots || form.errors.roles"
             class="mt-2 text-sm text-red-300"
           >
-            {{ form.errors.slots }}
+            {{ form.errors.roles ?? form.errors.slots }}
           </p>
         </section>
 
 
                <!-- Form Actions -->
-        <section class="hz-surface-welcome sticky bottom-0 z-30 rounded-[2rem] border border-white/[0.055] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+        <section class="sticky bottom-0 z-30 bg-[rgba(11,13,20,0.92)] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)] backdrop-blur-sm">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1775,7 +1867,7 @@ function confirmDestroyOperation({ close, text }) {
             </div>
           </div>
         </section>
-      </div>
+      </section>
     </div>
 
     <div
@@ -1873,8 +1965,6 @@ function confirmDestroyOperation({ close, text }) {
     @confirm="confirmSaveTemplate"
   />
 </template>
-
-
 
 
 

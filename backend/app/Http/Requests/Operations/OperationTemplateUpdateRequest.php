@@ -35,6 +35,11 @@ class OperationTemplateUpdateRequest extends FormRequest
 
             'payload.slots' => 'nullable|array',
             'payload.slots.*' => 'required|string|max:255|regex:/\S/',
+            'payload.roles' => 'nullable|array',
+            'payload.roles.*.id' => 'nullable|integer',
+            'payload.roles.*.role_name' => 'nullable|string|max:255',
+            'payload.roles.*.role_display_name' => 'required|string|max:255|regex:/\S/',
+            'payload.roles.*.capacity' => 'nullable|integer|min:0',
         ];
     }
 }

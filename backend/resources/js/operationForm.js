@@ -12,6 +12,7 @@ export function buildTemplatePayload(form, selectedSquadronNames) {
   )
 
   return {
+    roles: Array.isArray(form.roles) ? form.roles : [],
     title: form.title ?? '',
     gameplay_type: form.gameplay_type ?? '',
     description: form.description ?? '',
@@ -23,7 +24,11 @@ export function buildTemplatePayload(form, selectedSquadronNames) {
     operation_strictness: form.operation_strictness ?? '',
     start_location: form.start_location ?? '',
     operation_location: form.operation_location ?? '',
-    slots: Array.isArray(form.slots) ? form.slots : [],
+    slots: Array.isArray(form.roles)
+      ? form.roles
+          .map(role => typeof role?.role_display_name === 'string' ? role.role_display_name.trim() : '')
+          .filter(Boolean)
+      : Array.isArray(form.slots) ? form.slots : [],
   }
 }
 
@@ -45,8 +50,26 @@ export function applyTemplatePayload(form, setSelectedSquadronNames, payload) {
   if ('start_location' in payload) form.start_location = payload.start_location ?? ''
   if ('operation_location' in payload) form.operation_location = payload.operation_location ?? ''
 
-  if ('slots' in payload) {
+  if ('roles' in payload) {
+    form.roles = Array.isArray(payload.roles)
+      ? payload.roles.map(role => ({
+          id: role?.id ?? null,
+          role_name: role?.role_name ?? '',
+          role_display_name: role?.role_display_name ?? '',
+          capacity: role?.capacity ?? '',
+        }))
+      : []
+    form.slots = form.roles
+      .map(role => role.role_display_name)
+      .filter(Boolean)
+  } else if ('slots' in payload) {
     form.slots = Array.isArray(payload.slots) ? [...payload.slots] : []
+    form.roles = form.slots.map(slot => ({
+      id: null,
+      role_name: '',
+      role_display_name: slot,
+      capacity: '',
+    }))
   }
 
   if ('squadron_name' in payload) {
@@ -117,6 +140,50 @@ export function normalizeOperationSlots(slots) {
   return {
     trimmedSlots,
     invalidIndexes,
+  }
+}
+
+export function normalizeOperationRoles(roles) {
+  if (!Array.isArray(roles)) {
+    return {
+      normalizedRoles: [],
+      invalidIndexes: [],
+      invalidCapacityIndexes: [],
+    }
+  }
+
+  const normalizedRoles = roles.map(role => {
+    const displayName = typeof role?.role_display_name === 'string'
+      ? role.role_display_name.trim()
+      : ''
+
+    const rawCapacity = role?.capacity
+    const capacity = rawCapacity === '' || rawCapacity === null || typeof rawCapacity === 'undefined'
+      ? null
+      : Number(rawCapacity)
+
+    return {
+      id: role?.id ?? null,
+      role_name: typeof role?.role_name === 'string' ? role.role_name.trim() : '',
+      role_display_name: displayName,
+      capacity,
+    }
+  })
+
+  const invalidIndexes = normalizedRoles
+    .map((role, index) => ({ role, index }))
+    .filter(({ role }) => role.role_display_name.length === 0)
+    .map(({ index }) => index + 1)
+
+  const invalidCapacityIndexes = normalizedRoles
+    .map((role, index) => ({ role, index }))
+    .filter(({ role }) => role.capacity !== null && (!Number.isInteger(role.capacity) || role.capacity < 0))
+    .map(({ index }) => index + 1)
+
+  return {
+    normalizedRoles,
+    invalidIndexes,
+    invalidCapacityIndexes,
   }
 }
 

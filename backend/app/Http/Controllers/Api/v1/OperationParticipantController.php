@@ -35,11 +35,6 @@ class OperationParticipantController extends Controller
             'notes'             => 'nullable|string|max:500',
         ]);
 
-        if (! $request->user()->can('assignSlots', $operation)) {
-            $validated['slot'] = null;
-            $validated['operation_role_id'] = null;
-        }
-
         try {
             $participant = $this->participants->join($operation, $request->user(), $validated);
         } catch (ValidationException $e) {
@@ -87,7 +82,12 @@ class OperationParticipantController extends Controller
             abort(404);
         }
 
-        $this->authorize('assignSlots', $operation);
+        $canAssignSlots = $request->user()->can('assignSlots', $operation);
+        $isOwnParticipant = (int) $participant->user_id === (int) $request->user()->id;
+
+        if (! $canAssignSlots && ! $isOwnParticipant) {
+            abort(403);
+        }
 
         try {
             $participant = $this->participants->updateSlot(

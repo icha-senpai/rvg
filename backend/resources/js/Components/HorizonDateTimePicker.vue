@@ -52,10 +52,10 @@
               cell.isBlank
                 ? 'opacity-0 pointer-events-none'
                 : (cell.isSelected
-                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
+                    ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white border border-[color:var(--horizon-sunset-blue)] font-semibold'
                     : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'),
               (!cell.isBlank && cell.isTodayHighlight && !cell.isSelected)
-                ? 'ring-1 ring-white/[0.055]'
+                ? 'w-9 justify-self-center rounded-full border border-[color:var(--horizon-sunset-blue)] text-[color:var(--horizon-sunset-blue)] font-semibold hover:bg-transparent'
                 : '',
             ]"
             @click="!cell.isBlank && selectDay(cell.day)"

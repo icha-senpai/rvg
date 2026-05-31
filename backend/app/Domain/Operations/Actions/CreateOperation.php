@@ -8,6 +8,7 @@ use App\Models\Operation;
 use App\Models\Squadron;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class CreateOperation
 {
@@ -20,7 +21,7 @@ class CreateOperation
         $creatorId = Auth::id();
 
         $operation = Operation::create([
-            ...$data,
+            ...$this->normalizeDatabaseColumns($data),
             'squadron_id' => $squadron?->id,
             'created_by'  => $creatorId,
             'status'      => $status,
@@ -41,5 +42,25 @@ class CreateOperation
         }
 
         return $operation;
+    }
+
+    protected function normalizeDatabaseColumns(array $data): array
+    {
+        if (! Schema::hasColumn('operations', 'operation_type') && array_key_exists('operation_type', $data)) {
+            $data['operation_kind'] = $data['operation_type'];
+            unset($data['operation_type']);
+        }
+
+        if (! Schema::hasColumn('operations', 'gameplay_type') && array_key_exists('gameplay_type', $data)) {
+            $data['type'] = $data['gameplay_type'];
+            unset($data['gameplay_type']);
+        }
+
+        if (! Schema::hasColumn('operations', 'extended_description') && array_key_exists('extended_description', $data)) {
+            $data['notes'] = $data['extended_description'];
+            unset($data['extended_description']);
+        }
+
+        return $data;
     }
 }

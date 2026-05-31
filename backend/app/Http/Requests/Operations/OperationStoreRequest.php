@@ -63,6 +63,11 @@ class OperationStoreRequest extends FormRequest
 
             'slots'                => 'nullable|array',
             'slots.*'              => 'required|string|max:255|regex:/\S/',
+            'roles'                => 'nullable|array',
+            'roles.*.id'           => 'nullable|integer|exists:operation_roles,id',
+            'roles.*.role_name'    => 'nullable|string|max:255',
+            'roles.*.role_display_name' => 'required|string|max:255|regex:/\S/',
+            'roles.*.capacity'     => 'nullable|integer|min:0',
         ];
     }
 }

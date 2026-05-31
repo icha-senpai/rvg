@@ -1323,6 +1323,12 @@ function statusCardClass(status) {
           :participants-by-slot="activeOperation.participantsBySlot"
           :unassigned-participants="activeOperation.unassignedParticipants"
           :current-participant="activeOperation.currentParticipant"
+          :can-manage-operation="canManageOperation(activeOperation.operation)"
+          :transition-processing="isTransitionProcessing(activeOperation.operation.id)"
+          @edit-operation="openEditDrawer"
+          @start-operation="askStartOperation"
+          @complete-operation="({ operation, outcome }) => askCompleteOperation(operation, outcome)"
+          @cancel-operation="askCancelOperation"
         />
       </OperationModal>
     </div>
@@ -1364,6 +1370,4 @@ function statusCardClass(status) {
     @confirm="confirmCancelOperation"
   />
 </template>
-
-
 

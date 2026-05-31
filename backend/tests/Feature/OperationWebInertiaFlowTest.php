@@ -244,6 +244,143 @@ class OperationWebInertiaFlowTest extends TestCase
         ]);
     }
 
+    public function test_create_operation_persists_role_capacities_and_mirrored_slots(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $response = $this
+            ->actingAs($user)
+            ->post('/operations', [
+                'title' => 'Role Capacity Test',
+                'description' => 'Testing role capacities.',
+                'starts_at' => now()->addDay()->toDateTimeString(),
+                'ends_at' => now()->addDay()->addHour()->toDateTimeString(),
+                'operation_type' => 'operation',
+                'visibility' => 'open',
+                'operation_strictness' => 'normal',
+                'status' => 'draft',
+                'roles' => [
+                    [
+                        'role_display_name' => 'Pilot',
+                        'capacity' => 2,
+                    ],
+                    [
+                        'role_display_name' => 'Medic',
+                        'capacity' => 1,
+                    ],
+                ],
+            ]);
+
+        $operation = Operation::query()->where('title', 'Role Capacity Test')->firstOrFail();
+
+        $response->assertRedirect('/operations/' . $operation->id);
+
+        $this->assertSame(['Pilot', 'Medic'], $operation->fresh()->slots);
+
+        $this->assertDatabaseHas('operation_roles', [
+            'operation_id' => $operation->id,
+            'role_display_name' => 'Pilot',
+            'capacity' => 2,
+        ]);
+
+        $this->assertDatabaseHas('operation_roles', [
+            'operation_id' => $operation->id,
+            'role_display_name' => 'Medic',
+            'capacity' => 1,
+        ]);
+    }
+
+    public function test_member_active_operation_payload_hides_full_roster_but_keeps_slot_choices_and_own_role(): void
+    {
+        /** @var User $viewer */
+        $viewer = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $creator = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $otherParticipant = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $operation = $this->makeOperation($creator, [
+            'status' => 'published',
+            'visibility' => 'open',
+            'slots' => ['Pilot', 'Gunner'],
+        ]);
+
+        OperationParticipant::create([
+            'operation_id' => $operation->id,
+            'user_id' => $viewer->id,
+            'slot' => 'Pilot',
+            'attendance_status' => 'signed_up',
+        ]);
+
+        OperationParticipant::create([
+            'operation_id' => $operation->id,
+            'user_id' => $otherParticipant->id,
+            'slot' => 'Gunner',
+            'attendance_status' => 'signed_up',
+        ]);
+
+        $operation->roles()->create([
+            'role_name' => 'pilot',
+            'role_display_name' => 'Pilot',
+            'capacity' => 1,
+        ]);
+
+        $operation->roles()->create([
+            'role_name' => 'gunner',
+            'role_display_name' => 'Gunner',
+            'capacity' => 2,
+        ]);
+
+        $viewerParticipant = OperationParticipant::query()
+            ->where('operation_id', $operation->id)
+            ->where('user_id', $viewer->id)
+            ->firstOrFail();
+
+        $otherRole = $operation->roles()->where('role_display_name', 'Gunner')->firstOrFail();
+        $viewerRole = $operation->roles()->where('role_display_name', 'Pilot')->firstOrFail();
+
+        $viewerParticipant->update([
+            'operation_role_id' => $viewerRole->id,
+        ]);
+
+        OperationParticipant::query()
+            ->where('operation_id', $operation->id)
+            ->where('user_id', $otherParticipant->id)
+            ->update([
+                'operation_role_id' => $otherRole->id,
+            ]);
+
+        $response = $this
+            ->actingAs($viewer)
+            ->get('/operations?operation=' . $operation->id);
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Operations/OperationsIndex')
+            ->where('activeOperation.operation.id', $operation->id)
+            ->where('activeOperation.operation.slots', ['Pilot', 'Gunner'])
+            ->where('activeOperation.operation.participants_count', 2)
+            ->where('activeOperation.operation.roles.0.role_display_name', 'Pilot')
+            ->where('activeOperation.operation.roles.0.capacity', 1)
+            ->where('activeOperation.operation.roles.0.remaining_spots', 0)
+            ->where('activeOperation.operation.roles.0.is_full', true)
+            ->where('activeOperation.operation.permissions.can_view_slots', false)
+            ->where('activeOperation.operation.permissions.can_assign_slots', false)
+            ->where('activeOperation.participants', [])
+            ->where('activeOperation.participantsBySlot', [])
+            ->where('activeOperation.unassignedParticipants', [])
+            ->where('activeOperation.currentParticipant.slot', 'Pilot')
+        );
+    }
+
     private function actingAsDirector(array $attributes = []): User
     {
         $directorRole = Role::create([

@@ -18,8 +18,10 @@ class OperationShowDataService
     {
         $operation->load([
             'squadron',
+            'squadron.emblem',
             'creator',
             'participants.user',
+            'participants.role',
             'images',
         ]);
 
@@ -27,7 +29,10 @@ class OperationShowDataService
         $canAssignSlots = $viewer ? $this->access->canAssignOperationSlots($viewer, $operation) : false;
         $canManageAar = $viewer ? $this->access->canManageAfterActionReport($viewer, $operation) : false;
 
-        $participants = $this->participantsPayload($operation, $canViewSlots);
+        $participantCount = $operation->participants->count();
+        $participants = $canViewSlots
+            ? $this->participantsPayload($operation, true)
+            : collect();
         $currentParticipant = null;
 
         if ($viewer) {
@@ -40,7 +45,7 @@ class OperationShowDataService
 
         $operationPayload = OperationPresenter::make($operation)->full();
         $operationPayload['participants'] = $participants->values()->all();
-        $operationPayload['slots'] = $canViewSlots ? ($operationPayload['slots'] ?? []) : [];
+        $operationPayload['participants_count'] = $participantCount;
         $operationPayload['after_action_attendance'] = $this->attendancePayload($operation);
         $operationPayload['after_action_no_show'] = $this->noShowPayload($operation);
         $operationPayload['permissions'] = [
@@ -53,7 +58,10 @@ class OperationShowDataService
             'operation' => $operationPayload,
             'participants' => $participants->values()->all(),
             'participantsBySlot' => $canViewSlots
-                ? $participants->filter(fn (array $participant) => filled($participant['slot']))->groupBy('slot')->all()
+                ? $participants
+                    ->filter(fn (array $participant) => filled($participant['slot']))
+                    ->groupBy(fn (array $participant) => $participant['slot'])
+                    ->all()
                 : [],
             'unassignedParticipants' => $canViewSlots
                 ? $participants->filter(fn (array $participant) => blank($participant['slot']))->values()->all()
@@ -159,6 +167,12 @@ class OperationShowDataService
         return [
             'id' => $participant->id,
             'slot' => $includeSlot ? $participant->slot : null,
+            'role' => $participant->role ? [
+                'id' => $participant->role->id,
+                'role_name' => $participant->role->role_name,
+                'role_display_name' => $participant->role->role_display_name,
+                'capacity' => $participant->role->capacity,
+            ] : null,
             'attendance_status' => $participant->attendance_status,
             'notes' => $participant->notes,
             'user' => [
