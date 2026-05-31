@@ -35,7 +35,8 @@
     <transition name="fade-scale">
       <ul
         v-if="open"
-        class="hz-select-menu absolute left-0 top-full z-[10060] mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.9)] shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+        class="hz-select-menu absolute left-0 z-[10060] max-h-64 w-full overflow-y-auto rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.9)] shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+        :class="menuOpensUpward ? 'bottom-full mb-1' : 'top-full mt-1'"
       >
         <li
           v-for="opt in options"
@@ -52,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 
 const props = defineProps({
@@ -66,6 +67,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
 const container = ref(null)
+const menuOpensUpward = ref(false)
 
 const model = computed({
   get: () => props.modelValue,
@@ -96,8 +98,25 @@ function isSelected(value) {
   return model.value === value
 }
 
-function toggle() {
+function updateMenuDirection() {
+  if (!container.value) return
+
+  const rect = container.value.getBoundingClientRect()
+  const maxMenuHeight = 256
+  const menuOffset = 8
+  const spaceBelow = window.innerHeight - rect.bottom
+  const spaceAbove = rect.top
+
+  menuOpensUpward.value = spaceBelow < (maxMenuHeight + menuOffset) && spaceAbove > spaceBelow
+}
+
+async function toggle() {
   open.value = !open.value
+
+  if (open.value) {
+    await nextTick()
+    updateMenuDirection()
+  }
 }
 
 function choose(value) {
@@ -119,6 +138,11 @@ function choose(value) {
   open.value = false
 }
 
+function handleViewportChange() {
+  if (!open.value) return
+  updateMenuDirection()
+}
+
 function handleClickOutside(event) {
   if (!container.value) return
   if (!container.value.contains(event.target)) open.value = false
@@ -126,10 +150,14 @@ function handleClickOutside(event) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
+  window.addEventListener('resize', handleViewportChange)
+  window.addEventListener('scroll', handleViewportChange, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
+  window.removeEventListener('resize', handleViewportChange)
+  window.removeEventListener('scroll', handleViewportChange, true)
 })
 </script>
 

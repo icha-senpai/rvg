@@ -800,7 +800,7 @@ function emitCancelOperation() {
 
 <template>
   <div class="space-y-6 p-5 md:p-6">
-    <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055]">
+    <section class="hz-surface-welcome relative rounded-[2rem] border border-white/[0.055]">
       <div class="pointer-events-none absolute inset-0 opacity-20">
         <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
         <div class="absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
