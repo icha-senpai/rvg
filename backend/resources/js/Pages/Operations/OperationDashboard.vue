@@ -1211,7 +1211,7 @@ function statusCardClass(status) {
                     {{ operation.title }}
                   </h3>
 
-                  <p v-if="operation.description" class="mt-2 max-w-3xl text-sm text-text-secondary">
+                  <p v-if="operation.description" class="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-text-secondary">
                     {{ operation.description }}
                   </p>
                 </div>

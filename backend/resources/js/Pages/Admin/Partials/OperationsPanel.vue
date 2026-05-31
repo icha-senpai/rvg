@@ -221,10 +221,6 @@ function selectOperationsSection(section) {
             <h4 class="mt-2 text-2xl font-black text-horizon-white">
               {{ operation.title }}
             </h4>
-
-            <p v-if="operation.description" class="mt-2 max-w-3xl text-sm text-text-secondary">
-              {{ operation.description }}
-            </p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
@@ -303,10 +299,6 @@ function selectOperationsSection(section) {
             <h4 class="mt-2 text-2xl font-black text-horizon-white">
               {{ operation.title }}
             </h4>
-
-            <p v-if="operation.description" class="mt-2 max-w-3xl text-sm text-text-secondary">
-              {{ operation.description }}
-            </p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
