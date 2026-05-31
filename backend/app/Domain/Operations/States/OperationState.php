@@ -49,6 +49,7 @@ abstract class OperationState
     public function transitionTo(string $targetStatus, ?string $reason = null, ?string $outcome = null): Operation
     {
         $target = OperationStatus::from($targetStatus);
+        $normalizedReason = trim((string) $reason);
 
         if (! in_array($targetStatus, $this->allowedTransitions(), true)) {
             throw ValidationException::withMessages([
@@ -58,8 +59,14 @@ abstract class OperationState
 
         $this->operation->status = $target->value;
 
-        if ($target === OperationStatus::Canceled && $reason) {
-            $this->operation->cancellation_reason = $reason;
+        if ($target === OperationStatus::Canceled) {
+            if ($normalizedReason === '') {
+                throw ValidationException::withMessages([
+                    'reason' => 'Cancellation reason is required.',
+                ]);
+            }
+
+            $this->operation->cancellation_reason = $normalizedReason;
         }
 
         if ($target === OperationStatus::Completed) {

@@ -9,6 +9,7 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
@@ -23,6 +24,14 @@ const props = defineProps({
     type: [Array, Object],
     required: true,
   },
+  afterActionOperations: {
+    type: Array,
+    default: () => [],
+  },
+  verifiedMembers: {
+    type: Array,
+    default: () => [],
+  },
   filters: {
     type: Object,
     default: () => ({}),
@@ -35,6 +44,33 @@ const todayLabel = computed(() => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  })
+})
+
+const filteredAfterActionOperations = computed(() => {
+  const searchTerm = search.value.toLowerCase().trim()
+
+  return (props.afterActionOperations ?? []).filter((operation) => {
+    const matchesSearch = !searchTerm
+      || String(operation?.id ?? '').toLowerCase().includes(searchTerm)
+      || (operation?.title ?? '').toLowerCase().includes(searchTerm)
+      || (operation?.description ?? '').toLowerCase().includes(searchTerm)
+      || (operation?.squadron?.name ?? '').toLowerCase().includes(searchTerm)
+      || (operation?.creator?.rsi_handle ?? '').toLowerCase().includes(searchTerm)
+
+    if (!matchesSearch) {
+      return false
+    }
+
+    if (statusFilter.value === 'all') {
+      return true
+    }
+
+    return statusFilter.value === 'completed'
+      ? true
+      : statusFilter.value === 'active'
+        ? false
+        : false
   })
 })
 
@@ -54,6 +90,8 @@ const editorSquadronId = computed(() =>
 
 const createTemplateId = ref('')
 const transitionProcessingIds = ref(new Set())
+const activeDashboardSection = ref('board')
+const openAfterActionOperationId = ref(null)
 
 const startConfirmDialog = ref(null)
 const pendingStartOperation = ref(null)
@@ -556,7 +594,7 @@ function confirmCancelOperation({ close, finish, text }) {
   setTransitionProcessing(op.id, true)
 
   router.post(route('operations.cancel', op.id, Ziggy), {
-    reason: text || null,
+    reason: text,
   }, {
     preserveScroll: true,
     preserveState: true,
@@ -628,6 +666,25 @@ function queueRefreshOperations() {
   filterRefreshTimeout = setTimeout(() => {
     refreshOperations({ resetPage: true })
   }, 220)
+}
+
+function selectDashboardSection(section) {
+  activeDashboardSection.value = section
+
+  if (section === 'aar' && statusFilter.value !== 'completed') {
+    statusFilter.value = 'completed'
+    return
+  }
+
+  if (section === 'board' && statusFilter.value !== 'active') {
+    statusFilter.value = 'active'
+  }
+}
+
+function toggleAfterActionOperation(operationId) {
+  openAfterActionOperationId.value = Number(openAfterActionOperationId.value) === Number(operationId)
+    ? null
+    : Number(operationId)
 }
 
 watch(statusFilter, () => {
@@ -833,8 +890,37 @@ function statusCardClass(status) {
         </div>
         </div>
 
+        <div class="relative border-t border-white/[0.055] px-4 pb-0 pt-4 md:px-5">
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition"
+              :class="activeDashboardSection === 'board'
+                ? 'border-[color:var(--horizon-sunset-blue)]/40 bg-white/[0.042] text-horizon-white'
+                : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:bg-white/[0.04] hover:text-horizon-white'"
+              @click="selectDashboardSection('board')"
+            >
+              Command Board
+            </button>
+
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition"
+              :class="activeDashboardSection === 'aar'
+                ? 'border-emerald-300/35 bg-emerald-300/10 text-horizon-white'
+                : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:bg-white/[0.04] hover:text-horizon-white'"
+              @click="selectDashboardSection('aar')"
+            >
+              AAR
+            </button>
+          </div>
+        </div>
+
         <!-- Operation command cards -->
-        <div class="relative border-t border-white/[0.055] p-4 md:p-5">
+        <div
+          v-if="activeDashboardSection === 'board'"
+          class="relative border-t border-white/[0.055] p-4 md:p-5"
+        >
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1082,6 +1168,106 @@ function statusCardClass(status) {
           </HorizonButton>
         </div>
         </div>
+
+        <div
+          v-else
+          class="relative border-t border-white/[0.055] p-4 md:p-5"
+        >
+          <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+                After Action
+              </div>
+
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                {{ filteredAfterActionOperations.length }} Completed Operations
+              </h2>
+
+              <p class="mt-1 text-sm text-text-secondary">
+                Review and update completed operation reports directly from the operations dashboard.
+              </p>
+            </div>
+
+            <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Completed Only
+            </div>
+          </div>
+
+          <div v-if="filteredAfterActionOperations.length" class="space-y-4">
+            <article
+              v-for="operation in filteredAfterActionOperations"
+              :key="`${operation.id}-${operation.after_action_report_updated_at ?? 'na'}`"
+              class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5"
+            >
+              <div class="flex flex-col gap-4 border-b border-white/[0.055] pb-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    <span>#{{ operation.id }}</span>
+                    <span class="text-text-secondary">•</span>
+                    <span>{{ operation.completion_outcome === 'failed' ? 'Failed' : 'Success' }}</span>
+                  </div>
+
+                  <h3 class="mt-2 text-2xl font-black text-horizon-white">
+                    {{ operation.title }}
+                  </h3>
+
+                  <p v-if="operation.description" class="mt-2 max-w-3xl text-sm text-text-secondary">
+                    {{ operation.description }}
+                  </p>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
+                  <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                    <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Creator</div>
+                    <div class="mt-1 text-sm font-semibold text-horizon-white">{{ operation.creator?.rsi_handle ?? operation.creator?.discord_name ?? operation.creator?.name ?? 'Unknown' }}</div>
+                  </div>
+
+                  <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                    <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Completed</div>
+                    <div class="mt-1 text-sm font-semibold text-horizon-white">{{ formatDate(operation.ends_at ?? operation.starts_at) }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-2">
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+                  {{ operation.squadron?.name ?? 'Global Operation' }}
+                </span>
+
+                <button
+                  type="button"
+                  class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white transition hover:bg-white/[0.04]"
+                  @click="toggleAfterActionOperation(operation.id)"
+                >
+                  {{ Number(openAfterActionOperationId) === Number(operation.id) ? 'Close AAR' : 'Open AAR' }}
+                </button>
+              </div>
+
+              <div v-if="Number(openAfterActionOperationId) === Number(operation.id)" class="mt-5">
+                <AfterActionReportSection
+                  :operation="operation"
+                  :verified-members="verifiedMembers"
+                  :can-manage="!!operation?.permissions?.can_manage_aar"
+                  :reload-only="['afterActionOperations']"
+                  :compact="true"
+                />
+              </div>
+            </article>
+          </div>
+
+          <div
+            v-else
+            class="rounded-[1.5rem] border border-dashed border-white/15 bg-white/[0.025] p-10 text-center"
+          >
+            <div class="text-2xl font-black text-horizon-white">
+              No Completed Operations Found
+            </div>
+
+            <p class="mx-auto mt-2 max-w-xl text-sm text-text-secondary">
+              Completed operations with AAR access will show up here.
+            </p>
+          </div>
+        </div>
       </section>
 
       <OperationDrawer
@@ -1131,6 +1317,7 @@ function statusCardClass(status) {
         </template>
 
         <MissionShowPanel
+          :key="`${activeOperation.operation.id}-${activeOperation.operation.status}-${activeOperation.operation.after_action_report_updated_at ?? 'na'}`"
           :operation="activeOperation.operation"
           :participants="activeOperation.participants"
           :participants-by-slot="activeOperation.participantsBySlot"
@@ -1172,12 +1359,11 @@ function statusCardClass(status) {
     message="This action cannot be undone."
     :close-on-confirm="false"
     :requires-text-input="true"
-    text-input-label="Cancellation reason (optional):"
+    text-input-label="Cancellation reason:"
     text-input-placeholder="Enter reason..."
     @confirm="confirmCancelOperation"
   />
 </template>
-
 
 
 

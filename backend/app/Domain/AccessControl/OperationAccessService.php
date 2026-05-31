@@ -148,6 +148,19 @@ class OperationAccessService
         return false;
     }
 
+    public function canManageAfterActionReport(User $user, Operation $operation): bool
+    {
+        if (! $operation->isCompleted()) {
+            return false;
+        }
+
+        if ($this->shared->isDirectorLike($user)) {
+            return true;
+        }
+
+        return (int) $operation->created_by === (int) $user->id;
+    }
+
     public function canManageOperation(User $user, Operation $operation): bool
     {
         return $this->canUpdateOperation($user, $operation)

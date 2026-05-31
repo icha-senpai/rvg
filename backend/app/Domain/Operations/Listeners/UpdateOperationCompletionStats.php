@@ -12,15 +12,6 @@ class UpdateOperationCompletionStats
     {
         $operation = $event->operation;
 
-        $participantUserIds = $operation->participants()
-            ->distinct()
-            ->pluck('user_id')
-            ->all();
-
-        if (! empty($participantUserIds)) {
-            User::whereIn('id', $participantUserIds)->increment('operations_completed_count');
-        }
-
         if (! $operation->created_by || ! $operation->completion_outcome) {
             return;
         }

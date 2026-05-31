@@ -48,6 +48,10 @@ class OperationPresenter
             'branch' => $this->operation->branch,
             'status' => $this->operation->status,
             'completion_outcome' => $this->operation->completion_outcome,
+            'after_action_report' => $this->operation->after_action_report,
+            'after_action_attendance_user_ids' => $this->operation->after_action_attendance_user_ids ?? [],
+            'after_action_no_show_user_ids' => $this->operation->after_action_no_show_user_ids ?? [],
+            'after_action_report_updated_at' => $this->operation->after_action_report_updated_at?->toIso8601String(),
             'created_by' => $this->operation->created_by,
             'creator' => $this->operation->creator
                 ? [
@@ -106,6 +110,10 @@ class OperationPresenter
             'extended_description' => $this->operation->extended_description,
             'status' => $this->operation->status,
             'completion_outcome' => $this->operation->completion_outcome,
+            'after_action_report' => $this->operation->after_action_report,
+            'after_action_attendance_user_ids' => $this->operation->after_action_attendance_user_ids ?? [],
+            'after_action_no_show_user_ids' => $this->operation->after_action_no_show_user_ids ?? [],
+            'after_action_report_updated_at' => $this->operation->after_action_report_updated_at?->toIso8601String(),
             'cancellation_reason' => $this->operation->cancellation_reason,
             'slots' => $this->operation->slots,
             'media_image' => $primaryImage ? [
@@ -150,6 +158,9 @@ class OperationPresenter
                     'user' => [
                         'id' => $participant->user->id,
                         'rsi_handle' => $participant->user->rsi_handle,
+                        'discord_name' => $participant->user->discord_name,
+                        'discord_avatar' => $participant->user->discord_avatar,
+                        'name' => $participant->user->name,
                     ],
                 ];
             })->values(),

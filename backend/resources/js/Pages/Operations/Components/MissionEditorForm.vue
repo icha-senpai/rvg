@@ -810,22 +810,22 @@ function askDestroyOperation() {
   deleteOperationConfirmDialog.value?.show()
 }
 
-function confirmDestroyOperation({ close }) {
+function confirmDestroyOperation({ close, text }) {
   if (!props.mission) {
     close()
     return
   }
 
-  form.delete(
-    route('operations.destroy', props.mission.id, Ziggy),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        close()
-        emit('deleted', props.mission.id)
-      },
-    }
-  )
+  router.delete(route('operations.destroy', props.mission.id, Ziggy), {
+    data: {
+      reason: text,
+    },
+    preserveScroll: true,
+    onSuccess: () => {
+      close()
+      emit('deleted', props.mission.id)
+    },
+  })
 }
 </script>
 
@@ -1754,7 +1754,7 @@ function confirmDestroyOperation({ close }) {
                 :disabled="form.processing"
                 @click="askDestroyOperation"
               >
-                Delete
+                Cancel Operation
               </HorizonButton>
 
               <HorizonButton
@@ -1833,11 +1833,15 @@ function confirmDestroyOperation({ close }) {
 
   <HorizonConfirmDialog
     ref="deleteOperationConfirmDialog"
-    title="Delete Operation"
-    confirm-label="Delete"
+    title="Cancel Operation"
+    confirm-label="Cancel Operation"
     cancel-label="Cancel"
     variant="danger"
-    message="Delete this operation? This cannot be undone."
+    message="Cancel this operation? This cannot be undone."
+    :close-on-confirm="false"
+    :requires-text-input="true"
+    text-input-label="Cancellation reason:"
+    text-input-placeholder="Enter reason..."
     @confirm="confirmDestroyOperation"
   />
 

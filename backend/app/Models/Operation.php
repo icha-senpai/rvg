@@ -43,6 +43,10 @@ class Operation extends Model
         'notes',
         'status',
         'completion_outcome',
+        'after_action_report',
+        'after_action_attendance_user_ids',
+        'after_action_no_show_user_ids',
+        'after_action_report_updated_at',
         'cancellation_reason',
 
         // Discord announcement tracking keeps the linked bot message addressable.
@@ -59,6 +63,9 @@ class Operation extends Model
         'slots'          => 'array',
         'status'         => 'string',
         'completion_outcome' => 'string',
+        'after_action_attendance_user_ids' => 'array',
+        'after_action_no_show_user_ids' => 'array',
+        'after_action_report_updated_at' => 'datetime',
     ];
 
     /**

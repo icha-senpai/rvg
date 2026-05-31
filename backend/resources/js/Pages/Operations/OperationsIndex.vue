@@ -394,7 +394,7 @@ function confirmCancelOperation({ close, finish, text }) {
   setTransitionProcessing(op.id, true)
 
   router.post(route('operations.cancel', op.id, Ziggy), {
-    reason: text || null,
+    reason: text,
   }, {
     preserveScroll: true,
     preserveState: true,
@@ -645,6 +645,7 @@ function submitCompleteOperation(outcome) {
         </template>
 
         <MissionShowPanel
+          :key="`${activeOperation.operation.id}-${activeOperation.operation.status}-${activeOperation.operation.after_action_report_updated_at ?? 'na'}`"
           :operation="activeOperation.operation"
           :participants="activeOperation.participants"
           :participants-by-slot="activeOperation.participantsBySlot"
@@ -675,7 +676,7 @@ function submitCompleteOperation(outcome) {
     message="This action cannot be undone."
     :close-on-confirm="false"
     :requires-text-input="true"
-    text-input-label="Cancellation reason (optional):"
+    text-input-label="Cancellation reason:"
     text-input-placeholder="Enter reason..."
     @confirm="confirmCancelOperation"
   />

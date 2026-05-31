@@ -9,17 +9,30 @@ import UsersPanel from './Partials/UsersPanel.vue'
 import SquadronsPanel from './Partials/SquadronsPanel.vue'
 import RolesPanel from './Partials/RolesPanel.vue'
 import MediaPanel from './Partials/MediaPanel.vue'
+import OperationsPanel from './Partials/OperationsPanel.vue'
 
 const props = defineProps({
   users: Object,
   squadrons: Array,
   roles: Array,
+  operations: {
+    type: Array,
+    default: () => [],
+  },
+  canceledOperations: {
+    type: Array,
+    default: () => [],
+  },
+  verifiedMembers: {
+    type: Array,
+    default: () => [],
+  },
   filters: Object,
   eligibleLeaders: Array,
   archiveStats: { type: Object, default: () => ({}) },
 })
 
-const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media'])
+const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media', 'operations'])
 const activeTabStorageKey = 'adminDashboard.activeTab'
 
 const archiveSummary = computed(() => ({
@@ -54,6 +67,14 @@ const tabItems = computed(() => [
     description: 'Review and manage platform roles and permission structure.',
     count: props.roles?.length ?? 0,
     tone: 'magenta',
+  },
+  {
+    key: 'operations',
+    label: 'Operations',
+    eyebrow: 'Lifecycle',
+    description: 'Review completed operations, maintain After Action Reports, and inspect canceled operations with reasons.',
+    count: (props.operations?.length ?? 0) + (props.canceledOperations?.length ?? 0),
+    tone: 'emerald',
   },
   {
     key: 'media',
@@ -163,15 +184,17 @@ function restoreScrollPosition() {
 }
 
 function tabCardClass(tab) {
-  if (activeTab.value === tab.key) {
-    switch (tab.tone) {
-      case 'magenta':
-        return 'border-white/[0.055] bg-white/[0.042] '
-      case 'indigo':
-        return 'border-white/[0.055] bg-white/[0.042] '
-      case 'cyan':
-      case 'blue':
-      default:
+    if (activeTab.value === tab.key) {
+      switch (tab.tone) {
+        case 'magenta':
+          return 'border-white/[0.055] bg-white/[0.042] '
+        case 'indigo':
+          return 'border-white/[0.055] bg-white/[0.042] '
+        case 'emerald':
+          return 'border-emerald-300/35 bg-emerald-300/10 '
+        case 'cyan':
+        case 'blue':
+        default:
         return 'border-[color:var(--horizon-sunset-blue)]/40 bg-white/[0.042] '
     }
   }
@@ -185,6 +208,8 @@ function commandCardClass(link) {
       return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-magenta)]/15'
     case 'indigo':
       return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-indigo)]/15'
+    case 'emerald':
+      return 'border-white/[0.055] bg-white/[0.042] hover:border-emerald-300/30 hover:bg-emerald-300/10'
     case 'danger':
       return 'border-red-300/25 bg-red-300/10 hover:border-red-300/45 hover:bg-red-300/15'
     case 'blue':
@@ -417,6 +442,17 @@ onBeforeUnmount(() => {
         </div>
 
         <div
+          v-if="activeTab === 'operations'"
+          class="hz-animate-fade"
+        >
+          <OperationsPanel
+            :operations="operations"
+            :canceled-operations="canceledOperations"
+            :verified-members="verifiedMembers"
+          />
+        </div>
+
+        <div
           v-if="activeTab === 'media'"
           class="hz-animate-fade"
         >
@@ -426,8 +462,6 @@ onBeforeUnmount(() => {
     </div>
   </HorizonContainer>
 </template>
-
-
 
 
 

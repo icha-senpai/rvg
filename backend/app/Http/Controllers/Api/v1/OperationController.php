@@ -113,11 +113,15 @@ class OperationController extends Controller
      * Cancel the operation through the domain cancel flow and return a summary
      * payload for list refreshes.
      */
-    public function destroy(Operation $operation)
+    public function destroy(Request $request, Operation $operation)
     {
         $this->authorize('delete', $operation);
 
-        $deleted = $this->service->cancel($operation);
+        $data = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $deleted = $this->service->cancel($operation, $data['reason']);
 
         return response()->json([
             'status' => 'success',
@@ -185,20 +189,20 @@ class OperationController extends Controller
     }
 
     /**
-     * Cancel an operation with an optional human-readable reason.
+     * Cancel an operation with a required human-readable reason.
      */
     public function cancel(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
         $data = $request->validate([
-            'reason' => 'nullable|string|max:500',
+            'reason' => 'required|string|max:500',
         ]);
 
         $updated = $this->service->transition(
             $operation,
             OperationStatus::Canceled->value,
-            $data['reason'] ?? null
+            $data['reason']
         );
 
         return response()->json(

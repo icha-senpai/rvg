@@ -110,17 +110,17 @@ class OperationTransitionController extends Controller
     }
 
     /**
-     * Cancel an operation with an optional cancellation reason.
+     * Cancel an operation with a required cancellation reason.
      */
     public function cancel(Request $request, Operation $operation)
     {
         $this->authorize('update', $operation);
 
         $data = $request->validate([
-            'reason' => 'nullable|string|max:500',
+            'reason' => 'required|string|max:500',
         ]);
 
-        $updated = $this->service->transition($operation, OperationStatus::Canceled->value, $data['reason'] ?? null);
+        $updated = $this->service->transition($operation, OperationStatus::Canceled->value, $data['reason']);
 
         if ($request->expectsJson()) {
             return response()->json([

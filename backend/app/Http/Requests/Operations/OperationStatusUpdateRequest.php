@@ -17,7 +17,7 @@ class OperationStatusUpdateRequest extends FormRequest
     {
         return [
             'status' => 'required|in:' . implode(',', OperationStatus::transitionableValues()),
-            'reason' => 'nullable|string|max:500',
+            'reason' => 'required_if:status,' . OperationStatus::Canceled->value . '|nullable|string|max:500',
             'outcome' => 'required_if:status,' . OperationStatus::Completed->value . '|in:' . implode(',', CompletionOutcome::values()),
         ];
     }

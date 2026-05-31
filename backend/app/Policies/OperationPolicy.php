@@ -58,6 +58,11 @@ class OperationPolicy
         return $this->access->canAdjustOperationStats($user, $operation);
     }
 
+    public function manageAfterActionReport(User $user, Operation $operation): bool
+    {
+        return $this->access->canManageAfterActionReport($user, $operation);
+    }
+
     public function manage(User $user, Operation $operation): bool
     {
         return $this->access->canManageOperation($user, $operation);

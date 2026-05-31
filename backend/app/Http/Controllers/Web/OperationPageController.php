@@ -17,6 +17,7 @@ use App\Models\Squadron;
 use App\Models\User;
 use App\Http\Requests\Operations\OperationStoreRequest;
 use App\Http\Requests\Operations\OperationUpdateRequest;
+use App\Http\Requests\Operations\OperationAfterActionReportUpdateRequest;
 use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
 
@@ -77,6 +78,8 @@ class OperationPageController extends Controller
             'filters' => $filters,
             'squadrons' => SquadronPresenter::collection($this->squadrons->listAll()),
             'operationTemplates' => $this->operationTemplatesFor($user),
+            'afterActionOperations' => $this->showData->dashboardAfterActionOperations($user),
+            'verifiedMembers' => $this->showData->verifiedMembers(),
             'activeOperation' => $this->resolveActiveOperation($request),
             'editingOperation' => $this->resolveEditingOperation($request),
         ]);
@@ -297,6 +300,33 @@ class OperationPageController extends Controller
     }
 
     /**
+     * Update the completed operation after action report and final attendance
+     * roster without exposing the full mission editor.
+     */
+    public function updateAfterActionReport(OperationAfterActionReportUpdateRequest $request, Operation $operation)
+    {
+        $this->authorize('manageAfterActionReport', $operation);
+
+        $updated = $this->service->updateAfterActionReport(
+            $operation,
+            $request->validated('after_action_report'),
+            $request->validated('attendance_user_ids', []),
+            $request->validated('no_show_user_ids', [])
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => OperationPresenter::make($updated)->full(),
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'After Action Report updated.');
+    }
+
+    /**
      * Render the member-facing operation list that shows only operations visible
      * to the current user.
      */
@@ -368,11 +398,15 @@ class OperationPageController extends Controller
     /**
      * Cancel an operation from the web UI and return to the previous page.
      */
-    public function destroy(Operation $operation)
+    public function destroy(Request $request, Operation $operation)
     {
         $this->authorize('delete', $operation);
 
-        $this->service->cancel($operation);
+        $data = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $this->service->cancel($operation, $data['reason']);
 
         return back()->with('success', 'Operation canceled.');
     }

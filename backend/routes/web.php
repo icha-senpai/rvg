@@ -198,6 +198,9 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
         
     Route::put('/operations/{operation}', [OperationPageController::class, 'update'])
         ->name('operations.update');
+    Route::put('/operations/{operation}/after-action-report',
+        [OperationPageController::class, 'updateAfterActionReport'])
+        ->name('operations.aar.update');
     Route::post('/operations/{operation}/publish', 
         [OperationTransitionController::class, 'publish'])
         ->name('operations.publish');

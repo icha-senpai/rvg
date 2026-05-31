@@ -264,6 +264,14 @@ class AccessService
     }
 
     /**
+     * Determine whether the user can edit the completed operation AAR.
+     */
+    public function canManageAfterActionReport(User $user, Operation $operation): bool
+    {
+        return $this->operations()->canManageAfterActionReport($user, $operation);
+    }
+
+    /**
      * High-level "can manage this operation" umbrella.
      * Used for admin UIs / dangerous actions.
      */

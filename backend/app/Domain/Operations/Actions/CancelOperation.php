@@ -4,18 +4,23 @@ namespace App\Domain\Operations\Actions;
 
 use App\Models\Operation;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class CancelOperation
 {
     public function execute(Operation $operation, ?string $reason = null): Operation
     {
         $wasCanceled = $operation->status === 'canceled';
+        $normalizedReason = trim((string) $reason);
+
+        if ($normalizedReason === '') {
+            throw ValidationException::withMessages([
+                'reason' => 'Cancellation reason is required.',
+            ]);
+        }
 
         $operation->status = 'canceled';
-
-        if ($reason) {
-            $operation->cancellation_reason = $reason;
-        }
+        $operation->cancellation_reason = $normalizedReason;
 
         $operation->save();
 

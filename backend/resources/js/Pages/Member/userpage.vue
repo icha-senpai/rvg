@@ -5,7 +5,7 @@ import { router, usePage } from '@inertiajs/vue3'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
-import { isCommanderPlus } from '@/auth'
+import { isAdmiralPlus } from '@/auth'
 import { extractFirstErrorMessage as extractSharedErrorMessage } from '@/errors'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
@@ -412,7 +412,7 @@ const displayNameColor = computed(() => {
 })
 
 const canViewRestrictedOperationStats = computed(() => {
-  return isCommanderPlus(inertiaUser.value)
+  return isAdmiralPlus(inertiaUser.value)
 })
 
 const favoriteShipsLabel = computed(() => {
@@ -545,6 +545,7 @@ const operationsStats = computed(() => {
     failed: u?.operations_failed_count ?? 0,
     joined: u?.operations_joined_count ?? 0,
     completed: u?.operations_completed_count ?? 0,
+    noShow: u?.operations_no_show_count ?? 0,
     leftEarly: u?.operations_left_early_count ?? 0,
   }
 })
@@ -828,7 +829,7 @@ watch(
 
 
       <!-- Operation stats + readiness -->
-      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
+      <section v-if="canViewRestrictedOperationStats" class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5">
         <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -840,140 +841,121 @@ watch(
             </h2>
 
             <p class="mt-1 text-sm text-text-secondary">
-              Operation participation, command contribution, and mission outcome history.
+              Grouped command and member participation stats for senior leadership review.
             </p>
           </div>
 
-          <div
-            class="hz-surface-welcome rounded-2xl border px-4 py-3"
-            :class="canViewRestrictedOperationStats
-              ? 'border-white/[0.055]'
-              : 'border-transparent shadow-none'"
-          >
+          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] px-4 py-3">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
               Visibility
             </div>
 
             <div class="mt-1 text-sm font-semibold text-horizon-white">
-              {{ canViewRestrictedOperationStats ? 'Officer View' : 'Member View' }}
+              Admiral View
             </div>
           </div>
         </div>
 
-        <div
-          v-if="canViewRestrictedOperationStats"
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
-        >
-          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Created
+        <div class="grid gap-5 xl:grid-cols-2">
+          <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Command Record
+                </div>
+                <div class="mt-1 text-sm text-text-secondary">
+                  Leadership outcomes and operation ownership.
+                </div>
+              </div>
             </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.created }}
+
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Created
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.created }}
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Canceled
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.canceled }}
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Success
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.success }}
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Failed
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.failed }}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Canceled
+          <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Member Activity
+                </div>
+                <div class="mt-1 text-sm text-text-secondary">
+                  Attendance, participation, and reliability signals.
+                </div>
+              </div>
             </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.canceled }}
-            </div>
-          </div>
 
-          <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Success
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.success }}
-            </div>
-          </div>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Completed
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.completed }}
+                </div>
+              </div>
 
-          <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Failed
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.failed }}
-            </div>
-          </div>
+              <div class="rounded-2xl border border-red-300/15 bg-red-300/5 p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  No Show
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.noShow }}
+                </div>
+              </div>
 
-          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Completed
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.completed }}
-            </div>
-          </div>
+              <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Joined
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.joined }}
+                </div>
+              </div>
 
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Joined
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.joined }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Left Early
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.leftEarly }}
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-else
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
-        >
-          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Created
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.created }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-emerald-300/15 bg-emerald-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Success
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.success }}
-            </div>
-          </div>
-
-          <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Completed
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.completed }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Joined
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.joined }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
-            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-              Left Early
-            </div>
-            <div class="mt-2 text-3xl font-black text-horizon-white">
-              {{ operationsStats.leftEarly }}
+              <div class="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
+                <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Left Early
+                </div>
+                <div class="mt-2 text-3xl font-black text-horizon-white">
+                  {{ operationsStats.leftEarly }}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Domain\Media\Presenters\MediaPresenter;
 use App\Domain\Squadrons\SquadronService;
+use App\Models\Operation;
 use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
 use App\Models\ArchiveTag;
@@ -23,6 +24,9 @@ class AdminDashboardService
             'users' => $this->users($search),
             'squadrons' => $this->dashboardSquadrons(),
             'roles' => $this->roles(),
+            'operations' => $this->completedOperations(),
+            'canceledOperations' => $this->canceledOperations(),
+            'verifiedMembers' => $this->verifiedMembers(),
             'archiveStats' => $this->archiveStats(),
             'eligibleLeaders' => $this->squadrons->eligibleLeaders(),
             'filters' => [
@@ -119,6 +123,148 @@ class AdminDashboardService
             ->get();
     }
 
+    protected function completedOperations(): array
+    {
+        $operations = Operation::query()
+            ->select(
+                'id',
+                'created_by',
+                'squadron_id',
+                'squadron_name',
+                'title',
+                'description',
+                'starts_at',
+                'ends_at',
+                'status',
+                'completion_outcome',
+                'after_action_report',
+                'after_action_attendance_user_ids',
+                'after_action_no_show_user_ids',
+                'after_action_report_updated_at'
+            )
+            ->with([
+                'creator:id,rsi_handle,discord_name,discord_avatar,name',
+                'participants.user:id,rsi_handle,discord_name,discord_avatar,name',
+                'squadron:id,name',
+            ])
+            ->where('status', 'completed')
+            ->whereNotNull('completion_outcome')
+            ->orderByRaw('COALESCE(ends_at, starts_at) DESC')
+            ->orderByDesc('id')
+            ->limit(24)
+            ->get();
+
+        $attendanceUsersById = $this->attendanceUsersFor($operations);
+
+        return $operations
+            ->map(function (Operation $operation) use ($attendanceUsersById) {
+                $attendance = collect($operation->after_action_attendance_user_ids ?? [])
+                    ->map(fn ($id) => $attendanceUsersById[(int) $id] ?? null)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $operation->id,
+                    'title' => $operation->title,
+                    'description' => $operation->description,
+                    'starts_at' => $operation->starts_at?->toIso8601String(),
+                    'ends_at' => $operation->ends_at?->toIso8601String(),
+                    'status' => $operation->status,
+                    'completion_outcome' => $operation->completion_outcome,
+                    'after_action_report' => $operation->after_action_report,
+                    'after_action_attendance_user_ids' => $operation->after_action_attendance_user_ids ?? [],
+                    'after_action_no_show_user_ids' => $operation->after_action_no_show_user_ids ?? [],
+                    'after_action_report_updated_at' => $operation->after_action_report_updated_at?->toIso8601String(),
+                    'after_action_attendance' => $attendance,
+                    'after_action_no_show' => collect($operation->after_action_no_show_user_ids ?? [])
+                        ->map(fn ($id) => $attendanceUsersById[(int) $id] ?? null)
+                        ->filter()
+                        ->values()
+                        ->all(),
+                    'creator' => $operation->creator ? $this->memberPayload($operation->creator) : null,
+                    'squadron' => $operation->squadron
+                        ? [
+                            'id' => $operation->squadron->id,
+                            'name' => $operation->squadron->name,
+                        ]
+                        : null,
+                    'participants' => $operation->participants
+                        ->map(fn ($participant) => [
+                            'id' => $participant->id,
+                            'slot' => $participant->slot,
+                            'user' => $participant->user ? $this->memberPayload($participant->user) : null,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function canceledOperations(): array
+    {
+        return Operation::query()
+            ->select(
+                'id',
+                'created_by',
+                'squadron_id',
+                'squadron_name',
+                'title',
+                'description',
+                'starts_at',
+                'ends_at',
+                'status',
+                'cancellation_reason'
+            )
+            ->with([
+                'creator:id,rsi_handle,discord_name,discord_avatar,name',
+                'squadron:id,name',
+            ])
+            ->where('status', 'canceled')
+            ->orderByRaw('COALESCE(ends_at, starts_at) DESC')
+            ->orderByDesc('id')
+            ->limit(24)
+            ->get()
+            ->map(function (Operation $operation) {
+                return [
+                    'id' => $operation->id,
+                    'title' => $operation->title,
+                    'description' => $operation->description,
+                    'starts_at' => $operation->starts_at?->toIso8601String(),
+                    'ends_at' => $operation->ends_at?->toIso8601String(),
+                    'status' => $operation->status,
+                    'cancellation_reason' => filled($operation->cancellation_reason)
+                        ? $operation->cancellation_reason
+                        : 'No cancellation reason recorded.',
+                    'creator' => $operation->creator ? $this->memberPayload($operation->creator) : null,
+                    'squadron' => $operation->squadron
+                        ? [
+                            'id' => $operation->squadron->id,
+                            'name' => $operation->squadron->name,
+                        ]
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function verifiedMembers(): array
+    {
+        return User::query()
+            ->select('id', 'rsi_handle', 'discord_name', 'discord_avatar', 'name')
+            ->where('global_status', User::STATUS_ACTIVE)
+            ->whereNotNull('rsi_verified_at')
+            ->orderByRaw("LOWER(COALESCE(rsi_handle, discord_name, name, ''))")
+            ->orderBy('id')
+            ->get()
+            ->map(fn (User $user) => $this->memberPayload($user))
+            ->values()
+            ->all();
+    }
+
     protected function archiveStats(): array
     {
         $deletedTopics = ArchiveTopic::onlyTrashed()->count();
@@ -138,6 +284,43 @@ class AdminDashboardService
                 'categories' => $deletedCategories,
                 'tags' => $deletedTags,
             ],
+        ];
+    }
+
+    protected function attendanceUsersFor($operations): array
+    {
+        $attendanceIds = $operations
+            ->flatMap(fn (Operation $operation) => array_merge(
+                $operation->after_action_attendance_user_ids ?? [],
+                $operation->after_action_no_show_user_ids ?? []
+            ))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($attendanceIds->isEmpty()) {
+            return [];
+        }
+
+        return User::query()
+            ->select('id', 'rsi_handle', 'discord_name', 'discord_avatar', 'name')
+            ->whereIn('id', $attendanceIds->all())
+            ->get()
+            ->mapWithKeys(fn (User $user) => [
+                $user->id => $this->memberPayload($user),
+            ])
+            ->all();
+    }
+
+    protected function memberPayload(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'rsi_handle' => $user->rsi_handle,
+            'discord_name' => $user->discord_name,
+            'discord_avatar' => $user->discord_avatar,
+            'name' => $user->name,
         ];
     }
 }

@@ -14,7 +14,7 @@ class MeResource extends JsonResource
         $isDirectorLike = (bool) ($viewer && $access->isDirectorLike($viewer));
 
         $canViewRestrictedOperationStats = $isDirectorLike
-            || ($viewer && $access->atLeast($viewer, 'commander'));
+            || ($viewer && $access->atLeast($viewer, 'admiral'));
 
         return [
             'id'                  => $this->id,
@@ -54,11 +54,12 @@ class MeResource extends JsonResource
             'loa_note'            => $this->loa_note,
             'personal_tags'       => $this->personal_tags,
 
-            'operations_completed_count' => $this->operations_completed_count,
-            'operations_created_count' => $this->operations_created_count,
-            'operations_canceled_count' => $this->operations_canceled_count,
-            'operations_success_count' => $this->operations_success_count,
-            'operations_failed_count' => $this->operations_failed_count,
+            'operations_completed_count' => $canViewRestrictedOperationStats ? $this->operations_completed_count : null,
+            'operations_no_show_count' => $canViewRestrictedOperationStats ? $this->operations_no_show_count : null,
+            'operations_created_count' => $canViewRestrictedOperationStats ? $this->operations_created_count : null,
+            'operations_canceled_count' => $canViewRestrictedOperationStats ? $this->operations_canceled_count : null,
+            'operations_success_count' => $canViewRestrictedOperationStats ? $this->operations_success_count : null,
+            'operations_failed_count' => $canViewRestrictedOperationStats ? $this->operations_failed_count : null,
             'operations_joined_count' => $canViewRestrictedOperationStats ? $this->operations_joined_count : null,
             'operations_left_early_count' => $canViewRestrictedOperationStats ? $this->operations_left_early_count : null,
 

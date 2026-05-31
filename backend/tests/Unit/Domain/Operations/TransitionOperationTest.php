@@ -5,6 +5,7 @@ namespace Tests\Unit\Domain\Operations;
 use App\Domain\Operations\Actions\TransitionOperation;
 use App\Domain\Operations\Enums\CompletionOutcome;
 use App\Domain\Operations\Enums\OperationStatus;
+use App\Domain\Operations\Services\OperationService;
 use App\Models\Operation;
 use App\Models\OperationParticipant;
 use App\Models\User;
@@ -33,7 +34,7 @@ class TransitionOperationTest extends TestCase
             'user_id' => $participant->id,
         ]);
 
-        $updated = (new TransitionOperation())->execute(
+        $updated = app(OperationService::class)->transition(
             $operation,
             OperationStatus::Completed->value,
             null,
@@ -45,11 +46,16 @@ class TransitionOperationTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $participant->id,
             'operations_completed_count' => 1,
+            'operations_no_show_count' => 0,
         ]);
         $this->assertDatabaseHas('users', [
             'id' => $creator->id,
             'operations_success_count' => 1,
         ]);
+        $this->assertNotNull($updated->after_action_report);
+        $this->assertSame([$participant->id], $updated->after_action_attendance_user_ids);
+        $this->assertSame([], $updated->after_action_no_show_user_ids);
+        $this->assertNotNull($updated->after_action_report_updated_at);
     }
 
     public function test_canceled_transition_updates_creator_canceled_counter(): void
@@ -75,6 +81,26 @@ class TransitionOperationTest extends TestCase
             'id' => $creator->id,
             'operations_canceled_count' => 1,
         ]);
+    }
+
+    public function test_canceled_transition_requires_reason(): void
+    {
+        $creator = User::factory()->create();
+
+        $operation = Operation::create([
+            'created_by' => $creator->id,
+            'title' => 'Darkwater',
+            'starts_at' => now()->addDay(),
+            'status' => OperationStatus::Published->value,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        (new TransitionOperation())->execute(
+            $operation,
+            OperationStatus::Canceled->value,
+            '   '
+        );
     }
 
     public function test_invalid_transition_throws_validation_exception(): void

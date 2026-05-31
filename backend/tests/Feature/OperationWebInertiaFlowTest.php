@@ -88,6 +88,77 @@ class OperationWebInertiaFlowTest extends TestCase
         ]);
     }
 
+    public function test_operation_cancel_requires_reason_on_transition_route(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'published',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/operations/dashboard?operation=' . $operation->id)
+            ->post('/operations/' . $operation->id . '/cancel', [
+                'reason' => '',
+            ]);
+
+        $response
+            ->assertRedirect('/operations/dashboard?operation=' . $operation->id)
+            ->assertSessionHasErrors(['reason']);
+
+        $this->assertDatabaseHas('operations', [
+            'id' => $operation->id,
+            'status' => 'published',
+        ]);
+    }
+
+    public function test_operation_destroy_route_cancels_with_required_reason(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'draft',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/operations/dashboard?edit=' . $operation->id)
+            ->delete('/operations/' . $operation->id, [
+                'reason' => 'Scheduling conflict with command staff.',
+            ]);
+
+        $response
+            ->assertRedirect('/operations/dashboard?edit=' . $operation->id)
+            ->assertSessionHas('success', 'Operation canceled.');
+
+        $this->assertDatabaseHas('operations', [
+            'id' => $operation->id,
+            'status' => 'canceled',
+            'cancellation_reason' => 'Scheduling conflict with command staff.',
+        ]);
+    }
+
+    public function test_admin_dashboard_includes_canceled_operations_and_reasons(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'canceled',
+            'cancellation_reason' => 'Weather window closed before launch.',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/admin/dashboard?tab=operations');
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Dashboard')
+            ->where('canceledOperations.0.id', $operation->id)
+            ->where('canceledOperations.0.cancellation_reason', 'Weather window closed before launch.')
+        );
+    }
+
     public function test_cit_creator_can_open_dashboard_editor_for_owned_squadron_operation(): void
     {
         $user = $this->actingAsCit();

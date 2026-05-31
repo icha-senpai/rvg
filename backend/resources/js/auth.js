@@ -3,6 +3,7 @@ import { normalizeOrgRoleSlug } from '@/roleColors'
 const DIRECTOR_LIKE_ROLE_SLUGS = ['director', 'tech_director']
 const OFFICER_ROLE_SLUGS = ['lieutenant', 'cit', 'commander', 'wing_commander', 'admiral', 'grand_admiral']
 const COMMANDER_PLUS_ROLE_SLUGS = ['wing_commander', 'admiral', 'grand_admiral']
+const ADMIRAL_PLUS_ROLE_SLUGS = ['admiral', 'grand_admiral']
 
 export function getRoleSlugs(user) {
   return (user?.roles ?? [])
@@ -25,6 +26,10 @@ export function isOfficer(user) {
 
 export function isCommanderPlus(user) {
   return isDirectorLike(user) || hasAnyRole(user, COMMANDER_PLUS_ROLE_SLUGS)
+}
+
+export function isAdmiralPlus(user) {
+  return isDirectorLike(user) || hasAnyRole(user, ADMIRAL_PLUS_ROLE_SLUGS)
 }
 
 export function getActiveSquadronMembership(user, squadronId) {
