@@ -22,6 +22,8 @@ const currentParticipant = computed(() => props.currentParticipant ?? null)
 const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
 const participantsBySlotSafe = computed(() => props.participantsBySlot ?? {})
 const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassignedParticipants) ? props.unassignedParticipants : [])
+const canViewSlots = computed(() => !!operation?.permissions?.can_view_slots)
+const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots)
 
 const calendarChoice = ref('')
 const calendarOptions = [
@@ -315,6 +317,8 @@ const joinForm = reactive({
   slot: '',
   notes: '',
 })
+const managedSlotAssignments = reactive({})
+const slotUpdateParticipantId = ref(null)
 
 const participationLockedByStatus = computed(() => {
   return ['completed', 'canceled'].includes(operation?.status ?? '')
@@ -390,6 +394,25 @@ const slotOptions = computed(() => {
 })
 
 watch(
+  participantsList,
+  (participants) => {
+    const activeParticipantIds = new Set()
+
+    participants.forEach((participant) => {
+      activeParticipantIds.add(String(participant.id))
+      managedSlotAssignments[participant.id] = participant.slot ?? ''
+    })
+
+    Object.keys(managedSlotAssignments).forEach((participantId) => {
+      if (!activeParticipantIds.has(String(participantId))) {
+        delete managedSlotAssignments[participantId]
+      }
+    })
+  },
+  { immediate: true }
+)
+
+watch(
   currentParticipant,
   (participant) => {
     if (participant) {
@@ -414,7 +437,7 @@ async function join() {
   router.post(
     route('operations.join', operation.id),
     {
-      slot: joinForm.slot,
+      slot: canAssignSlots.value ? joinForm.slot : null,
       notes: joinForm.notes,
       operation_role_id: null,
     },
@@ -468,20 +491,29 @@ function confirmLeave({ close }) {
   )
 }
 
-async function updateSlot() {
-  if (!currentParticipant.value) return
-  if (joinProcessing.value) return
-  if (!canUpdateParticipation.value) return
+function selectedSlotForParticipant(participant) {
+  return managedSlotAssignments[participant.id] ?? participant?.slot ?? ''
+}
 
-  joinProcessing.value = true
+function participantSlotChanged(participant) {
+  return selectedSlotForParticipant(participant) !== (participant?.slot ?? '')
+}
+
+async function updateParticipantSlot(participant) {
+  if (!participant?.id) return
+  if (!canAssignSlots.value) return
+  if (slotUpdateParticipantId.value) return
+  if (!participantSlotChanged(participant)) return
+
+  slotUpdateParticipantId.value = participant.id
 
   router.post(
     route('operations.participants.slot', {
       operation: operation.id,
-      participant: currentParticipant.value.id,
+      participant: participant.id,
     }),
     {
-      slot: joinForm.slot,
+      slot: selectedSlotForParticipant(participant),
       operation_role_id: null,
     },
     {
@@ -492,7 +524,7 @@ async function updateSlot() {
         })
       },
       onFinish: () => {
-        joinProcessing.value = false
+        slotUpdateParticipantId.value = null
         router.reload({ preserveScroll: true })
       },
     }
@@ -658,7 +690,6 @@ const hasMetaInformation = computed(() => {
 
           <!-- Briefing -->
           <section
-            v-if="operation.description || operation.extended_description || operation.notes"
             class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 "
           >
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -676,6 +707,16 @@ const hasMetaInformation = computed(() => {
               >
                 {{ operation.extended_description ?? operation.notes }}
               </p>
+
+              <div class="border-t border-white/[0.055] pt-4 space-y-4">
+                <p class="whitespace-pre-line text-sm leading-7 text-text-secondary">
+                  If you want to join, please use the signup button. Make sure your character is at the designated location and you are in the voice channel at least 10 minutes before the operation starts.
+                </p>
+
+                <p class="whitespace-pre-line text-sm font-semibold leading-7 text-horizon-white">
+                  For optimal deployment, please have OP Leader added to your contact list beforehand.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -714,7 +755,7 @@ const hasMetaInformation = computed(() => {
           </div>
 
           <!-- Roles -->
-          <div class="space-y-4">
+          <div v-if="canViewSlots" class="space-y-4">
             <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Slots ({{ participantsList.length }} total)
             </div>
@@ -726,13 +767,28 @@ const hasMetaInformation = computed(() => {
                   <span class="text-xs text-text-muted">{{ (participantsBySlotSafe[slotName] || []).length }}</span>
                 </div>
                 <div class="space-y-1">
-                  <div v-for="p in participantsBySlotSafe[slotName] || []" :key="p.id" class="flex items-center justify-between gap-2 py-1">
+                  <div v-for="p in participantsBySlotSafe[slotName] || []" :key="p.id" class="flex flex-wrap items-center justify-between gap-3 py-1">
                     <div class="flex min-w-0 items-center gap-2">
                       <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
                       <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
                       <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                     </div>
-                    <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                      <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+                      <template v-if="canAssignSlots">
+                        <div class="min-w-[12rem]">
+                          <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="slotOptions" size="sm" />
+                        </div>
+                        <HorizonButton
+                          variant="outline"
+                          size="sm"
+                          :disabled="slotUpdateParticipantId === p.id || !participantSlotChanged(p)"
+                          @click="updateParticipantSlot(p)"
+                        >
+                          {{ slotUpdateParticipantId === p.id ? 'Moving…' : 'Move' }}
+                        </HorizonButton>
+                      </template>
+                    </div>
                   </div>
                   <div v-if="!(participantsBySlotSafe[slotName] || []).length" class="py-1 text-sm text-text-muted italic">Empty</div>
                 </div>
@@ -744,13 +800,28 @@ const hasMetaInformation = computed(() => {
             <div v-if="unassignedParticipantsSafe.length" class="border-t border-white/[0.055] pt-4">
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted mb-2">No Role</div>
               <div class="space-y-1">
-                <div v-for="p in unassignedParticipantsSafe" :key="p.id" class="flex items-center justify-between gap-2 py-1">
+                <div v-for="p in unassignedParticipantsSafe" :key="p.id" class="flex flex-wrap items-center justify-between gap-3 py-1">
                   <div class="flex min-w-0 items-center gap-2">
                     <img v-if="participantAvatar(p)" :src="participantAvatar(p)" alt="" class="h-6 w-6 shrink-0 rounded object-cover" loading="lazy" />
                     <div v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.05] text-[10px] font-bold text-horizon-white">{{ participantInitial(p) }}</div>
                     <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                   </div>
-                  <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+                  <div class="flex flex-wrap items-center justify-end gap-2">
+                    <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
+                    <template v-if="canAssignSlots">
+                      <div class="min-w-[12rem]">
+                        <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="slotOptions" size="sm" />
+                      </div>
+                      <HorizonButton
+                        variant="outline"
+                        size="sm"
+                        :disabled="slotUpdateParticipantId === p.id || !participantSlotChanged(p)"
+                        @click="updateParticipantSlot(p)"
+                      >
+                        {{ slotUpdateParticipantId === p.id ? 'Moving…' : 'Move' }}
+                      </HorizonButton>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -783,39 +854,28 @@ const hasMetaInformation = computed(() => {
               </div>
 
               <p class="mt-2 text-sm text-text-secondary">
-                You are signed up as
-                <strong class="text-horizon-white">{{ currentParticipant.slot ?? 'No Role' }}</strong>
-                with status
+                You are signed up with status
                 <strong class="text-horizon-white">{{ formatTitle(currentParticipant.attendance_status) }}</strong>.
+                <template v-if="currentParticipant.slot">
+                  Your current slot is
+                  <strong class="text-horizon-white">{{ currentParticipant.slot }}</strong>.
+                </template>
               </p>
 
-              <div v-if="canUpdateParticipation" class="mt-4 space-y-3">
-                <HorizonSelect
-                  label="Role"
-                  v-model="joinForm.slot"
-                  :options="slotOptions"
-                />
-
-                <div class="grid gap-2">
-                  <HorizonButton
-                    variant="primary"
-                    class="w-full"
-                    :disabled="joinProcessing"
-                    @click="updateSlot"
-                  >
-                    {{ joinProcessing ? 'Updating…' : 'Update Role' }}
-                  </HorizonButton>
-
-                  <HorizonButton
-                    variant="outline"
-                    class="w-full"
-                    :disabled="joinProcessing"
-                    @click="askLeave"
-                  >
-                    Leave Operation
-                  </HorizonButton>
-                </div>
+              <div v-if="canUpdateParticipation" class="mt-4">
+                <HorizonButton
+                  variant="outline"
+                  class="w-full"
+                  :disabled="joinProcessing"
+                  @click="askLeave"
+                >
+                  Leave Operation
+                </HorizonButton>
               </div>
+
+              <p v-if="canAssignSlots" class="mt-3 text-xs text-text-secondary">
+                Slot assignments can be changed in the roster section.
+              </p>
             </template>
 
             <template v-else>
@@ -824,16 +884,10 @@ const hasMetaInformation = computed(() => {
               </div>
 
               <p class="mt-2 text-sm text-text-secondary">
-                Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }} with an optional role.
+                Join this {{ operationKindLabel(operation.operation_type ?? operation.operation_kind).toLowerCase() }}.
               </p>
 
               <div v-if="canJoinOperation" class="mt-4 space-y-3">
-                <HorizonSelect
-                  label="Role (optional)"
-                  v-model="joinForm.slot"
-                  :options="slotOptions"
-                />
-
                 <HorizonButton
                   variant="primary"
                   class="w-full"
@@ -902,13 +956,13 @@ const hasMetaInformation = computed(() => {
                   >
                     {{ participantInitial(p) }}
                   </div>
-                  <div class="min-w-0">
-                    <div class="truncate text-sm text-horizon-white">
-                      {{ participantName(p) }}
-                    </div>
+                <div class="min-w-0">
+                  <div class="truncate text-sm text-horizon-white">
+                    {{ participantName(p) }}
                   </div>
                 </div>
-                <span class="shrink-0 text-xs text-text-muted">{{ p.slot ?? '—' }}</span>
+              </div>
+                <span v-if="canViewSlots" class="shrink-0 text-xs text-text-muted">{{ p.slot ?? '—' }}</span>
               </div>
 
               <div v-if="!participantsList.length" class="py-2 text-sm text-text-secondary">
@@ -931,7 +985,4 @@ const hasMetaInformation = computed(() => {
     @confirm="confirmLeave"
   />
 </template>
-
-
-
 

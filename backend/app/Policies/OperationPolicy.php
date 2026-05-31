@@ -43,6 +43,16 @@ class OperationPolicy
         return $this->access->canManageOperationMembers($user, $operation);
     }
 
+    public function viewSlots(User $user, Operation $operation): bool
+    {
+        return $this->access->canViewOperationSlots($user, $operation);
+    }
+
+    public function assignSlots(User $user, Operation $operation): bool
+    {
+        return $this->access->canAssignOperationSlots($user, $operation);
+    }
+
     public function adjustStats(User $user, Operation $operation): bool
     {
         return $this->access->canAdjustOperationStats($user, $operation);

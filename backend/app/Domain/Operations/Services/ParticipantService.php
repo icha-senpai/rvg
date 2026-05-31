@@ -25,6 +25,7 @@ class ParticipantService
     {
         $this->assertOperationCanJoin($operation);
         $data = $this->normalizePayload($data);
+        $this->assertSlotExists($operation, $data['slot'] ?? null);
         $role = $this->resolveRole($operation, $data['operation_role_id'] ?? null);
         $this->assertRoleCapacity($role);
 
@@ -47,6 +48,7 @@ class ParticipantService
     {
         $this->assertOperationParticipationMutable($operation);
         $data = $this->normalizePayload($data);
+        $this->assertSlotExists($operation, $data['slot'] ?? null);
         $role = $this->resolveRole($operation, $data['operation_role_id'] ?? null);
         $this->assertRoleCapacity($role, $participant);
 
@@ -85,6 +87,23 @@ class ParticipantService
         }
 
         return $role;
+    }
+
+    protected function assertSlotExists(Operation $operation, ?string $slot): void
+    {
+        if ($slot === null) {
+            return;
+        }
+
+        $definedSlots = collect($operation->slots ?? [])
+            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
+            ->values();
+
+        if (! $definedSlots->contains($slot)) {
+            throw ValidationException::withMessages([
+                'slot' => 'Selected slot is not available for this operation.',
+            ]);
+        }
     }
 
     protected function assertRoleCapacity(?OperationRole $role, ?OperationParticipant $participant = null): void

@@ -90,7 +90,7 @@ class OperationPageController extends Controller
         $this->authorize('view', $operation);
 
         $user = $request->user();
-        $data = $this->showData->build($operation, $user?->getAuthIdentifier());
+        $data = $this->showData->build($operation, $user);
 
         return Inertia::render('Operations/MissionShow', [
             ...$data,
@@ -343,7 +343,7 @@ class OperationPageController extends Controller
 
         return $this->showData->build(
             $operation,
-            $request->user()?->getAuthIdentifier()
+            $request->user()
         );
     }
 

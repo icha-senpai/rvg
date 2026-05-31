@@ -72,4 +72,70 @@ class OperationAccessServiceTest extends TestCase
 
         $this->assertFalse($service->canViewOperation($user, $operation));
     }
+
+    public function test_creator_can_view_and_assign_operation_slots(): void
+    {
+        $service = app(OperationAccessService::class);
+        $creator = User::factory()->create();
+        $operation = Operation::create([
+            'created_by' => $creator->id,
+            'title' => 'Creator Owned Operation',
+            'starts_at' => now()->addDay(),
+            'status' => 'published',
+        ]);
+
+        $this->assertTrue($service->canViewOperationSlots($creator, $operation));
+        $this->assertTrue($service->canAssignOperationSlots($creator, $operation));
+    }
+
+    public function test_director_can_view_and_assign_operation_slots(): void
+    {
+        $service = app(OperationAccessService::class);
+        $directorRole = Role::create(['name' => 'Director', 'slug' => 'director']);
+        $director = User::factory()->create();
+        $director->roles()->attach($directorRole->id);
+        $director->load('roles');
+
+        $creator = User::factory()->create();
+        $operation = Operation::create([
+            'created_by' => $creator->id,
+            'title' => 'Director Override Operation',
+            'starts_at' => now()->addDay(),
+            'status' => 'published',
+        ]);
+
+        $this->assertTrue($service->canViewOperationSlots($director, $operation));
+        $this->assertTrue($service->canAssignOperationSlots($director, $operation));
+    }
+
+    public function test_non_creator_squadron_leader_cannot_view_or_assign_operation_slots(): void
+    {
+        $service = app(OperationAccessService::class);
+        $leader = User::factory()->create();
+        $creator = User::factory()->create();
+        $squadron = Squadron::create([
+            'name' => 'Signal',
+            'slug' => 'signal',
+            'status' => 'active',
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMembershipStatus::Active->value,
+            'role' => SquadronRole::Leader->value,
+            'joined_at' => now(),
+        ]);
+
+        $operation = Operation::create([
+            'squadron_id' => $squadron->id,
+            'created_by' => $creator->id,
+            'title' => 'Leader Cannot Reassign',
+            'starts_at' => now()->addDay(),
+            'status' => 'published',
+        ]);
+
+        $this->assertFalse($service->canViewOperationSlots($leader, $operation));
+        $this->assertFalse($service->canAssignOperationSlots($leader, $operation));
+    }
 }

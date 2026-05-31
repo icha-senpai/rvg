@@ -240,6 +240,22 @@ class AccessService
     }
 
     /**
+     * Determine whether the user may view slot assignments for an operation.
+     */
+    public function canViewOperationSlots(User $user, Operation $operation): bool
+    {
+        return $this->operations()->canViewOperationSlots($user, $operation);
+    }
+
+    /**
+     * Determine whether the user may move participants between slots.
+     */
+    public function canAssignOperationSlots(User $user, Operation $operation): bool
+    {
+        return $this->operations()->canAssignOperationSlots($user, $operation);
+    }
+
+    /**
      * Adjust operation stats (post-op analytics, performance, etc).
      */
     public function canAdjustOperationStats(User $user, Operation $operation): bool

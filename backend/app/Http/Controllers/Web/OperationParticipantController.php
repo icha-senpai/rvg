@@ -34,6 +34,11 @@ class OperationParticipantController extends Controller
             'operation_role_id' => 'nullable|exists:operation_roles,id',
         ]);
 
+        if (! $request->user()->can('assignSlots', $operation)) {
+            $data['slot'] = null;
+            $data['operation_role_id'] = null;
+        }
+
         // Empty slot inputs are normalized to null so the participant service
         // does not need to treat empty strings as a special case.
         if (array_key_exists('slot', $data) && $data['slot'] === '') {
@@ -71,9 +76,7 @@ class OperationParticipantController extends Controller
             abort(404);
         }
 
-        if ($participant->user_id !== $request->user()->id) {
-            $this->authorize('manageMembers', $operation);
-        }
+        $this->authorize('assignSlots', $operation);
 
         $data = $request->validate([
             'slot'              => 'nullable|string|max:255',

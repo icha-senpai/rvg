@@ -120,6 +120,20 @@ class OperationAccessService
         return false;
     }
 
+    public function canViewOperationSlots(User $user, Operation $operation): bool
+    {
+        if ($this->shared->isDirectorLike($user)) {
+            return true;
+        }
+
+        return (int) $operation->created_by === (int) $user->id;
+    }
+
+    public function canAssignOperationSlots(User $user, Operation $operation): bool
+    {
+        return $this->canViewOperationSlots($user, $operation);
+    }
+
     public function canAdjustOperationStats(User $user, Operation $operation): bool
     {
         if ($this->shared->isDirectorLike($user)) {
