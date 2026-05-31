@@ -3,6 +3,7 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import ProgressPill from '@/Components/ProgressPill.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 import { ref, reactive, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
@@ -301,6 +302,19 @@ const creatorRankLabel = computed(() => {
   return operation?.creator?.rank_name
     ?? operation?.creator?.rank
     ?? 'Operation Lead'
+})
+
+const creatorRankColor = computed(() => {
+  const creator = operation?.creator ?? null
+  const roleCandidates = (creator?.roles ?? []).flatMap((role) => {
+    if (typeof role === 'string') return [role]
+
+    return [role?.slug, role?.name].filter(Boolean)
+  })
+  const fallbackRank = creator?.rank ?? creator?.rank_name
+  const slug = getHighestOrgRoleSlug(roleCandidates, fallbackRank)
+
+  return getOrgRoleColor(slug)
 })
 
 function formatUTC(dt) {
@@ -829,11 +843,17 @@ function emitCancelOperation() {
                   {{ creatorInitial() }}
                 </div>
 
-              <div class="mt-4 text-sm font-black uppercase tracking-[0.08em] text-horizon-white">
+              <div
+                class="mt-4 text-sm font-black uppercase tracking-[0.08em] text-horizon-white"
+                :style="creatorRankColor ? { color: creatorRankColor } : undefined"
+              >
                 {{ creatorName() }}
               </div>
 
-              <div class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--horizon-sunset-orange)]">
+              <div
+                class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--horizon-text-secondary)]"
+                :style="creatorRankColor ? { color: creatorRankColor } : undefined"
+              >
                 {{ creatorRankLabel }}
               </div>
             </div>
