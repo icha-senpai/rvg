@@ -1,6 +1,6 @@
 # Horizon Platform — Project Status Document
 
-**Last Updated:** February 16, 2026  
+**Last Updated:** May 30, 2026  
 **Stack:** Laravel 12 (PHP 8.4) · Vue 3 · Inertia.js · Tailwind CSS v4 · PostgreSQL · Discord.js Bot
 
 ---
@@ -13,7 +13,7 @@
 | Frontend SPA | Vue 3 + Inertia.js | `backend/resources/js/` |
 | Styling | Tailwind CSS v4 | `backend/resources/css/app.css` |
 | Discord Bot | Node.js + Discord.js | `bots/horizon-bot/` |
-| Database | PostgreSQL | 47 migrations |
+| Database | PostgreSQL | 58 migrations |
 | Auth | Discord OAuth → Sanctum tokens | Hybrid (session + API tokens) |
 
 The project uses a **hybrid Inertia + API architecture**:
@@ -86,9 +86,9 @@ wing_commander (5) → commander (4) → cit (3) → lieutenant (2) → member (
 | Member directory | ✅ Done | `Member/Index.vue` — paginated, searchable active users |
 | RSI handle change requests | ✅ Done | Request → approve/reject flow |
 | MeResource | ✅ Done | Normalized API output with role-gated stats |
-| Operation stats on profile | ✅ Done | Joined/left early/completed/created/canceled/success/failed counters |
+| Operation stats on profile | ✅ Done | Grouped into Command Record + Member Activity, including no-show tracking |
 | Profile link from squadron roster | ✅ Done | Click member row → profile page |
-| Stats visibility gating | ✅ Done | Joined/left early restricted to commander+ or director roles |
+| Stats visibility gating | ✅ Done | Detailed operation stats restricted to Admiral+ and director-like viewers |
 
 **Key Files:**
 - `App\Http\Controllers\Api\v1\MeController`
@@ -106,7 +106,7 @@ This is the most feature-rich module. Operations are the core activity unit (mis
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Operation CRUD (API + Inertia) | ✅ Done | Create, read, update, delete |
+| Operation CRUD (API + Inertia) | ✅ Done | Create, read, update, transition, cancel |
 | State machine transitions | ✅ Done | `draft → published → in_progress → completed/canceled` |
 | Operation types | ✅ Done | `gameplay_type` field (renamed from `operation_kind`) |
 | Operation branches | ✅ Done | `industries`, `defence`, `frontiers`, `lifelines` |
@@ -114,12 +114,14 @@ This is the most feature-rich module. Operations are the core activity unit (mis
 | Operation strictness | ✅ Done | Configurable strictness level |
 | Start/operation locations | ✅ Done | Separate location fields |
 | Extended description | ✅ Done | Rich text `extended_description` (migrated from notes) |
-| Completion outcome | ✅ Done | `success` / `failure` / `partial` on completion |
-| Cancellation reason | ✅ Done | Stored when operation is canceled |
+| Completion outcome | ✅ Done | `success` / `failed` on completion |
+| Cancellation reason | ✅ Done | Required across cancel flows and stored when operation is canceled |
 | Slot system | ✅ Done | JSON `slots` field for mission structure |
 | Operation roles | ✅ Done | `OperationRole` model with CRUD actions |
 | Participants system | ✅ Done | Join/leave/slot assignment |
 | Participant stats | ✅ Done | Update stats per participant |
+| After Action Reports | ✅ Done | Editable AAR body, final attendance roster, outcome templates |
+| No-show tracking | ✅ Done | AAR-managed no-show roster with user stat updates |
 | Operation templates | ✅ Done | DB-backed templates (personal/squadron/global scope) |
 | Template CRUD API | ✅ Done | Full REST with policy-based auth |
 | Template UI in editor | ✅ Done | Load/apply/save templates from MissionEditorForm |
@@ -134,6 +136,7 @@ This is the most feature-rich module. Operations are the core activity unit (mis
 | Create from template | ✅ Done | Dashboard passes `prefillTemplateId` |
 | Operation accordion | ✅ Done | `OperationAccordion.vue` for list display |
 | Operation drawer/modal | ✅ Done | `OperationDrawer.vue`, `OperationModal.vue` |
+| Admin AAR + cancellations review | ✅ Done | Admin operations panel has AAR and Cancellations tabs |
 | DB indexes for performance | ✅ Done | Indexes on operations table |
 
 **Domain Architecture:**
@@ -205,11 +208,14 @@ Domain/Operations/
 | User management | ✅ Done | Update user, update user roles |
 | Squadron management (admin) | ✅ Done | Full CRUD + member management |
 | Role management | ✅ Done | Create, update, delete roles |
+| Archive administration | ✅ Done | Categories, entries, taxonomy, trash, and audit tooling |
 | Media library (admin) | ✅ Done | Browse/manage all media |
 | Admin rank promotions | ✅ Done | Promote/demote squadron members |
+| Operations oversight | ✅ Done | Admin operations panel supports AAR maintenance and cancellation review |
 
 **Key Files:**
-- `App\Http\Controllers\Web\AdminController` (19KB — large controller)
+- `App\Http\Controllers\Web\AdminController`
+- `App\Http\Controllers\Web\Admin\*`
 - `resources/js/Pages/Admin/Dashboard.vue`
 
 ---
@@ -280,11 +286,11 @@ Domain/Operations/
 
 ## Database Schema Summary
 
-**47 migrations** covering:
+**58 migrations** covering:
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Core user table with Discord identity, RSI handle, rank, extended profile fields, operation stat counters |
+| `users` | Core user table with Discord identity, RSI handle, rank, extended profile fields, operation stat counters including no-show |
 | `personal_access_tokens` | Sanctum API tokens |
 | `roles` | Named roles with slugs |
 | `permissions` | Named permissions with slugs |
@@ -292,13 +298,14 @@ Domain/Operations/
 | `role_user` | Pivot: which roles are assigned to which users |
 | `squadrons` | Squadron identity, settings, leader, branch, division, emblem, propaganda |
 | `squadron_members` | Membership records with status, role, join/leave dates |
-| `operations` | Full operation data: title, description, schedule, type, branch, status, slots, locations, outcome |
+| `operations` | Full operation data: title, description, schedule, type, branch, status, slots, locations, outcome, AAR attendance/no-show, cancellation reason |
 | `operation_participants` | Who joined which operation, slot assignment |
 | `operation_roles` | Custom roles defined per operation |
 | `operation_templates` | Saved operation templates (personal/squadron/global) |
 | `media` | Polymorphic media storage (avatars, operation images, emblems) |
 | `member_preferences` | Per-user preferences |
 | `rsi_change_requests` | RSI handle change request queue |
+| `archive_categories` / `archive_entries` / taxonomy tables | Archive content system with visibility, trash, and audit support |
 | `failed_attempts` | Verification failure tracking |
 | `auth_audit_logs` | Authentication event logging |
 | `cache` | Laravel cache table |
@@ -311,12 +318,12 @@ Domain/Operations/
 ### High Priority
 
 - **Notifications system** — No in-app notification system exists yet. Operations publish to Discord but there's no web notification center.
-- **Testing** — No automated test suite. `tests/` directory exists but is essentially empty. Unit tests, feature tests, and integration tests are all needed.
+- **Testing depth** — A real test suite now exists for auth, archives, member pages, squadrons, operations, templates, and AAR flows, but coverage is still incomplete.
 - ~~**README is outdated**~~ — **Resolved.** Updated to reflect current architecture, features, stack, and setup instructions.
 
 ### Medium Priority
 
-- ~~**AdminController is oversized**~~ — **Resolved.** Split into 4 focused controllers: `AdminController` (dashboard only), `AdminUserController`, `AdminSquadronController`, `AdminRoleController` under `Web/Admin/`.
+- ~~**AdminController is oversized**~~ — **Resolved.** Admin responsibilities are now split across dedicated controllers under `Web/Admin/`, including archive management controllers.
 - **Authorization migration** — There's an open intent to move from `rank_level`-based gating to role-based checks using `RoleHierarchy` thresholds (lieutenant+/commander+) consistently across all UI and backend gates.
 - ~~**Operation update permissions for global ops**~~ — **Resolved.**
 `canUpdateOperation` currently returns `false` for operations without a `squadron_id` (global ops) unless user is director. The creator of a global op who is lieutenant+ cannot edit it.
@@ -340,23 +347,23 @@ Domain/Operations/
 
 | Area | Count |
 |------|-------|
-| Models | 14 |
-| Controllers (Web) | 11 |
-| Controllers (API v1) | 17 |
-| Controllers (Admin) | 4 |
+| Models | 18 |
+| Controllers (Web) | 23 |
+| Controllers (API v1) | 12 |
+| Controllers (Admin) | 9 |
 | Middleware | 6 |
-| Form Requests | 19+ |
+| Form Requests | 19 |
 | Policies | 6 |
-| Domain Actions | 14+ |
-| Domain Services | 10+ |
-| Domain Presenters | 8+ |
-| Vue Pages | 12 |
-| Vue Components | 32+ shared, 11+ page-specific |
-| Database Migrations | 47 |
+| Domain Actions | 11 |
+| Domain Services | 24 |
+| Domain/Application Presenters | 11 |
+| Vue Pages | 44 |
+| Vue Components | 35+ shared |
+| Database Migrations | 58 |
 | Bot Commands | 2 |
 | Bot Services | 7 |
 | Bot Events | 4 |
 
 ---
 
-*This document is a snapshot of the codebase as of February 16, 2026. Update as features are added or completed.*
+*This document is a snapshot of the codebase as of May 30, 2026. Update as features are added or completed.*
