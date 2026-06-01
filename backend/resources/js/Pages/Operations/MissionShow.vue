@@ -1067,6 +1067,45 @@ function submitCompleteOperation(outcome) {
                     </HorizonButton>
                   </div>
                 </template>
+
+                <div v-if="participantsList.length" class="space-y-3 border-t border-white/[0.055] pt-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                      Signed Up
+                    </div>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                      {{ participantCount }}
+                    </span>
+                  </div>
+
+                  <div class="space-y-2">
+                    <div
+                      v-for="participant in participantsList"
+                      :key="`simple-roster-${participant.id}`"
+                      class="flex items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.03] px-3 py-2"
+                    >
+                      <img
+                        v-if="participantAvatar(participant)"
+                        :src="participantAvatar(participant)"
+                        :alt="participantName(participant)"
+                        class="h-9 w-9 rounded-full object-cover"
+                        loading="lazy"
+                      />
+                      <div
+                        v-else
+                        class="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-xs font-black text-horizon-white"
+                      >
+                        {{ participantInitial(participant) }}
+                      </div>
+
+                      <div class="min-w-0">
+                        <div class="truncate text-sm font-semibold text-horizon-white">
+                          {{ participantName(participant) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           </aside>

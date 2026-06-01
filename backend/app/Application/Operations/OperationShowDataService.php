@@ -30,9 +30,7 @@ class OperationShowDataService
         $canManageAar = $viewer ? $this->access->canManageAfterActionReport($viewer, $operation) : false;
 
         $participantCount = $operation->participants->count();
-        $participants = $canViewSlots
-            ? $this->participantsPayload($operation, true)
-            : collect();
+        $participants = $this->participantsPayload($operation, $canViewSlots);
         $currentParticipant = null;
 
         if ($viewer) {
@@ -162,19 +160,19 @@ class OperationShowDataService
             ->values();
     }
 
-    protected function participantPayload($participant, bool $includeSlot): array
+    protected function participantPayload($participant, bool $includeAssignments): array
     {
         return [
             'id' => $participant->id,
-            'slot' => $includeSlot ? $participant->slot : null,
-            'role' => $participant->role ? [
+            'slot' => $includeAssignments ? $participant->slot : null,
+            'role' => $includeAssignments && $participant->role ? [
                 'id' => $participant->role->id,
                 'role_name' => $participant->role->role_name,
                 'role_display_name' => $participant->role->role_display_name,
                 'capacity' => $participant->role->capacity,
             ] : null,
-            'attendance_status' => $participant->attendance_status,
-            'notes' => $participant->notes,
+            'attendance_status' => $includeAssignments ? $participant->attendance_status : null,
+            'notes' => $includeAssignments ? $participant->notes : null,
             'user' => [
                 'id' => $participant->user?->id,
                 'rsi_handle' => $participant->user?->rsi_handle,
