@@ -34,6 +34,7 @@ class MemberDirectoryController extends Controller
                 'discord_name',
                 'discord_avatar',
                 'callsign',
+                'region',
                 'timezone',
                 'favorite_ships',
                 'favorite_guns',
@@ -52,6 +53,7 @@ class MemberDirectoryController extends Controller
                         ->orWhereRaw("CASE WHEN rank = 'cit' THEN 'c i t commander in training' ELSE REPLACE(LOWER(rank), '_', ' ') END LIKE ?", [$normalizedSearchNeedle ?? $searchNeedle]);
 
                     $q->orWhereRaw('LOWER(callsign) LIKE ?', [$searchNeedle])
+                        ->orWhereRaw('LOWER(region) LIKE ?', [$searchNeedle])
                         ->orWhereRaw('LOWER(timezone) LIKE ?', [$searchNeedle])
                         ->orWhereHas('roles', function ($roles) use ($searchNeedle, $normalizedSearchNeedle) {
                             $roles->whereRaw('LOWER(name) LIKE ?', [$searchNeedle])

@@ -173,7 +173,7 @@ function clearFilters() {
         </div>
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group relative overflow-hidden rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
+          <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.055)] group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:[--hz-angled-corner-border:color-mix(in_srgb,var(--horizon-sunset-blue)_45%,transparent)]">
             <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div class="relative flex flex-wrap gap-2">
@@ -194,8 +194,6 @@ function clearFilters() {
     </div>
   </HorizonContainer>
 </template>
-
-
 
 
 

@@ -97,5 +97,7 @@ config.php
 /public/storage/
 extensions/*/vendor/
 .windsurf/
-.windsurf/*
+.windsurf/**
+.devin/
+.devin/**
 CLAUDE.MD

@@ -3,7 +3,9 @@
 namespace App\Http\Resources;
 
 use App\Domain\AccessControl\AccessService;
+use App\Domain\Promotions\PromotionWorkflowService;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Throwable;
 
 class MeResource extends JsonResource
 {
@@ -11,10 +13,35 @@ class MeResource extends JsonResource
     {
         $viewer = $request?->user();
         $access = app(AccessService::class);
+        $promotions = app(PromotionWorkflowService::class);
         $isDirectorLike = (bool) ($viewer && $access->isDirectorLike($viewer));
 
         $canViewRestrictedOperationStats = $isDirectorLike
             || ($viewer && $access->atLeast($viewer, 'admiral'));
+
+        $promotionPayload = null;
+
+        if ($viewer) {
+            try {
+                $promotionPayload = $promotions->profilePayload($viewer, $this->resource);
+            } catch (Throwable $exception) {
+                report($exception);
+
+                $promotionPayload = [
+                    'show_panel' => false,
+                    'current_rank' => null,
+                    'next_rank' => null,
+                    'available' => false,
+                    'gating_reason' => null,
+                    'allowed_branch_roles' => [],
+                    'can_create' => false,
+                    'can_cancel' => false,
+                    'can_demote' => false,
+                    'expiry_minutes' => (int) config('promotions.expires_after_minutes', 240),
+                    'active_offer' => null,
+                ];
+            }
+        }
 
         return [
             'id'                  => $this->id,
@@ -39,6 +66,7 @@ class MeResource extends JsonResource
             // User-editable profile fields
             'bio'                 => $this->bio,
             'timezone'            => $this->timezone,
+            'region'              => $this->region,
 
             'favorite_ships'       => $this->favorite_ships,
             'favorite_guns'        => $this->favorite_guns,
@@ -68,6 +96,17 @@ class MeResource extends JsonResource
                 'slug' => $role->slug,
                 'name' => $role->name,
             ])->values(),
+
+            'squadrons' => $this->whenLoaded('squadrons', fn () => $this->squadrons->map(fn ($squadron) => [
+                'id' => $squadron->id,
+                'name' => $squadron->name,
+                'pivot' => [
+                    'membership_status' => $squadron->pivot?->membership_status,
+                    'role' => $squadron->pivot?->role,
+                ],
+            ])->values()),
+
+            'promotion' => $promotionPayload,
         ];
     }
 }

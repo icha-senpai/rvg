@@ -68,5 +68,77 @@ module.exports = {
         }
 
         return response.data;
+    },
+
+    async preparePromotionAcceptance(offerId, payload) {
+        const url = `${process.env.API_BASE_URL}/bot/promotions/offers/${offerId}/prepare-accept`;
+
+        const response = await axiosInstance.post(url, payload, {
+            headers: {
+                'X-Bot-Secret': process.env.API_SECRET,
+                'Accept': 'application/json',
+            },
+        });
+
+        if (response.status !== 200) {
+            const message = response.data?.message || `Prepare acceptance failed (${response.status})`;
+            throw new Error(message);
+        }
+
+        return response.data;
+    },
+
+    async preparePromotionAcceptanceByMessage(messageId, payload) {
+        const url = `${process.env.API_BASE_URL}/bot/promotions/messages/${messageId}/prepare-accept`;
+
+        const response = await axiosInstance.post(url, payload, {
+            headers: {
+                'X-Bot-Secret': process.env.API_SECRET,
+                'Accept': 'application/json',
+            },
+        });
+
+        if (response.status !== 200) {
+            const message = response.data?.message || `Prepare acceptance failed (${response.status})`;
+            throw new Error(message);
+        }
+
+        return response.data;
+    },
+
+    async finalizePromotionAcceptance(offerId, payload) {
+        const url = `${process.env.API_BASE_URL}/bot/promotions/offers/${offerId}/finalize-accept`;
+
+        const response = await axiosInstance.post(url, payload, {
+            headers: {
+                'X-Bot-Secret': process.env.API_SECRET,
+                'Accept': 'application/json',
+            },
+        });
+
+        if (response.status !== 200) {
+            const message = response.data?.message || `Finalize acceptance failed (${response.status})`;
+            throw new Error(message);
+        }
+
+        return response.data;
+    },
+
+    async finalizePromotionAcceptanceByMessage(messageId, payload) {
+        const url = `${process.env.API_BASE_URL}/bot/promotions/messages/${messageId}/finalize-accept`;
+
+        const response = await axiosInstance.post(url, payload, {
+            headers: {
+                'X-Bot-Secret': process.env.API_SECRET,
+                'Accept': 'application/json',
+            },
+        });
+
+        if (response.status !== 200) {
+            const message = response.data?.message || `Finalize acceptance failed (${response.status})`;
+            throw new Error(message);
+        }
+
+        return response.data;
     }
 };

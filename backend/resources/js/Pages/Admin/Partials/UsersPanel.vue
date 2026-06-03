@@ -83,7 +83,8 @@
         <article
           v-for="u in users.data"
           :key="u.id"
-          class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+          class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.75rem] border border-white/10 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]"
+          style="--hz-angled-bar-left: 1.25rem; --hz-angled-bar-width: 5rem;"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -131,10 +132,6 @@
               <div class="flex flex-wrap gap-2">
                 <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
                   Rank {{ formatRankLabel(u.rank) }}
-                </span>
-
-                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
-                  Level {{ u.rank_level || '-' }}
                 </span>
 
                 <span
@@ -1426,11 +1423,5 @@ function saveUser() {
   );
 }
 </script>
-
-
-
-
-
-
 
 

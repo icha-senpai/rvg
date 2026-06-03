@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 use App\Models\Squadron;
 use App\Models\SquadronMember;
+use App\Models\PromotionOffer;
 use App\Domain\AccessControl\Traits\HasRolesAndPermissions;
 use Illuminate\Support\Facades\Cache;
 
@@ -36,6 +37,7 @@ class User extends Authenticatable
         'global_status',
         'bio',
         'timezone',
+        'region',
         'favorite_ships',
         'favorite_guns',
         'primary_role',
@@ -181,6 +183,16 @@ class User extends Authenticatable
     public function preferences()
     {
         return $this->hasOne(MemberPreference::class);
+    }
+
+    public function promotionOffersReceived()
+    {
+        return $this->hasMany(PromotionOffer::class, 'member_id');
+    }
+
+    public function promotionOffersCreated()
+    {
+        return $this->hasMany(PromotionOffer::class, 'promoter_id');
     }
 
     /**

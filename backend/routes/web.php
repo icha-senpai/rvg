@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\MemberDirectoryController;
+use App\Http\Controllers\Web\MemberPromotionController;
 use App\Http\Controllers\Web\DiscordAuthController;
 use App\Http\Controllers\Web\VerifyController;
 use App\Http\Requests\UpdateMeRequest;
@@ -55,25 +56,37 @@ Route::get('/login', function () {
     return redirect()->to('/auth/discord');
 })->name('login');
 
-Route::get('/user/{user}', function (User $user) {
-    if ($user->rsi_handle) {
-        return redirect()->route('member.profile', ['user' => $user->rsi_handle]);
+Route::get('/user/{user}', function (string $user) {
+    $profileUser = User::query()
+        ->when(ctype_digit($user), fn ($query) => $query->orWhere('id', (int) $user))
+        ->orWhere('rsi_handle', $user)
+        ->firstOrFail();
+
+    if (ctype_digit($user) && $profileUser->rsi_handle) {
+        return redirect()->route('member.profile', ['user' => $profileUser->rsi_handle]);
     }
 
     return Inertia::render('Member/userpage', [
-        'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
-    ]);
-})
-    ->whereNumber('user')
-    ->middleware(['auth', 'rsi.verified']);
-
-Route::get('/user/{user:rsi_handle}', function (User $user) {
-    return Inertia::render('Member/userpage', [
-        'profileUser' => (new MeResource($user->load('roles')))->resolve(request()),
+        'profileUser' => (new MeResource($profileUser->load([
+            'roles:id,slug,name',
+            'squadrons:id,name',
+        ])))->resolve(request()),
     ]);
 })
     ->middleware(['auth', 'rsi.verified'])
     ->name('member.profile');
+
+Route::post('/user/{user:rsi_handle}/promotion-offers', [MemberPromotionController::class, 'store'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('member.promotions.store');
+
+Route::post('/user/{user:rsi_handle}/promotion-offers/{promotionOffer}/cancel', [MemberPromotionController::class, 'cancel'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('member.promotions.cancel');
+
+Route::post('/user/{user:rsi_handle}/demote', [MemberPromotionController::class, 'demote'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('member.promotions.demote');
 
 Route::get('/members', [MemberDirectoryController::class, 'index'])
     ->middleware(['auth', 'rsi.verified'])
@@ -99,6 +112,7 @@ Route::put('/me', function (UpdateMeRequest $request) {
     $allowed = [
         'bio',
         'timezone',
+        'region',
         'favorite_ships',
         'favorite_guns',
         'primary_role',

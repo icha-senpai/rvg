@@ -84,7 +84,7 @@ class OperationAfterActionReportWebTest extends TestCase
             ->get('/user/' . $noShowUser->id)
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Member/userpage')
-                ->where('profileUser.operations_no_show_count', 1)
+                ->where('profileUser.operations_no_show_count', null)
             );
     }
 

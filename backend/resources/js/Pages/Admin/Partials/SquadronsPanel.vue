@@ -69,7 +69,7 @@
         <article
           v-for="sq in squadrons"
           :key="sq.id"
-          class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-5  transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:"
+          class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.75rem] border border-white/10 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -619,8 +619,6 @@ function confirmDeleteSquadron({ close }) {
   })
 }
 </script>
-
-
 
 
 

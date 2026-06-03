@@ -38,17 +38,19 @@ if (LOGS_ENABLED) {
 // --------------------
 const webhookRoutes = require('./services/webhook');        // nickname sync webhook
 const webhookOpRoutes = require('./services/webhookOperations'); // operation published webhook
+const webhookPromotionRoutes = require('./services/webhookPromotions');
 
 log("Loaded webhookOpRoutes:", webhookOpRoutes);
 
 // Mount all /bot routes AFTER app is created
 app.use('/bot', webhookRoutes);
 app.use('/bot', webhookOpRoutes);
+app.use('/bot', webhookPromotionRoutes);
 
 // --------------------
 // DISCORD CLIENT
 // --------------------
-const { Client, GatewayIntentBits, Collection, REST, Routes, Events } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -56,9 +58,17 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-    ]
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+    ],
+    partials: [
+        Partials.Channel,
+        Partials.Message,
+        Partials.Reaction,
+    ],
 });
 
 // Make client accessible inside webhook handlers

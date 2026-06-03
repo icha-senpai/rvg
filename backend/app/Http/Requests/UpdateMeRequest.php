@@ -17,6 +17,7 @@ class UpdateMeRequest extends FormRequest
         return [
             'bio' => ['nullable', 'string', 'max:1000'],
             'timezone' => ['nullable', 'string', 'max:64'],
+            'region' => ['nullable', 'string', 'in:EU,US,APAC'],
 
             'favorite_ships' => ['nullable', 'array'],
             'favorite_ships.*' => ['string', 'max:80'],

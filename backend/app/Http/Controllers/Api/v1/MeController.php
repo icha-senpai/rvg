@@ -41,6 +41,7 @@ class MeController extends Controller
         $allowed = [
             'bio',
             'timezone',
+            'region',
             'favorite_ships',
             'favorite_guns',
             'primary_role',

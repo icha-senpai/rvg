@@ -122,40 +122,50 @@ const operationAccentClass = computed(() => {
     case 'squadron_training':
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
+        corner: 'color-mix(in srgb, var(--horizon-sunset-blue) 35%, transparent)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'wing_training':
       return {
         border: 'border-white/[0.055]',
+        corner: 'rgba(255, 255, 255, 0.055)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'roleplay':
       return {
         border: 'border-white/[0.055]',
+        corner: 'rgba(255, 255, 255, 0.055)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
 
     case 'meeting':
       return {
         border: 'border-white/15',
+        corner: 'rgba(255, 255, 255, 0.15)',
         chip: 'border-white/15 bg-white/[0.04]',
       }
 
     case 'event':
       return {
         border: 'border-[color:var(--horizon-sunset-pink)]/35',
+        corner: 'color-mix(in srgb, var(--horizon-sunset-pink) 35%, transparent)',
         chip: 'border-[color:var(--horizon-sunset-pink)]/30 bg-[color:var(--horizon-sunset-pink)]/10',
       }
 
     default:
       return {
         border: 'border-[color:var(--horizon-sunset-blue)]/35',
+        corner: 'color-mix(in srgb, var(--horizon-sunset-blue) 35%, transparent)',
         chip: 'border-white/[0.055] bg-white/[0.042]',
       }
   }
 })
+
+const operationCardStyle = computed(() => ({
+  '--hz-angled-corner-border': operationAccentClass.value.corner,
+}))
 
 function viewOperation() {
   emit('view', props.operation)
@@ -254,8 +264,9 @@ function toDate(value) {
 
 <template>
   <article
-    class="hz-surface-welcome group relative overflow-hidden rounded-[1.75rem] border transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+    class="hz-surface-welcome hz-surface-angled group rounded-[1.75rem] border transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:[--hz-angled-corner-border:rgba(255,255,255,0.12)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
     :class="operationAccentClass.border"
+    :style="operationCardStyle"
   >
     <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
       <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>

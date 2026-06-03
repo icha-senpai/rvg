@@ -25,6 +25,15 @@ class DomainEventServiceProvider extends ServiceProvider
         \App\Domain\AccessControl\Events\RoleRevoked::class => [
             \App\Domain\AccessControl\Listeners\FlushUserAccessCache::class,
         ],
+        \App\Domain\Promotions\Events\PromotionOfferCreated::class => [
+            \App\Domain\Promotions\Listeners\SendPromotionOfferCreatedToDiscord::class,
+        ],
+        \App\Domain\Promotions\Events\PromotionOfferCancelled::class => [
+            \App\Domain\Promotions\Listeners\SendPromotionOfferCancelledToDiscord::class,
+        ],
+        \App\Domain\Promotions\Events\PromotionOfferExpired::class => [
+            \App\Domain\Promotions\Listeners\SendPromotionOfferExpiredToDiscord::class,
+        ],
     ];
 
     public function shouldDiscoverEvents(): bool
