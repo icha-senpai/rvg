@@ -10,6 +10,8 @@ import SquadronsPanel from './Partials/SquadronsPanel.vue'
 import RolesPanel from './Partials/RolesPanel.vue'
 import MediaPanel from './Partials/MediaPanel.vue'
 import OperationsPanel from './Partials/OperationsPanel.vue'
+import LedgerPanel from './Partials/LedgerPanel.vue'
+import UexPanel from './Partials/UexPanel.vue'
 
 const props = defineProps({
   users: Object,
@@ -30,9 +32,11 @@ const props = defineProps({
   filters: Object,
   eligibleLeaders: Array,
   archiveStats: { type: Object, default: () => ({}) },
+  ledger: { type: Object, default: () => ({}) },
+  uex: { type: Object, default: () => ({}) },
 })
 
-const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media', 'operations'])
+const allowedTabs = new Set(['users', 'squadrons', 'roles', 'media', 'operations', 'ledger', 'uex'])
 const activeTabStorageKey = 'adminDashboard.activeTab'
 
 const archiveSummary = computed(() => ({
@@ -83,6 +87,22 @@ const tabItems = computed(() => [
     description: 'Inspect uploaded media and administrative media tools.',
     count: null,
     tone: 'cyan',
+  },
+  {
+    key: 'ledger',
+    label: 'Ledger',
+    eyebrow: 'Economy',
+    description: 'Manage wipe cycles, rollout state, and the Horizon Ledger module foundation.',
+    count: props.ledger?.wipeCycles?.length ?? 0,
+    tone: 'indigo',
+  },
+  {
+    key: 'uex',
+    label: 'UEX',
+    eyebrow: 'External Data',
+    description: 'Review local UEX snapshot coverage, last sync status, and the exact commands used to refresh the dataset.',
+    count: props.uex?.total_rows ?? 0,
+    tone: 'amber',
   },
 ])
 
@@ -192,6 +212,8 @@ function tabCardClass(tab) {
           return 'border-white/[0.055] bg-white/[0.042] '
         case 'emerald':
           return 'border-emerald-300/35 bg-emerald-300/10 '
+        case 'amber':
+          return 'border-amber-300/35 bg-amber-300/10 '
         case 'cyan':
         case 'blue':
         default:
@@ -359,7 +381,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Admin tab cards -->
-      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <button
           v-for="tab in tabItems"
           :key="tab.key"
@@ -458,13 +480,24 @@ onBeforeUnmount(() => {
         >
           <MediaPanel />
         </div>
+
+        <div
+          v-if="activeTab === 'ledger'"
+          class="hz-animate-fade"
+        >
+          <LedgerPanel :ledger="ledger" />
+        </div>
+
+        <div
+          v-if="activeTab === 'uex'"
+          class="hz-animate-fade"
+        >
+          <UexPanel :uex="uex" />
+        </div>
       </section>
     </div>
   </HorizonContainer>
 </template>
-
-
-
 
 
 

@@ -258,6 +258,48 @@ class RoleAndPermissionSeeder extends Seeder
                     'slug'        => 'analytics.operation',
                     'description' => 'Analyze operational data and help build doctrine.',
                 ],
+
+                // Ledger
+                [
+                    'name'        => 'View own ledger',
+                    'slug'        => 'ledger.view-own',
+                    'description' => 'Access the member-owned Horizon Ledger module.',
+                ],
+                [
+                    'name'        => 'Edit own ledger',
+                    'slug'        => 'ledger.edit-own',
+                    'description' => 'Create and update personal ledger records.',
+                ],
+                [
+                    'name'        => 'Delete own ledger records',
+                    'slug'        => 'ledger.delete-own',
+                    'description' => 'Delete personal ledger records.',
+                ],
+                [
+                    'name'        => 'View any ledger',
+                    'slug'        => 'ledger.view-any',
+                    'description' => 'View another member ledger when explicitly authorized.',
+                ],
+                [
+                    'name'        => 'Manage ledger wipes',
+                    'slug'        => 'ledger.manage-wipes',
+                    'description' => 'Create, close, and activate ledger wipe cycles.',
+                ],
+                [
+                    'name'        => 'Manage ledger UEX sync',
+                    'slug'        => 'ledger.manage-uex-sync',
+                    'description' => 'Manage the UEX-backed reference layer used by Horizon Ledger.',
+                ],
+                [
+                    'name'        => 'Manage org ledger',
+                    'slug'        => 'ledger.manage-org-ledger',
+                    'description' => 'Manage organization-level ledger features.',
+                ],
+                [
+                    'name'        => 'Manage squadron ledger',
+                    'slug'        => 'ledger.manage-squadron-ledger',
+                    'description' => 'Manage squadron-level ledger features.',
+                ],
             ];
 
             $permissionModels = [];
@@ -283,6 +325,8 @@ class RoleAndPermissionSeeder extends Seeder
             $roleModels['member']->permissions()->sync([
                 $permissionModels['squadron.view']->id,
                 $permissionModels['operation.view']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
             ]);
 
             // Viewer
@@ -291,6 +335,7 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['user.view']->id,
                 $permissionModels['operation.view']->id,
                 $permissionModels['analytics.view']->id,
+                $permissionModels['ledger.view-own']->id,
             ]);
 
             // Lieutenant
@@ -332,6 +377,8 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['domain.manage.resources']->id,
                 $permissionModels['domain.manage.operations']->id,
                 $permissionModels['analytics.view']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
             ]);
 
             // Admiral
@@ -345,6 +392,9 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['domain.manage.resources']->id,
                 $permissionModels['domain.manage.operations']->id,
                 $permissionModels['analytics.view']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
+                $permissionModels['ledger.view-any']->id,
             ]);
 
             // Grand Admiral
@@ -365,6 +415,14 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['system.manage_roles']->id,
                 $permissionModels['system.manage_permissions']->id,
                 $permissionModels['system.settings']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
+                $permissionModels['ledger.delete-own']->id,
+                $permissionModels['ledger.view-any']->id,
+                $permissionModels['ledger.manage-wipes']->id,
+                $permissionModels['ledger.manage-uex-sync']->id,
+                $permissionModels['ledger.manage-org-ledger']->id,
+                $permissionModels['ledger.manage-squadron-ledger']->id,
             ]);
 
             // Tech Director
@@ -377,6 +435,12 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['analytics.view']->id,
                 $permissionModels['analytics.operation']->id,
                 $permissionModels['operation.view']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
+                $permissionModels['ledger.delete-own']->id,
+                $permissionModels['ledger.view-any']->id,
+                $permissionModels['ledger.manage-wipes']->id,
+                $permissionModels['ledger.manage-uex-sync']->id,
             ]);
 
             // Tech Team
@@ -384,6 +448,7 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['user.view']->id,
                 $permissionModels['analytics.view']->id,
                 $permissionModels['operation.view']->id,
+                $permissionModels['ledger.view-own']->id,
             ]);
         });
     }

@@ -12,6 +12,7 @@ use App\Models\ArchiveEntry;
 use App\Models\ArchiveTopic;
 use App\Models\Media;
 use App\Models\User;
+use App\Services\LedgerFeatureService;
 use Inertia\Middleware;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class HandleInertiaRequests extends Middleware
         protected AccessService $access,
         protected MediaService $mediaService,
         protected MediaVisibility $mediaVisibility,
+        protected LedgerFeatureService $ledgerFeature,
     ) {}
 
     public function share(Request $request): array
@@ -106,6 +108,9 @@ class HandleInertiaRequests extends Middleware
                     ? $user
                     : null,
                 'can' => $can,
+            ],
+            'features' => [
+                'ledger' => $user ? $this->ledgerFeature->canAccess($user) : false,
             ],
             'flash' => [
                 'operation' => fn () => $request->session()->get('operation'),

@@ -343,4 +343,20 @@ class AccessService
     {
         return $this->squadrons()->canDemoteLieutenant($user, $squadron);
     }
+
+    /**
+     * Determine whether the user may view the shared squadron ledger.
+     */
+    public function canViewSquadronLedger(User $user, Squadron $squadron): bool
+    {
+        return $this->squadrons()->canViewLedger($user, $squadron);
+    }
+
+    /**
+     * Determine whether the user may manage shared squadron ledger records.
+     */
+    public function canManageSquadronLedger(User $user, Squadron $squadron): bool
+    {
+        return $this->squadrons()->canManageLedger($user, $squadron);
+    }
 }

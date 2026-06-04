@@ -13,13 +13,28 @@ use App\Http\Controllers\Web\OperationTransitionController;
 use App\Http\Controllers\Web\ArchiveController;
 use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\SquadronLeaderController;
+use App\Http\Controllers\Web\SquadronLedgerController;
+use App\Http\Controllers\Web\SquadronLedgerInventoryController;
+use App\Http\Controllers\Web\SquadronLedgerShipAssetController;
+use App\Http\Controllers\Web\SquadronLedgerTradeController;
+use App\Http\Controllers\Web\SquadronLedgerTransactionController;
 use App\Http\Controllers\Web\SquadronPromotionController;
 use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\MemberDirectoryController;
+use App\Http\Controllers\Web\MemberLedgerController;
 use App\Http\Controllers\Web\MemberPromotionController;
 use App\Http\Controllers\Web\DiscordAuthController;
+use App\Http\Controllers\Web\LedgerInventoryController;
+use App\Http\Controllers\Web\LedgerShipAssetController;
+use App\Http\Controllers\Web\LedgerTradeController;
+use App\Http\Controllers\Web\LedgerTransactionController;
+use App\Http\Controllers\Web\OrganizationLedgerController;
+use App\Http\Controllers\Web\OrganizationLedgerInventoryController;
+use App\Http\Controllers\Web\OrganizationLedgerShipAssetController;
+use App\Http\Controllers\Web\OrganizationLedgerTradeController;
+use App\Http\Controllers\Web\OrganizationLedgerTransactionController;
 use App\Http\Controllers\Web\VerifyController;
 use App\Http\Requests\UpdateMeRequest;
 use App\Http\Resources\MeResource;
@@ -31,6 +46,9 @@ use App\Http\Controllers\Admin\SquadronRankController;
 use App\Http\Controllers\Web\Admin\AdminUserController;
 use App\Http\Controllers\Web\Admin\AdminSquadronController;
 use App\Http\Controllers\Web\Admin\AdminRoleController;
+use App\Http\Controllers\Web\Admin\AdminLedgerWipeController;
+use App\Http\Controllers\Web\Admin\AdminUexDataController;
+use App\Http\Controllers\Web\Admin\AdminUexSyncController;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,6 +109,93 @@ Route::post('/user/{user:rsi_handle}/demote', [MemberPromotionController::class,
 Route::get('/members', [MemberDirectoryController::class, 'index'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('members.index');
+
+Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function () {
+    Route::get('/ledger', [MemberLedgerController::class, 'index'])
+        ->name('ledger.index');
+
+    Route::get('/organization/ledger', [OrganizationLedgerController::class, 'index'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger');
+
+    Route::post('/ledger/transactions', [LedgerTransactionController::class, 'store'])
+        ->name('ledger.transactions.store');
+    Route::post('/ledger/transfers', [LedgerTransactionController::class, 'transfer'])
+        ->name('ledger.transactions.transfer');
+    Route::put('/ledger/transactions/{transaction}', [LedgerTransactionController::class, 'update'])
+        ->name('ledger.transactions.update');
+    Route::delete('/ledger/transactions/{transaction}', [LedgerTransactionController::class, 'destroy'])
+        ->name('ledger.transactions.destroy');
+
+    Route::post('/ledger/trades', [LedgerTradeController::class, 'store'])
+        ->name('ledger.trades.store');
+    Route::put('/ledger/trades/{trade}', [LedgerTradeController::class, 'update'])
+        ->name('ledger.trades.update');
+    Route::delete('/ledger/trades/{trade}', [LedgerTradeController::class, 'destroy'])
+        ->name('ledger.trades.destroy');
+
+    Route::post('/ledger/inventory', [LedgerInventoryController::class, 'store'])
+        ->name('ledger.inventory.store');
+    Route::post('/ledger/inventory/transfers', [LedgerInventoryController::class, 'transfer'])
+        ->name('ledger.inventory.transfer');
+    Route::put('/ledger/inventory/{inventoryItem}', [LedgerInventoryController::class, 'update'])
+        ->name('ledger.inventory.update');
+    Route::delete('/ledger/inventory/{inventoryItem}', [LedgerInventoryController::class, 'destroy'])
+        ->name('ledger.inventory.destroy');
+
+    Route::post('/ledger/ships', [LedgerShipAssetController::class, 'store'])
+        ->name('ledger.ships.store');
+    Route::put('/ledger/ships/{ship}', [LedgerShipAssetController::class, 'update'])
+        ->name('ledger.ships.update');
+    Route::delete('/ledger/ships/{ship}', [LedgerShipAssetController::class, 'destroy'])
+        ->name('ledger.ships.destroy');
+
+    Route::post('/organization/ledger/transactions', [OrganizationLedgerTransactionController::class, 'store'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.store');
+    Route::post('/organization/ledger/transfers', [OrganizationLedgerTransactionController::class, 'transfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.transfer');
+    Route::put('/organization/ledger/transactions/{transaction}', [OrganizationLedgerTransactionController::class, 'update'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.update');
+    Route::delete('/organization/ledger/transactions/{transaction}', [OrganizationLedgerTransactionController::class, 'destroy'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.destroy');
+
+    Route::post('/organization/ledger/trades', [OrganizationLedgerTradeController::class, 'store'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.trades.store');
+    Route::put('/organization/ledger/trades/{trade}', [OrganizationLedgerTradeController::class, 'update'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.trades.update');
+    Route::delete('/organization/ledger/trades/{trade}', [OrganizationLedgerTradeController::class, 'destroy'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.trades.destroy');
+
+    Route::post('/organization/ledger/inventory', [OrganizationLedgerInventoryController::class, 'store'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.store');
+    Route::post('/organization/ledger/inventory/transfers', [OrganizationLedgerInventoryController::class, 'transfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.transfer');
+    Route::put('/organization/ledger/inventory/{inventoryItem}', [OrganizationLedgerInventoryController::class, 'update'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.update');
+    Route::delete('/organization/ledger/inventory/{inventoryItem}', [OrganizationLedgerInventoryController::class, 'destroy'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.destroy');
+
+    Route::post('/organization/ledger/ships', [OrganizationLedgerShipAssetController::class, 'store'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.ships.store');
+    Route::put('/organization/ledger/ships/{ship}', [OrganizationLedgerShipAssetController::class, 'update'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.ships.update');
+    Route::delete('/organization/ledger/ships/{ship}', [OrganizationLedgerShipAssetController::class, 'destroy'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.ships.destroy');
+});
 
 Route::get('/me', function () {
     $user = Auth::user();
@@ -278,9 +383,66 @@ Route::get('/squadrons/{squadron}', [SquadronPageController::class, 'showById'])
     ->whereNumber('squadron')
     ->middleware(['auth', 'rsi.verified']);
 
+Route::get('/squadrons/{squadron}/ledger', [SquadronLedgerController::class, 'showById'])
+    ->whereNumber('squadron')
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('squadrons.ledgerById');
+
+Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function () {
+    Route::post('/squadrons/{squadron}/ledger/transactions', [SquadronLedgerTransactionController::class, 'store'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.store');
+    Route::post('/squadrons/{squadron}/ledger/transfers', [SquadronLedgerTransactionController::class, 'transfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.transfer');
+    Route::put('/squadrons/{squadron}/ledger/transactions/{transaction}', [SquadronLedgerTransactionController::class, 'update'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.update');
+    Route::delete('/squadrons/{squadron}/ledger/transactions/{transaction}', [SquadronLedgerTransactionController::class, 'destroy'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.destroy');
+
+    Route::post('/squadrons/{squadron}/ledger/trades', [SquadronLedgerTradeController::class, 'store'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.trades.store');
+    Route::put('/squadrons/{squadron}/ledger/trades/{trade}', [SquadronLedgerTradeController::class, 'update'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.trades.update');
+    Route::delete('/squadrons/{squadron}/ledger/trades/{trade}', [SquadronLedgerTradeController::class, 'destroy'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.trades.destroy');
+
+    Route::post('/squadrons/{squadron}/ledger/inventory', [SquadronLedgerInventoryController::class, 'store'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.store');
+    Route::post('/squadrons/{squadron}/ledger/inventory/transfers', [SquadronLedgerInventoryController::class, 'transfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.transfer');
+    Route::put('/squadrons/{squadron}/ledger/inventory/{inventoryItem}', [SquadronLedgerInventoryController::class, 'update'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.update');
+    Route::delete('/squadrons/{squadron}/ledger/inventory/{inventoryItem}', [SquadronLedgerInventoryController::class, 'destroy'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.destroy');
+
+    Route::post('/squadrons/{squadron}/ledger/ships', [SquadronLedgerShipAssetController::class, 'store'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.ships.store');
+    Route::put('/squadrons/{squadron}/ledger/ships/{ship}', [SquadronLedgerShipAssetController::class, 'update'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.ships.update');
+    Route::delete('/squadrons/{squadron}/ledger/ships/{ship}', [SquadronLedgerShipAssetController::class, 'destroy'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.ships.destroy');
+});
+
 Route::get('/squadrons/{squadron:slug}', [SquadronPageController::class, 'show'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('squadrons.show');
+
+Route::get('/squadrons/{squadron:slug}/ledger', [SquadronLedgerController::class, 'show'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('squadrons.ledger');
 
 /*
 |--------------------------------------------------------------------------
@@ -390,6 +552,24 @@ Route::middleware(['auth', 'can:access-admin-panel'])
                 'roles' => \App\Models\Role::orderBy('name')->get()
             ]);
         })->name('admin.roles.index');
+
+        Route::get('/uex/resources/{resource}', [AdminUexDataController::class, 'index'])
+            ->name('admin.uex.resources.index');
+
+        Route::post('/uex/sync', [AdminUexSyncController::class, 'store'])
+            ->name('admin.uex.sync');
+
+        Route::post('/ledger/wipes', [AdminLedgerWipeController::class, 'store'])
+            ->name('admin.ledger.wipes.store');
+
+        Route::post('/ledger/wipes/{wipeCycle}/activate', [AdminLedgerWipeController::class, 'activate'])
+            ->name('admin.ledger.wipes.activate');
+
+        Route::post('/ledger/wipes/{wipeCycle}/close', [AdminLedgerWipeController::class, 'close'])
+            ->name('admin.ledger.wipes.close');
+
+        Route::post('/ledger/wipes/{wipeCycle}/rename', [AdminLedgerWipeController::class, 'rename'])
+            ->name('admin.ledger.wipes.rename');
         /*
         |-----------------------
         | USER MANAGEMENT

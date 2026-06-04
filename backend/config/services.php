@@ -54,5 +54,18 @@ return [
     'secret' => env('DISCORD_BOT_SECRET'),
     'url' => env('BOT_WEBHOOK_URL', 'http://localhost:3001/bot'),
     ],
+    'uex' => [
+        'base_url' => env('UEX_API_BASE_URL', 'https://api.uexcorp.uk/2.0'),
+        'token' => env('UEX_API_TOKEN'),
+        'timeout' => (int) env('UEX_API_TIMEOUT', 20),
+        'client_version' => env('UEX_CLIENT_VERSION'),
+    ],
+    'ledger' => [
+        'enabled' => filter_var(env('LEDGER_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'preview_user_ids' => array_values(array_filter(array_map(
+            fn ($value) => is_numeric($value) ? (int) $value : null,
+            explode(',', (string) env('LEDGER_PREVIEW_USER_IDS', ''))
+        ))),
+    ],
 
 ];

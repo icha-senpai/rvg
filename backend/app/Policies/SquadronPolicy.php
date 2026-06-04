@@ -51,4 +51,14 @@ class SquadronPolicy
     {
         return $this->access->canDemoteLieutenant($user, $squadron);
     }
+
+    public function viewLedger(User $user, Squadron $squadron): bool
+    {
+        return $this->access->canViewSquadronLedger($user, $squadron);
+    }
+
+    public function manageLedger(User $user, Squadron $squadron): bool
+    {
+        return $this->access->canManageSquadronLedger($user, $squadron);
+    }
 }

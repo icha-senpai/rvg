@@ -33,13 +33,28 @@
     </HorizonButton>
 
     <transition name="fade-scale">
-      <ul
+      <div
         v-if="open"
         class="hz-select-menu absolute left-0 z-[10060] max-h-64 w-full overflow-y-auto rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.9)] shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
         :class="menuOpensUpward ? 'bottom-full mb-1' : 'top-full mt-1'"
       >
+        <div
+          v-if="searchable"
+          class="sticky top-0 z-[1] border-b border-white/[0.055] bg-[rgba(18,22,38,0.95)] p-2"
+        >
+          <input
+            ref="searchInput"
+            v-model="searchQuery"
+            type="text"
+            class="hz-input"
+            :placeholder="searchPlaceholder"
+            @keydown.esc.stop="open = false"
+          />
+        </div>
+
+        <ul>
         <li
-          v-for="opt in options"
+          v-for="opt in filteredOptions"
           :key="opt.value"
           class="cursor-pointer px-3 py-2 text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-20)]"
           :class="{ 'bg-[var(--color-bg-elevated)]': isSelected(opt.value) }"
@@ -47,7 +62,14 @@
         >
           {{ opt.label }}
         </li>
-      </ul>
+          <li
+            v-if="!filteredOptions.length"
+            class="px-3 py-3 text-sm text-[var(--color-text-soft)]"
+          >
+            {{ emptyLabel }}
+          </li>
+        </ul>
+      </div>
     </transition>
   </div>
 </template>
@@ -61,6 +83,10 @@ const props = defineProps({
   options: { type: Array, required: true },
   label: { type: String, default: '' },
   multiple: { type: Boolean, default: false },
+  placeholder: { type: String, default: 'Select...' },
+  searchable: { type: Boolean, default: false },
+  searchPlaceholder: { type: String, default: 'Search...' },
+  emptyLabel: { type: String, default: 'No matches found.' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -68,34 +94,60 @@ const emit = defineEmits(['update:modelValue'])
 const open = ref(false)
 const container = ref(null)
 const menuOpensUpward = ref(false)
+const searchInput = ref(null)
+const searchQuery = ref('')
 
 const model = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
 })
 
+function valuesMatch(left, right) {
+  if (left === right) {
+    return true
+  }
+
+  if (left === null || left === undefined || right === null || right === undefined) {
+    return false
+  }
+
+  return String(left) === String(right)
+}
+
 const selectedLabel = computed(() => {
   if (props.multiple) {
     const selected = Array.isArray(model.value) ? model.value : []
 
     const labels = selected
-      .map(value => props.options.find(option => option.value === value)?.label)
+      .map(value => props.options.find(option => valuesMatch(option.value, value))?.label)
       .filter(Boolean)
 
-    return labels.length ? labels.join(', ') : 'Select...'
+    return labels.length ? labels.join(', ') : props.placeholder
   }
 
-  const match = props.options.find(option => option.value === model.value)
+  const match = props.options.find(option => valuesMatch(option.value, model.value))
 
-  return match ? match.label : 'Select...'
+  return match ? match.label : props.placeholder
+})
+
+const filteredOptions = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!props.searchable || !query) {
+    return props.options
+  }
+
+  return props.options.filter(option => String(option.label ?? '')
+    .toLowerCase()
+    .includes(query))
 })
 
 function isSelected(value) {
   if (props.multiple) {
-    return Array.isArray(model.value) && model.value.includes(value)
+    return Array.isArray(model.value) && model.value.some(selectedValue => valuesMatch(selectedValue, value))
   }
 
-  return model.value === value
+  return valuesMatch(model.value, value)
 }
 
 function updateMenuDirection() {
@@ -114,8 +166,15 @@ async function toggle() {
   open.value = !open.value
 
   if (open.value) {
+    searchQuery.value = ''
     await nextTick()
     updateMenuDirection()
+
+    if (props.searchable) {
+      searchInput.value?.focus()
+    }
+  } else {
+    searchQuery.value = ''
   }
 }
 
@@ -136,6 +195,7 @@ function choose(value) {
 
   model.value = value
   open.value = false
+  searchQuery.value = ''
 }
 
 function handleViewportChange() {
@@ -177,8 +237,6 @@ onBeforeUnmount(() => {
   transform: scale(0.98);
 }
 </style>
-
-
 
 
 

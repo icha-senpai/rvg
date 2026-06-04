@@ -48,6 +48,17 @@ class PermissionRegistry
             'analytics.view',
             'analytics.operation',
         ],
+
+        'ledger' => [
+            'ledger.view-own',
+            'ledger.edit-own',
+            'ledger.delete-own',
+            'ledger.view-any',
+            'ledger.manage-wipes',
+            'ledger.manage-uex-sync',
+            'ledger.manage-org-ledger',
+            'ledger.manage-squadron-ledger',
+        ],
     ];
 
     public static function group(string $group): array

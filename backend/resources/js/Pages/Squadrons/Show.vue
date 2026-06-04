@@ -67,7 +67,6 @@ const canEditSquadron = computed(() => permissions.value?.can_update_squadron ==
 const canManageMembers = computed(() => permissions.value?.can_manage_members === true)
 const canPromoteMembers = computed(() => permissions.value?.can_promote_lieutenant === true)
 const canDemoteMembers = computed(() => permissions.value?.can_demote_lieutenant === true)
-
 /* -------------------------------------------------
    Squadron palette extraction
 ------------------------------------------------- */
@@ -1319,9 +1318,6 @@ watch(
     @confirm="() => { if (pendingDemoteMember) demoteLieutenant(pendingDemoteMember) }"
   />
 </template>
-
-
-
 
 
 

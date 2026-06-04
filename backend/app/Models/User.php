@@ -203,6 +203,31 @@ class User extends Authenticatable
         return $this->morphMany(\App\Models\Media::class, 'mediable');
     }
 
+    public function ledgerAccounts()
+    {
+        return $this->hasMany(LedgerAccount::class);
+    }
+
+    public function ledgerTransactions()
+    {
+        return $this->hasMany(LedgerTransaction::class);
+    }
+
+    public function ledgerTrades()
+    {
+        return $this->hasMany(LedgerTrade::class);
+    }
+
+    public function ledgerInventoryItems()
+    {
+        return $this->hasMany(LedgerInventoryItem::class);
+    }
+
+    public function ledgerShipAssets()
+    {
+        return $this->hasMany(LedgerShipAsset::class);
+    }
+
     /**
      * Return the user's most recent avatar media record.
      */

@@ -20,6 +20,7 @@ use App\Policies\AdminPolicy;
 use App\Policies\MediaPolicy;
 
 use App\Domain\AccessControl\AccessService;
+use App\Services\LedgerFeatureService;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -61,6 +62,25 @@ class AuthServiceProvider extends ServiceProvider
         // Admin panel access gate
         Gate::define('access-admin-panel', function (User $user) {
             return app(AccessService::class)->isDirectorLike($user);
+        });
+
+        Gate::define('access-ledger', function (User $user) {
+            return app(LedgerFeatureService::class)->canAccess($user);
+        });
+
+        Gate::define('edit-own-ledger', function (User $user) {
+            return app(LedgerFeatureService::class)->canEditOwn($user);
+        });
+
+        Gate::define('delete-own-ledger', function (User $user) {
+            return app(LedgerFeatureService::class)->canDeleteOwn($user);
+        });
+
+        Gate::define('manage-org-ledger', function (User $user) {
+            $access = app(AccessService::class);
+
+            return $access->isDirectorLike($user)
+                || $access->any($user, ['ledger.manage-org-ledger']);
         });
     }
 }

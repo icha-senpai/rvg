@@ -135,6 +135,12 @@ class SquadronPageController extends Controller
                 'can_update_squadron' => $user
                     ? $user->can('update', $squadron)
                     : false,
+                'can_view_ledger' => $user
+                    ? ($user->can('access-ledger') && $user->can('viewLedger', $squadron))
+                    : false,
+                'can_manage_ledger' => $user
+                    ? ($user->can('access-ledger') && $user->can('manageLedger', $squadron))
+                    : false,
                 'can_apply' => $user
                     && ! $viewerMembership
                     && $squadron->recruiting,

@@ -9,6 +9,7 @@ const page = usePage()
 
 const user = computed(() => page.props?.auth?.user ?? null)
 const archiveNavigation = computed(() => page.props?.archiveNavigation ?? { categories: [] })
+const ledgerEnabled = computed(() => Boolean(page.props?.features?.ledger))
 
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0))
 
@@ -58,6 +59,44 @@ const mySquadron = computed(() => {
     squadrons[0] ??
     null
   )
+})
+
+const mySquadronLedgerRouteName = computed(() => {
+  if (!mySquadron.value) return null
+
+  return mySquadron.value?.slug ? 'squadrons.ledger' : 'squadrons.ledgerById'
+})
+
+const mySquadronLedgerRouteParams = computed(() => {
+  if (!mySquadron.value) return undefined
+
+  return {
+    squadron: mySquadron.value.slug ?? mySquadron.value.id,
+  }
+})
+
+const squadronLedgerActive = computed(() => {
+  if (!mySquadron.value) return false
+
+  if (mySquadron.value?.slug) {
+    return page.url === `/squadrons/${mySquadron.value.slug}/ledger`
+      || page.url === `/squadrons/${mySquadron.value.slug}/ledger/`
+      || page.url.startsWith(`/squadrons/${mySquadron.value.slug}/ledger?`)
+  }
+
+  return /^\/squadrons\/\d+\/ledger(\/|\?|$)/.test(page.url ?? '')
+})
+
+const canSeeOrgLedger = computed(() => {
+  if (page.props?.auth?.can?.['ledger.manage-org-ledger']) {
+    return true
+  }
+
+  const roleSlugs = (user.value?.roles ?? [])
+    .map(role => role?.slug ?? role?.name ?? role)
+    .filter(Boolean)
+
+  return roleSlugs.includes('director') || roleSlugs.includes('grand_admiral')
 })
 
 const profileHref = computed(() => {
@@ -157,6 +196,87 @@ const archiveCategoryChildren = computed(() => {
   })
 })
 
+const NAV_ICON_PATHS = Object.freeze({
+  home: [
+    { d: 'M3.75 10.5 12 4l8.25 6.5' },
+    { d: 'M5.75 9.75V20h12.5V9.75' },
+  ],
+  operations: [
+    { d: 'M12 3.5v3.25' },
+    { d: 'M12 17.25v3.25' },
+    { d: 'M3.5 12h3.25' },
+    { d: 'M17.25 12h3.25' },
+    { d: 'M6.75 6.75l2.2 2.2' },
+    { d: 'M15.05 15.05l2.2 2.2' },
+    { d: 'M17.25 6.75l-2.2 2.2' },
+    { d: 'M8.95 15.05l-2.2 2.2' },
+    { d: 'M12 8.25a3.75 3.75 0 1 0 0 7.5a3.75 3.75 0 0 0 0-7.5Z' },
+  ],
+  operations_dashboard: [
+    { d: 'M4.5 19.5h15' },
+    { d: 'M7.5 16v-4.5' },
+    { d: 'M12 16V8' },
+    { d: 'M16.5 16v-6.5' },
+    { d: 'M5 6h14' },
+  ],
+  squadrons: [
+    { d: 'M12 3.75 18.5 7.5v9L12 20.25 5.5 16.5v-9L12 3.75Z' },
+  ],
+  my_squadron: [
+    { d: 'M12 3.75 18.5 6v5.5c0 4.05-2.55 7.15-6.5 9.5-3.95-2.35-6.5-5.45-6.5-9.5V6L12 3.75Z' },
+    { d: 'M9.25 11.75 11 13.5l3.75-3.75' },
+  ],
+  members: [
+    { d: 'M8 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z' },
+    { d: 'M16.5 12a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z' },
+    { d: 'M3.75 19.25a4.75 4.75 0 0 1 8.5-2.9' },
+    { d: 'M13.5 18.25a4 4 0 0 1 5.75-1.35' },
+  ],
+  ledger: [
+    { d: 'M6.5 5.25h9.25A2.25 2.25 0 0 1 18 7.5v11.25H8.75A2.25 2.25 0 0 0 6.5 21' },
+    { d: 'M6.5 5.25A2.25 2.25 0 0 0 4.25 7.5v11.25A2.25 2.25 0 0 1 6.5 21' },
+    { d: 'M8.75 8.75h6.25' },
+  ],
+  squadron_ledger: [
+    { d: 'M4.75 8.5h14.5V19H4.75z' },
+    { d: 'M7.5 8.5V6.75A1.75 1.75 0 0 1 9.25 5h5.5a1.75 1.75 0 0 1 1.75 1.75V8.5' },
+    { d: 'M10 13h4' },
+  ],
+  treasury: [
+    { d: 'M12 5.5c-4.14 0-7.5 1.46-7.5 3.25S7.86 12 12 12s7.5-1.46 7.5-3.25S16.14 5.5 12 5.5Z' },
+    { d: 'M4.5 8.75V12c0 1.79 3.36 3.25 7.5 3.25s7.5-1.46 7.5-3.25V8.75' },
+    { d: 'M4.5 12v3.25c0 1.79 3.36 3.25 7.5 3.25s7.5-1.46 7.5-3.25V12' },
+  ],
+  shop_bag: [
+    { d: 'M6.25 8.25h11.5l-.9 10.75H7.15L6.25 8.25Z' },
+    { d: 'M8.75 8.25V6.5a3.25 3.25 0 0 1 6.5 0v1.75' },
+  ],
+  shop_store: [
+    { d: 'M4.5 8.5h15l-1 10.5h-13L4.5 8.5Z' },
+    { d: 'M6.75 8.5V7a3.25 3.25 0 0 1 3.25-3.25h4A3.25 3.25 0 0 1 17.25 7v1.5' },
+  ],
+  archive: [
+    { d: 'M4.75 7.75h14.5v11.5H4.75z' },
+    { d: 'M8.25 7.75V6.25A1.75 1.75 0 0 1 10 4.5h4a1.75 1.75 0 0 1 1.75 1.75v1.5' },
+    { d: 'M9.5 12h5' },
+  ],
+  admin: [
+    { d: 'M12 8.75a3.25 3.25 0 1 0 0 6.5a3.25 3.25 0 0 0 0-6.5Z' },
+    { d: 'M12 3.75v2.1' },
+    { d: 'M12 18.15v2.1' },
+    { d: 'M5.65 5.65l1.5 1.5' },
+    { d: 'M16.85 16.85l1.5 1.5' },
+    { d: 'M3.75 12h2.1' },
+    { d: 'M18.15 12h2.1' },
+    { d: 'M5.65 18.35l1.5-1.5' },
+    { d: 'M16.85 7.15l1.5-1.5' },
+  ],
+})
+
+function navIconPaths(icon) {
+  return NAV_ICON_PATHS[icon] ?? NAV_ICON_PATHS.home
+}
+
 const navGroups = computed(() => {
   if (!user.value) return []
 
@@ -173,7 +293,7 @@ const navGroups = computed(() => {
           key: 'home',
           label: 'Welcome',
           shortLabel: 'Home',
-          icon: '⌂',
+          icon: 'home',
           routeName: 'home',
           params: undefined,
           isActive: url === '/',
@@ -184,7 +304,7 @@ const navGroups = computed(() => {
           key: 'operations_member',
           label: 'Operations',
           shortLabel: 'Ops',
-          icon: '✦',
+          icon: 'operations',
           routeName: 'operations.member',
           params: undefined,
           isActive:
@@ -199,7 +319,7 @@ const navGroups = computed(() => {
           key: 'operations_dashboard',
           label: 'Operations Dashboard',
           shortLabel: 'Ops Dash',
-          icon: '⟁',
+          icon: 'operations_dashboard',
           routeName: 'operations.index',
           params: undefined,
           isActive: url === '/operations/dashboard' || url === '/operations/dashboard/' || url.startsWith('/operations/dashboard?'),
@@ -219,7 +339,7 @@ const navGroups = computed(() => {
           key: 'squadrons_index',
           label: 'Squadrons',
           shortLabel: 'Squads',
-          icon: '⬡',
+          icon: 'squadrons',
           routeName: 'squadrons.index',
           params: undefined,
           isActive: url === '/squadrons' || url.startsWith('/squadrons?'),
@@ -230,7 +350,7 @@ const navGroups = computed(() => {
           key: 'my_squadron',
           label: 'My Squadron',
           shortLabel: 'Squad',
-          icon: '◆',
+          icon: 'my_squadron',
           routeName: 'squadrons.show',
           params: mySquadron.value ? mySquadron.value.slug : undefined,
           isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.slug}` : false,
@@ -243,12 +363,57 @@ const navGroups = computed(() => {
           key: 'members_index',
           label: 'Members',
           shortLabel: 'Members',
-          icon: '☷',
+          icon: 'members',
           routeName: 'members.index',
           params: undefined,
           isActive: url === '/members' || url === '/members/' || url.startsWith('/members?'),
           tone: 'blue',
           status: 'Roster',
+        },
+      ],
+    },
+    {
+      key: 'ledgers',
+      label: 'Ledgers',
+      eyebrow: 'Personal + shared books',
+      tone: 'amber',
+      show: ledgerEnabled.value,
+      items: [
+        {
+          key: 'ledger',
+          label: 'My Ledger',
+          shortLabel: 'My Ledger',
+          icon: 'ledger',
+          routeName: 'ledger.index',
+          params: undefined,
+          isActive: url === '/ledger' || url === '/ledger/' || url.startsWith('/ledger?'),
+          tone: 'indigo',
+          status: 'Personal',
+        },
+        {
+          key: 'squadron_ledger',
+          label: 'Squadron Ledger',
+          shortLabel: 'Squadron',
+          icon: 'squadron_ledger',
+          routeName: mySquadronLedgerRouteName.value,
+          params: mySquadronLedgerRouteParams.value,
+          isActive: squadronLedgerActive.value,
+          show: !!mySquadron.value,
+          badge: mySquadron.value?.name ?? 'Shared',
+          tone: 'cyan',
+          status: 'Squadron',
+        },
+        {
+          key: 'org_ledger',
+          label: 'Org Treasury',
+          shortLabel: 'Treasury',
+          icon: 'treasury',
+          routeName: 'organization.ledger',
+          params: undefined,
+          isActive: url === '/organization/ledger' || url === '/organization/ledger/' || url.startsWith('/organization/ledger?'),
+          show: canSeeOrgLedger.value,
+          tone: 'amber',
+          status: 'Org',
         },
       ],
     },
@@ -262,7 +427,7 @@ const navGroups = computed(() => {
           key: 'eu_shop',
           label: 'EU Shop',
           shortLabel: 'EU Shop',
-          icon: '€',
+          icon: 'shop_bag',
           href: 'https://horizon-interstellar.myspreadshop.net/',
           isActive: false,
           tone: 'cyan',
@@ -272,7 +437,7 @@ const navGroups = computed(() => {
           key: 'us_shop',
           label: 'US Shop',
           shortLabel: 'US Shop',
-          icon: '$',
+          icon: 'shop_store',
           href: 'https://horizon-interstellar.myspreadshop.com/',
           isActive: false,
           tone: 'blue',
@@ -290,7 +455,7 @@ const navGroups = computed(() => {
           key: 'archive',
           label: 'Horizon Archive',
           shortLabel: 'Archive',
-          icon: '◫',
+          icon: 'archive',
           routeName: 'archive.index',
           params: undefined,
           isActive: url === '/archive' || url === '/archive/' || url.startsWith('/archive?') || url.startsWith('/archive/'),
@@ -311,7 +476,7 @@ const navGroups = computed(() => {
           key: 'admin_dashboard',
           label: 'Admin Dashboard',
           shortLabel: 'Admin',
-          icon: '⚙',
+          icon: 'admin',
           routeName: 'admin.dashboard',
           params: undefined,
           isActive: url.startsWith('/admin'),
@@ -623,8 +788,10 @@ onBeforeUnmount(() => {
                     :class="activeRailClass(item)"
                   />
 
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
-                    {{ item.icon }}
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-link-${index}`" :d="path.d" />
+                    </svg>
                   </span>
 
                   <span class="min-w-0 flex-1 truncate">
@@ -647,8 +814,10 @@ onBeforeUnmount(() => {
                   class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
                   @click="closeMobileNav"
                 >
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
-                    {{ item.icon }}
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-external-${index}`" :d="path.d" />
+                    </svg>
                   </span>
 
                   <span class="min-w-0 flex-1 truncate">
@@ -906,8 +1075,10 @@ onBeforeUnmount(() => {
                     :class="activeRailClass(item)"
                   />
 
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
-                    {{ item.icon }}
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-link-${index}`" :d="path.d" />
+                    </svg>
                   </span>
 
                   <span
@@ -934,8 +1105,10 @@ onBeforeUnmount(() => {
                   :class="desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5'"
                   :title="desktopExpanded ? undefined : item.label"
                 >
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-sm leading-none">
-                    {{ item.icon }}
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-external-${index}`" :d="path.d" />
+                    </svg>
                   </span>
 
                   <span
@@ -1126,11 +1299,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-
-
-
-
-
-
-
-

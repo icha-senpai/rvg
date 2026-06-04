@@ -97,4 +97,30 @@ class SquadronAccessService
 
         return $this->shared->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id;
     }
+
+    public function canViewLedger(User $user, Squadron $squadron): bool
+    {
+        if ($this->shared->isDirectorLike($user)) {
+            return true;
+        }
+
+        if ($this->shared->can($user, 'ledger.manage-squadron-ledger')) {
+            return true;
+        }
+
+        return $this->shared->isSquadronMember($user, $squadron);
+    }
+
+    public function canManageLedger(User $user, Squadron $squadron): bool
+    {
+        if ($this->shared->isDirectorLike($user)) {
+            return true;
+        }
+
+        if ($this->shared->can($user, 'ledger.manage-squadron-ledger')) {
+            return true;
+        }
+
+        return $this->canManageSquadronMembers($user, $squadron);
+    }
 }

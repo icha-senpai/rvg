@@ -898,6 +898,88 @@
     pointer-events: none;
   }
 
+  .hz-ledger-page {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .hz-ledger-shell {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, var(--horizon-sunset-blue) 18%, transparent);
+    box-shadow: none;
+  }
+
+  .hz-ledger-shell .hz-ledger-panel,
+  .hz-ledger-shell .hz-ledger-tabbar {
+    box-shadow: none;
+  }
+
+  .hz-ledger-shell .hz-ledger-panel {
+    background: color-mix(in srgb, var(--horizon-sunset-blue) 14%, transparent);
+  }
+
+  .hz-ledger-shell .hz-ledger-panel-soft {
+    background: color-mix(in srgb, var(--horizon-sunset-blue) 12%, transparent);
+  }
+
+  .hz-ledger-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
+      color-mix(in srgb, var(--horizon-sunset-blue) 14%, transparent);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  }
+
+  .hz-ledger-panel-soft {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.015)),
+      color-mix(in srgb, var(--horizon-sunset-blue) 10%, transparent);
+  }
+
+  .hz-ledger-panel-muted {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    background:
+      linear-gradient(180deg, rgba(9, 12, 20, 0.78), rgba(9, 12, 20, 0.46));
+  }
+
+  .hz-ledger-tabbar {
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+      color-mix(in srgb, var(--horizon-sunset-blue) 12%, transparent);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+  }
+
+  .hz-ledger-tab-active {
+    border-color: rgba(64, 178, 255, 0.28);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+      color-mix(in srgb, var(--horizon-sunset-blue) 24%, transparent);
+    color: var(--color-horizon-white);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  }
+
+  .hz-ledger-tab-inactive {
+    border-color: rgba(255, 255, 255, 0.055);
+    background: rgba(255, 255, 255, 0.018);
+    color: var(--color-text-secondary);
+  }
+
+  .hz-ledger-tab-inactive:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-horizon-white);
+  }
+
   .hz-overlay-light {
     background: rgba(34, 43, 69, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.06);
