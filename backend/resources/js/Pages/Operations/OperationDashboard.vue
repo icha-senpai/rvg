@@ -10,6 +10,7 @@ import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
+import OperationSettlementSection from '@/Components/OperationSettlementSection.vue'
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
@@ -27,6 +28,14 @@ const props = defineProps({
   afterActionOperations: {
     type: Array,
     default: () => [],
+  },
+  operationSettlementLootOptions: {
+    type: Object,
+    default: () => ({
+      commodities: [],
+      items: [],
+      components: [],
+    }),
   },
   verifiedMembers: {
     type: Array,
@@ -92,6 +101,7 @@ const createTemplateId = ref('')
 const transitionProcessingIds = ref(new Set())
 const activeDashboardSection = ref('board')
 const openAfterActionOperationId = ref(null)
+const attendanceDraftMembersByOperationId = ref({})
 
 const startConfirmDialog = ref(null)
 const pendingStartOperation = ref(null)
@@ -687,6 +697,26 @@ function toggleAfterActionOperation(operationId) {
     : Number(operationId)
 }
 
+function updateAttendanceDraftMembers(operationId, members = []) {
+  const id = Number(operationId)
+  if (!Number.isFinite(id)) return
+
+  attendanceDraftMembersByOperationId.value = {
+    ...attendanceDraftMembersByOperationId.value,
+    [id]: members,
+  }
+}
+
+function attendanceDraftMembers(operation) {
+  const id = Number(operation?.id)
+
+  if (!Number.isFinite(id)) {
+    return []
+  }
+
+  return attendanceDraftMembersByOperationId.value[id] ?? operation?.after_action_attendance ?? []
+}
+
 watch(statusFilter, () => {
   queueRefreshOperations()
 })
@@ -1199,32 +1229,41 @@ function statusCardClass(status) {
               :key="`${operation.id}-${operation.after_action_report_updated_at ?? 'na'}`"
               class="hz-surface-welcome hz-surface-angled-subtle [--hz-angled-corner-border:rgba(255,255,255,0.055)] rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5"
             >
-              <div class="flex flex-col gap-4 border-b border-white/[0.055] pb-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    <span>#{{ operation.id }}</span>
-                    <span class="text-text-secondary">•</span>
-                    <span>{{ operation.completion_outcome === 'failed' ? 'Failed' : 'Success' }}</span>
+              <div
+                class="cursor-pointer"
+                tabindex="0"
+                role="button"
+                @click="toggleAfterActionOperation(operation.id)"
+                @keydown.enter.prevent="toggleAfterActionOperation(operation.id)"
+                @keydown.space.prevent="toggleAfterActionOperation(operation.id)"
+              >
+                <div class="flex flex-col gap-4 border-b border-white/[0.055] pb-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                      <span>#{{ operation.id }}</span>
+                      <span class="text-text-secondary">•</span>
+                      <span>{{ operation.completion_outcome === 'failed' ? 'Failed' : 'Success' }}</span>
+                    </div>
+
+                    <h3 class="mt-2 text-2xl font-black text-horizon-white">
+                      {{ operation.title }}
+                    </h3>
+
+                    <p v-if="operation.description" class="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-text-secondary">
+                      {{ operation.description }}
+                    </p>
                   </div>
 
-                  <h3 class="mt-2 text-2xl font-black text-horizon-white">
-                    {{ operation.title }}
-                  </h3>
+                  <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
+                    <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                      <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Creator</div>
+                      <div class="mt-1 text-sm font-semibold text-horizon-white">{{ operation.creator?.rsi_handle ?? operation.creator?.discord_name ?? operation.creator?.name ?? 'Unknown' }}</div>
+                    </div>
 
-                  <p v-if="operation.description" class="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-text-secondary">
-                    {{ operation.description }}
-                  </p>
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
-                  <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
-                    <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Creator</div>
-                    <div class="mt-1 text-sm font-semibold text-horizon-white">{{ operation.creator?.rsi_handle ?? operation.creator?.discord_name ?? operation.creator?.name ?? 'Unknown' }}</div>
-                  </div>
-
-                  <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
-                    <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Completed</div>
-                    <div class="mt-1 text-sm font-semibold text-horizon-white">{{ formatDate(operation.ends_at ?? operation.starts_at) }}</div>
+                    <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                      <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Completed</div>
+                      <div class="mt-1 text-sm font-semibold text-horizon-white">{{ formatDate(operation.ends_at ?? operation.starts_at) }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1237,17 +1276,26 @@ function statusCardClass(status) {
                 <button
                   type="button"
                   class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white transition hover:bg-white/[0.04]"
-                  @click="toggleAfterActionOperation(operation.id)"
+                  @click.stop="toggleAfterActionOperation(operation.id)"
                 >
                   {{ Number(openAfterActionOperationId) === Number(operation.id) ? 'Close AAR' : 'Open AAR' }}
                 </button>
               </div>
 
-              <div v-if="Number(openAfterActionOperationId) === Number(operation.id)" class="mt-5">
+              <div v-if="Number(openAfterActionOperationId) === Number(operation.id)" class="mt-5 space-y-4">
                 <AfterActionReportSection
                   :operation="operation"
                   :verified-members="verifiedMembers"
                   :can-manage="!!operation?.permissions?.can_manage_aar"
+                  :reload-only="['afterActionOperations']"
+                  :compact="true"
+                  @attendance-draft-change="updateAttendanceDraftMembers(operation.id, $event)"
+                />
+
+                <OperationSettlementSection
+                  :operation="operation"
+                  :shared-loot-options="operationSettlementLootOptions"
+                  :attendance-draft-members="attendanceDraftMembers(operation)"
                   :reload-only="['afterActionOperations']"
                   :compact="true"
                 />

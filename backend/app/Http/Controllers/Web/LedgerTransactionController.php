@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ledger\ApproveLedgerTransferRequest;
+use App\Http\Requests\Ledger\RejectLedgerTransferRequest;
+use App\Http\Requests\Ledger\ReverseLedgerTransferRequest;
 use App\Http\Requests\Ledger\StoreLedgerTransferRequest;
 use App\Http\Requests\Ledger\StoreLedgerTransactionRequest;
+use App\Models\LedgerTransferRequest;
 use App\Models\LedgerTransaction;
 use App\Services\LedgerService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -32,9 +36,38 @@ class LedgerTransactionController extends Controller
         $this->authorize('edit-own-ledger');
 
         $user = $request->user();
-        $this->ledger->transferFundsFromPersonal($user, $request->validated());
+        $result = $this->ledger->transferFundsFromPersonal($user, $request->validated());
 
-        return back()->with('success', 'Funds transferred.');
+        return back()->with('success', $result['status'] === 'pending'
+            ? 'Transfer request sent for approval.'
+            : 'Funds transferred.');
+    }
+
+    public function approveTransfer(ApproveLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('edit-own-ledger');
+
+        $this->ledger->approvePendingFundTransferForPersonal($request->user(), $transferRequest);
+
+        return back()->with('success', 'Transfer approved.');
+    }
+
+    public function rejectTransfer(RejectLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('edit-own-ledger');
+
+        $this->ledger->rejectPendingFundTransferForPersonal($request->user(), $transferRequest, $request->validated());
+
+        return back()->with('success', 'Transfer rejected.');
+    }
+
+    public function reverseTransfer(ReverseLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('edit-own-ledger');
+
+        $this->ledger->reverseFundTransferForPersonal($request->user(), $transferRequest, $request->validated());
+
+        return back()->with('success', 'Transfer reversed.');
     }
 
     public function update(StoreLedgerTransactionRequest $request, LedgerTransaction $transaction)

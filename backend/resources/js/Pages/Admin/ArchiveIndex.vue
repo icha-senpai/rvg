@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
@@ -24,6 +24,9 @@ const editingTopicId = ref(null)
 const previewRank = ref(props.previewRankLevel)
 const deleteTopicDialog = ref(null)
 const topicPendingDelete = ref(null)
+const openGroupKeys = ref(new Set())
+
+const openGroupStorageKey = 'admin.archive.index.open-groups'
 
 const blankTopic = {
   archive_category_id: null,
@@ -111,6 +114,10 @@ const drawerDescription = computed(() => isEditingTopic.value
   : 'Create a topic card that can hold Archive entries and member-facing knowledge content.'
 )
 
+onMounted(() => {
+  loadOpenGroupKeys()
+})
+
 function changePreviewRank() {
   router.get(route('admin.archive.index'), {
     preview_rank_level: previewRank.value ?? '',
@@ -119,6 +126,48 @@ function changePreviewRank() {
     preserveState: true,
     replace: true,
   })
+}
+
+function loadOpenGroupKeys() {
+  if (typeof window === 'undefined') return
+
+  try {
+    const raw = window.localStorage.getItem(openGroupStorageKey)
+
+    if (!raw) {
+      openGroupKeys.value = new Set()
+      return
+    }
+
+    const parsed = JSON.parse(raw)
+    openGroupKeys.value = new Set(Array.isArray(parsed) ? parsed.map(value => String(value)) : [])
+  } catch {
+    openGroupKeys.value = new Set()
+  }
+}
+
+function persistOpenGroupKeys() {
+  if (typeof window === 'undefined') return
+
+  window.localStorage.setItem(openGroupStorageKey, JSON.stringify(Array.from(openGroupKeys.value)))
+}
+
+function groupIsOpen(groupKey) {
+  return openGroupKeys.value.has(String(groupKey))
+}
+
+function toggleGroup(groupKey) {
+  const next = new Set(openGroupKeys.value)
+  const normalizedKey = String(groupKey)
+
+  if (next.has(normalizedKey)) {
+    next.delete(normalizedKey)
+  } else {
+    next.add(normalizedKey)
+  }
+
+  openGroupKeys.value = next
+  persistOpenGroupKeys()
 }
 
 function hydrateTopicForm(topic = null) {
@@ -238,7 +287,15 @@ function confirmDeleteTopic({ close }) {
 
         <div v-if="groupedTopics.length" class="space-y-6">
           <section v-for="group in groupedTopics" :key="group.key" class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
-            <div class="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
+            <div
+              class="flex cursor-pointer flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between"
+              role="button"
+              tabindex="0"
+              :aria-expanded="groupIsOpen(group.key)"
+              @click="toggleGroup(group.key)"
+              @keydown.enter.prevent="toggleGroup(group.key)"
+              @keydown.space.prevent="toggleGroup(group.key)"
+            >
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
                 <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.label }}</h3>
@@ -249,87 +306,97 @@ function confirmDeleteTopic({ close }) {
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.topics.length }} topic{{ group.topics.length === 1 ? '' : 's' }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.directEntriesCount }} direct entr{{ group.directEntriesCount === 1 ? 'y' : 'ies' }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.entriesCount }} topic entr{{ group.entriesCount === 1 ? 'y' : 'ies' }}</span>
-                <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">New Direct Entry</Link>
-                <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-horizon-white hover:bg-white/[0.05]">Manage Direct Entries</Link>
-                <Link v-if="group.publicHref" :href="group.publicHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-text-secondary hover:text-horizon-white">View Category</Link>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full border border-white/[0.055] px-3 py-1 text-horizon-white hover:bg-white/[0.05]"
+                  @click.stop="toggleGroup(group.key)"
+                >
+                  <span>{{ groupIsOpen(group.key) ? 'Collapse' : 'Expand' }}</span>
+                  <span class="text-[10px] transition-transform duration-200" :class="groupIsOpen(group.key) ? 'rotate-180' : ''">⌄</span>
+                </button>
+                <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-full border border-[color:var(--horizon-sunset-magenta)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20" @click.stop>New Direct Entry</Link>
+                <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-horizon-white hover:bg-white/[0.05]" @click.stop>Manage Direct Entries</Link>
+                <Link v-if="group.publicHref" :href="group.publicHref" class="rounded-full border border-white/[0.055] px-3 py-1 text-text-secondary hover:text-horizon-white" @click.stop>View Category</Link>
               </div>
             </div>
 
-            <div class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-4 md:p-5">
-              <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Direct Entries</div>
-                  <p class="mt-1 text-sm text-text-secondary">Category-level documents that are not nested under a topic.</p>
+            <template v-if="groupIsOpen(group.key)">
+              <div class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-4 md:p-5">
+                <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Direct Entries</div>
+                    <p class="mt-1 text-sm text-text-secondary">Category-level documents that are not nested under a topic.</p>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Create Direct Entry</Link>
+                    <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Open Direct Entry Editor</Link>
+                  </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
-                  <Link v-if="group.createEntryAdminHref" :href="group.createEntryAdminHref" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Create Direct Entry</Link>
-                  <Link v-if="group.entriesAdminHref" :href="group.entriesAdminHref" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Open Direct Entry Editor</Link>
+                <div v-if="group.directEntries.length" class="mt-4 grid gap-4 xl:grid-cols-2">
+                  <article v-for="entry in group.directEntries" :key="`direct-${group.key}-${entry.id}`" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
+                    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                      <div>
+                        <div class="flex flex-wrap gap-2">
+                          <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ entry.minimum_rank_label }}</span>
+                          <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="entry.is_published ? 'text-emerald-300' : 'text-red-300'">{{ entry.is_published ? 'Published' : 'Draft' }}</span>
+                          <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ entry.sort_order }}</span>
+                          <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="entry.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                            {{ entry.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
+                          </span>
+                        </div>
+
+                        <h4 class="mt-3 text-xl font-black text-horizon-white">{{ entry.title }}</h4>
+                        <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
+                        <div class="mt-3 text-xs text-text-muted">/{{ group.label }}/{{ entry.slug }}</div>
+                      </div>
+
+                      <div class="flex flex-wrap gap-2 lg:flex-col">
+                        <Link :href="entry.edit_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Edit</Link>
+                        <Link :href="entry.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <div v-else class="hz-surface-welcome mt-4 rounded-3xl border border-dashed border-white/10 p-5 text-sm text-text-secondary">
+                  No direct entries yet. Use <span class="font-bold text-horizon-white">Create Direct Entry</span> to add one without making a topic first.
                 </div>
               </div>
 
-              <div v-if="group.directEntries.length" class="mt-4 grid gap-4 xl:grid-cols-2">
-                <article v-for="entry in group.directEntries" :key="`direct-${group.key}-${entry.id}`" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
+              <div v-if="group.topics.length" class="mt-5 space-y-4">
+                <article v-for="topic in group.topics" :key="topic.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
                   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                     <div>
                       <div class="flex flex-wrap gap-2">
-                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ entry.minimum_rank_label }}</span>
-                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="entry.is_published ? 'text-emerald-300' : 'text-red-300'">{{ entry.is_published ? 'Published' : 'Draft' }}</span>
-                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">Sort {{ entry.sort_order }}</span>
-                        <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="entry.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
-                          {{ entry.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.minimum_rank_label }}</span>
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="topic.is_published ? 'text-emerald-300' : 'text-red-300'">{{ topic.is_published ? 'Published' : 'Draft' }}</span>
+                        <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.entries_count }} entries</span>
+                        <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="topic.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
+                          {{ topic.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
                         </span>
                       </div>
 
-                      <h4 class="mt-3 text-xl font-black text-horizon-white">{{ entry.title }}</h4>
-                      <p class="mt-2 text-sm leading-6 text-text-secondary">{{ entry.excerpt || 'No excerpt yet.' }}</p>
-                      <div class="mt-3 text-xs text-text-muted">/{{ group.label }}/{{ entry.slug }}</div>
+                      <h2 class="mt-3 text-2xl font-black text-horizon-white">{{ topic.title }}</h2>
+                      <p class="mt-2 text-sm leading-6 text-text-secondary">{{ topic.description }}</p>
+                      <div class="mt-3 text-xs text-text-muted">/{{ topic.slug }} · Sort {{ topic.sort_order }}</div>
                     </div>
 
                     <div class="flex flex-wrap gap-2 lg:flex-col">
-                      <Link :href="entry.edit_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Edit</Link>
-                      <Link :href="entry.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
+                      <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Topic Entries</Link>
+                      <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
+                      <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
+                      <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTopic(topic)">Delete</HorizonButton>
                     </div>
                   </div>
                 </article>
               </div>
 
-              <div v-else class="hz-surface-welcome mt-4 rounded-3xl border border-dashed border-white/10 p-5 text-sm text-text-secondary">
-                No direct entries yet. Use <span class="font-bold text-horizon-white">Create Direct Entry</span> to add one without making a topic first.
+              <div v-else class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
+                No topics exist in this category yet. You can still use the direct entry actions above to add category-level documents right now.
               </div>
-            </div>
-
-            <div v-if="group.topics.length" class="mt-5 space-y-4">
-              <article v-for="topic in group.topics" :key="topic.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
-                <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-                  <div>
-                    <div class="flex flex-wrap gap-2">
-                      <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.minimum_rank_label }}</span>
-                      <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold" :class="topic.is_published ? 'text-emerald-300' : 'text-red-300'">{{ topic.is_published ? 'Published' : 'Draft' }}</span>
-                      <span class="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-text-muted">{{ topic.entries_count }} entries</span>
-                      <span class="rounded-full border px-3 py-1 text-xs font-semibold" :class="topic.preview_visible ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-red-300/25 bg-red-300/10 text-red-200'">
-                        {{ topic.preview_visible ? 'Visible in preview' : 'Hidden in preview' }}
-                      </span>
-                    </div>
-
-                    <h2 class="mt-3 text-2xl font-black text-horizon-white">{{ topic.title }}</h2>
-                    <p class="mt-2 text-sm leading-6 text-text-secondary">{{ topic.description }}</p>
-                    <div class="mt-3 text-xs text-text-muted">/{{ topic.slug }} · Sort {{ topic.sort_order }}</div>
-                  </div>
-
-                  <div class="flex flex-wrap gap-2 lg:flex-col">
-                    <Link :href="topic.entries_admin_href" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Manage Topic Entries</Link>
-                    <Link :href="topic.public_href" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">View</Link>
-                    <HorizonButton type="button" variant="ghost" size="sm" @click="startEdit(topic)">Edit</HorizonButton>
-                    <HorizonButton type="button" variant="danger" size="sm" @click="askDeleteTopic(topic)">Delete</HorizonButton>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            <div v-else class="hz-surface-welcome mt-5 rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
-              No topics exist in this category yet. You can still use the direct entry actions above to add category-level documents right now.
-            </div>
+            </template>
           </section>
         </div>
 
@@ -406,8 +473,6 @@ function confirmDeleteTopic({ close }) {
     </div>
   </HorizonContainer>
 </template>
-
-
 
 
 

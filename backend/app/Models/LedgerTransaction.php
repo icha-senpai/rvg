@@ -14,19 +14,24 @@ class LedgerTransaction extends Model
         'user_id',
         'squadron_id',
         'is_org_owned',
+        'transfer_request_id',
+        'reversal_of_transaction_id',
         'ledger_account_id',
         'wipe_cycle_id',
         'type',
         'amount',
         'currency',
         'source_type',
+        'transfer_direction',
         'description',
         'transaction_date',
         'related_ship_asset_id',
         'related_operation_id',
+        'operation_settlement_id',
         'related_uex_type',
         'related_uex_id',
         'notes',
+        'provenance_locked',
     ];
 
     protected function casts(): array
@@ -35,6 +40,7 @@ class LedgerTransaction extends Model
             'is_org_owned' => 'boolean',
             'amount' => 'decimal:2',
             'transaction_date' => 'datetime',
+            'provenance_locked' => 'boolean',
         ];
     }
 
@@ -63,8 +69,23 @@ class LedgerTransaction extends Model
         return $this->belongsTo(LedgerShipAsset::class, 'related_ship_asset_id');
     }
 
+    public function transferRequest(): BelongsTo
+    {
+        return $this->belongsTo(LedgerTransferRequest::class, 'transfer_request_id');
+    }
+
+    public function reversalOfTransaction(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reversal_of_transaction_id');
+    }
+
     public function operation(): BelongsTo
     {
         return $this->belongsTo(Operation::class, 'related_operation_id');
+    }
+
+    public function operationSettlement(): BelongsTo
+    {
+        return $this->belongsTo(OperationSettlement::class, 'operation_settlement_id');
     }
 }

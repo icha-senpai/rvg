@@ -44,12 +44,6 @@ onUnmounted(() => {
       @click.self="requestClose"
     ></div>
 
-    <!-- Ambient glow -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div class="absolute right-24 top-8 h-80 w-80 rounded-full bg-[color:var(--horizon-sunset-blue)]/18 blur-3xl"></div>
-      <div class="absolute bottom-10 right-8 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
-    </div>
-
     <!-- Drawer -->
     <aside
       :class="[
@@ -102,7 +96,6 @@ onUnmounted(() => {
     </aside>
   </div>
 </template>
-
 
 
 

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ledger\ReverseLedgerTransferRequest;
 use App\Http\Requests\Ledger\StoreLedgerTransferRequest;
 use App\Http\Requests\Ledger\StoreLedgerTransactionRequest;
+use App\Models\LedgerTransferRequest;
 use App\Models\LedgerTransaction;
 use App\Services\LedgerService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -30,9 +32,20 @@ class OrganizationLedgerTransactionController extends Controller
     {
         $this->authorize('manage-org-ledger');
 
-        $this->ledger->transferFundsFromOrganization($request->user(), $request->validated());
+        $result = $this->ledger->transferFundsFromOrganization($request->user(), $request->validated());
 
-        return back()->with('success', 'Funds transferred.');
+        return back()->with('success', $result['status'] === 'pending'
+            ? 'Transfer request sent for approval.'
+            : 'Funds transferred.');
+    }
+
+    public function reverseTransfer(ReverseLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('manage-org-ledger');
+
+        $this->ledger->reverseFundTransferForOrganization($request->user(), $transferRequest, $request->validated());
+
+        return back()->with('success', 'Transfer reversed.');
     }
 
     public function update(StoreLedgerTransactionRequest $request, LedgerTransaction $transaction)

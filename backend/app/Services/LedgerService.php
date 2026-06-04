@@ -8,6 +8,7 @@ use App\Models\LedgerActivityLog;
 use App\Models\LedgerInventoryItem;
 use App\Models\LedgerShipAsset;
 use App\Models\LedgerTrade;
+use App\Models\LedgerTransferRequest;
 use App\Models\LedgerTransaction;
 use App\Models\Squadron;
 use App\Models\User;
@@ -59,7 +60,7 @@ class LedgerService
                 ->where('user_id', $user->id)
                 ->whereNull('squadron_id')
                 ->where('is_org_owned', false)
-                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id'])
+                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title'])
                 ->orderByDesc('transaction_date')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -81,7 +82,7 @@ class LedgerService
                 ->where('user_id', $user->id)
                 ->whereNull('squadron_id')
                 ->where('is_org_owned', false)
-                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id'])
+                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title'])
                 ->orderByDesc('acquired_at')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -153,6 +154,9 @@ class LedgerService
             ],
             'transferTargets' => $this->transferTargetsFor($user, 'personal'),
             'transferInventoryOptions' => $this->transferInventoryOptions($allUserInventoryItems, $referenceMaps),
+            'pendingFundTransfers' => $this->pendingTransferRequestsForContext($user, $this->transferContextForPersonal($user), 'funds', $referenceMaps),
+            'pendingInventoryTransfers' => $this->pendingTransferRequestsForContext($user, $this->transferContextForPersonal($user), 'inventory', $referenceMaps),
+            'recentFundTransfers' => $this->recentFundTransfersForContext($user, $this->transferContextForPersonal($user)),
             'wipeCycles' => WipeCycle::query()
                 ->orderByDesc('is_current')
                 ->orderByDesc('started_at')
@@ -255,7 +259,7 @@ class LedgerService
             LedgerTransaction::query()
                 ->where('squadron_id', $squadron->id)
                 ->where('is_org_owned', false)
-                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'user:id,name,rsi_handle,discord_name'])
+                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title', 'user:id,name,rsi_handle,discord_name'])
                 ->orderByDesc('transaction_date')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -275,7 +279,7 @@ class LedgerService
             LedgerInventoryItem::query()
                 ->where('squadron_id', $squadron->id)
                 ->where('is_org_owned', false)
-                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'user:id,name,rsi_handle,discord_name'])
+                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title', 'user:id,name,rsi_handle,discord_name'])
                 ->orderByDesc('acquired_at')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -342,6 +346,9 @@ class LedgerService
             ],
             'transferTargets' => $viewer ? $this->transferTargetsFor($viewer, 'squadron', $squadron) : [],
             'transferInventoryOptions' => $this->transferInventoryOptions($allInventoryItems, $referenceMaps),
+            'pendingFundTransfers' => $viewer ? $this->pendingTransferRequestsForContext($viewer, $this->transferSquadronInboxContext($viewer, $squadron), 'funds', $referenceMaps) : [],
+            'pendingInventoryTransfers' => $viewer ? $this->pendingTransferRequestsForContext($viewer, $this->transferSquadronInboxContext($viewer, $squadron), 'inventory', $referenceMaps) : [],
+            'recentFundTransfers' => $viewer ? $this->recentFundTransfersForContext($viewer, $this->transferSquadronInboxContext($viewer, $squadron)) : [],
             'hasEntries' => $hasEntries,
             'memberCount' => $activeMembers->count(),
             'members' => $activeMembers->map(fn ($member) => [
@@ -486,7 +493,7 @@ class LedgerService
             LedgerTransaction::query()
                 ->where('is_org_owned', true)
                 ->whereNull('squadron_id')
-                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'user:id,name,rsi_handle,discord_name'])
+                ->with(['account:id,name', 'shipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title', 'user:id,name,rsi_handle,discord_name'])
                 ->orderByDesc('transaction_date')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -506,7 +513,7 @@ class LedgerService
             LedgerInventoryItem::query()
                 ->where('is_org_owned', true)
                 ->whereNull('squadron_id')
-                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'user:id,name,rsi_handle,discord_name'])
+                ->with(['assignedShipAsset:id,custom_name,serial_or_label,vehicle_uex_id', 'operation:id,title', 'user:id,name,rsi_handle,discord_name'])
                 ->orderByDesc('acquired_at')
                 ->orderByDesc('id'),
             $resolvedFilter
@@ -573,6 +580,9 @@ class LedgerService
             ],
             'transferTargets' => $this->transferTargetsFor($actor, 'organization'),
             'transferInventoryOptions' => $this->transferInventoryOptions($allInventoryItems, $referenceMaps),
+            'pendingFundTransfers' => $this->pendingTransferRequestsForContext($actor, $this->transferOrganizationInboxContext($actor), 'funds', $referenceMaps),
+            'pendingInventoryTransfers' => $this->pendingTransferRequestsForContext($actor, $this->transferOrganizationInboxContext($actor), 'inventory', $referenceMaps),
+            'recentFundTransfers' => $this->recentFundTransfersForContext($actor, $this->transferOrganizationInboxContext($actor)),
             'hasEntries' => $hasEntries,
             'wipeCycles' => WipeCycle::query()
                 ->orderByDesc('is_current')
@@ -650,6 +660,54 @@ class LedgerService
     public function buildAdminData(): array
     {
         $currentWipe = $this->ensureCurrentWipeCycle();
+        $references = $this->referenceOptions();
+        $inventorySuggestionMaps = $this->inventorySuggestionMaps($references);
+        $shipPricingMap = $this->suggestionMap($references['shipPricing'] ?? []);
+
+        $currentFilter = [
+            'mode' => 'specific',
+            'wipe' => $currentWipe,
+        ];
+
+        $allFilter = [
+            'mode' => 'all',
+            'wipe' => null,
+        ];
+
+        $currentTransactions = $this->applyWipeFilter(LedgerTransaction::query(), $currentFilter)->get();
+        $currentTrades = $this->applyWipeFilter(LedgerTrade::query(), $currentFilter)->get();
+        $currentInventoryItems = $this->applyWipeFilter(LedgerInventoryItem::query(), $currentFilter)->get();
+        $currentShipAssets = $this->applyWipeFilter(LedgerShipAsset::query(), $currentFilter)->get();
+
+        $allTransactions = LedgerTransaction::query()->get();
+        $allTrades = LedgerTrade::query()->get();
+        $allInventoryItems = LedgerInventoryItem::query()->get();
+        $allShipAssets = LedgerShipAsset::query()->get();
+
+        $currentSummary = $this->summarizeLedgerCollections(
+            $currentTransactions,
+            $currentTrades,
+            $currentInventoryItems,
+            $currentShipAssets,
+            $inventorySuggestionMaps,
+            $shipPricingMap
+        );
+
+        $currentReports = $this->buildReportsForCollections(
+            $currentTransactions,
+            $currentTrades,
+            $currentInventoryItems,
+            $currentShipAssets,
+            $currentFilter
+        );
+
+        $allReports = $this->buildReportsForCollections(
+            $allTransactions,
+            $allTrades,
+            $allInventoryItems,
+            $allShipAssets,
+            $allFilter
+        );
 
         return [
             'feature' => [
@@ -671,6 +729,36 @@ class LedgerService
                 'inventory_items' => LedgerInventoryItem::query()->count(),
                 'ship_assets' => LedgerShipAsset::query()->count(),
             ],
+            'analytics' => [
+                'snapshot' => [
+                    'net_position' => $currentSummary['estimated_balance'] ?? 0,
+                    'income' => $currentSummary['income'] ?? 0,
+                    'expenses' => $currentSummary['expenses'] ?? 0,
+                    'trade_profit' => $currentSummary['trade_profit'] ?? 0,
+                    'inventory_value' => $currentSummary['inventory_value'] ?? 0,
+                    'fleet_value' => $currentSummary['fleet_value'] ?? 0,
+                    'transaction_count' => $currentSummary['transaction_count'] ?? 0,
+                    'trade_count' => $currentSummary['trade_count'] ?? 0,
+                    'inventory_count' => $currentSummary['inventory_count'] ?? 0,
+                    'ship_count' => $currentSummary['ship_count'] ?? 0,
+                ],
+                'ownership' => $this->buildAdminOwnershipSummaries(
+                    $currentTransactions,
+                    $currentTrades,
+                    $currentInventoryItems,
+                    $currentShipAssets,
+                    $inventorySuggestionMaps,
+                    $shipPricingMap
+                ),
+                'reports' => [
+                    'cycle_profit_loss' => $allReports['profitLossByWipe'] ?? [],
+                    'income_by_source' => $currentReports['incomeBySource'] ?? [],
+                    'expenses_by_source' => $currentReports['expensesBySource'] ?? [],
+                    'trade_profit_by_commodity' => $currentReports['tradeProfitByCommodity'] ?? [],
+                    'inventory_value_by_category' => $currentReports['inventoryValueByCategory'] ?? [],
+                    'ship_summary_by_status' => $currentReports['shipSummaryByStatus'] ?? [],
+                ],
+            ],
             'wipeCycles' => WipeCycle::query()
                 ->orderByDesc('is_current')
                 ->orderByDesc('started_at')
@@ -689,6 +777,88 @@ class LedgerService
                 ->values()
                 ->all(),
         ];
+    }
+
+    protected function buildAdminOwnershipSummaries(
+        Collection $transactions,
+        Collection $trades,
+        Collection $inventoryItems,
+        Collection $shipAssets,
+        array $inventorySuggestionMaps,
+        Collection $shipPricingMap
+    ): array {
+        $ownershipScopes = [
+            [
+                'key' => 'personal',
+                'label' => 'Personal Ledgers',
+                'description' => 'Member-owned books and balances.',
+                'account_count' => LedgerAccount::query()
+                    ->whereNull('squadron_id')
+                    ->where('is_org_owned', false)
+                    ->count(),
+                'transactions' => $transactions->filter(fn (LedgerTransaction $transaction) => blank($transaction->squadron_id) && ! $transaction->is_org_owned)->values(),
+                'trades' => $trades->filter(fn (LedgerTrade $trade) => blank($trade->squadron_id) && ! $trade->is_org_owned)->values(),
+                'inventory' => $inventoryItems->filter(fn (LedgerInventoryItem $item) => blank($item->squadron_id) && ! $item->is_org_owned)->values(),
+                'ships' => $shipAssets->filter(fn (LedgerShipAsset $asset) => blank($asset->squadron_id) && ! $asset->is_org_owned)->values(),
+            ],
+            [
+                'key' => 'squadron',
+                'label' => 'Squadron Ledgers',
+                'description' => 'Shared squadron books and pooled assets.',
+                'account_count' => LedgerAccount::query()
+                    ->whereNotNull('squadron_id')
+                    ->where('is_org_owned', false)
+                    ->count(),
+                'transactions' => $transactions->filter(fn (LedgerTransaction $transaction) => filled($transaction->squadron_id) && ! $transaction->is_org_owned)->values(),
+                'trades' => $trades->filter(fn (LedgerTrade $trade) => filled($trade->squadron_id) && ! $trade->is_org_owned)->values(),
+                'inventory' => $inventoryItems->filter(fn (LedgerInventoryItem $item) => filled($item->squadron_id) && ! $item->is_org_owned)->values(),
+                'ships' => $shipAssets->filter(fn (LedgerShipAsset $asset) => filled($asset->squadron_id) && ! $asset->is_org_owned)->values(),
+            ],
+            [
+                'key' => 'organization',
+                'label' => 'Org Treasury',
+                'description' => 'Horizon-owned reserves and shared capital.',
+                'account_count' => LedgerAccount::query()
+                    ->whereNull('squadron_id')
+                    ->where('is_org_owned', true)
+                    ->count(),
+                'transactions' => $transactions->filter(fn (LedgerTransaction $transaction) => blank($transaction->squadron_id) && $transaction->is_org_owned)->values(),
+                'trades' => $trades->filter(fn (LedgerTrade $trade) => blank($trade->squadron_id) && $trade->is_org_owned)->values(),
+                'inventory' => $inventoryItems->filter(fn (LedgerInventoryItem $item) => blank($item->squadron_id) && $item->is_org_owned)->values(),
+                'ships' => $shipAssets->filter(fn (LedgerShipAsset $asset) => blank($asset->squadron_id) && $asset->is_org_owned)->values(),
+            ],
+        ];
+
+        return collect($ownershipScopes)
+            ->map(function (array $scope) use ($inventorySuggestionMaps, $shipPricingMap) {
+                $cards = $this->summarizeLedgerCollections(
+                    $scope['transactions'],
+                    $scope['trades'],
+                    $scope['inventory'],
+                    $scope['ships'],
+                    $inventorySuggestionMaps,
+                    $shipPricingMap
+                );
+
+                return [
+                    'key' => $scope['key'],
+                    'label' => $scope['label'],
+                    'description' => $scope['description'],
+                    'account_count' => $scope['account_count'],
+                    'record_count' => $scope['transactions']->count()
+                        + $scope['trades']->count()
+                        + $scope['inventory']->count()
+                        + $scope['ships']->count(),
+                    'cards' => [
+                        'net_position' => $cards['estimated_balance'] ?? 0,
+                        'trade_profit' => $cards['trade_profit'] ?? 0,
+                        'inventory_value' => $cards['inventory_value'] ?? 0,
+                        'fleet_value' => $cards['fleet_value'] ?? 0,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function createTransaction(User $actor, User $owner, array $data): LedgerTransaction
@@ -730,9 +900,11 @@ class LedgerService
                 'transaction_date' => $data['transaction_date'] ?? now(),
                 'related_ship_asset_id' => $this->resolveShipAssetId($owner, $data['related_ship_asset_id'] ?? null),
                 'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'related_uex_type' => $data['related_uex_type'] ?? null,
                 'related_uex_id' => $data['related_uex_id'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
             ]);
 
             $this->logActivity($actor, $owner, $wipeCycle, 'transaction.created', $transaction, [
@@ -821,6 +993,8 @@ class LedgerService
                 'squadron_id' => null,
                 'is_org_owned' => false,
                 'wipe_cycle_id' => $wipeCycle->id,
+                'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'source_type' => $sourceType,
                 'uex_reference_type' => $data['uex_reference_type'] ?? $sourceType,
                 'uex_reference_id' => $referenceId,
@@ -835,6 +1009,7 @@ class LedgerService
                 'estimated_value' => $data['estimated_value'] ?? null,
                 'currency' => $data['currency'] ?? 'aUEC',
                 'status' => $data['status'] ?? 'owned',
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
                 'acquired_at' => $data['acquired_at'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -1153,9 +1328,11 @@ class LedgerService
                 'transaction_date' => $data['transaction_date'] ?? now(),
                 'related_ship_asset_id' => $this->resolveSquadronShipAssetId($squadron, $data['related_ship_asset_id'] ?? null),
                 'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'related_uex_type' => $data['related_uex_type'] ?? null,
                 'related_uex_id' => $data['related_uex_id'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
             ]);
 
             $this->logActivity($actor, $actor, $wipeCycle, 'transaction.created', $transaction, [
@@ -1375,6 +1552,8 @@ class LedgerService
                 'squadron_id' => $squadron->id,
                 'is_org_owned' => false,
                 'wipe_cycle_id' => $wipeCycle->id,
+                'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'source_type' => $sourceType,
                 'uex_reference_type' => $data['uex_reference_type'] ?? ($sourceType === 'custom' ? null : $sourceType),
                 'uex_reference_id' => $referenceId,
@@ -1389,6 +1568,7 @@ class LedgerService
                 'estimated_value' => $data['estimated_value'] ?? null,
                 'currency' => $data['currency'] ?? 'aUEC',
                 'status' => $data['status'] ?? 'owned',
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
                 'acquired_at' => $data['acquired_at'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -1425,6 +1605,8 @@ class LedgerService
 
             $item->forceFill([
                 'wipe_cycle_id' => $wipeCycle->id,
+                'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'source_type' => $sourceType,
                 'uex_reference_type' => $data['uex_reference_type'] ?? ($sourceType === 'custom' ? null : $sourceType),
                 'uex_reference_id' => $referenceId,
@@ -1482,6 +1664,7 @@ class LedgerService
                 'acquisition_source' => $data['acquisition_source'] ?? null,
                 'current_location' => $data['current_location'] ?? null,
                 'status' => $data['status'] ?? 'owned',
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
                 'acquired_at' => $data['acquired_at'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -1576,9 +1759,11 @@ class LedgerService
                 'transaction_date' => $data['transaction_date'] ?? now(),
                 'related_ship_asset_id' => $this->resolveOrgShipAssetId($data['related_ship_asset_id'] ?? null),
                 'related_operation_id' => $data['related_operation_id'] ?? null,
+                'operation_settlement_id' => $data['operation_settlement_id'] ?? null,
                 'related_uex_type' => $data['related_uex_type'] ?? null,
                 'related_uex_id' => $data['related_uex_id'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'provenance_locked' => (bool) ($data['provenance_locked'] ?? false),
             ]);
 
             $this->logActivity($actor, $actor, $wipeCycle, 'transaction.created', $transaction, [
@@ -2014,6 +2199,61 @@ class LedgerService
         );
     }
 
+    public function approvePendingFundTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->approveTransferRequestForContext($actor, $transferRequest, $this->transferPersonalInboxContext($actor), 'funds');
+    }
+
+    public function rejectPendingFundTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->rejectTransferRequestForContext($actor, $transferRequest, $this->transferPersonalInboxContext($actor), 'funds', $data);
+    }
+
+    public function approvePendingInventoryTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->approveTransferRequestForContext($actor, $transferRequest, $this->transferPersonalInboxContext($actor), 'inventory');
+    }
+
+    public function rejectPendingInventoryTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->rejectTransferRequestForContext($actor, $transferRequest, $this->transferPersonalInboxContext($actor), 'inventory', $data);
+    }
+
+    public function approvePendingFundTransferForSquadron(User $actor, Squadron $squadron, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->approveTransferRequestForContext($actor, $transferRequest, $this->transferSquadronInboxContext($actor, $squadron), 'funds');
+    }
+
+    public function rejectPendingFundTransferForSquadron(User $actor, Squadron $squadron, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->rejectTransferRequestForContext($actor, $transferRequest, $this->transferSquadronInboxContext($actor, $squadron), 'funds', $data);
+    }
+
+    public function approvePendingInventoryTransferForSquadron(User $actor, Squadron $squadron, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->approveTransferRequestForContext($actor, $transferRequest, $this->transferSquadronInboxContext($actor, $squadron), 'inventory');
+    }
+
+    public function rejectPendingInventoryTransferForSquadron(User $actor, Squadron $squadron, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->rejectTransferRequestForContext($actor, $transferRequest, $this->transferSquadronInboxContext($actor, $squadron), 'inventory', $data);
+    }
+
+    public function reverseFundTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest, array $data = []): array
+    {
+        return $this->reverseCompletedFundTransferForContext($actor, $transferRequest, $this->transferPersonalInboxContext($actor), $data);
+    }
+
+    public function reverseFundTransferForSquadron(User $actor, Squadron $squadron, LedgerTransferRequest $transferRequest, array $data = []): array
+    {
+        return $this->reverseCompletedFundTransferForContext($actor, $transferRequest, $this->transferSquadronInboxContext($actor, $squadron), $data);
+    }
+
+    public function reverseFundTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest, array $data = []): array
+    {
+        return $this->reverseCompletedFundTransferForContext($actor, $transferRequest, $this->transferOrganizationInboxContext($actor), $data);
+    }
+
     protected function performFundTransfer(User $actor, array $sourceContext, array $data): array
     {
         return DB::transaction(function () use ($actor, $sourceContext, $data) {
@@ -2029,70 +2269,26 @@ class LedgerService
 
             $memo = trim((string) ($data['description'] ?? ''));
             $transactionDate = $data['transaction_date'] ?? now();
-
-            $outgoing = LedgerTransaction::query()->create([
-                'user_id' => $sourceContext['user_id'],
-                'squadron_id' => $sourceContext['squadron_id'],
-                'is_org_owned' => $sourceContext['is_org_owned'],
-                'ledger_account_id' => $sourceContext['account']->id,
-                'wipe_cycle_id' => $wipeCycle->id,
-                'type' => 'expense',
-                'amount' => $amount,
-                'currency' => $sourceContext['account']->currency ?? 'aUEC',
-                'source_type' => 'transfer',
-                'description' => "Transfer to {$destinationContext['label']}: {$memo}",
-                'transaction_date' => $transactionDate,
-                'notes' => $data['notes'] ?? null,
-            ]);
-
-            $incoming = LedgerTransaction::query()->create([
-                'user_id' => $destinationContext['user_id'],
-                'squadron_id' => $destinationContext['squadron_id'],
-                'is_org_owned' => $destinationContext['is_org_owned'],
-                'ledger_account_id' => $destinationContext['account']->id,
-                'wipe_cycle_id' => $wipeCycle->id,
-                'type' => 'income',
-                'amount' => $amount,
-                'currency' => $destinationContext['account']->currency ?? 'aUEC',
-                'source_type' => 'transfer',
-                'description' => "Transfer from {$sourceContext['label']}: {$memo}",
-                'transaction_date' => $transactionDate,
-                'notes' => $data['notes'] ?? null,
-            ]);
-
-            $metadata = [
+            $transferRequest = $this->createTransferRequestRecord('funds', $actor, $wipeCycle, $sourceContext, $destinationContext, [
                 'amount' => $amount,
                 'currency' => $sourceContext['account']->currency ?? 'aUEC',
                 'description' => $memo,
-                'from_label' => $sourceContext['label'],
-                'to_label' => $destinationContext['label'],
-            ];
+                'transaction_date' => $transactionDate,
+                'notes' => $data['notes'] ?? null,
+            ]);
 
-            $this->logActivity(
-                $actor,
-                $sourceContext['subject_user'],
-                $wipeCycle,
-                'transfer.created',
-                $outgoing,
-                array_merge($metadata, ['direction' => 'outgoing']),
-                $sourceContext['squadron'],
-                $sourceContext['is_org_owned']
-            );
+            if ($this->transferRequiresApproval($actor, $sourceContext, $destinationContext)) {
+                $this->logPendingTransferRequest($actor, $transferRequest, $sourceContext, $destinationContext);
 
-            $this->logActivity(
-                $actor,
-                $destinationContext['subject_user'],
-                $wipeCycle,
-                'transfer.created',
-                $incoming,
-                array_merge($metadata, ['direction' => 'incoming']),
-                $destinationContext['squadron'],
-                $destinationContext['is_org_owned']
-            );
+                return [
+                    'status' => 'pending',
+                    'request' => $transferRequest->fresh(),
+                ];
+            }
 
             return [
-                'outgoing' => $outgoing,
-                'incoming' => $incoming,
+                'status' => 'completed',
+                ...$this->completeFundTransferRequest($actor, $transferRequest, $sourceContext, $destinationContext),
             ];
         });
     }
@@ -2121,66 +2317,452 @@ class LedgerService
             $itemLabel = $sourceItem->custom_name
                 ?: $this->resolveReferenceLabel($sourceItem->uex_reference_type, $sourceItem->uex_reference_id, $this->referenceMaps())
                 ?: 'Inventory item';
-            $metadata = [
+            $transferRequest = $this->createTransferRequestRecord('inventory', $actor, $sourceItem->wipeCycle, $sourceContext, $destinationContext, [
                 'quantity' => $requestedQuantity,
-                'item_label' => $itemLabel,
+                'currency' => $sourceItem->currency ?? 'aUEC',
+                'description' => $itemLabel,
+                'notes' => $data['notes'] ?? null,
+                'source_inventory_item_id' => $sourceItem->id,
+            ]);
+
+            if ($this->transferRequiresApproval($actor, $sourceContext, $destinationContext)) {
+                $this->logPendingInventoryTransferRequest($actor, $transferRequest, $sourceContext, $destinationContext, $itemLabel, $requestedQuantity);
+
+                return [
+                    'status' => 'pending',
+                    'request' => $transferRequest->fresh(),
+                ];
+            }
+
+            return [
+                'status' => 'completed',
+                ...$this->completeInventoryTransferRequest($actor, $transferRequest, $sourceContext, $destinationContext, $sourceItem, $requestedQuantity),
+            ];
+        });
+    }
+
+    protected function createTransferRequestRecord(
+        string $transferKind,
+        User $actor,
+        ?WipeCycle $wipeCycle,
+        array $sourceContext,
+        array $destinationContext,
+        array $attributes
+    ): LedgerTransferRequest {
+        return LedgerTransferRequest::query()->create([
+            'transfer_kind' => $transferKind,
+            'status' => 'pending',
+            'requested_by_user_id' => $actor->id,
+            'wipe_cycle_id' => $wipeCycle?->id,
+            'source_user_id' => $sourceContext['user_id'] ?? $actor->id,
+            'source_squadron_id' => $sourceContext['squadron_id'] ?? null,
+            'source_is_org_owned' => (bool) ($sourceContext['is_org_owned'] ?? false),
+            'destination_user_id' => $destinationContext['type'] === 'personal'
+                ? ($destinationContext['user_id'] ?? null)
+                : null,
+            'destination_squadron_id' => $destinationContext['squadron_id'] ?? null,
+            'destination_is_org_owned' => (bool) ($destinationContext['is_org_owned'] ?? false),
+            'amount' => $attributes['amount'] ?? null,
+            'quantity' => $attributes['quantity'] ?? null,
+            'currency' => $attributes['currency'] ?? 'aUEC',
+            'description' => $attributes['description'] ?? null,
+            'transaction_date' => $attributes['transaction_date'] ?? null,
+            'notes' => $attributes['notes'] ?? null,
+            'source_inventory_item_id' => $attributes['source_inventory_item_id'] ?? null,
+        ]);
+    }
+
+    protected function transferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
+    {
+        if (
+            $sourceContext['type'] === 'personal'
+            && $destinationContext['type'] === 'personal'
+            && (int) ($sourceContext['user_id'] ?? 0) !== (int) ($destinationContext['user_id'] ?? 0)
+        ) {
+            return true;
+        }
+
+        if (
+            $destinationContext['type'] === 'squadron'
+            && ($destinationContext['squadron'] ?? null) instanceof Squadron
+            && ! $this->canActorDirectlySendIntoSquadron($actor, $destinationContext['squadron'])
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function canActorDirectlySendIntoSquadron(User $actor, Squadron $squadron): bool
+    {
+        if ($squadron->members()->where('user_id', $actor->id)->where('membership_status', 'active')->exists()) {
+            return true;
+        }
+
+        return app(AccessService::class)->canManageSquadronLedger($actor, $squadron);
+    }
+
+    protected function logPendingTransferRequest(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $sourceContext,
+        array $destinationContext
+    ): void {
+        $metadata = [
+            'amount' => (float) ($transferRequest->amount ?? 0),
+            'currency' => $transferRequest->currency ?? 'aUEC',
+            'description' => $transferRequest->description,
+            'from_label' => $sourceContext['label'],
+            'to_label' => $destinationContext['label'],
+        ];
+
+        $this->logActivity(
+            $actor,
+            $sourceContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'transfer.requested',
+            $transferRequest,
+            array_merge($metadata, ['direction' => 'outgoing']),
+            $sourceContext['squadron'],
+            $sourceContext['is_org_owned']
+        );
+
+        $this->logActivity(
+            $actor,
+            $destinationContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'transfer.requested',
+            $transferRequest,
+            array_merge($metadata, ['direction' => 'incoming']),
+            $destinationContext['squadron'],
+            $destinationContext['is_org_owned']
+        );
+    }
+
+    protected function logPendingInventoryTransferRequest(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $sourceContext,
+        array $destinationContext,
+        string $itemLabel,
+        float $quantity
+    ): void {
+        $metadata = [
+            'quantity' => $quantity,
+            'item_label' => $itemLabel,
+            'from_label' => $sourceContext['label'],
+            'to_label' => $destinationContext['label'],
+        ];
+
+        $this->logActivity(
+            $actor,
+            $sourceContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'inventory.transfer_requested',
+            $transferRequest,
+            array_merge($metadata, ['direction' => 'outgoing']),
+            $sourceContext['squadron'],
+            $sourceContext['is_org_owned']
+        );
+
+        $this->logActivity(
+            $actor,
+            $destinationContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'inventory.transfer_requested',
+            $transferRequest,
+            array_merge($metadata, ['direction' => 'incoming']),
+            $destinationContext['squadron'],
+            $destinationContext['is_org_owned']
+        );
+    }
+
+    protected function completeFundTransferRequest(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        ?array $sourceContext = null,
+        ?array $destinationContext = null
+    ): array {
+        $sourceContext ??= $this->transferContextForRequestSource($transferRequest);
+        $destinationContext ??= $this->transferContextForRequestDestination($transferRequest);
+
+        $memo = trim((string) ($transferRequest->description ?? ''));
+        $transactionDate = $transferRequest->transaction_date ?? now();
+        $amount = round((float) ($transferRequest->amount ?? 0), 2);
+
+        $outgoing = LedgerTransaction::query()->create([
+            'user_id' => $sourceContext['user_id'],
+            'squadron_id' => $sourceContext['squadron_id'],
+            'is_org_owned' => $sourceContext['is_org_owned'],
+            'transfer_request_id' => $transferRequest->id,
+            'ledger_account_id' => $sourceContext['account']->id,
+            'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+            'type' => 'expense',
+            'amount' => $amount,
+            'currency' => $sourceContext['account']->currency ?? 'aUEC',
+            'source_type' => 'transfer',
+            'transfer_direction' => 'outgoing',
+            'description' => "Transfer to {$destinationContext['label']}: {$memo}",
+            'transaction_date' => $transactionDate,
+            'notes' => $transferRequest->notes,
+        ]);
+
+        $incoming = LedgerTransaction::query()->create([
+            'user_id' => $destinationContext['user_id'],
+            'squadron_id' => $destinationContext['squadron_id'],
+            'is_org_owned' => $destinationContext['is_org_owned'],
+            'transfer_request_id' => $transferRequest->id,
+            'ledger_account_id' => $destinationContext['account']->id,
+            'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+            'type' => 'income',
+            'amount' => $amount,
+            'currency' => $destinationContext['account']->currency ?? 'aUEC',
+            'source_type' => 'transfer',
+            'transfer_direction' => 'incoming',
+            'description' => "Transfer from {$sourceContext['label']}: {$memo}",
+            'transaction_date' => $transactionDate,
+            'notes' => $transferRequest->notes,
+        ]);
+
+        $transferRequest->forceFill([
+            'status' => 'completed',
+            'approval_user_id' => $actor->id,
+            'approved_at' => now(),
+            'completed_at' => now(),
+            'outgoing_transaction_id' => $outgoing->id,
+            'incoming_transaction_id' => $incoming->id,
+        ])->save();
+
+        $metadata = [
+            'amount' => $amount,
+            'currency' => $sourceContext['account']->currency ?? 'aUEC',
+            'description' => $memo,
+            'from_label' => $sourceContext['label'],
+            'to_label' => $destinationContext['label'],
+        ];
+
+        $this->logActivity(
+            $actor,
+            $sourceContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'transfer.created',
+            $outgoing,
+            array_merge($metadata, ['direction' => 'outgoing']),
+            $sourceContext['squadron'],
+            $sourceContext['is_org_owned']
+        );
+
+        $this->logActivity(
+            $actor,
+            $destinationContext['subject_user'],
+            $transferRequest->wipeCycle,
+            'transfer.created',
+            $incoming,
+            array_merge($metadata, ['direction' => 'incoming']),
+            $destinationContext['squadron'],
+            $destinationContext['is_org_owned']
+        );
+
+        return [
+            'request' => $transferRequest->fresh(),
+            'outgoing' => $outgoing,
+            'incoming' => $incoming,
+        ];
+    }
+
+    protected function completeInventoryTransferRequest(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        ?array $sourceContext = null,
+        ?array $destinationContext = null,
+        ?LedgerInventoryItem $sourceItem = null,
+        ?float $requestedQuantity = null
+    ): array {
+        $sourceContext ??= $this->transferContextForRequestSource($transferRequest);
+        $destinationContext ??= $this->transferContextForRequestDestination($transferRequest);
+        $sourceItem ??= $this->resolveInventoryTransferItem(
+            $sourceContext,
+            (int) $transferRequest->source_inventory_item_id
+        );
+        $requestedQuantity ??= round((float) ($transferRequest->quantity ?? 0), 4);
+
+        $availableQuantity = round((float) $sourceItem->quantity, 4);
+
+        if ($requestedQuantity <= 0 || $requestedQuantity > $availableQuantity) {
+            throw ValidationException::withMessages([
+                'quantity' => 'That inventory move can no longer be completed because the available quantity changed.',
+            ]);
+        }
+
+        $fullTransfer = abs($requestedQuantity - $availableQuantity) < 0.0001;
+        $itemLabel = $sourceItem->custom_name
+            ?: $this->resolveReferenceLabel($sourceItem->uex_reference_type, $sourceItem->uex_reference_id, $this->referenceMaps())
+            ?: 'Inventory item';
+        $metadata = [
+            'quantity' => $requestedQuantity,
+            'item_label' => $itemLabel,
+            'from_label' => $sourceContext['label'],
+            'to_label' => $destinationContext['label'],
+        ];
+
+        if ($fullTransfer) {
+            $sourceItem->forceFill([
+                'user_id' => $destinationContext['user_id'],
+                'squadron_id' => $destinationContext['squadron_id'],
+                'is_org_owned' => $destinationContext['is_org_owned'],
+                'assigned_ship_asset_id' => null,
+                'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
+                'transfer_request_id' => $transferRequest->id,
+                'provenance_locked' => true,
+            ])->save();
+
+            $destinationItem = $sourceItem->fresh();
+        } else {
+            $sourceQuantity = (float) $sourceItem->quantity;
+            $remainingQuantity = round($sourceQuantity - $requestedQuantity, 4);
+
+            [$remainingPurchasePrice, $movedPurchasePrice] = $this->splitInventoryValue($sourceItem->purchase_price, $sourceQuantity, $requestedQuantity);
+            [$remainingEstimatedValue, $movedEstimatedValue] = $this->splitInventoryValue($sourceItem->estimated_value, $sourceQuantity, $requestedQuantity);
+
+            $sourceItem->forceFill([
+                'quantity' => $remainingQuantity,
+                'purchase_price' => $remainingPurchasePrice,
+                'estimated_value' => $remainingEstimatedValue,
+                'transfer_request_id' => $transferRequest->id,
+                'provenance_locked' => true,
+            ])->save();
+
+            $destinationItem = LedgerInventoryItem::query()->create([
+                'user_id' => $destinationContext['user_id'],
+                'squadron_id' => $destinationContext['squadron_id'],
+                'is_org_owned' => $destinationContext['is_org_owned'],
+                'wipe_cycle_id' => $sourceItem->wipe_cycle_id,
+                'transfer_request_id' => $transferRequest->id,
+                'transfer_origin_item_id' => $sourceItem->transfer_origin_item_id ?: $sourceItem->id,
+                'source_type' => $sourceItem->source_type,
+                'uex_reference_type' => $sourceItem->uex_reference_type,
+                'uex_reference_id' => $sourceItem->uex_reference_id,
+                'custom_name' => $sourceItem->custom_name,
+                'category' => $sourceItem->category,
+                'quantity' => $requestedQuantity,
+                'unit_label' => $sourceItem->unit_label,
+                'location_name' => $sourceItem->location_name,
+                'terminal_uex_id' => $sourceItem->terminal_uex_id,
+                'assigned_ship_asset_id' => null,
+                'purchase_price' => $movedPurchasePrice,
+                'estimated_value' => $movedEstimatedValue,
+                'currency' => $sourceItem->currency,
+                'status' => $sourceItem->status,
+                'provenance_locked' => true,
+                'acquired_at' => $sourceItem->acquired_at,
+                'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
+            ]);
+        }
+
+        $transferRequest->forceFill([
+            'status' => 'completed',
+            'approval_user_id' => $actor->id,
+            'approved_at' => now(),
+            'completed_at' => now(),
+            'destination_inventory_item_id' => $destinationItem->id,
+        ])->save();
+
+        $this->logActivity(
+            $actor,
+            $sourceContext['subject_user'],
+            $sourceItem->wipeCycle,
+            'inventory.transfer_out',
+            $sourceItem,
+            $metadata,
+            $sourceContext['squadron'],
+            $sourceContext['is_org_owned']
+        );
+
+        $this->logActivity(
+            $actor,
+            $destinationContext['subject_user'],
+            $destinationItem->wipeCycle,
+            'inventory.transfer_in',
+            $destinationItem,
+            $metadata,
+            $destinationContext['squadron'],
+            $destinationContext['is_org_owned']
+        );
+
+        return [
+            'request' => $transferRequest->fresh(),
+            'source' => $sourceItem->fresh(),
+            'destination' => $destinationItem->fresh(),
+        ];
+    }
+
+    protected function approveTransferRequestForContext(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $context,
+        string $transferKind
+    ): array {
+        return DB::transaction(function () use ($actor, $transferRequest, $context, $transferKind) {
+            $transferRequest = $transferRequest->fresh([
+                'wipeCycle',
+                'requestedBy',
+                'sourceUser',
+                'destinationUser',
+                'sourceSquadron',
+                'destinationSquadron',
+                'sourceInventoryItem.wipeCycle',
+            ]);
+
+            $this->assertPendingTransferRequestForContext($transferRequest, $context, $transferKind);
+
+            return $transferKind === 'funds'
+                ? $this->completeFundTransferRequest($actor, $transferRequest)
+                : $this->completeInventoryTransferRequest($actor, $transferRequest);
+        });
+    }
+
+    protected function rejectTransferRequestForContext(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $context,
+        string $transferKind,
+        array $data = []
+    ): LedgerTransferRequest {
+        return DB::transaction(function () use ($actor, $transferRequest, $context, $transferKind, $data) {
+            $transferRequest = $transferRequest->fresh([
+                'wipeCycle',
+                'sourceUser',
+                'destinationUser',
+                'sourceSquadron',
+                'destinationSquadron',
+            ]);
+
+            $this->assertPendingTransferRequestForContext($transferRequest, $context, $transferKind);
+
+            $sourceContext = $this->transferContextForRequestSource($transferRequest);
+            $destinationContext = $this->transferContextForRequestDestination($transferRequest);
+
+            $transferRequest->forceFill([
+                'status' => 'rejected',
+                'approval_user_id' => $actor->id,
+                'rejected_at' => now(),
+                'rejection_reason' => $data['rejection_reason'] ?? null,
+            ])->save();
+
+            $metadata = [
+                'description' => $transferRequest->description,
                 'from_label' => $sourceContext['label'],
                 'to_label' => $destinationContext['label'],
+                'item_label' => $transferKind === 'inventory' ? $this->resolveTransferRequestItemLabel($transferRequest) : null,
+                'quantity' => $transferKind === 'inventory' ? (float) ($transferRequest->quantity ?? 0) : null,
             ];
-
-            if ($fullTransfer) {
-                $sourceItem->forceFill([
-                    'user_id' => $destinationContext['user_id'],
-                    'squadron_id' => $destinationContext['squadron_id'],
-                    'is_org_owned' => $destinationContext['is_org_owned'],
-                    'assigned_ship_asset_id' => null,
-                    'notes' => $this->appendTransferNote($sourceItem->notes, $data['notes'] ?? null),
-                ])->save();
-
-                $destinationItem = $sourceItem->fresh();
-            } else {
-                $sourceQuantity = (float) $sourceItem->quantity;
-                $remainingQuantity = round($sourceQuantity - $requestedQuantity, 4);
-
-                [$remainingPurchasePrice, $movedPurchasePrice] = $this->splitInventoryValue($sourceItem->purchase_price, $sourceQuantity, $requestedQuantity);
-                [$remainingEstimatedValue, $movedEstimatedValue] = $this->splitInventoryValue($sourceItem->estimated_value, $sourceQuantity, $requestedQuantity);
-
-                $sourceItem->forceFill([
-                    'quantity' => $remainingQuantity,
-                    'purchase_price' => $remainingPurchasePrice,
-                    'estimated_value' => $remainingEstimatedValue,
-                ])->save();
-
-                $destinationItem = LedgerInventoryItem::query()->create([
-                    'user_id' => $destinationContext['user_id'],
-                    'squadron_id' => $destinationContext['squadron_id'],
-                    'is_org_owned' => $destinationContext['is_org_owned'],
-                    'wipe_cycle_id' => $sourceItem->wipe_cycle_id,
-                    'source_type' => $sourceItem->source_type,
-                    'uex_reference_type' => $sourceItem->uex_reference_type,
-                    'uex_reference_id' => $sourceItem->uex_reference_id,
-                    'custom_name' => $sourceItem->custom_name,
-                    'category' => $sourceItem->category,
-                    'quantity' => $requestedQuantity,
-                    'unit_label' => $sourceItem->unit_label,
-                    'location_name' => $sourceItem->location_name,
-                    'terminal_uex_id' => $sourceItem->terminal_uex_id,
-                    'assigned_ship_asset_id' => null,
-                    'purchase_price' => $movedPurchasePrice,
-                    'estimated_value' => $movedEstimatedValue,
-                    'currency' => $sourceItem->currency,
-                    'status' => $sourceItem->status,
-                    'acquired_at' => $sourceItem->acquired_at,
-                    'notes' => $this->appendTransferNote($sourceItem->notes, $data['notes'] ?? null),
-                ]);
-            }
 
             $this->logActivity(
                 $actor,
                 $sourceContext['subject_user'],
-                $sourceItem->wipeCycle,
-                'inventory.transfer_out',
-                $sourceItem,
+                $transferRequest->wipeCycle,
+                $transferKind === 'funds' ? 'transfer.rejected' : 'inventory.transfer_rejected',
+                $transferRequest,
                 $metadata,
                 $sourceContext['squadron'],
                 $sourceContext['is_org_owned']
@@ -2189,17 +2771,124 @@ class LedgerService
             $this->logActivity(
                 $actor,
                 $destinationContext['subject_user'],
-                $destinationItem->wipeCycle,
-                'inventory.transfer_in',
-                $destinationItem,
+                $transferRequest->wipeCycle,
+                $transferKind === 'funds' ? 'transfer.rejected' : 'inventory.transfer_rejected',
+                $transferRequest,
                 $metadata,
                 $destinationContext['squadron'],
                 $destinationContext['is_org_owned']
             );
 
+            return $transferRequest->fresh();
+        });
+    }
+
+    protected function reverseCompletedFundTransferForContext(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $context,
+        array $data = []
+    ): array {
+        return DB::transaction(function () use ($actor, $transferRequest, $context, $data) {
+            $transferRequest = $transferRequest->fresh([
+                'wipeCycle',
+                'requestedBy',
+                'sourceUser',
+                'destinationUser',
+                'sourceSquadron',
+                'destinationSquadron',
+                'outgoingTransaction',
+                'incomingTransaction',
+            ]);
+
+            $this->assertCompletedFundTransferCanBeReversed($actor, $transferRequest, $context);
+
+            $sourceContext = $this->transferContextForRequestSource($transferRequest);
+            $destinationContext = $this->transferContextForRequestDestination($transferRequest);
+            $amount = round((float) ($transferRequest->amount ?? 0), 2);
+            $memo = trim((string) ($transferRequest->description ?? ''));
+            $reversalDate = now();
+            $reversalNotes = $data['reversal_notes'] ?? null;
+
+            $sourceReversal = LedgerTransaction::query()->create([
+                'user_id' => $sourceContext['user_id'],
+                'squadron_id' => $sourceContext['squadron_id'],
+                'is_org_owned' => $sourceContext['is_org_owned'],
+                'transfer_request_id' => $transferRequest->id,
+                'reversal_of_transaction_id' => $transferRequest->outgoing_transaction_id,
+                'ledger_account_id' => $sourceContext['account']->id,
+                'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+                'type' => 'income',
+                'amount' => $amount,
+                'currency' => $sourceContext['account']->currency ?? 'aUEC',
+                'source_type' => 'transfer_reversal',
+                'transfer_direction' => 'reversal',
+                'description' => "Transfer reversal from {$destinationContext['label']}: {$memo}",
+                'transaction_date' => $reversalDate,
+                'notes' => $reversalNotes,
+            ]);
+
+            $destinationReversal = LedgerTransaction::query()->create([
+                'user_id' => $destinationContext['user_id'],
+                'squadron_id' => $destinationContext['squadron_id'],
+                'is_org_owned' => $destinationContext['is_org_owned'],
+                'transfer_request_id' => $transferRequest->id,
+                'reversal_of_transaction_id' => $transferRequest->incoming_transaction_id,
+                'ledger_account_id' => $destinationContext['account']->id,
+                'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+                'type' => 'expense',
+                'amount' => $amount,
+                'currency' => $destinationContext['account']->currency ?? 'aUEC',
+                'source_type' => 'transfer_reversal',
+                'transfer_direction' => 'reversal',
+                'description' => "Transfer reversal to {$sourceContext['label']}: {$memo}",
+                'transaction_date' => $reversalDate,
+                'notes' => $reversalNotes,
+            ]);
+
+            $transferRequest->forceFill([
+                'status' => 'reversed',
+                'reversal_user_id' => $actor->id,
+                'reversal_notes' => $reversalNotes,
+                'reversed_at' => now(),
+                'reversal_outgoing_transaction_id' => $sourceReversal->id,
+                'reversal_incoming_transaction_id' => $destinationReversal->id,
+            ])->save();
+
+            $metadata = [
+                'amount' => $amount,
+                'currency' => $sourceContext['account']->currency ?? 'aUEC',
+                'description' => $memo,
+                'from_label' => $sourceContext['label'],
+                'to_label' => $destinationContext['label'],
+            ];
+
+            $this->logActivity(
+                $actor,
+                $sourceContext['subject_user'],
+                $transferRequest->wipeCycle,
+                'transfer.reversed',
+                $sourceReversal,
+                array_merge($metadata, ['direction' => 'source']),
+                $sourceContext['squadron'],
+                $sourceContext['is_org_owned']
+            );
+
+            $this->logActivity(
+                $actor,
+                $destinationContext['subject_user'],
+                $transferRequest->wipeCycle,
+                'transfer.reversed',
+                $destinationReversal,
+                array_merge($metadata, ['direction' => 'destination']),
+                $destinationContext['squadron'],
+                $destinationContext['is_org_owned']
+            );
+
             return [
-                'source' => $sourceItem->fresh(),
-                'destination' => $destinationItem->fresh(),
+                'request' => $transferRequest->fresh(),
+                'source_reversal' => $sourceReversal,
+                'destination_reversal' => $destinationReversal,
             ];
         });
     }
@@ -2604,34 +3293,112 @@ class LedgerService
     protected function transferTargetsFor(User $actor, string $currentType, ?Squadron $currentSquadron = null): array
     {
         $targets = [];
+        $memberTargets = $this->verifiedMemberTransferTargets($actor, $currentType !== 'personal');
 
         if ($currentType !== 'personal') {
             $targets[] = [
                 'key' => 'personal',
                 'type' => 'personal',
-                'label' => 'My Ledger',
-                'description' => 'Move funds into your personal book.',
+                'user_id' => $actor->id,
+                'label' => 'My Assets & Funds',
+                'description' => 'Move funds or tracked assets into your personal records.',
             ];
         }
 
-        foreach ($this->manageableSquadronTransferTargets($actor) as $target) {
-            if ($currentType === 'squadron' && $currentSquadron && (int) $target['squadron_id'] === (int) $currentSquadron->id) {
-                continue;
-            }
-
+        foreach ($this->availableSquadronTransferTargets($actor, $currentSquadron) as $target) {
             $targets[] = $target;
         }
 
-        if ($currentType !== 'organization' && $this->canManageOrganizationLedger($actor)) {
+        if (
+            $currentType !== 'organization'
+            && ($currentType === 'personal' || $this->canManageOrganizationLedger($actor))
+        ) {
             $targets[] = [
                 'key' => 'organization',
                 'type' => 'organization',
-                'label' => 'Org Treasury',
-                'description' => 'Move funds into Horizon Treasury.',
+                'label' => 'Horizon Treasury',
+                'description' => 'Move funds or tracked assets into Horizon Treasury.',
             ];
         }
 
+        foreach ($memberTargets as $target) {
+            $targets[] = $target;
+        }
+
         return $targets;
+    }
+
+    protected function verifiedMemberTransferTargets(User $actor, bool $includeSelf = false): array
+    {
+        return User::query()
+            ->where('global_status', User::STATUS_ACTIVE)
+            ->whereNotNull('rsi_verified_at')
+            ->when(! $includeSelf, fn ($query) => $query->whereKeyNot($actor->id))
+            ->orderByRaw('LOWER(COALESCE(rsi_handle, discord_name, name))')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (User $user) => [
+                'key' => "personal:{$user->id}",
+                'type' => 'personal',
+                'user_id' => $user->id,
+                'label' => "{$this->transferDisplayName($user)}'s Assets & Funds",
+                'description' => ($includeSelf || (int) $user->id === (int) $actor->id)
+                    ? 'Move funds or tracked assets into this verified member\'s personal records.'
+                    : 'Move funds or tracked assets into this verified member\'s personal records. They will need to approve it first.',
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function availableSquadronTransferTargets(User $actor, ?Squadron $currentSquadron = null): array
+    {
+        $activeMembershipIds = Squadron::query()
+            ->whereHas('members', function ($query) use ($actor) {
+                $query
+                    ->where('user_id', $actor->id)
+                    ->where('membership_status', 'active');
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $manageableIds = collect($this->manageableSquadronTransferTargets($actor))
+            ->pluck('squadron_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return Squadron::query()
+            ->where('status', 'active')
+            ->when($currentSquadron, fn ($query) => $query->whereKeyNot($currentSquadron->id))
+            ->orderBy('name')
+            ->get()
+            ->sortBy(function (Squadron $squadron) use ($activeMembershipIds, $manageableIds) {
+                if (in_array((int) $squadron->id, $activeMembershipIds, true)) {
+                    return '0-' . mb_strtolower($squadron->name);
+                }
+
+                if (in_array((int) $squadron->id, $manageableIds, true)) {
+                    return '1-' . mb_strtolower($squadron->name);
+                }
+
+                return '2-' . mb_strtolower($squadron->name);
+            })
+            ->values()
+            ->map(function (Squadron $squadron) use ($actor) {
+                $requiresApproval = ! $this->canActorDirectlySendIntoSquadron($actor, $squadron);
+
+                return [
+                    'key' => "member-squadron:{$squadron->id}",
+                    'type' => 'squadron',
+                    'squadron_id' => $squadron->id,
+                    'label' => "{$squadron->name} Squadron Assets & Funds",
+                    'description' => $requiresApproval
+                        ? 'Move funds or tracked assets into this squadron\'s shared records. A squadron ledger manager will need to approve it first.'
+                        : 'Move funds or tracked assets into this squadron\'s shared records.',
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     protected function manageableSquadronTransferTargets(User $actor): array
@@ -2651,8 +3418,8 @@ class LedgerService
                 'key' => "squadron:{$squadron->id}",
                 'type' => 'squadron',
                 'squadron_id' => $squadron->id,
-                'label' => "{$squadron->name} Squadron Ledger",
-                'description' => 'Move funds into the shared squadron ledger.',
+                'label' => "{$squadron->name} Squadron Assets & Funds",
+                'description' => 'Move funds or tracked assets into the shared squadron records.',
             ])
             ->values()
             ->all();
@@ -2661,6 +3428,358 @@ class LedgerService
     protected function transferInventoryOptions(Collection $items, array $referenceMaps): array
     {
         return $this->references->transferInventoryOptions($items, $referenceMaps);
+    }
+
+    protected function pendingTransferRequestsForContext(User $viewer, array $context, string $transferKind, array $referenceMaps): array
+    {
+        return LedgerTransferRequest::query()
+            ->where('transfer_kind', $transferKind)
+            ->where('status', 'pending')
+            ->with([
+                'requestedBy:id,name,rsi_handle,discord_name',
+                'sourceUser:id,name,rsi_handle,discord_name',
+                'destinationUser:id,name,rsi_handle,discord_name',
+                'sourceSquadron:id,name',
+                'destinationSquadron:id,name',
+                'sourceInventoryItem:id,custom_name,uex_reference_type,uex_reference_id',
+            ])
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (LedgerTransferRequest $request) => $this->transferRequestTouchesContext($request, $context))
+            ->take(12)
+            ->map(fn (LedgerTransferRequest $request) => $this->presentTransferRequest($request, $viewer, $context, $referenceMaps))
+            ->values()
+            ->all();
+    }
+
+    protected function recentFundTransfersForContext(User $viewer, array $context): array
+    {
+        return LedgerTransferRequest::query()
+            ->where('transfer_kind', 'funds')
+            ->whereIn('status', ['completed', 'reversed'])
+            ->with([
+                'requestedBy:id,name,rsi_handle,discord_name',
+                'sourceUser:id,name,rsi_handle,discord_name',
+                'destinationUser:id,name,rsi_handle,discord_name',
+                'sourceSquadron:id,name',
+                'destinationSquadron:id,name',
+            ])
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (LedgerTransferRequest $request) => $this->transferRequestTouchesContext($request, $context))
+            ->take(10)
+            ->map(fn (LedgerTransferRequest $request) => $this->presentTransferRequest($request, $viewer, $context, []))
+            ->values()
+            ->all();
+    }
+
+    protected function presentTransferRequest(
+        LedgerTransferRequest $request,
+        User $viewer,
+        array $context,
+        array $referenceMaps
+    ): array {
+        $direction = $this->transferRequestDirectionForContext($request, $context);
+
+        return [
+            'id' => $request->id,
+            'kind' => $request->transfer_kind,
+            'status' => $request->status,
+            'direction' => $direction,
+            'from_label' => $this->transferRequestLabelForColumns(
+                $request->source_is_org_owned,
+                $request->source_squadron_id,
+                $request->sourceUser,
+                $request->sourceSquadron
+            ),
+            'to_label' => $this->transferRequestLabelForColumns(
+                $request->destination_is_org_owned,
+                $request->destination_squadron_id,
+                $request->destinationUser,
+                $request->destinationSquadron
+            ),
+            'requested_by_name' => $request->requestedBy
+                ? $this->transferDisplayName($request->requestedBy)
+                : "Member {$request->requested_by_user_id}",
+            'description' => $request->description,
+            'item_label' => $request->transfer_kind === 'inventory'
+                ? $this->resolveTransferRequestItemLabel($request, $referenceMaps)
+                : null,
+            'amount' => $request->amount !== null ? (float) $request->amount : null,
+            'quantity' => $request->quantity !== null ? (float) $request->quantity : null,
+            'currency' => $request->currency ?? 'aUEC',
+            'notes' => $request->notes,
+            'transaction_date' => $request->transaction_date?->toIso8601String(),
+            'created_at' => $request->created_at?->toIso8601String(),
+            'completed_at' => $request->completed_at?->toIso8601String(),
+            'reversed_at' => $request->reversed_at?->toIso8601String(),
+            'can_approve' => $request->status === 'pending' && $this->canApproveTransferRequestForContext($viewer, $request, $context),
+            'can_reject' => $request->status === 'pending' && $this->canApproveTransferRequestForContext($viewer, $request, $context),
+            'can_reverse' => $request->transfer_kind === 'funds'
+                && $request->status === 'completed'
+                && $this->canReverseTransferRequestForContext($viewer, $request, $context),
+        ];
+    }
+
+    protected function resolveTransferRequestItemLabel(LedgerTransferRequest $request, array $referenceMaps): string
+    {
+        if ($request->description) {
+            return $request->description;
+        }
+
+        $sourceItem = $request->sourceInventoryItem;
+
+        if (! $sourceItem) {
+            return 'Inventory item';
+        }
+
+        return $sourceItem->custom_name
+            ?: $this->resolveReferenceLabel($sourceItem->uex_reference_type, $sourceItem->uex_reference_id, $referenceMaps)
+            ?: 'Inventory item';
+    }
+
+    protected function transferRequestLabelForColumns(
+        bool $isOrgOwned,
+        ?int $squadronId,
+        ?User $user,
+        ?Squadron $squadron
+    ): string {
+        if ($isOrgOwned) {
+            return 'Horizon Treasury';
+        }
+
+        if ($squadronId) {
+            return ($squadron?->name ?? "Squadron {$squadronId}") . ' Squadron Assets & Funds';
+        }
+
+        if ($user) {
+            return "{$this->transferDisplayName($user)}'s Assets & Funds";
+        }
+
+        return 'Personal Assets & Funds';
+    }
+
+    protected function transferRequestDirectionForContext(LedgerTransferRequest $request, array $context): string
+    {
+        return $this->transferRequestContextMatches($request, $context, 'destination')
+            ? 'incoming'
+            : 'outgoing';
+    }
+
+    protected function transferRequestTouchesContext(LedgerTransferRequest $request, array $context): bool
+    {
+        return $this->transferRequestContextMatches($request, $context, 'source')
+            || $this->transferRequestContextMatches($request, $context, 'destination');
+    }
+
+    protected function transferRequestContextMatches(LedgerTransferRequest $request, array $context, string $prefix): bool
+    {
+        $squadronId = (int) ($context['squadron_id'] ?? 0);
+        $userId = (int) ($context['user_id'] ?? 0);
+        $isOrgOwned = (bool) ($context['is_org_owned'] ?? false);
+
+        if ($isOrgOwned) {
+            return (bool) $request->getAttribute("{$prefix}_is_org_owned");
+        }
+
+        if ($squadronId > 0) {
+            return (int) $request->getAttribute("{$prefix}_squadron_id") === $squadronId
+                && ! (bool) $request->getAttribute("{$prefix}_is_org_owned");
+        }
+
+        return (int) $request->getAttribute("{$prefix}_user_id") === $userId
+            && blank($request->getAttribute("{$prefix}_squadron_id"))
+            && ! (bool) $request->getAttribute("{$prefix}_is_org_owned");
+    }
+
+    protected function canApproveTransferRequestForContext(User $viewer, LedgerTransferRequest $request, array $context): bool
+    {
+        if (! $this->transferRequestContextMatches($request, $context, 'destination')) {
+            return false;
+        }
+
+        return match ($context['type']) {
+            'personal' => (int) ($context['user_id'] ?? 0) === (int) $viewer->id,
+            'squadron' => ($context['squadron'] ?? null) instanceof Squadron
+                && app(AccessService::class)->canManageSquadronLedger($viewer, $context['squadron']),
+            'organization' => $this->canManageOrganizationLedger($viewer),
+            default => false,
+        };
+    }
+
+    protected function canReverseTransferRequestForContext(User $viewer, LedgerTransferRequest $request, array $context): bool
+    {
+        if (! $this->transferRequestTouchesContext($request, $context)) {
+            return false;
+        }
+
+        return match ($context['type']) {
+            'personal' => (int) ($context['user_id'] ?? 0) === (int) $viewer->id,
+            'squadron' => ($context['squadron'] ?? null) instanceof Squadron
+                && app(AccessService::class)->canManageSquadronLedger($viewer, $context['squadron']),
+            'organization' => $this->canManageOrganizationLedger($viewer),
+            default => false,
+        };
+    }
+
+    protected function transferPersonalInboxContext(User $actor): array
+    {
+        return $this->transferContextForPersonal($actor);
+    }
+
+    protected function transferSquadronInboxContext(User $actor, Squadron $squadron): array
+    {
+        return [
+            'type' => 'squadron',
+            'label' => "{$squadron->name} Squadron Assets & Funds",
+            'account' => null,
+            'user_id' => $actor->id,
+            'subject_user' => $actor,
+            'squadron_id' => $squadron->id,
+            'squadron' => $squadron,
+            'is_org_owned' => false,
+        ];
+    }
+
+    protected function transferOrganizationInboxContext(User $actor): array
+    {
+        return [
+            'type' => 'organization',
+            'label' => 'Horizon Treasury',
+            'account' => null,
+            'user_id' => $actor->id,
+            'subject_user' => $actor,
+            'squadron_id' => null,
+            'squadron' => null,
+            'is_org_owned' => true,
+        ];
+    }
+
+    protected function transferContextForRequestSource(LedgerTransferRequest $request): array
+    {
+        $attributedUser = $request->requestedBy
+            ?? $request->sourceUser
+            ?? User::query()->findOrFail($request->requested_by_user_id);
+
+        if ($request->source_is_org_owned) {
+            return $this->transferContextForOrganizationRecord($attributedUser);
+        }
+
+        if ($request->source_squadron_id) {
+            $squadron = $request->sourceSquadron
+                ?? Squadron::query()->findOrFail($request->source_squadron_id);
+
+            return $this->transferContextForSquadronRecord($squadron, $request->sourceUser ?? $attributedUser);
+        }
+
+        $user = $request->sourceUser ?? User::query()->findOrFail($request->source_user_id);
+
+        return $this->transferContextForPersonal($user);
+    }
+
+    protected function transferContextForRequestDestination(LedgerTransferRequest $request): array
+    {
+        $attributedUser = $request->requestedBy
+            ?? $request->sourceUser
+            ?? User::query()->findOrFail($request->requested_by_user_id);
+
+        if ($request->destination_is_org_owned) {
+            return $this->transferContextForOrganizationRecord($attributedUser);
+        }
+
+        if ($request->destination_squadron_id) {
+            $squadron = $request->destinationSquadron
+                ?? Squadron::query()->findOrFail($request->destination_squadron_id);
+
+            return $this->transferContextForSquadronRecord($squadron, $request->sourceUser ?? $attributedUser);
+        }
+
+        $user = $request->destinationUser ?? User::query()->findOrFail($request->destination_user_id);
+
+        return $this->transferContextForPersonal($user);
+    }
+
+    protected function transferContextForSquadronRecord(Squadron $squadron, User $attributedUser): array
+    {
+        $account = $this->defaultSquadronAccountFor($squadron, $attributedUser);
+
+        return [
+            'type' => 'squadron',
+            'label' => "{$squadron->name} Squadron Assets & Funds",
+            'account' => $account,
+            'user_id' => $attributedUser->id,
+            'subject_user' => $attributedUser,
+            'squadron_id' => $squadron->id,
+            'squadron' => $squadron,
+            'is_org_owned' => false,
+        ];
+    }
+
+    protected function transferContextForOrganizationRecord(User $attributedUser): array
+    {
+        $account = $this->defaultOrgAccountFor($attributedUser);
+
+        return [
+            'type' => 'organization',
+            'label' => 'Horizon Treasury',
+            'account' => $account,
+            'user_id' => $attributedUser->id,
+            'subject_user' => $attributedUser,
+            'squadron_id' => null,
+            'squadron' => null,
+            'is_org_owned' => true,
+        ];
+    }
+
+    protected function assertPendingTransferRequestForContext(
+        LedgerTransferRequest $transferRequest,
+        array $context,
+        string $transferKind
+    ): void {
+        if ($transferRequest->transfer_kind !== $transferKind || $transferRequest->status !== 'pending') {
+            throw ValidationException::withMessages([
+                'transfer' => 'That transfer request is no longer waiting for approval.',
+            ]);
+        }
+
+        if (! $this->transferRequestContextMatches($transferRequest, $context, 'destination')) {
+            throw ValidationException::withMessages([
+                'transfer' => 'That transfer request does not belong to this ledger.',
+            ]);
+        }
+    }
+
+    protected function assertCompletedFundTransferCanBeReversed(
+        User $actor,
+        LedgerTransferRequest $transferRequest,
+        array $context
+    ): void {
+        if ($transferRequest->transfer_kind !== 'funds' || $transferRequest->status !== 'completed') {
+            throw ValidationException::withMessages([
+                'transfer' => 'Only completed fund transfers can be reversed.',
+            ]);
+        }
+
+        if (! $this->transferRequestTouchesContext($transferRequest, $context)) {
+            throw ValidationException::withMessages([
+                'transfer' => 'That transfer does not belong to this ledger.',
+            ]);
+        }
+
+        if (! $this->canReverseTransferRequestForContext($actor, $transferRequest, $context)) {
+            throw ValidationException::withMessages([
+                'transfer' => 'You do not have permission to reverse that transfer.',
+            ]);
+        }
+
+        $wipeCycle = $transferRequest->wipeCycle;
+
+        if ($wipeCycle && ! $wipeCycle->is_current) {
+            throw ValidationException::withMessages([
+                'wipe_cycle_id' => 'Archived cycles are read only. Completed transfers can only be reversed while their cycle is still current.',
+            ]);
+        }
     }
 
     protected function presentTransaction(LedgerTransaction $transaction, array $referenceMaps): array
@@ -2711,9 +3830,13 @@ class LedgerService
     protected function resolveTransferDestination(User $actor, array $sourceContext, array $data): array
     {
         $destination = match ($data['destination_type']) {
-            'personal' => $this->transferContextForPersonal($actor),
-            'squadron' => $this->transferContextForRequestedSquadron($actor, (int) ($data['destination_squadron_id'] ?? 0)),
-            'organization' => $this->transferContextForOrganization($actor),
+            'personal' => $this->transferContextForRequestedPersonalRecipient((int) ($data['destination_user_id'] ?? 0)),
+            'squadron' => $this->transferContextForRequestedSquadronDestination(
+                $actor,
+                $sourceContext,
+                (int) ($data['destination_squadron_id'] ?? 0)
+            ),
+            'organization' => $this->transferContextForOrganizationDestination($actor, $sourceContext),
             default => null,
         };
 
@@ -2723,13 +3846,10 @@ class LedgerService
             ]);
         }
 
-        if ($sourceContext['type'] === $destination['type']) {
-            if ($sourceContext['type'] !== 'squadron'
-                || (int) ($sourceContext['squadron_id'] ?? 0) === (int) ($destination['squadron_id'] ?? 0)) {
-                throw ValidationException::withMessages([
-                    'destination_type' => 'Pick a different ledger for this transfer.',
-                ]);
-            }
+        if ($this->transferContextsMatch($sourceContext, $destination)) {
+            throw ValidationException::withMessages([
+                'destination_type' => 'Pick a different destination for this transfer.',
+            ]);
         }
 
         return $destination;
@@ -2741,7 +3861,7 @@ class LedgerService
 
         return [
             'type' => 'personal',
-            'label' => $account->name ?: 'My Ledger',
+            'label' => "{$this->transferDisplayName($actor)}'s Assets & Funds",
             'account' => $account,
             'user_id' => $actor->id,
             'subject_user' => $actor,
@@ -2749,6 +3869,29 @@ class LedgerService
             'squadron' => null,
             'is_org_owned' => false,
         ];
+    }
+
+    protected function transferContextForRequestedPersonalRecipient(int $userId): array
+    {
+        if ($userId <= 0) {
+            throw ValidationException::withMessages([
+                'destination_user_id' => 'Choose which verified member should receive this transfer.',
+            ]);
+        }
+
+        $user = User::query()
+            ->whereKey($userId)
+            ->where('global_status', User::STATUS_ACTIVE)
+            ->whereNotNull('rsi_verified_at')
+            ->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'destination_user_id' => 'Choose a valid verified member destination.',
+            ]);
+        }
+
+        return $this->transferContextForPersonal($user);
     }
 
     protected function transferContextForSquadron(User $actor, Squadron $squadron): array
@@ -2765,7 +3908,7 @@ class LedgerService
 
         return [
             'type' => 'squadron',
-            'label' => "{$squadron->name} Squadron Ledger",
+            'label' => "{$squadron->name} Squadron Assets & Funds",
             'account' => $account,
             'user_id' => $actor->id,
             'subject_user' => $actor,
@@ -2775,7 +3918,7 @@ class LedgerService
         ];
     }
 
-    protected function transferContextForRequestedSquadron(User $actor, int $squadronId): array
+    protected function transferContextForRequestedSquadronDestination(User $actor, array $sourceContext, int $squadronId): array
     {
         if ($squadronId <= 0) {
             throw ValidationException::withMessages([
@@ -2783,15 +3926,29 @@ class LedgerService
             ]);
         }
 
-        $squadron = Squadron::query()->find($squadronId);
+        $squadron = Squadron::query()
+            ->whereKey($squadronId)
+            ->where('status', 'active')
+            ->first();
 
         if (! $squadron) {
             throw ValidationException::withMessages([
-                'destination_squadron_id' => 'Choose a valid squadron ledger destination.',
+                'destination_squadron_id' => 'Choose a valid active squadron destination.',
             ]);
         }
 
-        return $this->transferContextForSquadron($actor, $squadron);
+        $account = $this->defaultSquadronAccountFor($squadron, $actor);
+
+        return [
+            'type' => 'squadron',
+            'label' => "{$squadron->name} Squadron Assets & Funds",
+            'account' => $account,
+            'user_id' => $actor->id,
+            'subject_user' => $actor,
+            'squadron_id' => $squadron->id,
+            'squadron' => $squadron,
+            'is_org_owned' => false,
+        ];
     }
 
     protected function transferContextForOrganization(User $actor): array
@@ -2806,7 +3963,7 @@ class LedgerService
 
         return [
             'type' => 'organization',
-            'label' => 'Org Treasury',
+            'label' => 'Horizon Treasury',
             'account' => $account,
             'user_id' => $actor->id,
             'subject_user' => $actor,
@@ -2816,14 +3973,56 @@ class LedgerService
         ];
     }
 
+    protected function transferContextForOrganizationDestination(User $actor, array $sourceContext): array
+    {
+        if ($sourceContext['type'] === 'personal') {
+            $account = $this->defaultOrgAccountFor($actor);
+
+            return [
+                'type' => 'organization',
+                'label' => 'Horizon Treasury',
+                'account' => $account,
+                'user_id' => $actor->id,
+                'subject_user' => $actor,
+                'squadron_id' => null,
+                'squadron' => null,
+                'is_org_owned' => true,
+            ];
+        }
+
+        return $this->transferContextForOrganization($actor);
+    }
+
+    protected function transferContextsMatch(array $sourceContext, array $destinationContext): bool
+    {
+        if ($sourceContext['type'] !== $destinationContext['type']) {
+            return false;
+        }
+
+        return match ($sourceContext['type']) {
+            'personal' => (int) ($sourceContext['user_id'] ?? 0) === (int) ($destinationContext['user_id'] ?? 0),
+            'squadron' => (int) ($sourceContext['squadron_id'] ?? 0) === (int) ($destinationContext['squadron_id'] ?? 0),
+            'organization' => true,
+            default => false,
+        };
+    }
+
+    protected function transferDisplayName(User $user): string
+    {
+        return $user->rsi_handle
+            ?? $user->discord_name
+            ?? $user->name
+            ?? "Member {$user->id}";
+    }
+
     protected function resolveInventoryTransferItem(array $sourceContext, int $inventoryItemId): LedgerInventoryItem
     {
         $item = LedgerInventoryItem::query()->findOrFail($inventoryItemId);
 
         return match ($sourceContext['type']) {
-            'personal' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureOwnedRecord($sourceContext['subject_user'], $inventoryItem)),
-            'squadron' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureSquadronRecord($sourceContext['squadron'], $inventoryItem)),
-            'organization' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureOrgRecord($inventoryItem)),
+            'personal' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureOwnedRecord($sourceContext['subject_user'], $inventoryItem, true)),
+            'squadron' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureSquadronRecord($sourceContext['squadron'], $inventoryItem, true)),
+            'organization' => tap($item, fn (LedgerInventoryItem $inventoryItem) => $this->ensureOrgRecord($inventoryItem, true)),
         };
     }
 
@@ -2864,12 +4063,12 @@ class LedgerService
         return $actor->can('manage-org-ledger');
     }
 
-    protected function ensureOwnedRecord(User $owner, Model $record): void
+    protected function ensureOwnedRecord(User $owner, Model $record, bool $allowLockedInventory = false): void
     {
         if ((int) $record->getAttribute('user_id') === (int) $owner->id
             && blank($record->getAttribute('squadron_id'))
             && ! (bool) $record->getAttribute('is_org_owned')) {
-            $this->ensureRecordIsMutable($record);
+            $this->ensureRecordIsMutable($record, $allowLockedInventory);
             return;
         }
 
@@ -2879,11 +4078,11 @@ class LedgerService
         throw $exception;
     }
 
-    protected function ensureSquadronRecord(Squadron $squadron, Model $record): void
+    protected function ensureSquadronRecord(Squadron $squadron, Model $record, bool $allowLockedInventory = false): void
     {
         if ((int) $record->getAttribute('squadron_id') === (int) $squadron->id
             && ! (bool) $record->getAttribute('is_org_owned')) {
-            $this->ensureRecordIsMutable($record);
+            $this->ensureRecordIsMutable($record, $allowLockedInventory);
             return;
         }
 
@@ -2893,10 +4092,10 @@ class LedgerService
         throw $exception;
     }
 
-    protected function ensureOrgRecord(Model $record): void
+    protected function ensureOrgRecord(Model $record, bool $allowLockedInventory = false): void
     {
         if ((bool) $record->getAttribute('is_org_owned') && blank($record->getAttribute('squadron_id'))) {
-            $this->ensureRecordIsMutable($record);
+            $this->ensureRecordIsMutable($record, $allowLockedInventory);
             return;
         }
 
@@ -2906,7 +4105,7 @@ class LedgerService
         throw $exception;
     }
 
-    protected function ensureRecordIsMutable(Model $record): void
+    protected function ensureRecordIsMutable(Model $record, bool $allowLockedInventory = false): void
     {
         $wipeCycle = $record->relationLoaded('wipeCycle')
             ? $record->getRelation('wipeCycle')
@@ -2917,11 +4116,27 @@ class LedgerService
                 'wipe_cycle_id' => 'Archived cycles are read only. Switch back to the current cycle to make changes.',
             ]);
         }
+
+        if (
+            ! $allowLockedInventory
+            && $record instanceof LedgerInventoryItem
+            && (bool) $record->provenance_locked
+        ) {
+            throw ValidationException::withMessages([
+                'inventory' => 'Transferred inventory stays locked so its transfer history remains intact. Move it again instead of editing or deleting it.',
+            ]);
+        }
     }
 
     protected function ensureTransactionIsManuallyEditable(LedgerTransaction $transaction): void
     {
-        if ($transaction->source_type !== 'transfer') {
+        if ((bool) $transaction->provenance_locked) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Settlement and transfer records stay locked so their audit trail stays intact. Create a new correcting entry or reopen the source workflow instead.',
+            ]);
+        }
+
+        if (! in_array($transaction->source_type, ['transfer', 'transfer_reversal'], true)) {
             return;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Application\Operations\OperationShowDataService;
 use App\Domain\Media\Presenters\MediaPresenter;
 use App\Domain\Squadrons\SquadronService;
 use App\Models\Operation;
@@ -20,6 +21,7 @@ class AdminDashboardService
     public function __construct(
         protected SquadronService $squadrons,
         protected LedgerService $ledger,
+        protected OperationShowDataService $operationShowData,
     ) {}
 
     public function build(string $search): array
@@ -30,6 +32,7 @@ class AdminDashboardService
             'roles' => $this->roles(),
             'operations' => $this->completedOperations(),
             'canceledOperations' => $this->canceledOperations(),
+            'operationSettlementLootOptions' => $this->operationShowData->settlementLootOptions(),
             'verifiedMembers' => $this->verifiedMembers(),
             'archiveStats' => $this->archiveStats(),
             'uex' => $this->uexStatus(),
@@ -58,6 +61,7 @@ class AdminDashboardService
                 'rank_level',
                 'global_status',
                 'bio',
+                'region',
                 'timezone',
                 'availability_status',
                 'loa_note'
@@ -152,6 +156,7 @@ class AdminDashboardService
                 'creator:id,rsi_handle,discord_name,discord_avatar,name',
                 'participants.user:id,rsi_handle,discord_name,discord_avatar,name',
                 'squadron:id,name',
+                'settlement',
             ])
             ->where('status', 'completed')
             ->whereNotNull('completion_outcome')
@@ -161,9 +166,10 @@ class AdminDashboardService
             ->get();
 
         $attendanceUsersById = $this->attendanceUsersFor($operations);
+        $settlementLootOptions = $this->operationShowData->settlementLootOptions();
 
         return $operations
-            ->map(function (Operation $operation) use ($attendanceUsersById) {
+            ->map(function (Operation $operation) use ($attendanceUsersById, $settlementLootOptions) {
                 $attendance = collect($operation->after_action_attendance_user_ids ?? [])
                     ->map(fn ($id) => $attendanceUsersById[(int) $id] ?? null)
                     ->filter()
@@ -188,6 +194,7 @@ class AdminDashboardService
                         ->filter()
                         ->values()
                         ->all(),
+                    'operation_settlement' => $this->operationShowData->settlementPayload($operation, null, true, $settlementLootOptions, false),
                     'creator' => $operation->creator ? $this->memberPayload($operation->creator) : null,
                     'squadron' => $operation->squadron
                         ? [
@@ -203,6 +210,10 @@ class AdminDashboardService
                         ])
                         ->values()
                         ->all(),
+                    'permissions' => [
+                        'can_manage_aar' => true,
+                        'can_manage_settlement' => true,
+                    ],
                 ];
             })
             ->values()

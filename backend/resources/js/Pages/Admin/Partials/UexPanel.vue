@@ -219,16 +219,12 @@ onMounted(() => {
   <div class="space-y-5">
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
       <div>
-        <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-          UEX Snapshot Console
-        </div>
-
-        <h3 class="mt-1 text-2xl font-black text-horizon-white">
-          Manual Sync Coverage
+        <h3 class="text-xl font-black text-horizon-white">
+          UEX Sync
         </h3>
 
-        <p class="mt-2 max-w-3xl text-sm text-text-secondary">
-          The site reads from local UEX snapshot tables. Run syncs from the command line when you want to refresh public trade, location, vehicle, and refinery data.
+        <p class="mt-1 max-w-3xl text-sm text-text-secondary">
+          The site reads from local UEX snapshot tables. Use this area to refresh and inspect the data without leaving the dashboard.
         </p>
 
         <div

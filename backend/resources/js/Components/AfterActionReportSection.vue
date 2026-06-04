@@ -7,6 +7,8 @@ import { Ziggy } from '../ziggy'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 
+const emit = defineEmits(['attendance-draft-change'])
+
 const props = defineProps({
   operation: {
     type: Object,
@@ -36,6 +38,8 @@ const noShowDraft = ref([])
 const memberSearch = ref('')
 const noShowSearch = ref('')
 const saving = ref(false)
+const attendanceLocked = computed(() => !!props.operation?.operation_settlement?.locked_attendance)
+const canEditAttendance = computed(() => props.canManage && !attendanceLocked.value)
 
 const signedUpUsers = computed(() => {
   const seen = new Set()
@@ -221,6 +225,21 @@ watch(
     noShowDraft.value = noShowUserIds.value
     memberSearch.value = ''
     noShowSearch.value = ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [
+    props.operation?.id,
+    JSON.stringify(attendanceDraft.value),
+    JSON.stringify(props.verifiedMembers ?? []),
+    JSON.stringify(props.operation?.after_action_attendance ?? []),
+  ],
+  () => {
+    emit('attendance-draft-change', attendanceDraft.value
+      .map((userId) => attendanceUser(userId))
+      .filter(Boolean))
   },
   { immediate: true }
 )
@@ -415,7 +434,7 @@ function saveAfterActionReport() {
               </div>
 
               <button
-                v-if="canManage"
+                v-if="canEditAttendance"
                 type="button"
                 class="rounded-full border border-white/[0.055] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-text-secondary hover:text-horizon-white"
                 @click="removeAttendance(userId)"
@@ -433,7 +452,7 @@ function saveAfterActionReport() {
           </div>
 
           <div
-            v-if="canManage"
+            v-if="canEditAttendance"
             class="mt-4 space-y-3 rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
           >
             <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
@@ -492,6 +511,13 @@ function saveAfterActionReport() {
               No verified members matched that search.
             </div>
           </div>
+
+          <div
+            v-else-if="attendanceLocked"
+            class="mt-4 rounded-[1rem] border border-emerald-300/20 bg-emerald-300/8 px-4 py-3 text-sm text-text-secondary"
+          >
+            Final attendance is locked because the operation settlement has already been finalized.
+          </div>
         </div>
 
         <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
@@ -536,7 +562,7 @@ function saveAfterActionReport() {
               </div>
 
               <button
-                v-if="canManage"
+                v-if="canEditAttendance"
                 type="button"
                 class="rounded-full border border-white/[0.055] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-text-secondary hover:text-horizon-white"
                 @click="removeNoShow(userId)"
@@ -554,7 +580,7 @@ function saveAfterActionReport() {
           </div>
 
           <div
-            v-if="canManage"
+            v-if="canEditAttendance"
             class="mt-4 space-y-3 rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
           >
             <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
@@ -612,6 +638,13 @@ function saveAfterActionReport() {
             >
               No signed-up members matched that search.
             </div>
+          </div>
+
+          <div
+            v-else-if="attendanceLocked"
+            class="mt-4 rounded-[1rem] border border-emerald-300/20 bg-emerald-300/8 px-4 py-3 text-sm text-text-secondary"
+          >
+            No-show tracking is locked until the settlement is reopened.
           </div>
         </div>
       </div>

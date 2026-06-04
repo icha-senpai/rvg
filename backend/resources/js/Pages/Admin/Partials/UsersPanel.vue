@@ -233,11 +233,6 @@
       class="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
       @click.self="closeUserEditor"
     >
-      <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="absolute left-1/4 top-10 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-blue)]/16 blur-3xl"></div>
-        <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
-      </div>
-
       <div
         class="hz-surface-welcome relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop"
       >
@@ -634,16 +629,36 @@
                 </p>
               </div>
 
-              <div class="grid gap-4 md:grid-cols-2">
+              <div class="grid gap-4 md:grid-cols-3">
+                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
+                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Region
+                  </label>
+
+                  <HorizonInput
+                    v-model="form.region"
+                    type="select"
+                    label=""
+                    :options="[
+                      { label: 'Select region', value: '' },
+                      ...regionOptions,
+                    ]"
+                  />
+                </div>
+
                 <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Timezone
                   </label>
 
-                  <input
+                  <HorizonInput
                     v-model="form.timezone"
-                    class="hz-input"
-                    placeholder="America/Chicago, UTC, EU evening..."
+                    type="select"
+                    label=""
+                    :options="[
+                      { label: 'Select timezone', value: '' },
+                      ...timezoneOptions,
+                    ]"
                   />
                 </div>
 
@@ -789,6 +804,7 @@ import { Link, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import HorizonButton from '@/Components/HorizonButton.vue';
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
+import HorizonInput from '@/Components/HorizonInput.vue';
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -797,6 +813,66 @@ const props = defineProps({
   roles: Array,
   filters: Object,
 });
+
+const regionOptions = [
+  { label: 'EU', value: 'EU' },
+  { label: 'US', value: 'US' },
+  { label: 'APAC', value: 'APAC' },
+];
+
+const fallbackTimezoneValues = [
+  'UTC',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/New_York',
+  'America/Phoenix',
+  'America/Toronto',
+  'Asia/Dubai',
+  'Asia/Hong_Kong',
+  'Asia/Kolkata',
+  'Asia/Singapore',
+  'Asia/Tokyo',
+  'Australia/Adelaide',
+  'Australia/Brisbane',
+  'Australia/Melbourne',
+  'Australia/Perth',
+  'Australia/Sydney',
+  'Europe/Amsterdam',
+  'Europe/Berlin',
+  'Europe/London',
+  'Europe/Madrid',
+  'Europe/Paris',
+];
+
+function timezoneOffsetLabel(value) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: value,
+      timeZoneName: 'shortOffset',
+    });
+
+    const offsetPart = formatter.formatToParts(new Date()).find(part => part.type === 'timeZoneName')?.value;
+
+    if (!offsetPart) {
+      return null;
+    }
+
+    if (offsetPart === 'GMT' || offsetPart === 'UTC') {
+      return 'UTC+0';
+    }
+
+    return offsetPart.replace(/^GMT/, 'UTC');
+  } catch {
+    return null;
+  }
+}
+
+function formatTimezoneOptionLabel(value) {
+  const offset = timezoneOffsetLabel(value);
+
+  return offset ? `${value} (${offset})` : value;
+}
 
 const users = computed(() => props.users);
 const search = ref(props.filters?.search ?? '');
@@ -1006,11 +1082,29 @@ const form = ref({
   rank_level: 1,
   global_status: '',
   rsi_verified_at: null,
+  region: '',
   timezone: '',
   availability_status: '',
   loa_note: '',
   bio: '',
   role_ids: [],
+});
+
+const timezoneOptions = computed(() => {
+  const values = typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function'
+    ? Intl.supportedValuesOf('timeZone')
+    : fallbackTimezoneValues;
+
+  const uniqueValues = Array.from(new Set([
+    ...values,
+    form.value.timezone,
+    editingUser.value?.timezone,
+  ].filter(Boolean)));
+
+  return uniqueValues.map(value => ({
+    label: formatTimezoneOptionLabel(value),
+    value,
+  }));
 });
 
 const rsiVerifiedAtLocal = ref('');
@@ -1306,6 +1400,7 @@ function openUserEditor(user) {
     rank_level: user.rank_level || 1,
     global_status: user.global_status || '',
     rsi_verified_at: toBackendDatetimeFromLocalInput(rsiVerifiedAtLocal.value),
+    region: user.region || '',
     timezone: user.timezone || '',
     availability_status: user.availability_status || '',
     loa_note: user.loa_note || '',
@@ -1423,5 +1518,3 @@ function saveUser() {
   );
 }
 </script>
-
-

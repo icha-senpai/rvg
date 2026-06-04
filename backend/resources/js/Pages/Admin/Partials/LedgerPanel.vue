@@ -54,6 +54,47 @@ const confirmDialog = ref(null)
 const pendingConfirmation = ref(null)
 const editingCycleId = ref(null)
 const savedCycleId = ref(null)
+const analytics = computed(() => props.ledger?.analytics ?? {})
+
+const chartPalette = [
+  { solid: 'rgba(125, 211, 252, 0.96)' },
+  { solid: 'rgba(96, 165, 250, 0.96)' },
+  { solid: 'rgba(45, 212, 191, 0.96)' },
+  { solid: 'rgba(251, 191, 36, 0.96)' },
+  { solid: 'rgba(248, 113, 113, 0.96)' },
+  { solid: 'rgba(196, 181, 253, 0.96)' },
+]
+
+const leadershipCards = computed(() => [
+  {
+    label: 'Net Position',
+    value: formatSignedMoney(analytics.value?.snapshot?.net_position ?? 0),
+    detail: 'Current cycle across all ledgers',
+  },
+  {
+    label: 'Income',
+    value: formatMoney(analytics.value?.snapshot?.income ?? 0),
+    detail: `${formatCount(analytics.value?.snapshot?.transaction_count ?? 0)} transactions logged`,
+  },
+  {
+    label: 'Expenses',
+    value: formatMoney(analytics.value?.snapshot?.expenses ?? 0),
+    detail: `${formatCount(analytics.value?.snapshot?.trade_count ?? 0)} trade runs recorded`,
+  },
+  {
+    label: 'Assets',
+    value: formatMoney((analytics.value?.snapshot?.inventory_value ?? 0) + (analytics.value?.snapshot?.fleet_value ?? 0)),
+    detail: `${formatCount((analytics.value?.snapshot?.inventory_count ?? 0) + (analytics.value?.snapshot?.ship_count ?? 0))} tracked records`,
+  },
+])
+
+const ownershipSummaries = computed(() => analytics.value?.ownership ?? [])
+const cycleProfitRows = computed(() => normalizeRows(analytics.value?.reports?.cycle_profit_loss ?? [], { limit: 6 }))
+const incomeSourceRows = computed(() => normalizeRows(analytics.value?.reports?.income_by_source ?? [], { limit: 5, aggregateRemainder: true }))
+const expenseSourceRows = computed(() => normalizeRows(analytics.value?.reports?.expenses_by_source ?? [], { limit: 5, aggregateRemainder: true }))
+const tradeCommodityRows = computed(() => normalizeRows(analytics.value?.reports?.trade_profit_by_commodity ?? [], { limit: 5, aggregateRemainder: true }))
+const inventoryCategoryRows = computed(() => normalizeRows(analytics.value?.reports?.inventory_value_by_category ?? [], { limit: 5, aggregateRemainder: true }))
+const shipStatusRows = computed(() => normalizeRows(analytics.value?.reports?.ship_summary_by_status ?? [], { limit: 6 }))
 
 function toLocalInputValue(value) {
   if (!value) return ''
@@ -148,6 +189,105 @@ function closeWipeCycle(id) {
 function handleConfirmDialogConfirm(controls) {
   pendingConfirmation.value?.action?.(controls)
 }
+
+function normalizeRows(rows, options = {}) {
+  const {
+    limit = 6,
+    aggregateRemainder = false,
+  } = options
+
+  const cleanedRows = (rows ?? [])
+    .map((row) => ({
+      label: String(row?.label ?? 'Unknown'),
+      value: Number(row?.value ?? 0),
+    }))
+    .filter((row) => row.label && Number.isFinite(row.value) && row.value !== 0)
+
+  if (!cleanedRows.length) {
+    return []
+  }
+
+  const trimmedRows = limit > 0 ? cleanedRows.slice(0, limit) : [...cleanedRows]
+  const remainderRows = limit > 0 ? cleanedRows.slice(limit) : []
+
+  if (aggregateRemainder && remainderRows.length) {
+    trimmedRows.push({
+      label: 'Other',
+      value: remainderRows.reduce((total, row) => total + row.value, 0),
+    })
+  }
+
+  const total = trimmedRows.reduce((sum, row) => sum + Math.abs(row.value), 0)
+
+  return trimmedRows.map((row, index) => ({
+    ...row,
+    color: chartPalette[index % chartPalette.length].solid,
+    share: total > 0 ? Math.abs(row.value) / total : 0,
+  }))
+}
+
+function formatMoney(value) {
+  const amount = Number(value ?? 0)
+  return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} aUEC`
+}
+
+function formatSignedMoney(value) {
+  const amount = Number(value ?? 0)
+
+  if (amount > 0) return `+${formatMoney(amount)}`
+  if (amount < 0) return `-${formatMoney(Math.abs(amount))}`
+
+  return formatMoney(0)
+}
+
+function formatCount(value) {
+  return Number(value ?? 0).toLocaleString('en-US')
+}
+
+function formatCompactNumber(value) {
+  const amount = Number(value ?? 0)
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: amount >= 100000 ? 1 : 0,
+  }).format(amount)
+}
+
+function buildBarHeight(value, maxValue) {
+  const safeMax = Math.max(Number(maxValue ?? 0), 1)
+  const height = Math.max((Math.abs(Number(value ?? 0)) / safeMax) * 100, 10)
+
+  return `${Math.min(height, 100)}%`
+}
+
+function buildBarWidth(share) {
+  const width = Math.max(Number(share ?? 0) * 100, 8)
+
+  return `${Math.min(width, 100)}%`
+}
+
+function buildDonutStyle(rows) {
+  if (!rows?.length) {
+    return {
+      background: 'conic-gradient(rgba(148, 163, 184, 0.14) 0deg 360deg)',
+    }
+  }
+
+  let currentAngle = 0
+
+  const slices = rows.map((row) => {
+    const start = currentAngle
+    const size = row.share * 360
+    const end = start + size
+    currentAngle = end
+
+    return `${row.color} ${start}deg ${end}deg`
+  })
+
+  return {
+    background: `conic-gradient(${slices.join(', ')})`,
+  }
+}
 </script>
 
 <template>
@@ -161,18 +301,14 @@ function handleConfirmDialogConfirm(controls) {
       @confirm="handleConfirmDialogConfirm"
     />
 
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
       <div>
-        <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-          Ledger Command
-        </div>
-
-        <h3 class="mt-1 text-2xl font-black text-horizon-white">
-          Cycle And Module Controls
+        <h3 class="text-xl font-black text-horizon-white">
+          Cycle Controls
         </h3>
 
-        <p class="mt-2 max-w-3xl text-sm text-text-secondary">
-          Horizon Ledger is scaffolded as a cycle-aware module. Use this console to create the next cycle, switch the current cycle, and keep the feature rollout controlled.
+        <p class="mt-1 max-w-3xl text-sm text-text-secondary">
+          Manage the live cycle, rollout state, and leadership readouts from one place.
         </p>
       </div>
 
@@ -216,6 +352,349 @@ function handleConfirmDialogConfirm(controls) {
           {{ (ledger.counts?.inventory_items ?? 0) + (ledger.counts?.ship_assets ?? 0) }}
         </div>
         <div class="mt-1 text-sm text-text-secondary">Inventory and ship records combined.</div>
+      </div>
+    </section>
+
+    <section class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Leadership Snapshot</div>
+          <h4 class="mt-1 text-xl font-black text-horizon-white">Current cycle command economy</h4>
+        </div>
+
+        <p class="max-w-2xl text-sm text-text-secondary">
+          A shared readout for leadership without pushing all of this extra reporting into the member ledgers.
+        </p>
+      </div>
+
+      <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="card in leadershipCards"
+          :key="card.label"
+          class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] px-4 py-4"
+        >
+          <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">{{ card.label }}</div>
+          <div class="mt-2 text-2xl font-black text-horizon-white">{{ card.value }}</div>
+          <div class="mt-2 text-sm text-text-secondary">{{ card.detail }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-3">
+      <article
+        v-for="scope in ownershipSummaries"
+        :key="scope.key"
+        class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.024] p-5"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ scope.label }}</div>
+            <div class="mt-1 text-sm text-text-secondary">{{ scope.description }}</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatCount(scope.account_count) }} ledgers
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+            <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Net Position</div>
+            <div class="mt-2 text-lg font-black text-horizon-white">{{ formatSignedMoney(scope.cards?.net_position ?? 0) }}</div>
+          </div>
+
+          <div class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+            <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Trade Profit</div>
+            <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.trade_profit ?? 0) }}</div>
+          </div>
+
+          <div class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+            <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Inventory Value</div>
+            <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.inventory_value ?? 0) }}</div>
+          </div>
+
+          <div class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+            <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Fleet Value</div>
+            <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.fleet_value ?? 0) }}</div>
+          </div>
+        </div>
+
+        <div class="mt-4 text-xs text-text-secondary">
+          {{ formatCount(scope.record_count) }} records tracked in this slice for the current cycle.
+        </div>
+      </article>
+    </section>
+
+    <section class="grid gap-5 xl:grid-cols-2">
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Cycle Profit / Loss</div>
+            <div class="mt-1 text-sm text-text-secondary">How each cycle has landed across the whole command economy.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ cycleProfitRows.length }} cycles
+          </div>
+        </div>
+
+        <div v-if="cycleProfitRows.length" class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_18rem]">
+          <div class="rounded-[1.4rem] border border-white/[0.055] bg-black/10 p-4">
+            <div class="flex h-56 items-end gap-3">
+              <div
+                v-for="row in cycleProfitRows"
+                :key="`cycle-${row.label}`"
+                class="flex min-w-0 flex-1 flex-col justify-end"
+              >
+                <div class="px-1 pb-2 text-center text-[11px] font-bold tracking-[0.04em]" :class="row.value >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+                  {{ formatCompactNumber(Math.abs(row.value)) }}
+                </div>
+                <div
+                  class="w-full rounded-t-[1rem]"
+                  :style="{
+                    height: buildBarHeight(row.value, Math.max(...cycleProfitRows.map((entry) => Math.abs(entry.value)), 1)),
+                    background: row.value >= 0
+                      ? 'linear-gradient(180deg, rgba(52, 211, 153, 0.95), rgba(16, 185, 129, 0.6))'
+                      : 'linear-gradient(180deg, rgba(251, 113, 133, 0.92), rgba(244, 63, 94, 0.55))',
+                  }"
+                />
+                <div class="mt-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                  {{ row.label }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="row in cycleProfitRows"
+              :key="`cycle-list-${row.label}`"
+              class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                <div class="text-sm font-semibold" :class="row.value >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+                  {{ formatSignedMoney(row.value) }}
+                </div>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                <div
+                  class="h-full rounded-full"
+                  :style="{ width: buildBarWidth(row.share), backgroundColor: row.value >= 0 ? 'rgba(52, 211, 153, 0.88)' : 'rgba(251, 113, 133, 0.88)' }"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No cycle trend data is available yet.
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Income By Source</div>
+            <div class="mt-1 text-sm text-text-secondary">What is feeding the current cycle economy right now.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatMoney(analytics.snapshot?.income ?? 0) }}
+          </div>
+        </div>
+
+        <div v-if="incomeSourceRows.length" class="mt-5 grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-center">
+          <div class="flex items-center justify-center">
+            <div class="relative flex h-44 w-44 items-center justify-center rounded-full border border-white/[0.055] p-3">
+              <div class="absolute inset-3 rounded-full" :style="buildDonutStyle(incomeSourceRows)" />
+              <div class="absolute inset-[2.35rem] rounded-full bg-[#07111f]/95 ring-1 ring-white/5" />
+              <div class="relative text-center">
+                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Income</div>
+                <div class="mt-2 text-2xl font-black text-horizon-white">{{ formatCompactNumber(analytics.snapshot?.income ?? 0) }}</div>
+                <div class="text-xs text-text-secondary">aUEC tracked</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="row in incomeSourceRows"
+              :key="`income-${row.label}`"
+              class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: row.color }" />
+                  <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                </div>
+                <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No income-source data is available yet.
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Expense By Source</div>
+            <div class="mt-1 text-sm text-text-secondary">Where spending pressure is landing during the current cycle.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatMoney(analytics.snapshot?.expenses ?? 0) }}
+          </div>
+        </div>
+
+        <div v-if="expenseSourceRows.length" class="mt-5 space-y-3">
+          <div
+            v-for="row in expenseSourceRows"
+            :key="`expense-${row.label}`"
+            class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-4"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+              <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+            </div>
+            <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/6">
+              <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+            </div>
+            <div class="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+              {{ Math.round(row.share * 100) }}% of current cycle expenses
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No expense-source data is available yet.
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Profit By Commodity</div>
+            <div class="mt-1 text-sm text-text-secondary">The strongest current-cycle trade performers.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatMoney(analytics.snapshot?.trade_profit ?? 0) }}
+          </div>
+        </div>
+
+        <div v-if="tradeCommodityRows.length" class="mt-5 space-y-3">
+          <div
+            v-for="row in tradeCommodityRows"
+            :key="`trade-${row.label}`"
+            class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-4"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+              <div class="text-sm text-cyan-100">{{ formatMoney(row.value) }}</div>
+            </div>
+            <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/6">
+              <div
+                class="h-full rounded-full"
+                :style="{ width: buildBarWidth(row.share), background: `linear-gradient(90deg, ${row.color}, rgba(255, 255, 255, 0.65))` }"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No trade profit data is available yet.
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Value By Category</div>
+            <div class="mt-1 text-sm text-text-secondary">Where the stored value is sitting right now.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatMoney(analytics.snapshot?.inventory_value ?? 0) }}
+          </div>
+        </div>
+
+        <div v-if="inventoryCategoryRows.length" class="mt-5 grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-center">
+          <div class="flex items-center justify-center">
+            <div class="relative flex h-44 w-44 items-center justify-center rounded-full border border-white/[0.055] p-3">
+              <div class="absolute inset-3 rounded-full" :style="buildDonutStyle(inventoryCategoryRows)" />
+              <div class="absolute inset-[2.35rem] rounded-full bg-[#07111f]/95 ring-1 ring-white/5" />
+              <div class="relative text-center">
+                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Inventory</div>
+                <div class="mt-2 text-2xl font-black text-horizon-white">{{ formatCompactNumber(analytics.snapshot?.inventory_value ?? 0) }}</div>
+                <div class="text-xs text-text-secondary">aUEC value</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="row in inventoryCategoryRows"
+              :key="`inventory-${row.label}`"
+              class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: row.color }" />
+                  <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                </div>
+                <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No inventory category breakdown is available yet.
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Fleet Status Mix</div>
+            <div class="mt-1 text-sm text-text-secondary">A quick read on the current tracked ship state mix.</div>
+          </div>
+
+          <div class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-horizon-white">
+            {{ formatCount(analytics.snapshot?.ship_count ?? 0) }} ships
+          </div>
+        </div>
+
+        <div v-if="shipStatusRows.length" class="mt-5 space-y-3">
+          <div
+            v-for="row in shipStatusRows"
+            :key="`ship-status-${row.label}`"
+            class="rounded-[1.1rem] border border-white/[0.055] bg-black/10 px-4 py-4"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+              <div class="text-sm text-text-secondary">{{ formatCount(row.value) }}</div>
+            </div>
+            <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/6">
+              <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-5 rounded-[1.4rem] border border-white/[0.055] bg-black/10 px-4 py-8 text-sm text-text-secondary">
+          No ship status mix is available yet.
+        </div>
       </div>
     </section>
 

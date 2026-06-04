@@ -196,6 +196,98 @@ const archiveCategoryChildren = computed(() => {
   })
 })
 
+const adminDashboardChildren = computed(() => {
+  if (!canSeeEverything.value) {
+    return []
+  }
+
+  const url = page.url ?? ''
+  const adminTabChildren = [
+    {
+      key: 'admin-users',
+      label: 'Users',
+      href: route('admin.dashboard', { tab: 'users' }),
+      isActive: url === '/admin' || url === '/admin/' || url === '/admin/dashboard' || url === '/admin/dashboard/' || url === '/admin?tab=users' || url === '/admin/dashboard?tab=users',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-squadrons',
+      label: 'Squadrons',
+      href: route('admin.dashboard', { tab: 'squadrons' }),
+      isActive: url === '/admin?tab=squadrons' || url === '/admin/dashboard?tab=squadrons',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-roles',
+      label: 'Roles',
+      href: route('admin.dashboard', { tab: 'roles' }),
+      isActive: url === '/admin?tab=roles' || url === '/admin/dashboard?tab=roles',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-operations',
+      label: 'Operations',
+      href: route('admin.dashboard', { tab: 'operations' }),
+      isActive: url === '/admin?tab=operations' || url === '/admin/dashboard?tab=operations',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-media',
+      label: 'Media',
+      href: route('admin.dashboard', { tab: 'media' }),
+      isActive: url === '/admin?tab=media' || url === '/admin/dashboard?tab=media',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-ledger',
+      label: 'Ledger',
+      href: route('admin.dashboard', { tab: 'ledger' }),
+      isActive: url === '/admin?tab=ledger' || url === '/admin/dashboard?tab=ledger',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-uex',
+      label: 'UEX',
+      href: route('admin.dashboard', { tab: 'uex' }),
+      isActive: url === '/admin?tab=uex' || url === '/admin/dashboard?tab=uex',
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-archive-manage',
+      label: 'Archive Management',
+      href: route('admin.archive.index'),
+      isActive: url.startsWith('/admin/archive') && !url.startsWith('/admin/archive/trash') && !url.startsWith('/admin/archive/audit') && !url.startsWith('/admin/archive/taxonomy'),
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-archive-trash',
+      label: 'Archive Trash',
+      href: route('admin.archive.trash.index'),
+      isActive: url.startsWith('/admin/archive/trash'),
+      meta: null,
+      showJump: false,
+    },
+    {
+      key: 'admin-archive-audit',
+      label: 'Archive Audit',
+      href: route('admin.archive.audit.index'),
+      isActive: url.startsWith('/admin/archive/audit'),
+      meta: null,
+      showJump: false,
+    },
+  ]
+
+  return adminTabChildren
+})
+
 const NAV_ICON_PATHS = Object.freeze({
   home: [
     { d: 'M3.75 10.5 12 4l8.25 6.5' },
@@ -355,7 +447,6 @@ const navGroups = computed(() => {
           params: mySquadron.value ? mySquadron.value.slug : undefined,
           isActive: mySquadron.value ? url === `/squadrons/${mySquadron.value.slug}` : false,
           show: !!mySquadron.value,
-          badge: mySquadron.value?.name ?? 'Active',
           tone: 'cyan',
           status: 'Assigned',
         },
@@ -374,15 +465,15 @@ const navGroups = computed(() => {
     },
     {
       key: 'ledgers',
-      label: 'Ledgers',
-      eyebrow: 'Personal + shared books',
+      label: 'Assets & Funds',
+      eyebrow: 'Personal + shared assets',
       tone: 'amber',
       show: ledgerEnabled.value,
       items: [
         {
           key: 'ledger',
-          label: 'My Ledger',
-          shortLabel: 'My Ledger',
+          label: 'My Assets & Funds',
+          shortLabel: 'Assets',
           icon: 'ledger',
           routeName: 'ledger.index',
           params: undefined,
@@ -392,21 +483,20 @@ const navGroups = computed(() => {
         },
         {
           key: 'squadron_ledger',
-          label: 'Squadron Ledger',
-          shortLabel: 'Squadron',
+          label: 'Squadron Assets & Funds',
+          shortLabel: 'Assets',
           icon: 'squadron_ledger',
           routeName: mySquadronLedgerRouteName.value,
           params: mySquadronLedgerRouteParams.value,
           isActive: squadronLedgerActive.value,
           show: !!mySquadron.value,
-          badge: mySquadron.value?.name ?? 'Shared',
           tone: 'cyan',
           status: 'Squadron',
         },
         {
           key: 'org_ledger',
-          label: 'Org Treasury',
-          shortLabel: 'Treasury',
+          label: 'Horizon Treasury',
+          shortLabel: 'Horizon',
           icon: 'treasury',
           routeName: 'organization.ledger',
           params: undefined,
@@ -482,6 +572,7 @@ const navGroups = computed(() => {
           isActive: url.startsWith('/admin'),
           tone: 'red',
           status: 'Admin',
+          children: adminDashboardChildren.value,
         },
       ],
     },
@@ -499,7 +590,9 @@ const navGroups = computed(() => {
 const mobileOpen = ref(false)
 const desktopExpanded = ref(true)
 const manuallyExpandedGroups = ref(new Set())
+const manuallyCollapsedGroups = ref(new Set())
 const manuallyExpandedItems = ref(new Set())
+const manuallyCollapsedItems = ref(new Set())
 
 const activeGroupKeys = computed(() => new Set(
   navGroups.value
@@ -526,15 +619,19 @@ function toggleDesktopNav() {
 }
 
 function toggleGroup(group) {
-  const next = new Set(manuallyExpandedGroups.value)
+  const nextExpanded = new Set(manuallyExpandedGroups.value)
+  const nextCollapsed = new Set(manuallyCollapsedGroups.value)
 
-  if (next.has(group.key)) {
-    next.delete(group.key)
+  if (groupIsOpen(group)) {
+    nextExpanded.delete(group.key)
+    nextCollapsed.add(group.key)
   } else {
-    next.add(group.key)
+    nextCollapsed.delete(group.key)
+    nextExpanded.add(group.key)
   }
 
-  manuallyExpandedGroups.value = next
+  manuallyExpandedGroups.value = nextExpanded
+  manuallyCollapsedGroups.value = nextCollapsed
 }
 
 function groupIsActive(group) {
@@ -542,19 +639,27 @@ function groupIsActive(group) {
 }
 
 function groupIsOpen(group) {
+  if (manuallyCollapsedGroups.value.has(group.key)) {
+    return false
+  }
+
   return groupIsActive(group) || manuallyExpandedGroups.value.has(group.key)
 }
 
 function toggleItem(item) {
-  const next = new Set(manuallyExpandedItems.value)
+  const nextExpanded = new Set(manuallyExpandedItems.value)
+  const nextCollapsed = new Set(manuallyCollapsedItems.value)
 
-  if (next.has(item.key)) {
-    next.delete(item.key)
+  if (itemIsOpen(item)) {
+    nextExpanded.delete(item.key)
+    nextCollapsed.add(item.key)
   } else {
-    next.add(item.key)
+    nextCollapsed.delete(item.key)
+    nextExpanded.add(item.key)
   }
 
-  manuallyExpandedItems.value = next
+  manuallyExpandedItems.value = nextExpanded
+  manuallyCollapsedItems.value = nextCollapsed
 }
 
 function getItemHref(item) {
@@ -567,8 +672,35 @@ function itemHasOpenChildren(item) {
   return Boolean(item.children?.length)
 }
 
+function itemIsOpen(item) {
+  const hasNestedContent = Boolean(item.children?.length || item.entries?.length || item.topics?.length)
+
+  if (!hasNestedContent) {
+    return false
+  }
+
+  if (manuallyCollapsedItems.value.has(item.key)) {
+    return false
+  }
+
+  return item.isActive || manuallyExpandedItems.value.has(item.key)
+}
+
 function itemChildrenAreOpen(item) {
-  return Boolean((item.entries?.length || item.topics?.length) && (item.isActive || manuallyExpandedItems.value.has(item.key)))
+  return Boolean((item.entries?.length || item.topics?.length) && itemIsOpen(item))
+}
+
+function itemChildListIsOpen(item) {
+  return Boolean(item.children?.length && itemIsOpen(item))
+}
+
+function sidebarExpansionContext(url) {
+  const value = String(url ?? '')
+
+  if (value.startsWith('/archive')) return 'archive'
+  if (value.startsWith('/admin')) return 'admin'
+
+  return null
 }
 
 function archiveCategoryRowClass(item) {
@@ -661,13 +793,15 @@ function activeRailClass(item) {
 watch(
   () => page.url,
   (nextUrl, previousUrl) => {
-    const nextIsArchive = String(nextUrl ?? '').startsWith('/archive')
-    const previousIsArchive = String(previousUrl ?? '').startsWith('/archive')
+    const nextContext = sidebarExpansionContext(nextUrl)
+    const previousContext = sidebarExpansionContext(previousUrl)
 
-    if (!(nextIsArchive && previousIsArchive)) {
+    if (nextContext !== previousContext) {
       closeMobileNav()
       manuallyExpandedGroups.value = new Set()
+      manuallyCollapsedGroups.value = new Set()
       manuallyExpandedItems.value = new Set()
+      manuallyCollapsedItems.value = new Set()
     }
   }
 )
@@ -739,10 +873,6 @@ onBeforeUnmount(() => {
             <div class="text-base font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Navigation
             </div>
-
-            <div class="mt-1 truncate text-[11px] text-text-muted">
-              Horizon command rail
-            </div>
           </div>
 
           <button
@@ -775,8 +905,51 @@ onBeforeUnmount(() => {
                 v-for="item in group.items"
                 :key="item.key"
               >
+                <div
+                  v-if="!item.href && itemHasOpenChildren(item)"
+                  class="flex items-center gap-1"
+                >
+                  <Link
+                    :href="getItemHref(item)"
+                    class="group relative flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold transition"
+                    :class="itemRowClass(item)"
+                    @click="closeMobileNav"
+                  >
+                    <span
+                      v-if="item.isActive"
+                      class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
+                      :class="activeRailClass(item)"
+                    />
+
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                      <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-link-${index}`" :d="path.d" />
+                      </svg>
+                    </span>
+
+                    <span class="min-w-0 flex-1 truncate">
+                      {{ item.label }}
+                    </span>
+
+                    <span
+                      v-if="item.badge"
+                      class="max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-text-secondary"
+                    >
+                      {{ item.badge }}
+                    </span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                    @click.stop="toggleItem(item)"
+                  >
+                    <span class="block transition-transform" :class="itemChildListIsOpen(item) ? 'rotate-90' : ''">›</span>
+                  </button>
+                </div>
+
                 <Link
-                  v-if="!item.href"
+                  v-else-if="!item.href"
                   :href="getItemHref(item)"
                   class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold transition"
                   :class="itemRowClass(item)"
@@ -828,7 +1001,7 @@ onBeforeUnmount(() => {
                 </a>
 
                 <div
-                  v-if="itemHasOpenChildren(item)"
+                  v-if="itemChildListIsOpen(item)"
                   class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
                 >
                   <div
@@ -837,7 +1010,21 @@ onBeforeUnmount(() => {
                     class="space-y-1"
                   >
                     <div class="flex items-center gap-1">
+                      <Link
+                        v-if="!(child.topics?.length || child.entries?.length)"
+                        :href="child.href"
+                        class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                        :class="archiveCategoryRowClass(child)"
+                        @click="closeMobileNav"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="truncate">{{ child.label }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveCategoryMetaClass(child)">{{ child.meta }}</span>
+                        </div>
+                      </Link>
+
                       <button
+                        v-else
                         type="button"
                         class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
                         :class="archiveCategoryRowClass(child)"
@@ -850,6 +1037,7 @@ onBeforeUnmount(() => {
                       </button>
 
                       <Link
+                        v-if="child.showJump !== false"
                         :href="child.href"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                       >
@@ -1013,10 +1201,6 @@ onBeforeUnmount(() => {
             <div class="text-base font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
               Navigation
             </div>
-
-            <div class="mt-1 truncate text-[11px] text-text-muted">
-              Horizon command rail
-            </div>
           </div>
 
           <button
@@ -1059,8 +1243,58 @@ onBeforeUnmount(() => {
                 v-for="item in group.items"
                 :key="item.key"
               >
+                <div
+                  v-if="!item.href && itemHasOpenChildren(item)"
+                  class="flex items-center gap-1"
+                >
+                  <Link
+                    :href="getItemHref(item)"
+                    class="group relative flex min-w-0 flex-1 items-center rounded-xl text-base font-semibold transition"
+                    :class="[
+                      desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5',
+                      itemRowClass(item)
+                    ]"
+                    :title="desktopExpanded ? undefined : item.label"
+                  >
+                    <span
+                      v-if="item.isActive"
+                      class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
+                      :class="activeRailClass(item)"
+                    />
+
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                      <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-link-${index}`" :d="path.d" />
+                      </svg>
+                    </span>
+
+                    <span
+                      class="min-w-0 flex-1 truncate transition-all duration-200"
+                      :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
+                    >
+                      {{ item.label }}
+                    </span>
+
+                    <span
+                      v-if="desktopExpanded && item.badge"
+                      class="ml-auto max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] leading-none text-text-secondary"
+                    >
+                      {{ item.badge }}
+                    </span>
+                  </Link>
+
+                  <button
+                    v-if="desktopExpanded"
+                    type="button"
+                    class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                    @click.stop="toggleItem(item)"
+                  >
+                    <span class="block transition-transform" :class="itemChildListIsOpen(item) ? 'rotate-90' : ''">›</span>
+                  </button>
+                </div>
+
                 <Link
-                  v-if="!item.href"
+                  v-else-if="!item.href"
                   :href="getItemHref(item)"
                   class="group relative flex items-center rounded-xl text-base font-semibold transition"
                   :class="[
@@ -1127,7 +1361,7 @@ onBeforeUnmount(() => {
                 </a>
 
                 <div
-                  v-if="desktopExpanded && itemHasOpenChildren(item)"
+                  v-if="desktopExpanded && itemChildListIsOpen(item)"
                   class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
                 >
                   <div
@@ -1136,7 +1370,20 @@ onBeforeUnmount(() => {
                     class="space-y-1"
                   >
                     <div class="flex items-center gap-1">
+                      <Link
+                        v-if="!(child.topics?.length || child.entries?.length)"
+                        :href="child.href"
+                        class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
+                        :class="archiveCategoryRowClass(child)"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="truncate">{{ child.label }}</span>
+                          <span v-if="child.meta" class="shrink-0 text-[10px]" :class="archiveCategoryMetaClass(child)">{{ child.meta }}</span>
+                        </div>
+                      </Link>
+
                       <button
+                        v-else
                         type="button"
                         class="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 text-left text-sm font-semibold transition"
                         :class="archiveCategoryRowClass(child)"
@@ -1149,6 +1396,7 @@ onBeforeUnmount(() => {
                       </button>
 
                       <Link
+                        v-if="child.showJump !== false"
                         :href="child.href"
                         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
                       >

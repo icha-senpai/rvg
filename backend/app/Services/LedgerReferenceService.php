@@ -305,12 +305,15 @@ class LedgerReferenceService
             'amount' => (float) $transaction->amount,
             'currency' => $transaction->currency,
             'source_type' => $transaction->source_type,
-            'is_transfer' => $transaction->source_type === 'transfer',
+            'is_transfer' => in_array($transaction->source_type, ['transfer', 'transfer_reversal'], true),
+            'is_operation_settlement' => $transaction->source_type === 'operation_settlement',
             'description' => $transaction->description,
             'transaction_date' => $transaction->transaction_date?->toIso8601String(),
             'wipe_cycle_id' => $transaction->wipe_cycle_id,
             'related_ship_asset_id' => $transaction->related_ship_asset_id,
             'related_operation_id' => $transaction->related_operation_id,
+            'operation_settlement_id' => $transaction->operation_settlement_id,
+            'operation_title' => $transaction->operation?->title,
             'related_uex_type' => $transaction->related_uex_type,
             'related_uex_id' => $transaction->related_uex_id,
             'related_reference' => $this->resolveReferenceLabel(
@@ -367,6 +370,7 @@ class LedgerReferenceService
             'id' => $item->id,
             'wipe_cycle_id' => $item->wipe_cycle_id,
             'source_type' => $item->source_type,
+            'is_operation_settlement' => (bool) $item->operation_settlement_id,
             'uex_reference_type' => $item->uex_reference_type,
             'uex_reference_id' => $item->uex_reference_id,
             'custom_name' => $item->custom_name,
@@ -387,6 +391,10 @@ class LedgerReferenceService
             'estimated_value_source' => $estimateMatchesSuggestion ? 'uex_estimate' : 'manual',
             'currency' => $item->currency,
             'status' => $item->status,
+            'provenance_locked' => (bool) $item->provenance_locked,
+            'related_operation_id' => $item->related_operation_id,
+            'operation_settlement_id' => $item->operation_settlement_id,
+            'operation_title' => $item->operation?->title,
             'assigned_ship_asset_id' => $item->assigned_ship_asset_id,
             'assigned_ship' => $item->assignedShipAsset
                 ? ($item->assignedShipAsset->custom_name ?: $item->assignedShipAsset->serial_or_label ?: "Ship {$item->assignedShipAsset->id}")
@@ -428,9 +436,14 @@ class LedgerReferenceService
             'transaction.created' => 'Logged a transaction',
             'transaction.updated' => 'Updated a transaction',
             'transaction.deleted' => 'Deleted a transaction',
+            'transfer.requested' => 'Requested a transfer',
             'transfer.created' => 'Transferred funds',
+            'transfer.rejected' => 'Rejected a transfer',
+            'transfer.reversed' => 'Reversed a transfer',
+            'inventory.transfer_requested' => 'Requested an inventory move',
             'inventory.transfer_out' => 'Moved inventory out',
             'inventory.transfer_in' => 'Received inventory',
+            'inventory.transfer_rejected' => 'Rejected an inventory move',
             'trade.created' => 'Logged a trade run',
             'trade.updated' => 'Updated a trade run',
             'trade.deleted' => 'Deleted a trade run',
@@ -449,10 +462,10 @@ class LedgerReferenceService
 
         $detail = match ($log->action) {
             'transaction.created', 'transaction.updated', 'transaction.deleted' => $metadata['description'] ?? null,
-            'transfer.created' => isset($metadata['from_label'], $metadata['to_label'])
+            'transfer.requested', 'transfer.created', 'transfer.rejected', 'transfer.reversed' => isset($metadata['from_label'], $metadata['to_label'])
                 ? "{$metadata['from_label']} -> {$metadata['to_label']}"
                 : ($metadata['description'] ?? null),
-            'inventory.transfer_out', 'inventory.transfer_in' => isset($metadata['item_label'], $metadata['quantity'])
+            'inventory.transfer_requested', 'inventory.transfer_out', 'inventory.transfer_in', 'inventory.transfer_rejected' => isset($metadata['item_label'], $metadata['quantity'])
                 ? $metadata['item_label'] . ' • ' . rtrim(rtrim(number_format((float) $metadata['quantity'], 4, '.', ''), '0'), '.')
                 : null,
             'trade.created', 'trade.updated', 'trade.deleted' => isset($metadata['profit'])

@@ -43,6 +43,7 @@ class AdminUserController extends Controller
             'global_status'       => ['nullable', 'string', 'max:255'],
             'rsi_verified_at'      => ['nullable', 'date'],
             'bio'                 => ['nullable', 'string'],
+            'region'              => ['nullable', 'string', 'in:EU,US,APAC'],
             'timezone'            => ['nullable', 'string', 'max:255'],
             'availability_status' => ['nullable', 'string', 'max:255'],
             'loa_note'            => ['nullable', 'string'],

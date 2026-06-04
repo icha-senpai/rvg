@@ -36,6 +36,51 @@ class SquadronAccessServiceTest extends TestCase
         $this->assertTrue($service->canManageSquadronMembers($user, $squadron));
     }
 
+    public function test_active_lieutenant_can_manage_squadron_ledger_for_their_squadron(): void
+    {
+        $service = app(SquadronAccessService::class);
+        $user = User::factory()->create();
+        $squadron = Squadron::create([
+            'name' => 'Aegis Ledger',
+            'slug' => 'aegis-ledger',
+            'status' => 'active',
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $user->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMembershipStatus::Active->value,
+            'role' => SquadronRole::Lieutenant->value,
+            'joined_at' => now(),
+        ]);
+
+        $this->assertTrue($service->canManageLedger($user, $squadron));
+        $this->assertTrue($service->canViewLedger($user, $squadron));
+    }
+
+    public function test_active_squadron_leader_can_manage_squadron_ledger_for_their_squadron(): void
+    {
+        $service = app(SquadronAccessService::class);
+        $user = User::factory()->create();
+        $squadron = Squadron::create([
+            'name' => 'Vanguard Ledger',
+            'slug' => 'vanguard-ledger',
+            'status' => 'active',
+            'leader_id' => $user->id,
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $user->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMembershipStatus::Active->value,
+            'role' => SquadronRole::Leader->value,
+            'joined_at' => now(),
+        ]);
+
+        $this->assertTrue($service->canManageLedger($user, $squadron));
+        $this->assertTrue($service->canViewLedger($user, $squadron));
+    }
+
     public function test_non_member_cannot_manage_members_without_override(): void
     {
         $service = app(SquadronAccessService::class);

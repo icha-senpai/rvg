@@ -30,9 +30,11 @@ class OrganizationLedgerInventoryController extends Controller
     {
         $this->authorize('manage-org-ledger');
 
-        $this->ledger->transferInventoryFromOrganization($request->user(), $request->validated());
+        $result = $this->ledger->transferInventoryFromOrganization($request->user(), $request->validated());
 
-        return back()->with('success', 'Inventory transferred.');
+        return back()->with('success', $result['status'] === 'pending'
+            ? 'Inventory transfer request sent for approval.'
+            : 'Inventory transferred.');
     }
 
     public function update(StoreLedgerInventoryItemRequest $request, LedgerInventoryItem $inventoryItem)

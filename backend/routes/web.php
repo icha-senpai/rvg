@@ -122,6 +122,12 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
         ->name('ledger.transactions.store');
     Route::post('/ledger/transfers', [LedgerTransactionController::class, 'transfer'])
         ->name('ledger.transactions.transfer');
+    Route::post('/ledger/transfers/{transferRequest}/approve', [LedgerTransactionController::class, 'approveTransfer'])
+        ->name('ledger.transactions.transfer.approve');
+    Route::post('/ledger/transfers/{transferRequest}/reject', [LedgerTransactionController::class, 'rejectTransfer'])
+        ->name('ledger.transactions.transfer.reject');
+    Route::post('/ledger/transfers/{transferRequest}/reverse', [LedgerTransactionController::class, 'reverseTransfer'])
+        ->name('ledger.transactions.transfer.reverse');
     Route::put('/ledger/transactions/{transaction}', [LedgerTransactionController::class, 'update'])
         ->name('ledger.transactions.update');
     Route::delete('/ledger/transactions/{transaction}', [LedgerTransactionController::class, 'destroy'])
@@ -138,6 +144,10 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
         ->name('ledger.inventory.store');
     Route::post('/ledger/inventory/transfers', [LedgerInventoryController::class, 'transfer'])
         ->name('ledger.inventory.transfer');
+    Route::post('/ledger/inventory/transfers/{transferRequest}/approve', [LedgerInventoryController::class, 'approveTransfer'])
+        ->name('ledger.inventory.transfer.approve');
+    Route::post('/ledger/inventory/transfers/{transferRequest}/reject', [LedgerInventoryController::class, 'rejectTransfer'])
+        ->name('ledger.inventory.transfer.reject');
     Route::put('/ledger/inventory/{inventoryItem}', [LedgerInventoryController::class, 'update'])
         ->name('ledger.inventory.update');
     Route::delete('/ledger/inventory/{inventoryItem}', [LedgerInventoryController::class, 'destroy'])
@@ -156,6 +166,9 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
     Route::post('/organization/ledger/transfers', [OrganizationLedgerTransactionController::class, 'transfer'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.transactions.transfer');
+    Route::post('/organization/ledger/transfers/{transferRequest}/reverse', [OrganizationLedgerTransactionController::class, 'reverseTransfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.transfer.reverse');
     Route::put('/organization/ledger/transactions/{transaction}', [OrganizationLedgerTransactionController::class, 'update'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.transactions.update');
@@ -320,6 +333,18 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::put('/operations/{operation}/after-action-report',
         [OperationPageController::class, 'updateAfterActionReport'])
         ->name('operations.aar.update');
+    Route::put('/operations/{operation}/settlement',
+        [OperationPageController::class, 'updateSettlement'])
+        ->name('operations.settlement.update');
+    Route::post('/operations/{operation}/settlement/finalize',
+        [OperationPageController::class, 'finalizeSettlement'])
+        ->name('operations.settlement.finalize');
+    Route::post('/operations/{operation}/settlement/reopen',
+        [OperationPageController::class, 'reopenSettlement'])
+        ->name('operations.settlement.reopen');
+    Route::get('/operations/{operation}/settlement/export',
+        [OperationPageController::class, 'exportSettlement'])
+        ->name('operations.settlement.export');
     Route::post('/operations/{operation}/publish', 
         [OperationTransitionController::class, 'publish'])
         ->name('operations.publish');
@@ -395,6 +420,15 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
     Route::post('/squadrons/{squadron}/ledger/transfers', [SquadronLedgerTransactionController::class, 'transfer'])
         ->whereNumber('squadron')
         ->name('squadrons.ledger.transactions.transfer');
+    Route::post('/squadrons/{squadron}/ledger/transfers/{transferRequest}/approve', [SquadronLedgerTransactionController::class, 'approveTransfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.transfer.approve');
+    Route::post('/squadrons/{squadron}/ledger/transfers/{transferRequest}/reject', [SquadronLedgerTransactionController::class, 'rejectTransfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.transfer.reject');
+    Route::post('/squadrons/{squadron}/ledger/transfers/{transferRequest}/reverse', [SquadronLedgerTransactionController::class, 'reverseTransfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.transactions.transfer.reverse');
     Route::put('/squadrons/{squadron}/ledger/transactions/{transaction}', [SquadronLedgerTransactionController::class, 'update'])
         ->whereNumber('squadron')
         ->name('squadrons.ledger.transactions.update');
@@ -418,6 +452,12 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
     Route::post('/squadrons/{squadron}/ledger/inventory/transfers', [SquadronLedgerInventoryController::class, 'transfer'])
         ->whereNumber('squadron')
         ->name('squadrons.ledger.inventory.transfer');
+    Route::post('/squadrons/{squadron}/ledger/inventory/transfers/{transferRequest}/approve', [SquadronLedgerInventoryController::class, 'approveTransfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.transfer.approve');
+    Route::post('/squadrons/{squadron}/ledger/inventory/transfers/{transferRequest}/reject', [SquadronLedgerInventoryController::class, 'rejectTransfer'])
+        ->whereNumber('squadron')
+        ->name('squadrons.ledger.inventory.transfer.reject');
     Route::put('/squadrons/{squadron}/ledger/inventory/{inventoryItem}', [SquadronLedgerInventoryController::class, 'update'])
         ->whereNumber('squadron')
         ->name('squadrons.ledger.inventory.update');

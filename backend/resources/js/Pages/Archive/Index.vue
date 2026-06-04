@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
@@ -16,7 +16,10 @@ const props = defineProps({
 
 const search = ref(props.filters?.search ?? '')
 const sort = ref(props.filters?.sort ?? 'recent')
+const openCategoryKeys = ref(new Set())
 let searchDebounceId = null
+
+const openCategoryStorageKey = 'archive.index.open-categories'
 
 const hasSearch = computed(() => String(props.filters?.search ?? '').trim().length > 0)
 const categoryGroups = computed(() => props.categories ?? [])
@@ -29,6 +32,10 @@ const sortOptions = [
   { value: 'title', label: 'Title A-Z' },
   { value: 'oldest', label: 'Oldest updated' },
 ]
+
+onMounted(() => {
+  loadOpenCategoryKeys()
+})
 
 function currentQuery(overrides = {}) {
   const next = {
@@ -44,6 +51,48 @@ function currentQuery(overrides = {}) {
   if (next.sort && next.sort !== 'recent') query.sort = next.sort
 
   return query
+}
+
+function loadOpenCategoryKeys() {
+  if (typeof window === 'undefined') return
+
+  try {
+    const raw = window.localStorage.getItem(openCategoryStorageKey)
+
+    if (!raw) {
+      openCategoryKeys.value = new Set()
+      return
+    }
+
+    const parsed = JSON.parse(raw)
+    openCategoryKeys.value = new Set(Array.isArray(parsed) ? parsed.map(value => String(value)) : [])
+  } catch {
+    openCategoryKeys.value = new Set()
+  }
+}
+
+function persistOpenCategoryKeys() {
+  if (typeof window === 'undefined') return
+
+  window.localStorage.setItem(openCategoryStorageKey, JSON.stringify(Array.from(openCategoryKeys.value)))
+}
+
+function categoryIsOpen(categoryId) {
+  return openCategoryKeys.value.has(String(categoryId))
+}
+
+function toggleCategory(categoryId) {
+  const next = new Set(openCategoryKeys.value)
+  const normalizedId = String(categoryId)
+
+  if (next.has(normalizedId)) {
+    next.delete(normalizedId)
+  } else {
+    next.add(normalizedId)
+  }
+
+  openCategoryKeys.value = next
+  persistOpenCategoryKeys()
 }
 
 function runSearch(value = search.value) {
@@ -171,7 +220,15 @@ watch(search, value => {
 
         <div v-if="categoryGroups.length" class="space-y-6">
           <section v-for="group in categoryGroups" :key="group.id" class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
-            <div class="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
+            <div
+              class="flex cursor-pointer flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between"
+              role="button"
+              tabindex="0"
+              :aria-expanded="categoryIsOpen(group.id)"
+              @click="toggleCategory(group.id)"
+              @keydown.enter.prevent="toggleCategory(group.id)"
+              @keydown.space.prevent="toggleCategory(group.id)"
+            >
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
                 <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.name }}</h3>
@@ -182,59 +239,69 @@ watch(search, value => {
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_topics_count }} topic{{ group.visible_topics_count === 1 ? '' : 's' }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_direct_entries_count }} direct entr{{ group.visible_direct_entries_count === 1 ? 'y' : 'ies' }}</span>
                 <span class="rounded-full border border-white/10 px-3 py-1">{{ group.visible_entries_count }} visible entries</span>
-                <Link :href="group.href" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Open Category</Link>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full border border-white/[0.055] px-3 py-1 text-horizon-white hover:bg-white/[0.05]"
+                  @click.stop="toggleCategory(group.id)"
+                >
+                  <span>{{ categoryIsOpen(group.id) ? 'Collapse' : 'Expand' }}</span>
+                  <span class="text-[10px] transition-transform duration-200" :class="categoryIsOpen(group.id) ? 'rotate-180' : ''">⌄</span>
+                </button>
+                <Link :href="group.href" class="rounded-full border border-[color:var(--horizon-sunset-blue)]/35 px-3 py-1 text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20" @click.stop>Go to Category</Link>
               </div>
             </div>
 
-            <div v-if="group.direct_entries?.length" class="mt-5 space-y-3">
-              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">Direct Entries</div>
-              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Link v-for="entry in group.direct_entries" :key="`direct-entry-${entry.id}`" :href="entry.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.055)] group rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:[--hz-angled-corner-border:color-mix(in_srgb,var(--horizon-sunset-blue)_45%,transparent)]">
-                  <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Direct Category Entry</div>
-                  <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
-                  <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
-                  <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
-                    <span class="rounded-full border border-white/10 px-2.5 py-1">{{ entry.minimum_rank_label }}</span>
-                    <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-2.5 py-1">Updated {{ entry.updated_label }}</span>
-                    <span v-for="tag in entry.tags" :key="`direct-search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
+            <template v-if="categoryIsOpen(group.id)">
+              <div v-if="group.direct_entries?.length" class="mt-5 space-y-3">
+                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">Direct Entries</div>
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Link v-for="entry in group.direct_entries" :key="`direct-entry-${entry.id}`" :href="entry.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.055)] group rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:[--hz-angled-corner-border:color-mix(in_srgb,var(--horizon-sunset-blue)_45%,transparent)]">
+                    <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Direct Category Entry</div>
+                    <h3 class="mt-2 text-lg font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
+                    <p class="mt-2 line-clamp-3 text-sm text-text-secondary">{{ entry.excerpt || 'No excerpt has been written for this archive entry yet.' }}</p>
+                    <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
+                      <span class="rounded-full border border-white/10 px-2.5 py-1">{{ entry.minimum_rank_label }}</span>
+                      <span v-if="entry.updated_label" class="rounded-full border border-white/10 px-2.5 py-1">Updated {{ entry.updated_label }}</span>
+                      <span v-for="tag in entry.tags" :key="`direct-search-tag-${entry.id}-${tag.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-magenta)]">#{{ tag.name }}</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+
+              <div v-if="group.topics?.length" class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                <Link v-for="topic in group.topics" :key="topic.id" :href="topic.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.75rem] border border-white/10 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]">
+                  <div class="pointer-events-none absolute inset-0 opacity-70">
+                    <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
+                    <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
+                  </div>
+
+                  <div class="relative space-y-4">
+                    <div class="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <img v-if="topic.card_image_path" :src="topic.card_image_path" :alt="topic.title" class="h-full w-full rounded-xl object-contain" />
+                      <div v-else class="px-4 text-center text-5xl text-[color:var(--horizon-sunset-blue)]/80">◫</div>
+                    </div>
+
+                    <div>
+                      <div class="flex flex-wrap gap-2">
+                        <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
+                      </div>
+
+                      <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">{{ topic.title }}</h3>
+                      <p class="mt-2 line-clamp-3 text-sm leading-6 text-text-secondary">{{ topic.description }}</p>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-semibold text-text-muted">
+                      <span>{{ topic.visible_entries_count }} visible entries</span>
+                      <span>Open →</span>
+                    </div>
                   </div>
                 </Link>
               </div>
-            </div>
 
-            <div v-if="group.topics?.length" class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <Link v-for="topic in group.topics" :key="topic.id" :href="topic.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.75rem] border border-white/10 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]">
-                <div class="pointer-events-none absolute inset-0 opacity-70">
-                  <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
-                  <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
-                </div>
-
-                <div class="relative space-y-4">
-                  <div class="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <img v-if="topic.card_image_path" :src="topic.card_image_path" :alt="topic.title" class="h-full w-full rounded-xl object-contain" />
-                    <div v-else class="px-4 text-center text-5xl text-[color:var(--horizon-sunset-blue)]/80">◫</div>
-                  </div>
-
-                  <div>
-                    <div class="flex flex-wrap gap-2">
-                      <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
-                    </div>
-
-                    <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">{{ topic.title }}</h3>
-                    <p class="mt-2 line-clamp-3 text-sm leading-6 text-text-secondary">{{ topic.description }}</p>
-                  </div>
-
-                  <div class="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-semibold text-text-muted">
-                    <span>{{ topic.visible_entries_count }} visible entries</span>
-                    <span>Open →</span>
-                  </div>
-                </div>
-              </Link>
-            </div>
-
-            <div v-if="!group.topics?.length && !group.direct_entries?.length" class="hz-surface-welcome mt-5 rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
-              No visible archive content is currently available in this category.
-            </div>
+              <div v-if="!group.topics?.length && !group.direct_entries?.length" class="hz-surface-welcome mt-5 rounded-2xl border border-white/[0.055] p-6 text-sm text-text-secondary">
+                No visible archive content is currently available in this category.
+              </div>
+            </template>
           </section>
         </div>
 
@@ -243,9 +310,5 @@ watch(search, value => {
     </div>
   </HorizonContainer>
 </template>
-
-
-
-
 
 

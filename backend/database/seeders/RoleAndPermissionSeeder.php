@@ -344,6 +344,8 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['operation.view']->id,
                 $permissionModels['operation.create']->id,
                 $permissionModels['operation.stats.manage']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
             ]);
 
             // C.I.T (Commander in Training)
@@ -353,6 +355,8 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['operation.create']->id,
                 $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
             ]);
             // Commander
             $roleModels['commander']->permissions()->sync([
@@ -363,6 +367,8 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['operation.create']->id,
                 $permissionModels['operation.stats.manage']->id,
                 $permissionModels['operation.members.manage']->id,
+                $permissionModels['ledger.view-own']->id,
+                $permissionModels['ledger.edit-own']->id,
             ]);
 
             // Wing Commander
@@ -395,6 +401,7 @@ class RoleAndPermissionSeeder extends Seeder
                 $permissionModels['ledger.view-own']->id,
                 $permissionModels['ledger.edit-own']->id,
                 $permissionModels['ledger.view-any']->id,
+                $permissionModels['ledger.manage-org-ledger']->id,
             ]);
 
             // Grand Admiral

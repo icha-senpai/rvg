@@ -113,6 +113,35 @@ const fallbackTimezoneValues = [
   'Europe/Paris',
 ]
 
+function timezoneOffsetLabel(value) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: value,
+      timeZoneName: 'shortOffset',
+    })
+
+    const offsetPart = formatter.formatToParts(new Date()).find(part => part.type === 'timeZoneName')?.value
+
+    if (!offsetPart) {
+      return null
+    }
+
+    if (offsetPart === 'GMT' || offsetPart === 'UTC') {
+      return 'UTC+0'
+    }
+
+    return offsetPart.replace(/^GMT/, 'UTC')
+  } catch {
+    return null
+  }
+}
+
+function formatTimezoneOptionLabel(value) {
+  const offset = timezoneOffsetLabel(value)
+
+  return offset ? `${value} (${offset})` : value
+}
+
 const timezoneOptions = computed(() => {
   const values = typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function'
     ? Intl.supportedValuesOf('timeZone')
@@ -125,7 +154,7 @@ const timezoneOptions = computed(() => {
   ].filter(Boolean)))
 
   return uniqueValues.map(value => ({
-    label: value,
+    label: formatTimezoneOptionLabel(value),
     value,
   }))
 })
@@ -1361,7 +1390,7 @@ watch(
                   </p>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-[12rem_minmax(0,1.5fr)_minmax(0,1fr)]">
                   <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-4">
                     <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                       Region

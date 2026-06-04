@@ -101,6 +101,14 @@ class Operation extends Model
     }
 
     /**
+     * Return the settlement workspace recorded for this completed operation.
+     */
+    public function settlement()
+    {
+        return $this->hasOne(OperationSettlement::class);
+    }
+
+    /**
      * Return all polymorphic media attached to this operation.
      */
     public function media()

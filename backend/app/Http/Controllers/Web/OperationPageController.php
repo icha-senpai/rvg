@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Http\Requests\Operations\OperationStoreRequest;
 use App\Http\Requests\Operations\OperationUpdateRequest;
 use App\Http\Requests\Operations\OperationAfterActionReportUpdateRequest;
+use App\Http\Requests\Operations\OperationSettlementUpsertRequest;
 use App\Http\Requests\Operations\OperationTemplateStoreRequest;
 use App\Http\Requests\Operations\OperationTemplateUpdateRequest;
 
@@ -25,6 +26,7 @@ use App\Domain\Operations\Services\OperationService;
 use App\Domain\Operations\Services\OperationTemplateService;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Str;
 
 /**
  * Web controller for the operations dashboard, operation detail screens, editor
@@ -79,6 +81,7 @@ class OperationPageController extends Controller
             'squadrons' => SquadronPresenter::collection($this->squadrons->listAll()),
             'operationTemplates' => $this->operationTemplatesFor($user),
             'afterActionOperations' => $this->showData->dashboardAfterActionOperations($user),
+            'operationSettlementLootOptions' => $this->showData->settlementLootOptions(),
             'verifiedMembers' => $this->showData->verifiedMembers(),
             'activeOperation' => $this->resolveActiveOperation($request),
             'editingOperation' => $this->resolveEditingOperation($request),
@@ -324,6 +327,108 @@ class OperationPageController extends Controller
         }
 
         return back()->with('success', 'After Action Report updated.');
+    }
+
+    public function updateSettlement(OperationSettlementUpsertRequest $request, Operation $operation)
+    {
+        $this->authorize('manageAfterActionReport', $operation);
+
+        $this->service->upsertSettlementDraft(
+            $request->user(),
+            $operation,
+            $request->validated()
+        );
+
+        return back()->with('success', 'Operation settlement draft saved.');
+    }
+
+    public function finalizeSettlement(OperationSettlementUpsertRequest $request, Operation $operation)
+    {
+        $this->authorize('manageAfterActionReport', $operation);
+
+        $this->service->finalizeSettlement(
+            $request->user(),
+            $operation,
+            $request->validated()
+        );
+
+        return back()->with('success', 'Operation settlement finalized.');
+    }
+
+    public function reopenSettlement(Request $request, Operation $operation)
+    {
+        $this->authorize('manageAfterActionReport', $operation);
+
+        $this->service->reopenSettlement($request->user(), $operation);
+
+        return back()->with('success', 'Operation settlement reopened.');
+    }
+
+    public function exportSettlement(Request $request, Operation $operation)
+    {
+        $this->authorize('manageAfterActionReport', $operation);
+
+        $settlement = $this->showData->settlementPayload($operation, $request->user(), true, null, false);
+
+        if (! ($settlement['is_finalized'] ?? false)) {
+            abort(409, 'Finalize the operation settlement before exporting it.');
+        }
+
+        $filename = Str::slug($operation->title ?: "operation-{$operation->id}") . '-settlement.csv';
+
+        return response()->streamDownload(function () use ($operation, $settlement) {
+            $output = fopen('php://output', 'w');
+
+            fputcsv($output, [
+                'section',
+                'operation_id',
+                'operation_title',
+                'recipient',
+                'loot_type',
+                'loot_label',
+                'quantity',
+                'unit_label',
+                'amount',
+                'currency',
+                'notes',
+            ]);
+
+            foreach ($settlement['money_rows'] ?? [] as $row) {
+                fputcsv($output, [
+                    'money',
+                    $operation->id,
+                    $operation->title,
+                    $row['recipient_label'] ?? '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    $row['amount'] ?? '',
+                    'aUEC',
+                    $row['notes'] ?? '',
+                ]);
+            }
+
+            foreach ($settlement['loot_rows'] ?? [] as $row) {
+                fputcsv($output, [
+                    'loot',
+                    $operation->id,
+                    $operation->title,
+                    $row['recipient_label'] ?? '',
+                    $row['source_type'] ?? '',
+                    $row['reference_label'] ?? '',
+                    $row['quantity'] ?? '',
+                    $row['unit_label'] ?? '',
+                    '',
+                    '',
+                    $row['notes'] ?? '',
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**

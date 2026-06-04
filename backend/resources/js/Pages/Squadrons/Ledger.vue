@@ -54,25 +54,26 @@ const canEditLedger = computed(() => (isSquadronLedger.value || isOrganizationLe
 const isHistoryView = computed(() => wipeFilter.value === 'all' || Boolean(selectedWipe.value && !selectedWipe.value.is_current))
 const canEditCurrentView = computed(() => canEditLedger.value && !isHistoryView.value)
 const ledgerEyebrow = computed(() => {
-  if (isSquadronLedger.value) return 'Squadron Ledger'
-  if (isOrganizationLedger.value) return 'Organization Ledger'
-  return 'Horizon Ledger'
+  if (isSquadronLedger.value) return 'Squadron Assets & Funds'
+  if (isOrganizationLedger.value) return 'Horizon Treasury'
+  return 'My Assets & Funds'
 })
 const ledgerTitle = computed(() => {
   if (isSquadronLedger.value) return props.squadron?.name ?? 'Squadron Accounting'
   if (isOrganizationLedger.value) return 'Horizon Treasury'
-  return 'Personal Accounting'
+  return 'My Assets & Funds'
 })
-const ledgerDescription = computed(() => {
-  if (isSquadronLedger.value) {
-    return 'Track squadron-owned income, expenses, trade runs, ships, and inventory without mixing in personal member books.'
-  }
+const squadronEmblemSrc = computed(() => {
+  if (!isSquadronLedger.value) return null
 
-  if (isOrganizationLedger.value) {
-    return 'Track Horizon-wide treasury activity, shared trade runs, org inventory, and org fleet assets in one separated organization ledger.'
-  }
-
-  return 'Track your income, expenses, trade runs, ships, and inventory against the current Star Citizen cycle while keeping older cycles archived instead of losing the history.'
+  return props.squadron?.emblem?.medium_url
+    ?? props.squadron?.emblem?.url
+    ?? props.squadron?.emblem_url
+    ?? null
+})
+const squadronEmblemAlt = computed(() => {
+  return props.squadron?.emblem?.alt_text
+    ?? `${props.squadron?.name ?? 'Squadron'} emblem`
 })
 const settingsHeading = computed(() => {
   if (isSquadronLedger.value) return 'Squadron Defaults'
@@ -89,6 +90,59 @@ const tabs = [
   { key: 'reports', label: 'Reports' },
   { key: 'settings', label: 'Settings' },
 ]
+
+const reportPalette = [
+  { solid: 'rgba(125, 211, 252, 0.96)', soft: 'rgba(125, 211, 252, 0.18)' },
+  { solid: 'rgba(96, 165, 250, 0.96)', soft: 'rgba(96, 165, 250, 0.18)' },
+  { solid: 'rgba(56, 189, 248, 0.96)', soft: 'rgba(56, 189, 248, 0.18)' },
+  { solid: 'rgba(45, 212, 191, 0.96)', soft: 'rgba(45, 212, 191, 0.18)' },
+  { solid: 'rgba(251, 191, 36, 0.96)', soft: 'rgba(251, 191, 36, 0.18)' },
+  { solid: 'rgba(248, 113, 113, 0.96)', soft: 'rgba(248, 113, 113, 0.18)' },
+]
+
+const INVENTORY_PAGE_SIZE = 10
+
+const profitLossReportRows = computed(() => normalizeReportRows(props.ledger?.reports?.profitLossByWipe ?? [], {
+  limit: 6,
+}))
+
+const incomeSourceReportRows = computed(() => normalizeReportRows(props.ledger?.reports?.incomeBySource ?? [], {
+  limit: 5,
+  aggregateRemainder: true,
+}))
+
+const tradeCommodityReportRows = computed(() => normalizeReportRows(props.ledger?.reports?.tradeProfitByCommodity ?? [], {
+  limit: 5,
+  aggregateRemainder: true,
+}))
+
+const inventoryCategoryReportRows = computed(() => normalizeReportRows(props.ledger?.reports?.inventoryValueByCategory ?? [], {
+  limit: 5,
+  aggregateRemainder: true,
+}))
+
+const reportSummaryCards = computed(() => [
+  {
+    label: 'Net Across View',
+    value: formatSignedMoney(sumReportValues(profitLossReportRows.value)),
+    detail: `${profitLossReportRows.value.length || 0} cycle snapshots`,
+  },
+  {
+    label: 'Income Sources',
+    value: formatCount(incomeSourceReportRows.value.length),
+    detail: topReportLabel(incomeSourceReportRows.value, 'No income logged'),
+  },
+  {
+    label: 'Trade Leaders',
+    value: formatCount(tradeCommodityReportRows.value.length),
+    detail: topReportLabel(tradeCommodityReportRows.value, 'No trade profit yet'),
+  },
+  {
+    label: 'Inventory Buckets',
+    value: formatCount(inventoryCategoryReportRows.value.length),
+    detail: topReportLabel(inventoryCategoryReportRows.value, 'No valued inventory yet'),
+  },
+])
 const tabKeys = tabs.map(tab => tab.key)
 const ledgerTabStorageKey = computed(() => {
   if (isSquadronLedger.value) {
@@ -139,6 +193,7 @@ const transactionForm = useForm({
 const transferForm = useForm({
   wipe_cycle_id: null,
   destination_type: '',
+  destination_user_id: '',
   destination_squadron_id: '',
   amount: '',
   description: '',
@@ -149,6 +204,7 @@ const transferForm = useForm({
 const inventoryTransferForm = useForm({
   inventory_item_id: '',
   destination_type: '',
+  destination_user_id: '',
   destination_squadron_id: '',
   quantity: '',
   notes: '',
@@ -255,6 +311,9 @@ const commoditySelectOptions = computed(() => (references.value.commodities ?? [
 
 const transferTargets = computed(() => props.ledger?.transferTargets ?? [])
 const transferInventoryItems = computed(() => props.ledger?.transferInventoryOptions ?? [])
+const pendingFundTransfers = computed(() => props.ledger?.pendingFundTransfers ?? [])
+const pendingInventoryTransfers = computed(() => props.ledger?.pendingInventoryTransfers ?? [])
+const recentFundTransfers = computed(() => props.ledger?.recentFundTransfers ?? [])
 const transferTargetOptions = computed(() => transferTargets.value.map(target => ({
   value: target.key,
   label: target.label,
@@ -263,6 +322,87 @@ const transferInventoryItemOptions = computed(() => transferInventoryItems.value
   value: String(item.id),
   label: `${item.label} (${formatLedgerQuantity(item.quantity)} ${item.unit_label})`,
 })))
+const operationEntryFilterOptions = [
+  { value: 'all', label: 'All Entries' },
+  { value: 'operation', label: 'Operation Linked' },
+]
+const transactionSearch = ref('')
+const transactionEntryFilter = ref('all')
+const inventorySearch = ref('')
+const inventoryEntryFilter = ref('all')
+const inventoryPage = ref(1)
+const transactions = computed(() => props.ledger?.transactions ?? [])
+const filteredTransactions = computed(() => {
+  const query = transactionSearch.value.trim().toLowerCase()
+
+  return transactions.value.filter(transaction => {
+    if (transactionEntryFilter.value === 'operation' && !isOperationLinkedEntry(transaction)) {
+      return false
+    }
+
+    if (!query) {
+      return true
+    }
+
+    return [
+      transaction.description,
+      transaction.source_type,
+      transaction.notes,
+      transaction.operation_title,
+    ].some(value => String(value ?? '').toLowerCase().includes(query))
+  })
+})
+const transactionResultsLabel = computed(() => {
+  if (!filteredTransactions.value.length) {
+    return transactionEntryFilter.value === 'operation'
+      ? 'No operation-linked entries match this filter yet.'
+      : 'No transactions match this search yet.'
+  }
+
+  return `${filteredTransactions.value.length} transaction ${filteredTransactions.value.length === 1 ? 'entry' : 'entries'} in view`
+})
+const inventoryItems = computed(() => props.ledger?.inventoryItems ?? [])
+const filteredInventoryItems = computed(() => {
+  const query = inventorySearch.value.trim().toLowerCase()
+
+  return inventoryItems.value.filter(item => {
+    if (inventoryEntryFilter.value === 'operation' && !isOperationLinkedEntry(item)) {
+      return false
+    }
+
+    if (!query) {
+      return true
+    }
+
+    return [
+      item.reference_label,
+      item.custom_name,
+      item.category,
+      item.location_name,
+      item.status,
+      item.unit_label,
+      item.notes,
+      item.operation_title,
+    ].some(value => String(value ?? '').toLowerCase().includes(query))
+  })
+})
+const inventoryPageCount = computed(() => Math.max(1, Math.ceil(filteredInventoryItems.value.length / INVENTORY_PAGE_SIZE)))
+const paginatedInventoryItems = computed(() => {
+  const start = (inventoryPage.value - 1) * INVENTORY_PAGE_SIZE
+  return filteredInventoryItems.value.slice(start, start + INVENTORY_PAGE_SIZE)
+})
+const inventoryResultsLabel = computed(() => {
+  if (!filteredInventoryItems.value.length) {
+    return inventoryEntryFilter.value === 'operation'
+      ? 'No operation-linked inventory matches this filter yet.'
+      : 'No inventory records match this search.'
+  }
+
+  const start = ((inventoryPage.value - 1) * INVENTORY_PAGE_SIZE) + 1
+  const end = Math.min(inventoryPage.value * INVENTORY_PAGE_SIZE, filteredInventoryItems.value.length)
+
+  return `Showing ${start}-${end} of ${filteredInventoryItems.value.length} inventory records`
+})
 
 const inventoryReferenceSelectOptions = computed(() => inventoryReferenceOptions.value.map(option => ({
   value: String(option.uex_id),
@@ -290,7 +430,8 @@ const selectedInventoryTransferTarget = computed(() => transferTargets.value.fin
 const selectedInventoryTransferItem = computed(() => transferInventoryItems.value.find(item => String(item.id) === String(inventoryTransferForm.inventory_item_id ?? '')) ?? null)
 const canTransferInventory = computed(() => canEditCurrentView.value && transferTargets.value.length > 0 && transferInventoryItems.value.length > 0)
 const openTransferPanels = ref({
-  funds: true,
+  recent: false,
+  funds: false,
   inventory: false,
 })
 
@@ -408,6 +549,14 @@ const tradeModeLabel = computed(() => (editingTradeId.value ? 'Edit Trade' : 'Lo
 const inventoryModeLabel = computed(() => (editingInventoryItemId.value ? 'Edit Inventory' : 'Add Inventory'))
 const shipModeLabel = computed(() => (editingShipId.value ? 'Edit Ship Asset' : 'Add Ship Asset'))
 
+function isOperationLinkedEntry(entry) {
+  return Boolean(
+    entry?.is_operation_settlement
+    || entry?.related_operation_id
+    || entry?.operation_title,
+  )
+}
+
 function ledgerIndexHref(params = {}) {
   if (isOrganizationLedger.value) {
     return route('organization.ledger', params)
@@ -472,6 +621,34 @@ function transactionTransferHref() {
   return route('ledger.transactions.transfer')
 }
 
+function transactionTransferApproveHref(id) {
+  if (isSquadronLedger.value) {
+    return route('squadrons.ledger.transactions.transfer.approve', { squadron: props.squadron?.id, transferRequest: id })
+  }
+
+  return route('ledger.transactions.transfer.approve', id)
+}
+
+function transactionTransferRejectHref(id) {
+  if (isSquadronLedger.value) {
+    return route('squadrons.ledger.transactions.transfer.reject', { squadron: props.squadron?.id, transferRequest: id })
+  }
+
+  return route('ledger.transactions.transfer.reject', id)
+}
+
+function transactionTransferReverseHref(id) {
+  if (isOrganizationLedger.value) {
+    return route('organization.ledger.transactions.transfer.reverse', id)
+  }
+
+  if (isSquadronLedger.value) {
+    return route('squadrons.ledger.transactions.transfer.reverse', { squadron: props.squadron?.id, transferRequest: id })
+  }
+
+  return route('ledger.transactions.transfer.reverse', id)
+}
+
 function inventoryTransferHref() {
   if (isOrganizationLedger.value) {
     return route('organization.ledger.inventory.transfer')
@@ -482,6 +659,22 @@ function inventoryTransferHref() {
   }
 
   return route('ledger.inventory.transfer')
+}
+
+function inventoryTransferApproveHref(id) {
+  if (isSquadronLedger.value) {
+    return route('squadrons.ledger.inventory.transfer.approve', { squadron: props.squadron?.id, transferRequest: id })
+  }
+
+  return route('ledger.inventory.transfer.approve', id)
+}
+
+function inventoryTransferRejectHref(id) {
+  if (isSquadronLedger.value) {
+    return route('squadrons.ledger.inventory.transfer.reject', { squadron: props.squadron?.id, transferRequest: id })
+  }
+
+  return route('ledger.inventory.transfer.reject', id)
 }
 
 function tradeStoreHref() {
@@ -630,6 +823,25 @@ watch(activeTab, value => {
   window.localStorage.setItem(ledgerTabStorageKey.value, value)
 })
 
+watch(inventorySearch, () => {
+  inventoryPage.value = 1
+})
+
+watch(inventoryEntryFilter, () => {
+  inventoryPage.value = 1
+})
+
+watch(filteredInventoryItems, items => {
+  if (!items.length) {
+    inventoryPage.value = 1
+    return
+  }
+
+  if (inventoryPage.value > inventoryPageCount.value) {
+    inventoryPage.value = inventoryPageCount.value
+  }
+})
+
 watch(wipeFilter, value => {
   router.visit(ledgerIndexHref(value && value !== 'current' ? { wipe: value } : {}), {
     data: value && value !== 'current' ? { wipe: value } : {},
@@ -657,11 +869,13 @@ watch(
   () => {
     if (!selectedTransferTarget.value) {
       transferForm.destination_type = ''
+      transferForm.destination_user_id = ''
       transferForm.destination_squadron_id = ''
       return
     }
 
     transferForm.destination_type = selectedTransferTarget.value.type ?? ''
+    transferForm.destination_user_id = selectedTransferTarget.value.user_id ?? ''
     transferForm.destination_squadron_id = selectedTransferTarget.value.squadron_id ?? ''
   }
 )
@@ -671,11 +885,13 @@ watch(
   () => {
     if (!selectedInventoryTransferTarget.value) {
       inventoryTransferForm.destination_type = ''
+      inventoryTransferForm.destination_user_id = ''
       inventoryTransferForm.destination_squadron_id = ''
       return
     }
 
     inventoryTransferForm.destination_type = selectedInventoryTransferTarget.value.type ?? ''
+    inventoryTransferForm.destination_user_id = selectedInventoryTransferTarget.value.user_id ?? ''
     inventoryTransferForm.destination_squadron_id = selectedInventoryTransferTarget.value.squadron_id ?? ''
   }
 )
@@ -1010,6 +1226,7 @@ function resetTransferForm() {
     ? transferTargets.value[0].key
     : ''
   transferForm.destination_type = selectedTransferTarget.value?.type ?? ''
+  transferForm.destination_user_id = selectedTransferTarget.value?.user_id ?? ''
   transferForm.destination_squadron_id = selectedTransferTarget.value?.squadron_id ?? ''
 }
 
@@ -1025,6 +1242,7 @@ function resetInventoryTransferForm() {
     ? transferTargets.value[0].key
     : ''
   inventoryTransferForm.destination_type = selectedInventoryTransferTarget.value?.type ?? ''
+  inventoryTransferForm.destination_user_id = selectedInventoryTransferTarget.value?.user_id ?? ''
   inventoryTransferForm.destination_squadron_id = selectedInventoryTransferTarget.value?.squadron_id ?? ''
 }
 
@@ -1296,6 +1514,84 @@ function submitInventoryTransfer() {
   inventoryTransferForm.post(inventoryTransferHref(), options)
 }
 
+function approveFundTransfer(transfer) {
+  router.post(transactionTransferApproveHref(transfer.id), {}, {
+    preserveScroll: true,
+  })
+}
+
+function rejectFundTransfer(transfer) {
+  pendingConfirmation.value = {
+    title: 'Reject Transfer',
+    message: 'Reject this fund transfer request?',
+    confirmLabel: 'Reject',
+    variant: 'danger',
+    action: ({ close, finish }) => {
+      router.post(transactionTransferRejectHref(transfer.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          close()
+        },
+        onFinish: () => {
+          finish()
+        },
+      })
+    },
+  }
+
+  confirmDialog.value?.show()
+}
+
+function reverseFundTransfer(transfer) {
+  pendingConfirmation.value = {
+    title: 'Reverse Transfer',
+    message: 'Reverse this completed fund transfer and write the matching undo records?',
+    confirmLabel: 'Reverse',
+    variant: 'danger',
+    action: ({ close, finish }) => {
+      router.post(transactionTransferReverseHref(transfer.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          close()
+        },
+        onFinish: () => {
+          finish()
+        },
+      })
+    },
+  }
+
+  confirmDialog.value?.show()
+}
+
+function approveInventoryTransfer(transfer) {
+  router.post(inventoryTransferApproveHref(transfer.id), {}, {
+    preserveScroll: true,
+  })
+}
+
+function rejectInventoryTransfer(transfer) {
+  pendingConfirmation.value = {
+    title: 'Reject Inventory Move',
+    message: 'Reject this inventory transfer request?',
+    confirmLabel: 'Reject',
+    variant: 'danger',
+    action: ({ close, finish }) => {
+      router.post(inventoryTransferRejectHref(transfer.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          close()
+        },
+        onFinish: () => {
+          finish()
+        },
+      })
+    },
+  }
+
+  confirmDialog.value?.show()
+}
+
 function submitTrade() {
   const options = {
     preserveScroll: true,
@@ -1393,9 +1689,67 @@ function handleConfirmDialogConfirm(controls) {
   pendingConfirmation.value?.action?.(controls)
 }
 
+function normalizeReportRows(rows, options = {}) {
+  const {
+    limit = 6,
+    aggregateRemainder = false,
+  } = options
+
+  const cleanedRows = (rows ?? [])
+    .map((row) => ({
+      label: String(row?.label ?? 'Unknown'),
+      value: Number(row?.value ?? 0),
+    }))
+    .filter((row) => row.label && Number.isFinite(row.value) && row.value !== 0)
+
+  if (!cleanedRows.length) {
+    return []
+  }
+
+  const trimmedRows = limit > 0 ? cleanedRows.slice(0, limit) : [...cleanedRows]
+  const remainderRows = limit > 0 ? cleanedRows.slice(limit) : []
+
+  if (aggregateRemainder && remainderRows.length) {
+    trimmedRows.push({
+      label: 'Other',
+      value: remainderRows.reduce((total, row) => total + row.value, 0),
+    })
+  }
+
+  const total = trimmedRows.reduce((sum, row) => sum + Math.abs(row.value), 0)
+
+  return trimmedRows.map((row, index) => {
+    const palette = reportPalette[index % reportPalette.length]
+
+    return {
+      ...row,
+      color: palette.solid,
+      softColor: palette.soft,
+      share: total > 0 ? Math.abs(row.value) / total : 0,
+    }
+  })
+}
+
+function sumReportValues(rows) {
+  return (rows ?? []).reduce((sum, row) => sum + Number(row?.value ?? 0), 0)
+}
+
+function topReportLabel(rows, fallback) {
+  return rows?.[0]?.label ?? fallback
+}
+
 function formatMoney(value) {
   const amount = Number(value ?? 0)
   return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} aUEC`
+}
+
+function formatCompactMoney(value) {
+  const amount = Number(value ?? 0)
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: amount >= 100000 ? 1 : 0,
+  }).format(amount)
 }
 
 function formatSignedMoney(value) {
@@ -1419,6 +1773,42 @@ function formatCount(value) {
 function formatLedgerQuantity(value) {
   const quantity = Number(value ?? 0)
   return quantity.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+}
+
+function buildDonutStyle(rows) {
+  if (!rows?.length) {
+    return {
+      background: 'conic-gradient(rgba(148, 163, 184, 0.14) 0deg 360deg)',
+    }
+  }
+
+  let currentAngle = 0
+
+  const slices = rows.map((row) => {
+    const start = currentAngle
+    const size = row.share * 360
+    const end = start + size
+    currentAngle = end
+
+    return `${row.color} ${start}deg ${end}deg`
+  })
+
+  return {
+    background: `conic-gradient(${slices.join(', ')})`,
+  }
+}
+
+function buildBarHeight(value, maxValue) {
+  const safeMax = Math.max(Number(maxValue ?? 0), 1)
+  const height = Math.max((Math.abs(Number(value ?? 0)) / safeMax) * 100, 10)
+
+  return `${Math.min(height, 100)}%`
+}
+
+function buildBarWidth(share) {
+  const width = Math.max(Number(share ?? 0) * 100, 8)
+
+  return `${Math.min(width, 100)}%`
 }
 
 function formatDate(value) {
@@ -1512,22 +1902,27 @@ function tabClass(key) {
               {{ ledgerEyebrow }}
             </div>
 
-            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
-              {{ ledgerTitle }}
-            </h1>
-
-            <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-              {{ ledgerDescription }}
-            </p>
-
-            <div v-if="isSquadronLedger && squadron" class="mt-4">
-              <a
-                :href="squadron.slug ? route('squadrons.show', { squadron: squadron.slug }) : `/squadrons/${squadron.id}`"
-                class="hz-ledger-panel-soft inline-flex items-center rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-text-secondary transition hover:text-horizon-white"
+            <div class="mt-2 flex items-center gap-4">
+              <div
+                v-if="isSquadronLedger && squadron"
+                class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.042] md:h-16 md:w-16"
               >
-                Back To Squadron
-              </a>
+                <img
+                  v-if="squadronEmblemSrc"
+                  :src="squadronEmblemSrc"
+                  :alt="squadronEmblemAlt"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else class="text-xl font-black uppercase text-horizon-white md:text-2xl">
+                  {{ String(squadron?.name ?? 'S').slice(0, 1) }}
+                </span>
+              </div>
+
+              <h1 class="text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+                {{ ledgerTitle }}
+              </h1>
             </div>
+
           </div>
 
           <div class="hz-ledger-panel-soft rounded-[1.5rem] p-4">
@@ -1740,6 +2135,20 @@ function tabClass(key) {
                     <div class="text-sm font-black text-horizon-white">{{ transaction.description }}</div>
                     <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
                       {{ transaction.type }}<span v-if="transaction.source_type"> • {{ transaction.source_type }}</span>
+                    </div>
+                    <div v-if="transaction.is_operation_settlement || transaction.operation_title" class="mt-2 flex flex-wrap items-center gap-2">
+                      <span
+                        v-if="transaction.is_operation_settlement"
+                        class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100"
+                      >
+                        Operation
+                      </span>
+                      <span
+                        v-if="transaction.operation_title"
+                        class="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+                      >
+                        {{ transaction.operation_title }}
+                      </span>
                     </div>
                     <div v-if="transaction.notes" class="mt-3 whitespace-pre-line text-sm text-text-secondary">
                       {{ transaction.notes }}
@@ -1974,9 +2383,40 @@ function tabClass(key) {
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transaction Log</div>
-          <div class="mt-4 space-y-3">
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div class="space-y-3">
+              <div class="text-sm text-text-secondary">
+                {{ transactionResultsLabel }}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="option in operationEntryFilterOptions"
+                  :key="`transaction-filter-${option.value}`"
+                  type="button"
+                  class="rounded-full border px-3 py-1 text-xs font-semibold transition"
+                  :class="transactionEntryFilter === option.value
+                    ? 'border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/12 text-horizon-white'
+                    : 'border-white/[0.08] bg-white/[0.024] text-text-secondary hover:text-horizon-white'"
+                  @click="transactionEntryFilter = option.value"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+            <div class="w-full sm:w-80">
+              <label class="sr-only" for="ledger-transaction-search">Search transactions</label>
+              <input
+                id="ledger-transaction-search"
+                v-model="transactionSearch"
+                type="search"
+                class="hz-input"
+                placeholder="Search transactions or operations"
+              />
+            </div>
+          </div>
+          <div v-if="filteredTransactions.length" class="mt-4 space-y-3">
             <article
-              v-for="transaction in ledger.transactions ?? []"
+              v-for="transaction in filteredTransactions"
               :key="transaction.id"
               class="hz-ledger-panel-soft rounded-[1.25rem] p-4"
               :class="editingTransactionId === transaction.id
@@ -1988,6 +2428,20 @@ function tabClass(key) {
                   <div class="text-base font-black text-horizon-white">{{ transaction.description }}</div>
                   <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
                     {{ transaction.type }}<span v-if="transaction.source_type"> • {{ transaction.source_type }}</span>
+                  </div>
+                  <div v-if="transaction.is_operation_settlement || transaction.operation_title" class="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      v-if="transaction.is_operation_settlement"
+                      class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100"
+                    >
+                      Operation
+                    </span>
+                    <span
+                      v-if="transaction.operation_title"
+                      class="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+                    >
+                      {{ transaction.operation_title }}
+                    </span>
                   </div>
                   <div v-if="transaction.related_reference" class="mt-2 text-sm text-text-secondary">
                     <span v-if="transaction.related_reference">{{ transaction.related_reference }}</span>
@@ -2028,11 +2482,187 @@ function tabClass(key) {
               </div>
             </article>
           </div>
+
+          <div v-if="!filteredTransactions.length" class="mt-4 rounded-[1.25rem] border border-dashed border-white/10 px-4 py-6 text-sm text-text-secondary">
+            No transaction entries match that filter yet.
+          </div>
         </div>
       </section>
 
       <section v-else-if="activeTab === 'transfers'" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="space-y-4">
+          <div v-if="pendingFundTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Pending Fund Requests</div>
+            <div class="mt-4 space-y-3">
+              <article
+                v-for="transfer in pendingFundTransfers"
+                :key="`pending-fund-${transfer.id}`"
+                class="hz-ledger-panel-soft rounded-[1.25rem] p-4"
+              >
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div class="text-base font-black text-horizon-white">
+                      {{ transfer.direction === 'incoming' ? 'Incoming transfer request' : 'Outgoing transfer request' }}
+                    </div>
+                    <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
+                      {{ transfer.from_label }} to {{ transfer.to_label }}
+                    </div>
+                    <div v-if="transfer.description" class="mt-2 text-sm text-text-secondary">
+                      {{ transfer.description }}
+                    </div>
+                    <div v-if="transfer.notes" class="mt-3 whitespace-pre-line text-sm text-text-secondary">
+                      {{ transfer.notes }}
+                    </div>
+                  </div>
+
+                  <div class="text-right">
+                    <div class="text-base font-black text-horizon-white">{{ formatMoney(transfer.amount) }}</div>
+                    <div class="mt-1 text-xs text-text-muted">{{ formatDate(transfer.created_at) }}</div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-xs text-text-muted">
+                    Requested by {{ transfer.requested_by_name }}
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-if="!transfer.can_approve"
+                      class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+                    >
+                      Waiting on approval
+                    </span>
+                    <template v-else>
+                      <HorizonButton type="button" size="sm" variant="ghost" @click="approveFundTransfer(transfer)">
+                        Approve
+                      </HorizonButton>
+                      <HorizonButton type="button" size="sm" variant="danger" @click="rejectFundTransfer(transfer)">
+                        Reject
+                      </HorizonButton>
+                    </template>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div v-if="pendingInventoryTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Pending Inventory Requests</div>
+            <div class="mt-4 space-y-3">
+              <article
+                v-for="transfer in pendingInventoryTransfers"
+                :key="`pending-inventory-${transfer.id}`"
+                class="hz-ledger-panel-soft rounded-[1.25rem] p-4"
+              >
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div class="text-base font-black text-horizon-white">
+                      {{ transfer.item_label || 'Inventory move' }}
+                    </div>
+                    <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
+                      {{ transfer.from_label }} to {{ transfer.to_label }}
+                    </div>
+                    <div class="mt-2 text-sm text-text-secondary">
+                      {{ formatLedgerQuantity(transfer.quantity) }} units pending
+                    </div>
+                    <div v-if="transfer.notes" class="mt-3 whitespace-pre-line text-sm text-text-secondary">
+                      {{ transfer.notes }}
+                    </div>
+                  </div>
+
+                  <div class="text-right">
+                    <div class="text-base font-black text-horizon-white">{{ formatLedgerQuantity(transfer.quantity) }}</div>
+                    <div class="mt-1 text-xs text-text-muted">{{ formatDate(transfer.created_at) }}</div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-xs text-text-muted">
+                    Requested by {{ transfer.requested_by_name }}
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-if="!transfer.can_approve"
+                      class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+                    >
+                      Waiting on approval
+                    </span>
+                    <template v-else>
+                      <HorizonButton type="button" size="sm" variant="ghost" @click="approveInventoryTransfer(transfer)">
+                        Approve
+                      </HorizonButton>
+                      <HorizonButton type="button" size="sm" variant="danger" @click="rejectInventoryTransfer(transfer)">
+                        Reject
+                      </HorizonButton>
+                    </template>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div v-if="recentFundTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <button
+              type="button"
+              class="flex w-full items-start justify-between gap-4 text-left"
+              @click="toggleTransferPanel('recent')"
+            >
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transfer History</div>
+                <h3 class="mt-1 text-xl font-black text-horizon-white">Recent Fund Transfers</h3>
+                <p class="mt-2 text-sm text-text-secondary">
+                  Review the latest completed and reversed money moves without leaving the transfer tab.
+                </p>
+              </div>
+
+              <div class="hz-ledger-panel-soft mt-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+                {{ isTransferPanelOpen('recent') ? 'Close' : 'Open' }}
+              </div>
+            </button>
+
+            <div v-if="isTransferPanelOpen('recent')" class="mt-4 overflow-hidden rounded-[1.25rem] border border-white/10">
+              <article
+                v-for="transfer in recentFundTransfers"
+                :key="`recent-fund-${transfer.id}`"
+                class="border-b border-white/10 px-4 py-3 last:border-b-0"
+              >
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <div class="truncate text-sm font-black text-horizon-white">
+                        {{ transfer.description || 'Completed transfer' }}
+                      </div>
+                      <span class="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+                        {{ transfer.status === 'reversed' ? 'Reversed' : 'Completed' }}
+                      </span>
+                    </div>
+                    <div class="mt-1 text-xs text-text-muted">
+                      {{ transfer.from_label }} to {{ transfer.to_label }} • {{ formatDate(transfer.completed_at || transfer.created_at) }}
+                    </div>
+                    <div v-if="transfer.notes" class="mt-2 line-clamp-2 text-sm text-text-secondary">
+                      {{ transfer.notes }}
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
+                    <div class="text-sm font-black text-horizon-white">{{ formatMoney(transfer.amount) }}</div>
+                    <HorizonButton
+                      v-if="transfer.can_reverse"
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      @click="reverseFundTransfer(transfer)"
+                    >
+                      Reverse
+                    </HorizonButton>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
           <div v-if="canTransferFunds" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
             <button
               type="button"
@@ -2065,6 +2695,8 @@ function tabClass(key) {
                 :options="transferTargetOptions"
                 label="Send To"
                 placeholder="Choose destination ledger"
+                searchable
+                search-placeholder="Search people, squadrons, or treasury"
               />
 
               <div
@@ -2135,6 +2767,8 @@ function tabClass(key) {
                 :options="transferTargetOptions"
                 label="Send To"
                 placeholder="Choose destination ledger"
+                searchable
+                search-placeholder="Search people, squadrons, or treasury"
               />
 
               <div
@@ -2179,7 +2813,7 @@ function tabClass(key) {
             <p class="mt-2 text-sm text-text-secondary">
               {{ isHistoryView
                 ? 'Transfers are locked while you are viewing archived cycle history. Switch back to the current cycle to move funds or inventory.'
-                : 'This ledger can only transfer into books you manage. Once you have another shared ledger available, the transfer tools will show up here.' }}
+                : 'No eligible destinations are available for this ledger right now.' }}
             </p>
           </div>
         </div>
@@ -2188,8 +2822,9 @@ function tabClass(key) {
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">How Transfers Work</div>
           <div class="mt-4 space-y-3 text-sm text-text-secondary">
             <p>Every transfer writes a matched expense in the source ledger and income in the destination ledger.</p>
-            <p>Inventory moves can transfer the full stack or just part of it. Partial moves split the quantity into a new destination record.</p>
-            <p>Fund transfer records stay locked so the two books never drift out of sync.</p>
+            <p>Some destinations need approval before the move lands, so pending requests stay visible here until someone accepts or rejects them.</p>
+            <p>Inventory moves can transfer the full stack or just part of it. Partial moves split the quantity into a new destination record and lock the transfer chain afterward.</p>
+            <p>Fund transfer records and their reversals stay locked so the two books never drift out of sync.</p>
             <p>Use clear notes so both sides of the movement still make sense later when you review the cycle history.</p>
           </div>
         </div>
@@ -2443,9 +3078,41 @@ function tabClass(key) {
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Records</div>
-          <div class="mt-4 space-y-3">
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div class="space-y-3">
+              <div class="text-sm text-text-secondary">
+                {{ inventoryResultsLabel }}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="option in operationEntryFilterOptions"
+                  :key="`inventory-filter-${option.value}`"
+                  type="button"
+                  class="rounded-full border px-3 py-1 text-xs font-semibold transition"
+                  :class="inventoryEntryFilter === option.value
+                    ? 'border-[color:var(--horizon-sunset-blue)]/40 bg-[color:var(--horizon-sunset-blue)]/12 text-horizon-white'
+                    : 'border-white/[0.08] bg-white/[0.024] text-text-secondary hover:text-horizon-white'"
+                  @click="inventoryEntryFilter = option.value"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+            <div class="w-full sm:w-80">
+              <label class="sr-only" for="ledger-inventory-search">Search inventory</label>
+              <input
+                id="ledger-inventory-search"
+                v-model="inventorySearch"
+                type="search"
+                class="hz-input"
+                placeholder="Search inventory"
+              />
+            </div>
+          </div>
+
+          <div v-if="paginatedInventoryItems.length" class="mt-4 space-y-3">
             <article
-              v-for="item in ledger.inventoryItems ?? []"
+              v-for="item in paginatedInventoryItems"
               :key="item.id"
               class="hz-ledger-panel-soft rounded-[1.25rem] p-4"
               :class="editingInventoryItemId === item.id
@@ -2458,6 +3125,20 @@ function tabClass(key) {
                   <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
                     {{ item.source_type }}<span v-if="item.category"> • {{ item.category }}</span> • {{ item.quantity }} {{ item.unit_label || 'units' }}
                   </div>
+                  <div v-if="item.is_operation_settlement || item.operation_title" class="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      v-if="item.is_operation_settlement"
+                      class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100"
+                    >
+                      Operation Loot
+                    </span>
+                    <span
+                      v-if="item.operation_title"
+                      class="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+                    >
+                      {{ item.operation_title }}
+                    </span>
+                  </div>
                   <div class="mt-2 text-sm text-text-secondary">
                     <span v-if="item.location_name">{{ item.location_name }}</span>
                   </div>
@@ -2469,6 +3150,11 @@ function tabClass(key) {
                 <div class="text-right">
                   <div class="text-sm font-black text-horizon-white">{{ item.estimated_value !== null ? formatMoney(item.estimated_value) : 'No estimate' }}</div>
                   <div class="mt-1 text-xs text-text-muted">{{ formatLedgerStatus(item.status) }}</div>
+                  <div v-if="item.provenance_locked" class="mt-2">
+                    <span class="rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-100">
+                      {{ item.is_operation_settlement ? 'Operation receipt' : 'Transfer locked' }}
+                    </span>
+                  </div>
                   <div v-if="item.estimated_value_source === 'uex_estimate'" class="mt-2">
                     <span class="rounded-full border border-sky-300/20 bg-sky-300/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-sky-100">
                       UEX estimate
@@ -2478,13 +3164,14 @@ function tabClass(key) {
               </div>
 
               <div v-if="canEditCurrentView" class="mt-4 flex flex-wrap justify-end gap-2">
-                <HorizonButton type="button" size="sm" variant="ghost" @click="startInventoryEdit(item)">
+                <HorizonButton v-if="!item.provenance_locked" type="button" size="sm" variant="ghost" @click="startInventoryEdit(item)">
                   Edit
                 </HorizonButton>
                 <HorizonButton type="button" size="sm" variant="ghost" @click="duplicateInventoryItem(item)">
                   Duplicate
                 </HorizonButton>
                 <HorizonButton
+                  v-if="!item.provenance_locked"
                   type="button"
                   size="sm"
                   variant="danger"
@@ -2494,6 +3181,36 @@ function tabClass(key) {
                 </HorizonButton>
               </div>
             </article>
+          </div>
+
+          <div v-else class="mt-4 rounded-[1.25rem] border border-dashed border-white/10 px-4 py-6 text-sm text-text-secondary">
+            No inventory records match that filter yet.
+          </div>
+
+          <div v-if="inventoryPageCount > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+            <div class="text-xs uppercase tracking-[0.14em] text-text-muted">
+              Page {{ inventoryPage }} of {{ inventoryPageCount }}
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <HorizonButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                :disabled="inventoryPage === 1"
+                @click="inventoryPage = Math.max(1, inventoryPage - 1)"
+              >
+                Previous
+              </HorizonButton>
+              <HorizonButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                :disabled="inventoryPage === inventoryPageCount"
+                @click="inventoryPage = Math.min(inventoryPageCount, inventoryPage + 1)"
+              >
+                Next
+              </HorizonButton>
+            </div>
           </div>
         </div>
       </section>
@@ -2636,59 +3353,241 @@ function tabClass(key) {
       </section>
 
       <section v-else-if="activeTab === 'reports'" class="grid gap-5 xl:grid-cols-2">
-        <div class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Profit / Loss By Cycle</div>
-          <div class="mt-4 space-y-3">
+        <div class="hz-ledger-panel rounded-[1.75rem] p-5 xl:col-span-2">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Report Snapshot</div>
+              <h3 class="mt-1 text-xl font-black text-horizon-white">A cleaner read on how this ledger is moving</h3>
+            </div>
+            <div class="max-w-2xl text-sm text-text-secondary">
+              These visuals stay tied to the current ledger view, so swapping cycles or opening squadron and organization books changes the report story without sending you to a separate dashboard.
+            </div>
+          </div>
+
+          <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div
-              v-for="row in ledger.reports?.profitLossByWipe ?? []"
-              :key="row.label"
-              class="hz-ledger-panel-soft flex items-center justify-between rounded-[1.25rem] px-4 py-3"
+              v-for="card in reportSummaryCards"
+              :key="card.label"
+              class="hz-ledger-panel-soft rounded-[1.25rem] px-4 py-4"
             >
-              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
-              <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+              <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">{{ card.label }}</div>
+              <div class="mt-2 text-2xl font-black text-horizon-white">{{ card.value }}</div>
+              <div class="mt-2 text-sm text-text-secondary">{{ card.detail }}</div>
             </div>
           </div>
         </div>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Income By Source</div>
-          <div class="mt-4 space-y-3">
-            <div
-              v-for="row in ledger.reports?.incomeBySource ?? []"
-              :key="`income-${row.label}`"
-              class="hz-ledger-panel-soft flex items-center justify-between rounded-[1.25rem] px-4 py-3"
-            >
-              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
-              <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Profit / Loss By Cycle</div>
+              <div class="mt-1 text-sm text-text-secondary">Which cycles pulled the most weight in this view.</div>
             </div>
+            <div class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ profitLossReportRows.length }} cycles
+            </div>
+          </div>
+
+          <div v-if="profitLossReportRows.length" class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_18rem]">
+            <div class="hz-ledger-panel-soft rounded-[1.5rem] p-4">
+              <div class="flex h-56 items-end gap-3">
+                <div
+                  v-for="row in profitLossReportRows"
+                  :key="`profit-chart-${row.label}`"
+                  class="flex min-w-0 flex-1 flex-col justify-end"
+                >
+                  <div class="px-1 pb-2 text-center text-[11px] font-bold tracking-[0.04em]" :class="row.value >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+                    {{ formatCompactMoney(Math.abs(row.value)) }}
+                  </div>
+                  <div
+                    class="w-full rounded-t-[1rem] transition-all"
+                    :style="{
+                      height: buildBarHeight(row.value, Math.max(...profitLossReportRows.map((entry) => Math.abs(entry.value)), 1)),
+                      background: row.value >= 0
+                        ? 'linear-gradient(180deg, rgba(52, 211, 153, 0.95), rgba(16, 185, 129, 0.6))'
+                        : 'linear-gradient(180deg, rgba(251, 113, 133, 0.92), rgba(244, 63, 94, 0.55))',
+                    }"
+                  />
+                  <div class="mt-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                    {{ row.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                v-for="row in profitLossReportRows"
+                :key="`profit-list-${row.label}`"
+                class="hz-ledger-panel-soft rounded-[1.25rem] px-4 py-3"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                  <div class="text-sm font-semibold" :class="row.value >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+                    {{ formatSignedMoney(row.value) }}
+                  </div>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                  <div
+                    class="h-full rounded-full"
+                    :style="{
+                      width: buildBarWidth(row.share),
+                      background: row.value >= 0 ? 'rgba(52, 211, 153, 0.88)' : 'rgba(251, 113, 133, 0.88)',
+                    }"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="mt-5 hz-ledger-panel-soft rounded-[1.5rem] px-4 py-8 text-sm text-text-secondary">
+            No cycle profit history is available for this ledger view yet.
           </div>
         </div>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Profit By Commodity</div>
-          <div class="mt-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Income By Source</div>
+              <div class="mt-1 text-sm text-text-secondary">Where your logged inflow is actually coming from.</div>
+            </div>
+            <div class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ formatMoney(sumReportValues(incomeSourceReportRows)) }}
+            </div>
+          </div>
+
+          <div v-if="incomeSourceReportRows.length" class="mt-5 grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-center">
+            <div class="flex items-center justify-center">
+              <div class="relative flex h-44 w-44 items-center justify-center rounded-full border border-white/8 p-3">
+                <div class="absolute inset-3 rounded-full" :style="buildDonutStyle(incomeSourceReportRows)" />
+                <div class="absolute inset-[2.35rem] rounded-full bg-[#07111f]/95 ring-1 ring-white/5" />
+                <div class="relative text-center">
+                  <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Income</div>
+                  <div class="mt-2 text-2xl font-black text-horizon-white">{{ formatCompactMoney(sumReportValues(incomeSourceReportRows)) }}</div>
+                  <div class="text-xs text-text-secondary">aUEC tracked</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                v-for="row in incomeSourceReportRows"
+                :key="`income-${row.label}`"
+                class="hz-ledger-panel-soft rounded-[1.25rem] px-4 py-3"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: row.color }" />
+                    <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                  </div>
+                  <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                  <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+                </div>
+                <div class="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                  {{ Math.round(row.share * 100) }}% of tracked income
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="mt-5 hz-ledger-panel-soft rounded-[1.5rem] px-4 py-8 text-sm text-text-secondary">
+            No income-source breakdown exists for this view yet.
+          </div>
+        </div>
+
+        <div class="hz-ledger-panel rounded-[1.75rem] p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Profit By Commodity</div>
+              <div class="mt-1 text-sm text-text-secondary">The cargo that is actually paying off right now.</div>
+            </div>
+            <div class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ formatMoney(sumReportValues(tradeCommodityReportRows)) }}
+            </div>
+          </div>
+
+          <div v-if="tradeCommodityReportRows.length" class="mt-5 space-y-3">
             <div
-              v-for="row in ledger.reports?.tradeProfitByCommodity ?? []"
+              v-for="row in tradeCommodityReportRows"
               :key="`commodity-${row.label}`"
-              class="hz-ledger-panel-soft flex items-center justify-between rounded-[1.25rem] px-4 py-3"
+              class="hz-ledger-panel-soft rounded-[1.25rem] px-4 py-4"
             >
-              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
-              <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                <div class="text-sm text-cyan-100">{{ formatMoney(row.value) }}</div>
+              </div>
+              <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/6">
+                <div
+                  class="h-full rounded-full"
+                  :style="{
+                    width: buildBarWidth(row.share),
+                    background: `linear-gradient(90deg, ${row.color}, rgba(255, 255, 255, 0.65))`,
+                  }"
+                />
+              </div>
+              <div class="mt-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                <span>{{ Math.round(row.share * 100) }}% of commodity profit</span>
+                <span>{{ formatCompactMoney(row.value) }} aUEC</span>
+              </div>
             </div>
+          </div>
+
+          <div v-else class="mt-5 hz-ledger-panel-soft rounded-[1.5rem] px-4 py-8 text-sm text-text-secondary">
+            No trade-profit breakout is available for this view yet.
           </div>
         </div>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Value By Category</div>
-          <div class="mt-4 space-y-3">
-            <div
-              v-for="row in ledger.reports?.inventoryValueByCategory ?? []"
-              :key="`inventory-${row.label}`"
-              class="hz-ledger-panel-soft flex items-center justify-between rounded-[1.25rem] px-4 py-3"
-            >
-              <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
-              <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Value By Category</div>
+              <div class="mt-1 text-sm text-text-secondary">A quick feel for where your stored value is sitting.</div>
             </div>
+            <div class="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ formatMoney(sumReportValues(inventoryCategoryReportRows)) }}
+            </div>
+          </div>
+
+          <div v-if="inventoryCategoryReportRows.length" class="mt-5 grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-center">
+            <div class="flex items-center justify-center">
+              <div class="relative flex h-44 w-44 items-center justify-center rounded-full border border-white/8 p-3">
+                <div class="absolute inset-3 rounded-full" :style="buildDonutStyle(inventoryCategoryReportRows)" />
+                <div class="absolute inset-[2.35rem] rounded-full bg-[#07111f]/95 ring-1 ring-white/5" />
+                <div class="relative text-center">
+                  <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">Inventory</div>
+                  <div class="mt-2 text-2xl font-black text-horizon-white">{{ formatCompactMoney(sumReportValues(inventoryCategoryReportRows)) }}</div>
+                  <div class="text-xs text-text-secondary">aUEC value</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                v-for="row in inventoryCategoryReportRows"
+                :key="`inventory-${row.label}`"
+                class="hz-ledger-panel-soft rounded-[1.25rem] px-4 py-3"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: row.color }" />
+                    <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
+                  </div>
+                  <div class="text-sm text-text-secondary">{{ formatMoney(row.value) }}</div>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/6">
+                  <div class="h-full rounded-full" :style="{ width: buildBarWidth(row.share), backgroundColor: row.color }" />
+                </div>
+                <div class="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                  {{ Math.round(row.share * 100) }}% of valued inventory
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="mt-5 hz-ledger-panel-soft rounded-[1.5rem] px-4 py-8 text-sm text-text-secondary">
+            No inventory valuation breakdown is available for this view yet.
           </div>
         </div>
       </section>

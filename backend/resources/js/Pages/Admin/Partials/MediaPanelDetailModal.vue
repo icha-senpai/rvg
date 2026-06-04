@@ -4,11 +4,6 @@
     class="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
     @click.self="$emit('close')"
   >
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div class="absolute left-1/4 top-10 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-blue)]/16 blur-3xl"></div>
-      <div class="absolute bottom-10 right-1/4 h-96 w-96 rounded-full bg-[color:var(--horizon-sunset-magenta)]/14 blur-3xl"></div>
-    </div>
-
     <div class="hz-surface-welcome relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop">
       <div class="pointer-events-none absolute inset-0 opacity-40">
         <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -242,7 +237,6 @@ defineProps({
 
 defineEmits(['close', 'save', 'delete', 'copy', 'update:filename', 'update:alt-text'])
 </script>
-
 
 
 

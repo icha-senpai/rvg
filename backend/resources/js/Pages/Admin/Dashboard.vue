@@ -1,8 +1,5 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { Link } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
-
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 
 import UsersPanel from './Partials/UsersPanel.vue'
@@ -20,6 +17,14 @@ const props = defineProps({
   operations: {
     type: Array,
     default: () => [],
+  },
+  operationSettlementLootOptions: {
+    type: Object,
+    default: () => ({
+      commodities: [],
+      items: [],
+      components: [],
+    }),
   },
   canceledOperations: {
     type: Array,
@@ -92,7 +97,7 @@ const tabItems = computed(() => [
     key: 'ledger',
     label: 'Ledger',
     eyebrow: 'Economy',
-    description: 'Manage wipe cycles, rollout state, and the Horizon Ledger module foundation.',
+    description: 'Manage cycle controls, rollout state, and leadership ledger tools.',
     count: props.ledger?.wipeCycles?.length ?? 0,
     tone: 'indigo',
   },
@@ -100,44 +105,9 @@ const tabItems = computed(() => [
     key: 'uex',
     label: 'UEX',
     eyebrow: 'External Data',
-    description: 'Review local UEX snapshot coverage, last sync status, and the exact commands used to refresh the dataset.',
+    description: 'Review UEX sync status, snapshot coverage, and synced dataset tools.',
     count: props.uex?.total_rows ?? 0,
     tone: 'amber',
-  },
-])
-
-const commandLinks = computed(() => [
-  {
-    label: 'Archive Management',
-    eyebrow: 'Knowledge Hub',
-    description: 'Create topics, manage entries, and control rank-gated archive visibility.',
-    href: route('admin.archive.index'),
-    tone: 'magenta',
-    stat: `${archiveSummary.value.topics} topics`,
-  },
-  {
-    label: 'Archive Trash',
-    eyebrow: 'Recovery Bay',
-    description: 'Restore soft-deleted Archive content or permanently purge old records.',
-    href: route('admin.archive.trash.index'),
-    tone: 'danger',
-    stat: `${archiveSummary.value.trashTotal} trashed`,
-  },
-  {
-    label: 'Archive Audit',
-    eyebrow: 'Activity Log',
-    description: 'Review create, update, delete, restore, and purge events for Archive content.',
-    href: route('admin.archive.audit.index'),
-    tone: 'indigo',
-    stat: 'Logs',
-  },
-  {
-    label: 'Public Archive',
-    eyebrow: 'Member View',
-    description: 'Open the member-facing Archive exactly as verified users see it.',
-    href: route('archive.index'),
-    tone: 'blue',
-    stat: `${archiveSummary.value.entries} entries`,
   },
 ])
 
@@ -203,43 +173,6 @@ function restoreScrollPosition() {
   })
 }
 
-function tabCardClass(tab) {
-    if (activeTab.value === tab.key) {
-      switch (tab.tone) {
-        case 'magenta':
-          return 'border-white/[0.055] bg-white/[0.042] '
-        case 'indigo':
-          return 'border-white/[0.055] bg-white/[0.042] '
-        case 'emerald':
-          return 'border-emerald-300/35 bg-emerald-300/10 '
-        case 'amber':
-          return 'border-amber-300/35 bg-amber-300/10 '
-        case 'cyan':
-        case 'blue':
-        default:
-        return 'border-[color:var(--horizon-sunset-blue)]/40 bg-white/[0.042] '
-    }
-  }
-
-  return 'border-white/[0.055] bg-white/[0.024] hover:border-white/[0.055] hover:bg-white/[0.045]'
-}
-
-function commandCardClass(link) {
-  switch (link.tone) {
-    case 'magenta':
-      return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-magenta)]/15'
-    case 'indigo':
-      return 'border-white/[0.055] bg-white/[0.042] hover:border-white/[0.055] hover:bg-[color:var(--horizon-sunset-indigo)]/15'
-    case 'emerald':
-      return 'border-white/[0.055] bg-white/[0.042] hover:border-emerald-300/30 hover:bg-emerald-300/10'
-    case 'danger':
-      return 'border-red-300/25 bg-red-300/10 hover:border-red-300/45 hover:bg-red-300/15'
-    case 'blue':
-    default:
-      return 'border-white/[0.055] bg-white/[0.042] hover:border-[color:var(--horizon-sunset-blue)]/55 hover:bg-[color:var(--horizon-sunset-blue)]/15'
-  }
-}
-
 watch(
   () => activeTab.value,
   (tab, prevTab) => {
@@ -272,26 +205,25 @@ onBeforeUnmount(() => {
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8">
-      <!-- Admin command hero -->
-      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
+    <div class="mx-auto max-w-7xl">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-4 md:p-5 xl:p-6">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.28em] text-[color:var(--horizon-text-secondary)]">
               Horizon Administrative Command
             </div>
 
-            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
+            <h1 class="mt-2 text-3xl font-black tracking-tight text-horizon-white md:text-4xl">
               Admin Dashboard
             </h1>
 
             <p class="mt-3 max-w-3xl text-sm text-text-secondary md:text-base">
-              Manage personnel, squadrons, access roles, administrative media systems, and the Archive knowledge hub from one command surface.
+              Manage people, access, operations, ledger tooling, and UEX syncs from one calmer control surface.
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
@@ -311,9 +243,10 @@ onBeforeUnmount(() => {
                 {{ archiveSummary.entries }} Archive Entries
               </span>
             </div>
+
           </div>
 
-          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 text-right">
+          <div class="rounded-2xl border border-white/[0.055] bg-white/[0.035] px-4 py-3 xl:min-w-[15rem] xl:text-right">
             <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
               Active Console
             </div>
@@ -327,177 +260,92 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- Admin command links -->
-      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Link
-          v-for="link in commandLinks"
-          :key="link.label"
-          :href="link.href"
-          class="hz-surface-welcome group rounded-[1.5rem] border p-5 transition duration-200 hover:-translate-y-0.5"
-          :class="commandCardClass(link)"
-        >
-          <div class="flex items-center justify-between gap-3">
-            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-              {{ link.eyebrow }}
-            </div>
+        <div class="relative mt-6">
+          <section class="rounded-[1.5rem] border border-white/[0.055] bg-white/[0.018] p-4 md:p-5">
+            <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.22em] text-[color:var(--horizon-text-secondary)]">
+                  {{ currentTab.eyebrow }} Console
+                </div>
 
-            <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white">
-              {{ link.stat }}
-            </div>
-          </div>
+                <h2 class="mt-1 text-xl font-black text-horizon-white">
+                  {{ currentTab.label }}
+                </h2>
 
-          <div class="mt-3 text-2xl font-black text-horizon-white">
-            {{ link.label }}
-          </div>
+                <p class="mt-1 text-sm text-text-secondary">
+                  {{ currentTab.description }}
+                </p>
+              </div>
 
-          <p class="mt-3 text-sm leading-6 text-text-secondary">
-            {{ link.description }}
-          </p>
-        </Link>
-      </section>
-
-      <section class="grid gap-4 md:grid-cols-4">
-        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Topics</div>
-          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.topics }}</div>
-        </div>
-
-        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Entries</div>
-          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.entries }}</div>
-        </div>
-
-        <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Taxonomy</div>
-          <div class="mt-1 text-2xl font-black text-horizon-white">{{ archiveSummary.categories + archiveSummary.tags }}</div>
-        </div>
-
-        <div class="rounded-[1.25rem] border border-red-300/20 bg-red-300/10 p-4">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-red-200/80">Trash</div>
-          <div class="mt-1 text-2xl font-black text-red-100">{{ archiveSummary.trashTotal }}</div>
-        </div>
-      </section>
-
-      <!-- Admin tab cards -->
-      <section class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <button
-          v-for="tab in tabItems"
-          :key="tab.key"
-          type="button"
-          class="rounded-[1.5rem] border p-5 text-left transition duration-200 hover:-translate-y-0.5"
-          :class="tabCardClass(tab)"
-          @click="activeTab = tab.key"
-        >
-          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            {{ tab.eyebrow }}
-          </div>
-
-          <div class="mt-2 flex items-center justify-between gap-3">
-            <div class="text-2xl font-black text-horizon-white">
-              {{ tab.label }}
+              <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                {{ activeTab }}
+              </div>
             </div>
 
             <div
-              v-if="tab.count !== null"
-              class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white"
+              v-if="activeTab === 'users'"
+              class="hz-animate-fade"
             >
-              {{ tab.count }}
-            </div>
-          </div>
-
-          <p class="mt-3 text-sm leading-6 text-text-secondary">
-            {{ tab.description }}
-          </p>
-        </button>
-      </section>
-
-      <!-- Active console shell -->
-      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-4  md:p-5">
-        <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-              {{ currentTab.eyebrow }} Console
+              <UsersPanel
+                :users="users"
+                :roles="roles"
+                :filters="filters"
+              />
             </div>
 
-            <h2 class="mt-1 text-xl font-black text-horizon-white">
-              {{ currentTab.label }}
-            </h2>
+            <div
+              v-if="activeTab === 'squadrons'"
+              class="hz-animate-fade"
+            >
+              <SquadronsPanel
+                :squadrons="squadrons"
+                :eligible-leaders="eligibleLeaders"
+              />
+            </div>
 
-            <p class="mt-1 text-sm text-text-secondary">
-              {{ currentTab.description }}
-            </p>
-          </div>
+            <div
+              v-if="activeTab === 'roles'"
+              class="hz-animate-fade"
+            >
+              <RolesPanel :roles="roles" />
+            </div>
 
-          <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-            {{ activeTab }}
-          </div>
-        </div>
+            <div
+              v-if="activeTab === 'operations'"
+              class="hz-animate-fade"
+            >
+              <OperationsPanel
+                :operations="operations"
+                :operation-settlement-loot-options="operationSettlementLootOptions"
+                :canceled-operations="canceledOperations"
+                :verified-members="verifiedMembers"
+              />
+            </div>
 
-        <div
-          v-if="activeTab === 'users'"
-          class="hz-animate-fade"
-        >
-          <UsersPanel
-            :users="users"
-            :roles="roles"
-            :filters="filters"
-          />
-        </div>
+            <div
+              v-if="activeTab === 'media'"
+              class="hz-animate-fade"
+            >
+              <MediaPanel />
+            </div>
 
-        <div
-          v-if="activeTab === 'squadrons'"
-          class="hz-animate-fade"
-        >
-          <SquadronsPanel
-            :squadrons="squadrons"
-            :eligible-leaders="eligibleLeaders"
-          />
-        </div>
+            <div
+              v-if="activeTab === 'ledger'"
+              class="hz-animate-fade"
+            >
+              <LedgerPanel :ledger="ledger" />
+            </div>
 
-        <div
-          v-if="activeTab === 'roles'"
-          class="hz-animate-fade"
-        >
-          <RolesPanel :roles="roles" />
-        </div>
-
-        <div
-          v-if="activeTab === 'operations'"
-          class="hz-animate-fade"
-        >
-          <OperationsPanel
-            :operations="operations"
-            :canceled-operations="canceledOperations"
-            :verified-members="verifiedMembers"
-          />
-        </div>
-
-        <div
-          v-if="activeTab === 'media'"
-          class="hz-animate-fade"
-        >
-          <MediaPanel />
-        </div>
-
-        <div
-          v-if="activeTab === 'ledger'"
-          class="hz-animate-fade"
-        >
-          <LedgerPanel :ledger="ledger" />
-        </div>
-
-        <div
-          v-if="activeTab === 'uex'"
-          class="hz-animate-fade"
-        >
-          <UexPanel :uex="uex" />
+            <div
+              v-if="activeTab === 'uex'"
+              class="hz-animate-fade"
+            >
+              <UexPanel :uex="uex" />
+            </div>
+          </section>
         </div>
       </section>
     </div>
   </HorizonContainer>
 </template>
-
-
-

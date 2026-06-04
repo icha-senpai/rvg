@@ -7,6 +7,14 @@ import { route } from 'ziggy-js';
 import { Ziggy } from '@/ziggy'; // This file will exist once you publish
 import { extractFirstErrorMessage, notifyError } from '@/errors'
 
+if (typeof window !== 'undefined' && window.location?.origin) {
+    // Keep client-side route generation on the exact origin the browser is using.
+    // This prevents Firefox/Inertia history errors when local dev flips between
+    // http and https on the same host.
+    Ziggy.url = window.location.origin;
+    Ziggy.port = window.location.port || null;
+}
+
 window.hzNotifyError = notifyError;
 
 try {

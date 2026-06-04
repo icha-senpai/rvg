@@ -5,6 +5,7 @@ import { route } from 'ziggy-js'
 
 import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
+import OperationSettlementSection from '@/Components/OperationSettlementSection.vue'
 
 const props = defineProps({
   operations: {
@@ -19,11 +20,20 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  operationSettlementLootOptions: {
+    type: Object,
+    default: () => ({
+      commodities: [],
+      items: [],
+      components: [],
+    }),
+  },
 })
 
 const search = ref('')
 const openOperationId = ref(null)
 const activeOperationsSection = ref('aar')
+const attendanceDraftMembersByOperationId = ref({})
 
 const currentSection = computed(() => {
   if (activeOperationsSection.value === 'cancellations') {
@@ -131,6 +141,26 @@ function toggleOperation(operationId) {
     : Number(operationId)
 }
 
+function updateAttendanceDraftMembers(operationId, members = []) {
+  const id = Number(operationId)
+  if (!Number.isFinite(id)) return
+
+  attendanceDraftMembersByOperationId.value = {
+    ...attendanceDraftMembersByOperationId.value,
+    [id]: members,
+  }
+}
+
+function attendanceDraftMembers(operation) {
+  const id = Number(operation?.id)
+
+  if (!Number.isFinite(id)) {
+    return []
+  }
+
+  return attendanceDraftMembersByOperationId.value[id] ?? operation?.after_action_attendance ?? []
+}
+
 function selectOperationsSection(section) {
   activeOperationsSection.value = section
 
@@ -210,28 +240,37 @@ function selectOperationsSection(section) {
         :key="`${operation.id}-${operation.after_action_report_updated_at ?? 'na'}`"
         class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5"
       >
-        <div class="flex flex-col gap-4 border-b border-white/[0.055] pb-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-              <span>#{{ operation.id }}</span>
-              <span class="text-text-secondary">•</span>
-              <span>{{ formatOutcome(operation.completion_outcome) }}</span>
+        <div
+          class="cursor-pointer"
+          tabindex="0"
+          role="button"
+          @click="toggleOperation(operation.id)"
+          @keydown.enter.prevent="toggleOperation(operation.id)"
+          @keydown.space.prevent="toggleOperation(operation.id)"
+        >
+          <div class="flex flex-col gap-4 border-b border-white/[0.055] pb-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                <span>#{{ operation.id }}</span>
+                <span class="text-text-secondary">•</span>
+                <span>{{ formatOutcome(operation.completion_outcome) }}</span>
+              </div>
+
+              <h4 class="mt-2 text-2xl font-black text-horizon-white">
+                {{ operation.title }}
+              </h4>
             </div>
 
-            <h4 class="mt-2 text-2xl font-black text-horizon-white">
-              {{ operation.title }}
-            </h4>
-          </div>
+            <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
+              <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Creator</div>
+                <div class="mt-1 text-sm font-semibold text-horizon-white">{{ creatorName(operation) }}</div>
+              </div>
 
-          <div class="grid gap-3 sm:grid-cols-2 md:min-w-[24rem]">
-            <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
-              <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Creator</div>
-              <div class="mt-1 text-sm font-semibold text-horizon-white">{{ creatorName(operation) }}</div>
-            </div>
-
-            <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
-              <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Completed</div>
-              <div class="mt-1 text-sm font-semibold text-horizon-white">{{ formatDate(operation.ends_at ?? operation.starts_at) }}</div>
+              <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+                <div class="text-xs uppercase tracking-[0.14em] text-text-muted">Completed</div>
+                <div class="mt-1 text-sm font-semibold text-horizon-white">{{ formatDate(operation.ends_at ?? operation.starts_at) }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -244,7 +283,7 @@ function selectOperationsSection(section) {
           <button
             type="button"
             class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-bold text-horizon-white transition hover:bg-white/[0.04]"
-            @click="toggleOperation(operation.id)"
+            @click.stop="toggleOperation(operation.id)"
           >
             {{ Number(openOperationId) === Number(operation.id) ? 'Close AAR' : 'Open AAR' }}
           </button>
@@ -252,19 +291,29 @@ function selectOperationsSection(section) {
           <Link
             :href="route('operations.show', operation.id)"
             class="rounded-full border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-3 py-1 text-xs font-bold text-horizon-white transition hover:bg-[color:var(--horizon-sunset-blue)]/15"
+            @click.stop
           >
             Open Operation
           </Link>
         </div>
 
-        <div v-if="Number(openOperationId) === Number(operation.id)" class="mt-5">
+        <div v-if="Number(openOperationId) === Number(operation.id)" class="mt-5 space-y-4">
           <AfterActionReportSection
             :operation="operation"
             :verified-members="verifiedMembers"
-            :can-manage="true"
+            :can-manage="!!operation?.permissions?.can_manage_aar"
             :reload-only="['operations']"
             :compact="true"
+            @attendance-draft-change="updateAttendanceDraftMembers(operation.id, $event)"
           />
+
+              <OperationSettlementSection
+                :operation="operation"
+                :shared-loot-options="operationSettlementLootOptions"
+                :attendance-draft-members="attendanceDraftMembers(operation)"
+                :reload-only="['operations']"
+                :compact="true"
+              />
         </div>
       </article>
     </template>

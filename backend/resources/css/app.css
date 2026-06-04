@@ -200,7 +200,9 @@
   }
 }
 .bg-grid-horizon {
-  background-image: url('/images/Grid_Horizon.png');
+  background-image:
+    linear-gradient(rgba(7, 17, 31, 0.30), rgba(7, 17, 31, 0.30)),
+    url('/images/Grid_Horizon.png');
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
@@ -208,7 +210,9 @@
   background-color: var(--horizon-void-900);   /* fallback deep space tone */
 }
 .bg-grid-horizon_2 {
-  background-image: url('/images/Horizon_Grid_V2.png');
+  background-image:
+    linear-gradient(rgba(7, 17, 31, 0.30), rgba(7, 17, 31, 0.30)),
+    url('/images/Grid_Horizon.png');
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
@@ -216,7 +220,9 @@
   background-color: var(--horizon-void-900);   /* fallback deep space tone */
 }
 .bg-grid-horizon_3 {
-  background-image: url('/images/Horizon_Grid_V3.png');
+  background-image:
+    linear-gradient(rgba(7, 17, 31, 0.30), rgba(7, 17, 31, 0.30)),
+    url('/images/Grid_Horizon.png');
   background-repeat: repeat;
   background-size: 600px 600px; /* adjust tile size */
   background-position: center;
