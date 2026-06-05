@@ -615,5 +615,3 @@ function confirmDeleteSquadron({ close }) {
 }
 </script>
 
-
-

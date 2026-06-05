@@ -146,6 +146,23 @@ class LedgerTransferService
         return $this->requests->rejectTransferRequestForContext($actor, $transferRequest, $this->squadronInboxContext($actor, $squadron), 'inventory', $data);
     }
 
+    public function approvePendingInventoryTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->requests->approveTransferRequestForContext(
+            $actor,
+            $transferRequest,
+            $this->organizationInboxContext($actor),
+            'inventory',
+            fn (User $approver, LedgerTransferRequest $request) => $this->completeFundTransferRequest($approver, $request),
+            fn (User $approver, LedgerTransferRequest $request) => $this->completeInventoryTransferRequest($approver, $request)
+        );
+    }
+
+    public function rejectPendingInventoryTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->requests->rejectTransferRequestForContext($actor, $transferRequest, $this->organizationInboxContext($actor), 'inventory', $data);
+    }
+
     public function reverseFundTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest, array $data = []): array
     {
         return $this->requests->reverseCompletedFundTransferForContext($actor, $transferRequest, $this->personalInboxContext($actor), $data);
@@ -294,7 +311,7 @@ class LedgerTransferService
                 'source_inventory_item_id' => $sourceItem->id,
             ]);
 
-            if ($this->transferRequiresApproval($actor, $sourceContext, $destinationContext)) {
+            if ($this->inventoryTransferRequiresApproval($actor, $sourceContext, $destinationContext)) {
                 $this->logPendingInventoryTransferRequest($actor, $transferRequest, $sourceContext, $destinationContext, $itemLabel, $requestedQuantity);
 
                 return [
@@ -355,6 +372,22 @@ class LedgerTransferService
             $destinationContext['type'] === 'squadron'
             && ($destinationContext['squadron'] ?? null) instanceof Squadron
             && ! $this->contexts->canActorDirectlySendIntoSquadron($actor, $destinationContext['squadron'])
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function inventoryTransferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
+    {
+        if ($this->transferRequiresApproval($actor, $sourceContext, $destinationContext)) {
+            return true;
+        }
+
+        if (
+            $destinationContext['type'] === 'organization'
+            && ! $this->contexts->canManageOrganizationLedger($actor)
         ) {
             return true;
         }

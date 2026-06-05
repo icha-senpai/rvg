@@ -7,6 +7,8 @@ import { Ziggy } from '../ziggy'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 
+const aarDraftStore = new Map()
+
 const emit = defineEmits(['attendance-draft-change'])
 
 const props = defineProps({
@@ -40,6 +42,21 @@ const noShowSearch = ref('')
 const saving = ref(false)
 const attendanceLocked = computed(() => !!props.operation?.operation_settlement?.locked_attendance)
 const canEditAttendance = computed(() => props.canManage && !attendanceLocked.value)
+
+function aarDraftKey() {
+  return `aar:${props.operation?.id ?? 'unknown'}`
+}
+
+function currentAarSignature() {
+  return JSON.stringify([
+    props.operation?.id ?? null,
+    props.operation?.after_action_report ?? '',
+    props.operation?.completion_outcome ?? null,
+    props.operation?.after_action_report_updated_at ?? null,
+    props.operation?.after_action_attendance ?? [],
+    props.operation?.after_action_no_show ?? [],
+  ])
+}
 
 const signedUpUsers = computed(() => {
   const seen = new Set()
@@ -206,15 +223,39 @@ Lessons learned:
 Follow-up actions:`
 }
 
+function persistAarDraft(signature = currentAarSignature()) {
+  aarDraftStore.set(aarDraftKey(), {
+    signature,
+    reportDraft: reportDraft.value,
+    attendanceDraft: [...attendanceDraft.value],
+    noShowDraft: [...noShowDraft.value],
+    memberSearch: memberSearch.value,
+    noShowSearch: noShowSearch.value,
+  })
+}
+
 watch(
   () => [
     props.operation?.id,
     props.operation?.after_action_report,
     props.operation?.completion_outcome,
+    props.operation?.after_action_report_updated_at,
     JSON.stringify(props.operation?.after_action_attendance ?? []),
     JSON.stringify(props.operation?.after_action_no_show ?? []),
   ],
   () => {
+    const nextSignature = currentAarSignature()
+    const storedDraft = aarDraftStore.get(aarDraftKey())
+
+    if (storedDraft?.signature === nextSignature) {
+      reportDraft.value = storedDraft.reportDraft ?? reportDraft.value
+      attendanceDraft.value = Array.isArray(storedDraft.attendanceDraft) ? [...storedDraft.attendanceDraft] : attendanceDraft.value
+      noShowDraft.value = Array.isArray(storedDraft.noShowDraft) ? [...storedDraft.noShowDraft] : noShowDraft.value
+      memberSearch.value = storedDraft.memberSearch ?? memberSearch.value
+      noShowSearch.value = storedDraft.noShowSearch ?? noShowSearch.value
+      return
+    }
+
     const existingReport = String(props.operation?.after_action_report ?? '')
 
     reportDraft.value = existingReport.trim()
@@ -225,8 +266,22 @@ watch(
     noShowDraft.value = noShowUserIds.value
     memberSearch.value = ''
     noShowSearch.value = ''
+    persistAarDraft(nextSignature)
   },
   { immediate: true }
+)
+
+watch(
+  () => [
+    reportDraft.value,
+    JSON.stringify(attendanceDraft.value),
+    JSON.stringify(noShowDraft.value),
+    memberSearch.value,
+    noShowSearch.value,
+  ],
+  () => {
+    persistAarDraft()
+  }
 )
 
 watch(

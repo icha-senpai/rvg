@@ -336,6 +336,121 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_org_manager_can_approve_pending_inventory_transfer_into_horizon_treasury(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('CargoPilot', 'cargo-pilot-org-approve');
+        $approver = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $item = LedgerInventoryItem::query()->create([
+            'user_id' => $actor->id,
+            'wipe_cycle_id' => $wipe->id,
+            'source_type' => 'commodity',
+            'uex_reference_type' => 'commodity',
+            'uex_reference_id' => 707,
+            'custom_name' => 'Refined Quantanium',
+            'quantity' => 10,
+            'unit_label' => 'SCU',
+            'purchase_price' => 30000,
+            'estimated_value' => 36000,
+            'currency' => 'aUEC',
+            'status' => 'owned',
+            'acquired_at' => now()->subDay(),
+        ]);
+
+        $this
+            ->actingAs($actor)
+            ->post(route('ledger.inventory.transfer'), [
+                'inventory_item_id' => $item->id,
+                'destination_type' => 'organization',
+                'quantity' => 4,
+                'notes' => 'Reserve stock for Horizon',
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertTrue((bool) $request->destination_is_org_owned);
+        $this->assertNull($request->destination_inventory_item_id);
+
+        $this->actingAs($approver)
+            ->post(route('organization.ledger.inventory.transfer.approve', $request->id))
+            ->assertRedirect();
+
+        $request->refresh();
+        $item->refresh();
+
+        $this->assertSame('completed', $request->status);
+        $this->assertNotNull($request->destination_inventory_item_id);
+        $this->assertSame('6.0000', $item->quantity);
+
+        $this->assertDatabaseHas('ledger_inventory_items', [
+            'id' => $request->destination_inventory_item_id,
+            'is_org_owned' => true,
+            'custom_name' => 'Refined Quantanium',
+            'quantity' => '4.0000',
+            'transfer_request_id' => $request->id,
+        ]);
+    }
+
+    public function test_org_manager_can_reject_pending_inventory_transfer_into_horizon_treasury(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('CargoPilot', 'cargo-pilot-org-reject');
+        $approver = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $item = LedgerInventoryItem::query()->create([
+            'user_id' => $actor->id,
+            'wipe_cycle_id' => $wipe->id,
+            'source_type' => 'commodity',
+            'uex_reference_type' => 'commodity',
+            'uex_reference_id' => 808,
+            'custom_name' => 'Construction Materials',
+            'quantity' => 7,
+            'unit_label' => 'SCU',
+            'purchase_price' => 7000,
+            'estimated_value' => 9100,
+            'currency' => 'aUEC',
+            'status' => 'owned',
+            'acquired_at' => now()->subDay(),
+        ]);
+
+        $this
+            ->actingAs($actor)
+            ->post(route('ledger.inventory.transfer'), [
+                'inventory_item_id' => $item->id,
+                'destination_type' => 'organization',
+                'quantity' => 3,
+                'notes' => 'Offer to Horizon stores',
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->actingAs($approver)
+            ->post(route('organization.ledger.inventory.transfer.reject', $request->id), [
+                'rejection_reason' => 'Treasury stock is already full',
+            ])
+            ->assertRedirect();
+
+        $request->refresh();
+        $item->refresh();
+
+        $this->assertSame('rejected', $request->status);
+        $this->assertSame('Treasury stock is already full', $request->rejection_reason);
+        $this->assertNull($request->destination_inventory_item_id);
+        $this->assertSame('7.0000', $item->quantity);
+        $this->assertDatabaseMissing('ledger_inventory_items', [
+            'transfer_request_id' => $request->id,
+            'is_org_owned' => true,
+        ]);
+    }
+
     public function test_verified_member_can_approve_pending_personal_transfer_request(): void
     {
         config()->set('services.ledger.enabled', true);

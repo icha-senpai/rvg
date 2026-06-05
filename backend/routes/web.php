@@ -192,6 +192,12 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
     Route::post('/organization/ledger/inventory/transfers', [OrganizationLedgerInventoryController::class, 'transfer'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.inventory.transfer');
+    Route::post('/organization/ledger/inventory/transfers/{transferRequest}/approve', [OrganizationLedgerInventoryController::class, 'approveTransfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.transfer.approve');
+    Route::post('/organization/ledger/inventory/transfers/{transferRequest}/reject', [OrganizationLedgerInventoryController::class, 'rejectTransfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.inventory.transfer.reject');
     Route::put('/organization/ledger/inventory/{inventoryItem}', [OrganizationLedgerInventoryController::class, 'update'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.inventory.update');

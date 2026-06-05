@@ -202,12 +202,18 @@ If a requested change would violate these rules, pause and ask before proceeding
 
 - Services own ONE bounded context. Do not mix read, write, and transfer concerns in a single service.
 
+- A bounded context is NOT the same thing as one class. A context may use multiple collaborating services when that keeps responsibilities clear.
+
 - If a service exceeds ~400 lines OR mixes responsibilities, split it by RESPONSIBILITY, not by entity. Ownership scopes (personal/squadron/org) do NOT justify near-identical methods. Pass a ledger owner/context and write the operation once where it is safe to do so.
 
 - Presentation boundaries (Vue components) must NOT dictate backend structure.
 
 - Follow the existing injected sub-service pattern. Do not invent a new service style when extending an existing bounded context.
 
+- Keep invariants close to the write path. Ownership checks, permission rules, and mutation guards should live near the code that changes state.
+
 - Money and inventory writes keep their own `DB::transaction()` boundaries. Preserve those boundaries during refactors.
+
+- Do not introduce abstractions before a real second seam appears. Avoid speculative interfaces or “DDD for show” layers that do not remove real duplication or risk.
 
 - Refactor via strangler-fig: keep public signatures stable as a facade, extract one bounded service at a time, validate between steps, and avoid big-bang rewrites of load-bearing services.

@@ -5,6 +5,7 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
@@ -1108,112 +1109,103 @@ watch(
         </div>
         </div>
 
-        <!-- Edit modal -->
-        <div
+        <!-- Edit drawer -->
+        <HorizonDrawer
           v-if="isEditModalOpen"
-          class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          @click.self="closeEditModal"
+          close-label="Close squadron editor"
+          @close="closeEditModal"
         >
-          <section class="hz-surface-welcome max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/[0.055]">
-            <header class="flex items-start justify-between gap-4 border-b border-white/[0.055] p-5">
-              <div>
-                <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
-                  Edit Squadron
-                </div>
-                <h2 class="mt-1 text-xl font-black text-horizon-white">
-                  {{ squadron.name }}
-                </h2>
+          <template #header>
+            <div>
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+                Edit Squadron
               </div>
+              <h2 class="mt-1 text-xl font-black text-horizon-white">
+                {{ squadron.name }}
+              </h2>
+            </div>
+          </template>
 
-              <HorizonButton
-                variant="ghost"
-                size="sm"
-                :disabled="isSavingSettings || isSavingEmblem"
-                @click="closeEditModal"
-              >
-                Close
-              </HorizonButton>
-            </header>
+          <div class="space-y-6">
+            <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+              <div class="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start">
+                <div class="space-y-3">
+                  <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Emblem</div>
 
-            <div class="max-h-[calc(90vh-9rem)] overflow-y-auto p-5">
-              <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-                <!-- Emblem controls -->
-                <aside class="space-y-4">
-                  <div class="space-y-3">
-                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Emblem</div>
-
-                    <div class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/[0.055] bg-[color:var(--horizon-void-800)]">
-                      <img
-                        v-if="squadron.emblem_url"
-                        :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
-                        :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-                        class="h-full w-full object-contain p-3"
-                        loading="lazy"
-                      />
-                      <div v-else class="text-3xl font-black text-horizon-white">
-                        {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
-                      </div>
-                    </div>
-
-                    <div class="space-y-2">
-                      <HorizonButton variant="primary" size="sm" class="w-full" :disabled="isSavingEmblem" @click="openEmblemPicker">
-                        Choose Emblem
-                      </HorizonButton>
-                      <HorizonButton variant="ghost" size="sm" class="w-full" :disabled="isSavingEmblem || !squadron.emblem_url" @click="clearEmblem">
-                        {{ isSavingEmblem ? 'Updating…' : 'Clear' }}
-                      </HorizonButton>
+                  <div class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/[0.055] bg-[color:var(--horizon-void-800)]">
+                    <img
+                      v-if="squadron.emblem_url"
+                      :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
+                      :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
+                      class="h-full w-full object-contain p-3"
+                      loading="lazy"
+                    />
+                    <div v-else class="text-3xl font-black text-horizon-white">
+                      {{ String(squadron.name ?? 'S').slice(0, 1).toUpperCase() }}
                     </div>
                   </div>
 
                   <div class="space-y-2">
-                    <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Save Rules</div>
-                    <p class="text-sm text-text-secondary">Text fields save together. Emblem changes save immediately after selection.</p>
+                    <HorizonButton variant="primary" size="sm" class="w-full" :disabled="isSavingEmblem" @click="openEmblemPicker">
+                      Choose Emblem
+                    </HorizonButton>
+                    <HorizonButton variant="ghost" size="sm" class="w-full" :disabled="isSavingEmblem || !squadron.emblem_url" @click="clearEmblem">
+                      {{ isSavingEmblem ? 'Updating…' : 'Clear' }}
+                    </HorizonButton>
                   </div>
-                </aside>
+                </div>
 
-                <!-- Text controls -->
-                <main class="space-y-5">
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Motto
-                    </label>
-                    <input
-                      v-model="editForm.motto"
-                      class="hz-input mt-2"
-                      placeholder="Optional squadron motto"
-                    />
-                  </div>
-
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Recruitment Broadcast
-                    </label>
-                    <div class="mt-2">
-                      <HorizonRichTextEditor
-                        v-model="editForm.recruitment_propaganda"
-                        :rows="10"
-                        placeholder="Write the squadron recruitment pitch..."
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Mission Profile / Description
-                    </label>
-                    <div class="mt-2">
-                      <HorizonRichTextEditor
-                        v-model="editForm.description"
-                        :rows="10"
-                        placeholder="Write the squadron description..."
-                      />
-                    </div>
-                  </div>
-                </main>
+                <div class="space-y-3">
+                  <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Save Rules</div>
+                  <p class="text-sm text-text-secondary">
+                    Text fields save together. Emblem changes save immediately after selection.
+                  </p>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <footer class="flex items-center justify-end gap-2 border-t border-white/[0.055] p-5">
+            <main class="space-y-5">
+              <div>
+                <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Motto
+                </label>
+                <input
+                  v-model="editForm.motto"
+                  class="hz-input mt-2"
+                  placeholder="Optional squadron motto"
+                />
+              </div>
+
+              <div>
+                <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Recruitment Broadcast
+                </label>
+                <div class="mt-2">
+                  <HorizonRichTextEditor
+                    v-model="editForm.recruitment_propaganda"
+                    :rows="10"
+                    placeholder="Write the squadron recruitment pitch..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Mission Profile / Description
+                </label>
+                <div class="mt-2">
+                  <HorizonRichTextEditor
+                    v-model="editForm.description"
+                    :rows="10"
+                    placeholder="Write the squadron description..."
+                  />
+                </div>
+              </div>
+            </main>
+          </div>
+
+          <template #footer>
+            <div class="flex items-center justify-end gap-2">
               <HorizonButton
                 variant="ghost"
                 size="sm"
@@ -1231,9 +1223,9 @@ watch(
               >
                 {{ isSavingSettings ? 'Saving…' : 'Save Changes' }}
               </HorizonButton>
-            </footer>
-          </section>
-        </div>
+            </div>
+          </template>
+        </HorizonDrawer>
 
         <MediaPickerModal
           :open="isEmblemPickerOpen"
@@ -1318,7 +1310,5 @@ watch(
     @confirm="() => { if (pendingDemoteMember) demoteLieutenant(pendingDemoteMember) }"
   />
 </template>
-
-
 
 

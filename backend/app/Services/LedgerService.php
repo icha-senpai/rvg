@@ -311,6 +311,16 @@ class LedgerService
         return $this->transfers->rejectPendingInventoryTransferForSquadron($actor, $squadron, $transferRequest, $data);
     }
 
+    public function approvePendingInventoryTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->transfers->approvePendingInventoryTransferForOrganization($actor, $transferRequest);
+    }
+
+    public function rejectPendingInventoryTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->transfers->rejectPendingInventoryTransferForOrganization($actor, $transferRequest, $data);
+    }
+
     public function reverseFundTransferForPersonal(User $actor, LedgerTransferRequest $transferRequest, array $data = []): array
     {
         return $this->transfers->reverseFundTransferForPersonal($actor, $transferRequest, $data);

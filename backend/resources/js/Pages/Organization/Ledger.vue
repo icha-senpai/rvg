@@ -651,6 +651,10 @@ function inventoryTransferHref() {
 }
 
 function inventoryTransferApproveHref(id) {
+  if (isOrganizationLedger.value) {
+    return route('organization.ledger.inventory.transfer.approve', id)
+  }
+
   if (isSquadronLedger.value) {
     return route('squadrons.ledger.inventory.transfer.approve', { squadron: props.squadron?.id, transferRequest: id })
   }
@@ -659,6 +663,10 @@ function inventoryTransferApproveHref(id) {
 }
 
 function inventoryTransferRejectHref(id) {
+  if (isOrganizationLedger.value) {
+    return route('organization.ledger.inventory.transfer.reject', id)
+  }
+
   if (isSquadronLedger.value) {
     return route('squadrons.ledger.inventory.transfer.reject', { squadron: props.squadron?.id, transferRequest: id })
   }
@@ -1974,7 +1982,7 @@ function tabClass(key) {
 
       <section class="hz-ledger-tabbar rounded-[1.5rem] p-4">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:pb-0">
+          <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:pb-0 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
             <button
               v-for="tab in tabs"
               :key="tab.key"

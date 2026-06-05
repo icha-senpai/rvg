@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ledger\ApproveLedgerTransferRequest;
+use App\Http\Requests\Ledger\RejectLedgerTransferRequest;
 use App\Http\Requests\Ledger\StoreLedgerInventoryItemRequest;
 use App\Http\Requests\Ledger\StoreLedgerInventoryTransferRequest;
 use App\Models\LedgerInventoryItem;
+use App\Models\LedgerTransferRequest;
 use App\Services\LedgerService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
@@ -35,6 +38,24 @@ class OrganizationLedgerInventoryController extends Controller
         return back()->with('success', $result['status'] === 'pending'
             ? 'Inventory transfer request sent for approval.'
             : 'Inventory transferred.');
+    }
+
+    public function approveTransfer(ApproveLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('manage-org-ledger');
+
+        $this->ledger->approvePendingInventoryTransferForOrganization($request->user(), $transferRequest);
+
+        return back()->with('success', 'Inventory transfer approved.');
+    }
+
+    public function rejectTransfer(RejectLedgerTransferRequest $request, LedgerTransferRequest $transferRequest)
+    {
+        $this->authorize('manage-org-ledger');
+
+        $this->ledger->rejectPendingInventoryTransferForOrganization($request->user(), $transferRequest, $request->validated());
+
+        return back()->with('success', 'Inventory transfer rejected.');
     }
 
     public function update(StoreLedgerInventoryItemRequest $request, LedgerInventoryItem $inventoryItem)

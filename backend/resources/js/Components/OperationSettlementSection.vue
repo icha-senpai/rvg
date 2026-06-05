@@ -8,6 +8,8 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
+const settlementDraftStore = new Map()
+
 const props = defineProps({
   operation: {
     type: Object,
@@ -44,6 +46,20 @@ const canManage = computed(() => !!settlement.value?.permissions?.can_manage)
 const isFinalized = computed(() => !!settlement.value?.is_finalized)
 const attendanceLocked = computed(() => !!settlement.value?.locked_attendance)
 const settlementActivity = computed(() => settlement.value?.activity ?? {})
+
+function settlementDraftKey() {
+  return `settlement:${props.operation?.id ?? 'unknown'}`
+}
+
+function currentSettlementSignature() {
+  return JSON.stringify([
+    props.operation?.id ?? null,
+    settlement.value?.updated_at ?? null,
+    settlement.value?.finalized_at ?? null,
+    settlement.value?.money_rows ?? [],
+    settlement.value?.loot_rows ?? [],
+  ])
+}
 
 const recipientOptions = computed(() => {
   const baseOptions = (settlement.value?.eligible_recipients ?? []).map(recipient => ({
@@ -205,6 +221,16 @@ const settlementActivityRows = computed(() => {
   return rows.filter(row => row.value || row.detail)
 })
 
+function persistSettlementDraft(signature = currentSettlementSignature()) {
+  settlementDraftStore.set(settlementDraftKey(), {
+    signature,
+    moneyRows: moneyRows.value.map(cloneMoneyRow),
+    lootRows: lootRows.value.map(cloneLootRow),
+    presetAmount: presetAmount.value,
+    reserveSquadronKey: reserveSquadronKey.value,
+  })
+}
+
 watch(
   () => [
     props.operation?.id,
@@ -214,10 +240,35 @@ watch(
     JSON.stringify(settlement.value?.loot_rows ?? []),
   ],
   () => {
+    const nextSignature = currentSettlementSignature()
+    const storedDraft = settlementDraftStore.get(settlementDraftKey())
+
+    if (storedDraft?.signature === nextSignature) {
+      moneyRows.value = Array.isArray(storedDraft.moneyRows) ? storedDraft.moneyRows.map(cloneMoneyRow) : moneyRows.value
+      lootRows.value = Array.isArray(storedDraft.lootRows) ? storedDraft.lootRows.map(cloneLootRow) : lootRows.value
+      presetAmount.value = storedDraft.presetAmount ?? presetAmount.value
+      reserveSquadronKey.value = storedDraft.reserveSquadronKey ?? reserveSquadronKey.value
+      return
+    }
+
     moneyRows.value = (settlement.value?.money_rows ?? []).map(cloneMoneyRow)
     lootRows.value = (settlement.value?.loot_rows ?? []).map(cloneLootRow)
+    presetAmount.value = ''
+    persistSettlementDraft(nextSignature)
   },
   { immediate: true },
+)
+
+watch(
+  () => [
+    JSON.stringify(moneyRows.value),
+    JSON.stringify(lootRows.value),
+    presetAmount.value,
+    reserveSquadronKey.value,
+  ],
+  () => {
+    persistSettlementDraft()
+  }
 )
 
 watch(
