@@ -1,7 +1,7 @@
 <template>
   <button
     :class="[
-      'hz-btn overflow-visible whitespace-nowrap leading-normal',
+      'hz-btn overflow-visible whitespace-normal sm:whitespace-nowrap leading-normal',
       sizeMap[size],
       variantMap[variant],
       disabled ? 'hz-btn-disabled' : ''
@@ -41,7 +41,6 @@ const sizeMap = {
   lg: 'min-h-12 hz-btn-lg',
 };
 </script>
-
 
 
 

@@ -1819,7 +1819,7 @@ function confirmDestroyOperation({ close, text }) {
 
 
                <!-- Form Actions -->
-        <section class="sticky bottom-0 z-30 bg-[rgba(11,13,20,0.92)] p-5 shadow-[0_-12px_48px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+        <section class="static z-30 bg-[rgba(11,13,20,0.92)] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)] backdrop-blur-sm md:sticky md:bottom-0 md:p-5">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
@@ -1965,7 +1965,6 @@ function confirmDestroyOperation({ close, text }) {
     @confirm="confirmSaveTemplate"
   />
 </template>
-
 
 
 

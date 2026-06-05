@@ -2,10 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\LedgerActivityLog;
 use App\Models\LedgerAccount;
 use App\Models\Squadron;
 use App\Models\User;
 use App\Models\WipeCycle;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class LedgerCycleService
@@ -157,7 +162,7 @@ class LedgerCycleService
         ];
     }
 
-    public function applyWipeFilter($query, array $filter)
+    public function applyWipeFilter(Builder|QueryBuilder $query, array $filter): Builder|QueryBuilder
     {
         if ($filter['mode'] !== 'specific' || ! $filter['wipe']) {
             return $query;
@@ -196,6 +201,93 @@ class LedgerCycleService
         return $wipeCycle;
     }
 
+    public function createWipeCycle(User $actor, array $data): WipeCycle
+    {
+        return DB::transaction(function () use ($actor, $data) {
+            WipeCycle::query()
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'ended_at' => now(),
+                ]);
+
+            $wipeCycle = WipeCycle::query()->create([
+                'name' => $data['name'],
+                'star_citizen_version' => $data['star_citizen_version'] ?? null,
+                'wipe_type' => $data['wipe_type'] ?? 'unknown',
+                'started_at' => $data['started_at'] ?? now(),
+                'ended_at' => null,
+                'is_current' => true,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $this->logActivity($actor, $wipeCycle, 'wipe_cycle.created', $wipeCycle, [
+                'name' => $wipeCycle->name,
+                'wipe_type' => $wipeCycle->wipe_type,
+            ]);
+
+            return $wipeCycle;
+        });
+    }
+
+    public function setCurrentWipeCycle(User $actor, WipeCycle $wipeCycle): WipeCycle
+    {
+        return DB::transaction(function () use ($actor, $wipeCycle) {
+            WipeCycle::query()->where('is_current', true)->update(['is_current' => false]);
+            $wipeCycle->forceFill([
+                'is_current' => true,
+                'ended_at' => null,
+            ])->save();
+
+            $this->logActivity($actor, $wipeCycle, 'wipe_cycle.current_set', $wipeCycle, [
+                'name' => $wipeCycle->name,
+            ]);
+
+            return $wipeCycle->fresh();
+        });
+    }
+
+    public function closeWipeCycle(User $actor, WipeCycle $wipeCycle): WipeCycle
+    {
+        $wipeCycle->forceFill([
+            'is_current' => false,
+            'ended_at' => $wipeCycle->ended_at ?? now(),
+        ])->save();
+
+        $this->logActivity($actor, $wipeCycle, 'wipe_cycle.closed', $wipeCycle, [
+            'name' => $wipeCycle->name,
+        ]);
+
+        if (! WipeCycle::query()->where('is_current', true)->exists()) {
+            $this->ensureCurrentWipeCycle();
+        }
+
+        return $wipeCycle->fresh();
+    }
+
+    public function updateCurrentWipeCycle(User $actor, WipeCycle $wipeCycle, array $data): WipeCycle
+    {
+        if (! $wipeCycle->is_current) {
+            throw ValidationException::withMessages([
+                'name' => 'Only the current live cycle can be renamed.',
+            ]);
+        }
+
+        $wipeCycle->forceFill([
+            'name' => $data['name'],
+            'star_citizen_version' => $data['star_citizen_version'] ?? null,
+            'wipe_type' => $data['wipe_type'] ?? $wipeCycle->wipe_type,
+            'started_at' => $data['started_at'] ?? $wipeCycle->started_at,
+        ])->save();
+
+        $this->logActivity($actor, $wipeCycle, 'wipe_cycle.updated', $wipeCycle, [
+            'name' => $wipeCycle->name,
+            'wipe_type' => $wipeCycle->wipe_type,
+        ]);
+
+        return $wipeCycle->fresh();
+    }
+
     protected function ensureCurrentWipeCycle(): WipeCycle
     {
         $current = WipeCycle::query()
@@ -218,6 +310,27 @@ class LedgerCycleService
             'wipe_type' => 'unknown',
             'started_at' => now(),
             'is_current' => true,
+        ]);
+    }
+
+    protected function logActivity(
+        User $actor,
+        ?WipeCycle $wipeCycle,
+        string $action,
+        object $target,
+        array $metadata = []
+    ): void {
+        LedgerActivityLog::query()->create([
+            'actor_user_id' => $actor->id,
+            'subject_user_id' => null,
+            'squadron_id' => null,
+            'is_org_owned' => false,
+            'wipe_cycle_id' => $wipeCycle?->id,
+            'action' => $action,
+            'target_type' => class_basename($target),
+            'target_id' => $target->id ?? null,
+            'metadata' => $metadata,
+            'created_at' => CarbonImmutable::now(),
         ]);
     }
 }

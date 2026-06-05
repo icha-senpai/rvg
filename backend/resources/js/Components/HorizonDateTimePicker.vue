@@ -38,7 +38,7 @@
       </div>
 
       <div class="px-3 py-3">
-        <div class="grid grid-cols-7 gap-1 text-[11px] text-[var(--color-text-secondary)]">
+        <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--color-text-secondary)] sm:text-[11px]">
           <div v-for="w in weekdayLabels" :key="w" class="text-center py-1">{{ w }}</div>
         </div>
 
@@ -47,7 +47,7 @@
             v-for="cell in calendarCells"
             :key="cell.key"
             type="button"
-            class="h-9 rounded-lg text-sm"
+            class="h-10 rounded-lg text-sm sm:h-9"
             :class="[
               cell.isBlank
                 ? 'opacity-0 pointer-events-none'
@@ -55,7 +55,7 @@
                     ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white border border-[color:var(--horizon-sunset-blue)] font-semibold'
                     : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'),
               (!cell.isBlank && cell.isTodayHighlight && !cell.isSelected)
-                ? 'w-9 justify-self-center rounded-full border border-[color:var(--horizon-sunset-blue)] text-[color:var(--horizon-sunset-blue)] font-semibold hover:bg-transparent'
+                ? 'w-10 justify-self-center rounded-full border border-[color:var(--horizon-sunset-blue)] text-[color:var(--horizon-sunset-blue)] font-semibold hover:bg-transparent sm:w-9'
                 : '',
             ]"
             @click="!cell.isBlank && selectDay(cell.day)"
@@ -67,7 +67,7 @@
 
       <div class="px-3 py-3 border-t border-white/10">
         <div class="hz-stack-sm">
-          <div class="flex items-end gap-2">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
             <div class="hz-stack-xs w-20">
               <div class="text-[11px] text-[var(--color-text-secondary)]">Hour</div>
               <button
@@ -134,10 +134,10 @@
               </div>
             </div>
 
-            <div v-if="showNow" class="ml-auto">
+            <div v-if="showNow" class="sm:ml-auto">
               <button
                 type="button"
-                class="px-3 py-2 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042] text-sm"
+                class="w-full rounded-lg border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm hover:bg-white/[0.042] sm:w-auto"
                 @click="setNow"
               >
                 Now
@@ -514,7 +514,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleViewportChanged, true)
 })
 </script>
-
 
 
 

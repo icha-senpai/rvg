@@ -170,8 +170,8 @@ onMounted(() => {
     </div>
 
     <teleport to="body">
-      <div v-if="isOpen" class="fixed inset-0 z-[11000] flex items-center justify-center bg-black/70 p-4" @click.self="closePicker">
-        <section class="max-h-[88vh] w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-[color:var(--horizon-void-900)] shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+      <div v-if="isOpen" class="fixed inset-0 z-[11000] flex items-start justify-center overflow-y-auto bg-black/70 p-3 sm:items-center sm:p-4" @click.self="closePicker">
+        <section class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-[color:var(--horizon-void-900)] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:max-h-[88vh] sm:rounded-[2rem]">
           <header class="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Media Picker</div>
@@ -185,7 +185,7 @@ onMounted(() => {
             </div>
           </header>
 
-          <div class="grid max-h-[70vh] overflow-hidden lg:grid-cols-[22rem_minmax(0,1fr)]">
+          <div class="grid max-h-[calc(100dvh-10rem)] overflow-hidden lg:max-h-[70vh] lg:grid-cols-[22rem_minmax(0,1fr)]">
             <aside class="border-b border-white/10 p-5 lg:border-b-0 lg:border-r">
               <div class="rounded-2xl border border-white/[0.055] bg-white/[0.042] p-4">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-sunset-blue)]">Upload New</div>
@@ -251,7 +251,6 @@ onMounted(() => {
     </teleport>
   </div>
 </template>
-
 
 
 

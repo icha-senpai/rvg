@@ -197,3 +197,17 @@ Prefer incremental, targeted changes versus full rewrites unless absolutely need
 When modifying a file, show only the changed sections unless the full file is explicitly requested.
 
 If a requested change would violate these rules, pause and ask before proceeding.
+
+## Service layer rules (DDD)
+
+- Services own ONE bounded context. Do not mix read, write, and transfer concerns in a single service.
+
+- If a service exceeds ~400 lines OR mixes responsibilities, split it by RESPONSIBILITY, not by entity. Ownership scopes (personal/squadron/org) do NOT justify near-identical methods. Pass a ledger owner/context and write the operation once where it is safe to do so.
+
+- Presentation boundaries (Vue components) must NOT dictate backend structure.
+
+- Follow the existing injected sub-service pattern. Do not invent a new service style when extending an existing bounded context.
+
+- Money and inventory writes keep their own `DB::transaction()` boundaries. Preserve those boundaries during refactors.
+
+- Refactor via strangler-fig: keep public signatures stable as a facade, extract one bounded service at a time, validate between steps, and avoid big-bang rewrites of load-bearing services.

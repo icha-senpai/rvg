@@ -230,11 +230,11 @@
     <!-- MODAL -->
     <div
       v-if="editingUser"
-      class="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+      class="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-4"
       @click.self="closeUserEditor"
     >
       <div
-        class="hz-surface-welcome relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop"
+        class="hz-surface-welcome relative z-10 my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-white/[0.055] hz-animate-pop sm:max-h-[88vh] sm:rounded-[2rem]"
       >
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -482,7 +482,7 @@
                   </div>
 
                   <div class="px-3 pt-3">
-                    <div class="grid grid-cols-7 gap-1 text-[11px] text-[var(--color-text-secondary)]">
+                    <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--color-text-secondary)] sm:text-[11px]">
                       <div
                         v-for="d in weekdayLabels"
                         :key="d"
@@ -497,7 +497,7 @@
                         v-for="cell in rsiVerifiedAtCalendarCells"
                         :key="cell.key"
                         type="button"
-                        class="flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-sm"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-xs sm:h-9 sm:w-9 sm:text-sm"
                         :class="[
                           cell.isBlank
                             ? 'pointer-events-none opacity-0'
@@ -629,7 +629,7 @@
                 </p>
               </div>
 
-              <div class="grid gap-4 md:grid-cols-3">
+              <div class="grid gap-4 lg:grid-cols-3">
                 <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
                   <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                     Region
@@ -740,7 +740,7 @@
           </div>
 
           <!-- ACTION ROW -->
-          <footer class="hz-surface-welcome sticky bottom-0 z-20 mt-6 rounded-[1.75rem] border border-white/[0.055] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)]">
+          <footer class="hz-surface-welcome static z-20 mt-6 rounded-[1.75rem] border border-white/[0.055] p-4 shadow-[0_-12px_48px_rgba(0,0,0,0.35)] md:sticky md:bottom-0">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">

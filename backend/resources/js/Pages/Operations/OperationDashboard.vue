@@ -848,7 +848,7 @@ function statusCardClass(status) {
               <HorizonButton
                 variant="primary"
                 size="md"
-                class="min-w-[12rem]"
+                class="w-full sm:w-auto sm:min-w-[12rem]"
                 @click="openCreateDrawer"
               >
                 Create Operation

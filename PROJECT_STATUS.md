@@ -1,6 +1,6 @@
 # Horizon Platform — Project Status Document
 
-**Last Updated:** May 30, 2026  
+**Last Updated:** June 4, 2026  
 **Stack:** Laravel 12 (PHP 8.4) · Vue 3 · Inertia.js · Tailwind CSS v4 · PostgreSQL · Discord.js Bot
 
 ---
@@ -13,7 +13,7 @@
 | Frontend SPA | Vue 3 + Inertia.js | `backend/resources/js/` |
 | Styling | Tailwind CSS v4 | `backend/resources/css/app.css` |
 | Discord Bot | Node.js + Discord.js | `bots/horizon-bot/` |
-| Database | PostgreSQL | 58 migrations |
+| Database | PostgreSQL | 66 migrations |
 | Auth | Discord OAuth → Sanctum tokens | Hybrid (session + API tokens) |
 
 The project uses a **hybrid Inertia + API architecture**:
@@ -122,6 +122,10 @@ This is the most feature-rich module. Operations are the core activity unit (mis
 | Participant stats | ✅ Done | Update stats per participant |
 | After Action Reports | ✅ Done | Editable AAR body, final attendance roster, outcome templates |
 | No-show tracking | ✅ Done | AAR-managed no-show roster with user stat updates |
+| Operation settlement | ✅ Done | Separate completed-operation settlement flow for payouts + loot |
+| UEX-backed loot settlement | ✅ Done | Settlement loot uses synced UEX commodities, items, and components |
+| Settlement finalize/reopen flow | ✅ Done | Finalize writes locked ledger receipts; reopen is guarded against downstream transfer activity |
+| Settlement export | ✅ Done | Finalized settlements can export as CSV |
 | Operation templates | ✅ Done | DB-backed templates (personal/squadron/global scope) |
 | Template CRUD API | ✅ Done | Full REST with policy-based auth |
 | Template UI in editor | ✅ Done | Load/apply/save templates from MissionEditorForm |
@@ -153,7 +157,40 @@ Domain/Operations/
 
 ---
 
-### 5. Squadrons System
+### 5. Assets, Funds, and Treasury System
+
+This is now a major platform subsystem, covering personal, squadron, and Horizon-owned recordkeeping plus operation-linked settlement receipts.
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Personal assets & funds ledger | ✅ Done | Member-owned transactions, trades, inventory, ships, reports |
+| Squadron assets & funds ledger | ✅ Done | Squadron-owned shared books with squadron access rules |
+| Horizon Treasury | ✅ Done | Organization-owned shared books |
+| Separate ownership scopes | ✅ Done | Personal, squadron, and org records are fully separated |
+| Cycle system | ✅ Done | Current/archive cycle support with admin controls |
+| Cycle rename/edit | ✅ Done | Live cycle name, version, type, and start time are editable |
+| UEX-assisted pricing | ✅ Done | Trade, inventory, and ship entry helpers use synced UEX data |
+| Transfer system | ✅ Done | Fund and inventory transfers across personal, squadron, org, members, and squadrons |
+| Transfer approvals | ✅ Done | Member-to-member and protected shared targets use approval flows |
+| Transfer reversal | ✅ Done | Completed fund transfers can be reversed safely |
+| Provenance locking | ✅ Done | Transfer-derived and settlement-derived receipts are protected from normal edits/deletes |
+| Inventory search + pagination | ✅ Done | Inventory tabs now support search and pagination |
+| Ledger reporting | ✅ Done | Overview cards, comparisons, filters, and charts across all three ledger surfaces |
+| Admin ledger analytics | ✅ Done | Leadership-facing ledger analytics live in the admin dashboard |
+| Operation-linked ledger receipts | ✅ Done | Operation settlement payouts and loot write into the real ledgers |
+
+**Key Files:**
+- `App\Services\LedgerService`
+- `App\Services\LedgerCycleService`
+- `App\Services\LedgerSummaryService`
+- `App\Services\LedgerReferenceService`
+- `resources/js/Pages/Member/Ledger.vue`
+- `resources/js/Pages/Squadrons/Ledger.vue`
+- `resources/js/Pages/Organization/Ledger.vue`
+
+---
+
+### 6. Squadrons System
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -183,7 +220,24 @@ Domain/Operations/
 
 ---
 
-### 6. Media System
+### 7. UEX Sync & Market Reference System
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| UEX sync tables | ✅ Done | Commodities, items, prices, terminals, vehicles, and related reference data |
+| Admin UEX status panel | ✅ Done | Sync visibility inside the admin dashboard |
+| Manual sync actions | ✅ Done | Admin can trigger sync actions directly from the dashboard |
+| Ledger valuation support | ✅ Done | Synced UEX data powers trade suggestions and estimated value helpers |
+| Operation settlement loot options | ✅ Done | Settlement loot pulls from synced UEX references instead of free typing |
+
+**Key Files:**
+- `App\Services\UexSyncService`
+- `App\Services\AdminDashboardService`
+- `resources/js/Pages/Admin/Partials/UexPanel.vue`
+
+---
+
+### 8. Media System
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -200,7 +254,7 @@ Domain/Operations/
 
 ---
 
-### 7. Admin Panel
+### 9. Admin Panel
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -212,6 +266,8 @@ Domain/Operations/
 | Media library (admin) | ✅ Done | Browse/manage all media |
 | Admin rank promotions | ✅ Done | Promote/demote squadron members |
 | Operations oversight | ✅ Done | Admin operations panel supports AAR maintenance and cancellation review |
+| Ledger administration | ✅ Done | Cycle controls, analytics, and shared ledger oversight |
+| UEX administration | ✅ Done | Sync status, commands, and run-sync controls |
 
 **Key Files:**
 - `App\Http\Controllers\Web\AdminController`
@@ -220,7 +276,7 @@ Domain/Operations/
 
 ---
 
-### 8. Discord Bot (`bots/horizon-bot/`)
+### 10. Discord Bot (`bots/horizon-bot/`)
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -237,7 +293,7 @@ Domain/Operations/
 
 ---
 
-### 9. Shared UI Components
+### 11. Shared UI Components
 
 | Component | Purpose |
 |-----------|---------|
@@ -267,7 +323,7 @@ Domain/Operations/
 
 ---
 
-### 10. Infrastructure & Cross-Cutting
+### 12. Infrastructure & Cross-Cutting
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -286,7 +342,7 @@ Domain/Operations/
 
 ## Database Schema Summary
 
-**58 migrations** covering:
+**66 migrations** covering:
 
 | Table | Purpose |
 |-------|---------|
@@ -302,9 +358,13 @@ Domain/Operations/
 | `operation_participants` | Who joined which operation, slot assignment |
 | `operation_roles` | Custom roles defined per operation |
 | `operation_templates` | Saved operation templates (personal/squadron/global) |
+| `operation_settlements` | Completed-operation payout + loot settlement state |
 | `media` | Polymorphic media storage (avatars, operation images, emblems) |
 | `member_preferences` | Per-user preferences |
 | `rsi_change_requests` | RSI handle change request queue |
+| `wipe_cycles` / ledger tables | Personal, squadron, and org asset + fund tracking |
+| `ledger_transfer_requests` | Approval/reversal-aware fund and inventory transfer workflow |
+| `uex_*` tables | Synced UEX commodities, items, prices, terminals, vehicles, and related market references |
 | `archive_categories` / `archive_entries` / taxonomy tables | Archive content system with visibility, trash, and audit support |
 | `failed_attempts` | Verification failure tracking |
 | `auth_audit_logs` | Authentication event logging |
@@ -318,7 +378,7 @@ Domain/Operations/
 ### High Priority
 
 - **Notifications system** — No in-app notification system exists yet. Operations publish to Discord but there's no web notification center.
-- **Testing depth** — A real test suite now exists for auth, archives, member pages, squadrons, operations, templates, and AAR flows, but coverage is still incomplete.
+- **Testing depth** — A real test suite now exists for auth, archives, member pages, squadrons, operations, templates, ledgers, transfers, and settlement flows, but coverage is still incomplete.
 - ~~**README is outdated**~~ — **Resolved.** Updated to reflect current architecture, features, stack, and setup instructions.
 
 ### Medium Priority
@@ -327,8 +387,8 @@ Domain/Operations/
 - **Authorization migration** — There's an open intent to move from `rank_level`-based gating to role-based checks using `RoleHierarchy` thresholds (lieutenant+/commander+) consistently across all UI and backend gates.
 - ~~**Operation update permissions for global ops**~~ — **Resolved.**
 `canUpdateOperation` currently returns `false` for operations without a `squadron_id` (global ops) unless user is director. The creator of a global op who is lieutenant+ cannot edit it.
-- **UEX data ingestion** — Mentioned in the README as a future phase, not started.
-- **Mobile/responsive UI audit** — No evidence of dedicated mobile optimization pass.
+- **Settlement reopen is intentionally conservative** — Reopening an operation settlement is now blocked once downstream fund transfers or inventory moves exist. This is safer than auto-unwinding history, but a richer cascade-reversal design could exist later.
+- ~~**Mobile/responsive UI audit**~~ — **Resolved.** Completed a targeted responsive pass across shared shell/mobile navigation, admin modals, operation detail and editor surfaces, the rich text editor toolbar, ledger tabs, date/time picker controls, and other dense member/admin panels to reduce mobile overflow and sticky-toolbar pressure.
 
 ### Low Priority / Nice-to-Have
 
@@ -343,7 +403,7 @@ Domain/Operations/
 
 ---
 
-## File Counts Summary
+## File Counts Summary (Approximate)
 
 | Area | Count |
 |------|-------|
@@ -359,11 +419,11 @@ Domain/Operations/
 | Domain/Application Presenters | 11 |
 | Vue Pages | 44 |
 | Vue Components | 35+ shared |
-| Database Migrations | 58 |
+| Database Migrations | 66 |
 | Bot Commands | 2 |
 | Bot Services | 7 |
 | Bot Events | 4 |
 
 ---
 
-*This document is a snapshot of the codebase as of May 30, 2026. Update as features are added or completed.*
+*This document is a snapshot of the codebase as of June 4, 2026. Feature status and major system coverage are current; the file-count section is approximate and should be refreshed separately if exact inventory numbers are needed.*

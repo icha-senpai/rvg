@@ -1974,12 +1974,12 @@ function tabClass(key) {
 
       <section class="hz-ledger-tabbar rounded-[1.5rem] p-4">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex flex-wrap gap-2">
+          <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:pb-0">
             <button
               v-for="tab in tabs"
               :key="tab.key"
               type="button"
-              class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition duration-200"
+              class="shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition duration-200"
               :class="tabClass(tab.key)"
               @click="activeTab = tab.key"
             >

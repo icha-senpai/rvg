@@ -901,7 +901,7 @@ watch(
 
       <section
         v-if="isEditing"
-        class="sticky top-4 z-20 hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur"
+        class="static z-20 hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/25 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:sticky md:top-4"
       >
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>

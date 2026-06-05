@@ -1354,11 +1354,11 @@ function submitCompleteOperation(outcome) {
                         <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                       </div>
 
-                      <div class="flex flex-wrap items-center justify-end gap-2">
+                      <div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                         <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
 
                         <template v-if="canAssignSlots">
-                          <div class="min-w-[12rem]">
+                          <div class="w-full sm:min-w-[12rem]">
                             <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="roleOptionsFor(roleIdForParticipant(p))" size="sm" />
                           </div>
                           <HorizonButton
@@ -1399,11 +1399,11 @@ function submitCompleteOperation(outcome) {
                       <span class="truncate text-sm text-horizon-white">{{ participantName(p) }}</span>
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-end gap-2">
+                    <div class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                       <span class="shrink-0 text-xs text-text-muted">{{ formatTitle(p.attendance_status) }}</span>
 
                       <template v-if="canAssignSlots">
-                        <div class="min-w-[12rem]">
+                        <div class="w-full sm:min-w-[12rem]">
                           <HorizonSelect v-model="managedSlotAssignments[p.id]" :options="roleOptionsFor(roleIdForParticipant(p))" size="sm" />
                         </div>
                         <HorizonButton

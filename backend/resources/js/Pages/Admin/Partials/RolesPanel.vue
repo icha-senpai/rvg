@@ -155,10 +155,10 @@
     <!-- MODAL -->
     <div
       v-if="modalOpen"
-      class="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+      class="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-4"
       @click.self="closeModal"
     >
-      <div class="hz-surface-welcome relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.055]  hz-animate-pop">
+      <div class="hz-surface-welcome relative z-10 my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-white/[0.055] hz-animate-pop sm:max-h-[88vh] sm:rounded-[2rem]">
         <div class="pointer-events-none absolute inset-0 opacity-40">
           <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
           <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
@@ -377,7 +377,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 </script>
-
 
 
 

@@ -229,6 +229,15 @@
   background-attachment: fixed;
   background-color: var(--horizon-void-900);   /* fallback deep space tone */
 }
+
+@media (max-width: 767px) {
+  .bg-grid-horizon,
+  .bg-grid-horizon_2,
+  .bg-grid-horizon_3 {
+    background-attachment: scroll;
+    background-size: 420px 420px;
+  }
+}
 /* --------------------------------------------------------------------------
    GLASS UTILITIES
 -------------------------------------------------------------------------- */
