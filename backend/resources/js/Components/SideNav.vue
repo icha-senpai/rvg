@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 
 import { canCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
+import HorizonSelect from '@/Components/HorizonSelect.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 const page = usePage()
@@ -10,6 +11,15 @@ const page = usePage()
 const user = computed(() => page.props?.auth?.user ?? null)
 const archiveNavigation = computed(() => page.props?.archiveNavigation ?? { categories: [] })
 const ledgerEnabled = computed(() => Boolean(page.props?.features?.ledger))
+const pendingTransferBadges = computed(() => page.props?.pendingTransferBadges ?? { personal: 0, squadron: 0, organization: 0 })
+const pendingSquadronApplications = computed(() => Number(page.props?.pendingSquadronApplications ?? 0))
+const rolePreview = computed(() => page.props?.rolePreview ?? {
+  canManage: false,
+  activeRoleSlug: null,
+  activeRoleLabel: null,
+  options: [],
+})
+const previewRoleSelection = ref('')
 
 const rankLevel = computed(() => Number(user.value?.rank_level ?? 0))
 
@@ -106,6 +116,7 @@ const profileHref = computed(() => {
 
   return null
 })
+const settingsHref = '/settings'
 
 const directorBadgeLabel = computed(() => {
   if (!isDirectorLike.value) return null
@@ -118,6 +129,88 @@ const directorBadgeLabel = computed(() => {
 
   return 'DIRECTOR ACCESS'
 })
+
+const canManageRolePreview = computed(() => Boolean(rolePreview.value?.canManage))
+const previewRoleOptions = computed(() => ([
+  { value: '', label: 'Use My Real Access' },
+  ...((rolePreview.value?.options ?? []).map(option => ({
+    value: option?.value ?? '',
+    label: option?.label ?? option?.value ?? 'Unknown role',
+  }))),
+]))
+const activePreviewRoleLabel = computed(() => rolePreview.value?.activeRoleLabel ?? null)
+const previewStatusLabel = computed(() => {
+  if (activePreviewRoleLabel.value) {
+    return `Previewing as ${activePreviewRoleLabel.value}`
+  }
+
+  return 'Using your real access'
+})
+const profileMenuOpen = ref(false)
+
+watch(
+  () => rolePreview.value?.activeRoleSlug,
+  (nextSlug) => {
+    previewRoleSelection.value = nextSlug ?? ''
+  },
+  { immediate: true }
+)
+
+function updateRolePreview(value) {
+  const nextValue = typeof value === 'string' ? value : ''
+
+  if (nextValue === (rolePreview.value?.activeRoleSlug ?? '')) {
+    return
+  }
+
+  router.post(route('role-preview.update'), {
+    role_slug: nextValue || null,
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+  })
+}
+
+const profileEditHref = computed(() => {
+  if (!profileHref.value) return null
+
+  try {
+    const resolved = new URL(profileHref.value, window.location.origin)
+    resolved.searchParams.set('edit', '1')
+
+    return `${resolved.pathname}${resolved.search}`
+  } catch {
+    const separator = profileHref.value.includes('?') ? '&' : '?'
+    return `${profileHref.value}${separator}edit=1`
+  }
+})
+
+function toggleProfileMenu() {
+  profileMenuOpen.value = !profileMenuOpen.value
+}
+
+function closeProfileMenu() {
+  profileMenuOpen.value = false
+}
+
+function visitProfile(href) {
+  if (!href) return
+
+  closeProfileMenu()
+  closeMobileNav()
+
+  router.visit(href, {
+    preserveScroll: true,
+    preserveState: true,
+  })
+}
+
+function handlePointerDown(event) {
+  if (!profileMenuOpen.value) return
+  if (!event.target?.closest?.('[data-profile-menu-root]')) {
+    closeProfileMenu()
+  }
+}
 
 function normalizeArchiveHref(href) {
   if (!href) return ''
@@ -369,6 +462,38 @@ function navIconPaths(icon) {
   return NAV_ICON_PATHS[icon] ?? NAV_ICON_PATHS.home
 }
 
+function navBadgeLabel(count) {
+  const numericCount = Number(count ?? 0)
+
+  if (!Number.isFinite(numericCount) || numericCount <= 0) {
+    return null
+  }
+
+  return numericCount > 99 ? '99+' : String(numericCount)
+}
+
+function groupHasNotificationDot(group) {
+  if (group?.key === 'organization') {
+    return pendingSquadronApplications.value > 0
+  }
+
+  if (group?.key === 'ledgers') {
+    return Number(pendingTransferBadges.value.personal ?? 0) > 0
+      || Number(pendingTransferBadges.value.squadron ?? 0) > 0
+      || Number(pendingTransferBadges.value.organization ?? 0) > 0
+  }
+
+  return false
+}
+
+function itemHasNotificationDot(item) {
+  if (item?.key === 'my_squadron') {
+    return pendingSquadronApplications.value > 0
+  }
+
+  return false
+}
+
 const navGroups = computed(() => {
   if (!user.value) return []
 
@@ -449,6 +574,7 @@ const navGroups = computed(() => {
           show: !!mySquadron.value,
           tone: 'cyan',
           status: 'Assigned',
+          notificationDot: itemHasNotificationDot({ key: 'my_squadron' }),
         },
         {
           key: 'members_index',
@@ -480,6 +606,7 @@ const navGroups = computed(() => {
           isActive: url === '/ledger' || url === '/ledger/' || url.startsWith('/ledger?'),
           tone: 'indigo',
           status: 'Personal',
+          badge: navBadgeLabel(pendingTransferBadges.value.personal),
         },
         {
           key: 'squadron_ledger',
@@ -492,6 +619,7 @@ const navGroups = computed(() => {
           show: !!mySquadron.value,
           tone: 'cyan',
           status: 'Squadron',
+          badge: navBadgeLabel(pendingTransferBadges.value.squadron),
         },
         {
           key: 'org_ledger',
@@ -504,6 +632,7 @@ const navGroups = computed(() => {
           show: canSeeOrgLedger.value,
           tone: 'amber',
           status: 'Org',
+          badge: navBadgeLabel(pendingTransferBadges.value.organization),
         },
       ],
     },
@@ -705,14 +834,14 @@ function sidebarExpansionContext(url) {
 
 function archiveCategoryRowClass(item) {
   if (item.isActive) {
-    return 'bg-white/[0.08] text-horizon-white'
+    return 'bg-[color:var(--color-panel-active)] text-horizon-white'
   }
 
   if (itemChildrenAreOpen(item)) {
-    return 'bg-white/[0.05] text-text-secondary'
+    return 'bg-[color:var(--color-panel-open)] text-text-secondary'
   }
 
-  return 'text-text-secondary hover:bg-white/[0.03] hover:text-horizon-white'
+  return 'text-text-secondary hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white'
 }
 
 function archiveCategoryMetaClass(item) {
@@ -729,14 +858,14 @@ function archiveCategoryMetaClass(item) {
 
 function archiveTopicRowClass(item) {
   if (item.isActive) {
-    return 'bg-white/[0.07] text-horizon-white'
+    return 'bg-[color:var(--color-panel-active)] text-horizon-white'
   }
 
   if (itemChildrenAreOpen(item)) {
-    return 'bg-white/[0.04] text-text-secondary'
+    return 'bg-[color:var(--color-panel-open)] text-text-secondary'
   }
 
-  return 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'
+  return 'text-text-muted hover:bg-[color:var(--color-hover-frost)] hover:text-text-secondary'
 }
 
 function archiveTopicMetaClass(item) {
@@ -753,10 +882,10 @@ function archiveTopicMetaClass(item) {
 
 function archiveEntryRowClass(item) {
   if (item.isActive) {
-    return 'bg-white/[0.06] text-horizon-white'
+    return 'bg-[color:var(--color-panel-active)] text-horizon-white'
   }
 
-  return 'text-text-muted hover:bg-white/[0.03] hover:text-text-secondary'
+  return 'text-text-muted hover:bg-[color:var(--color-hover-frost)] hover:text-text-secondary'
 }
 
 function groupLabelClass(group) {
@@ -767,10 +896,10 @@ function groupLabelClass(group) {
 
 function itemRowClass(item) {
   if (item.isActive) {
-    return 'bg-white/[0.06] text-horizon-white'
+    return 'bg-[color:var(--color-panel-active)] text-horizon-white'
   }
 
-  return 'text-text-secondary hover:bg-white/[0.035] hover:text-horizon-white'
+  return 'text-text-secondary hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white'
 }
 
 function activeRailClass(item) {
@@ -793,6 +922,7 @@ function activeRailClass(item) {
 watch(
   () => page.url,
   (nextUrl, previousUrl) => {
+    closeProfileMenu()
     const nextContext = sidebarExpansionContext(nextUrl)
     const previousContext = sidebarExpansionContext(previousUrl)
 
@@ -815,6 +945,7 @@ function handleKeydown(event) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('mousedown', handlePointerDown)
 
   try {
     const savedValue = window.localStorage.getItem('horizon.sidebar.expanded')
@@ -833,6 +964,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('mousedown', handlePointerDown)
 })
 </script>
 
@@ -855,13 +987,13 @@ onBeforeUnmount(() => {
     style="height: 100vh; height: 100dvh;"
   >
     <div
-      class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      class="hz-overlay-scrim absolute inset-0 backdrop-blur-sm"
       @click="closeMobileNav"
     ></div>
 
-    <aside class="absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] backdrop-blur-xl">
+    <aside class="hz-shell-surface absolute inset-y-0 left-0 w-[18.5rem] max-w-[85vw] animate-[hz-slide-in-left_180ms_ease-out] overflow-hidden border-r backdrop-blur-xl">
       <div class="flex h-full min-h-0 flex-col gap-4 p-4">
-        <div class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-white/10 bg-black">
+        <div class="hz-shell-header -mx-4 -mt-4 shrink-0 overflow-hidden border-b">
           <img
             src="/images/Horizon_GIF.gif"
             alt="Horizon Interstellar"
@@ -878,7 +1010,7 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-text-secondary transition hover:bg-white/[0.04] hover:text-horizon-white"
+            class="hz-shell-hover shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-text-secondary transition hover:text-horizon-white"
             @click="closeMobileNav"
           >
             Close
@@ -897,7 +1029,13 @@ onBeforeUnmount(() => {
               :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
-              <span class="truncate">{{ group.label }}</span>
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="truncate">{{ group.label }}</span>
+                <span
+                  v-if="groupHasNotificationDot(group)"
+                  class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                />
+              </span>
               <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
             </button>
 
@@ -922,19 +1060,23 @@ onBeforeUnmount(() => {
                       :class="activeRailClass(item)"
                     />
 
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                       <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-link-${index}`" :d="path.d" />
                       </svg>
                     </span>
 
-                    <span class="min-w-0 flex-1 truncate">
-                      {{ item.label }}
+                    <span class="flex min-w-0 flex-1 items-center gap-2">
+                      <span class="truncate">{{ item.label }}</span>
+                      <span
+                        v-if="item.notificationDot"
+                        class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                      />
                     </span>
 
                     <span
                       v-if="item.badge"
-                      class="max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-text-secondary"
+                      class="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
                     >
                       {{ item.badge }}
                     </span>
@@ -942,7 +1084,7 @@ onBeforeUnmount(() => {
 
                   <button
                     type="button"
-                    class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                    class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                     @click.stop="toggleItem(item)"
                   >
                     <span class="block transition-transform" :class="itemChildListIsOpen(item) ? 'rotate-90' : ''">›</span>
@@ -962,19 +1104,23 @@ onBeforeUnmount(() => {
                     :class="activeRailClass(item)"
                   />
 
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                  <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-link-${index}`" :d="path.d" />
                     </svg>
                   </span>
 
-                  <span class="min-w-0 flex-1 truncate">
-                    {{ item.label }}
+                  <span class="flex min-w-0 flex-1 items-center gap-2">
+                    <span class="truncate">{{ item.label }}</span>
+                    <span
+                      v-if="item.notificationDot"
+                      class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                    />
                   </span>
 
                   <span
                     v-if="item.badge"
-                    class="max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-text-secondary"
+                    class="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
                   >
                     {{ item.badge }}
                   </span>
@@ -985,10 +1131,10 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
+                  class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold text-text-secondary transition hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white"
                   @click="closeMobileNav"
                 >
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                  <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-external-${index}`" :d="path.d" />
                     </svg>
@@ -1003,7 +1149,7 @@ onBeforeUnmount(() => {
 
                 <div
                   v-if="itemChildListIsOpen(item)"
-                  class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
+                  class="hz-divider-subtle ml-6 mt-1 space-y-1 border-l pl-3"
                 >
                   <div
                     v-for="child in item.children"
@@ -1040,7 +1186,7 @@ onBeforeUnmount(() => {
                       <Link
                         v-if="child.showJump !== false"
                         :href="child.href"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                       >
                         ↗
                       </Link>
@@ -1048,7 +1194,7 @@ onBeforeUnmount(() => {
                       <button
                         v-if="child.topics?.length || child.entries?.length"
                         type="button"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
                       >
                         <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
@@ -1057,7 +1203,7 @@ onBeforeUnmount(() => {
 
                     <div
                       v-if="itemChildrenAreOpen(child) && (child.entries?.length || child.topics?.length)"
-                      class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                      class="hz-divider-subtle ml-3 space-y-1 border-l pl-2"
                     >
                       <Link
                         v-for="entry in child.entries"
@@ -1089,7 +1235,7 @@ onBeforeUnmount(() => {
 
                           <Link
                             :href="topic.href"
-                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                           >
                             ↗
                           </Link>
@@ -1097,7 +1243,7 @@ onBeforeUnmount(() => {
                           <button
                             v-if="topic.entries?.length"
                             type="button"
-                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                             @click.stop="toggleItem(topic)"
                           >
                             <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
@@ -1106,7 +1252,7 @@ onBeforeUnmount(() => {
 
                         <div
                           v-if="itemChildrenAreOpen(topic) && topic.entries?.length"
-                          class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                          class="hz-divider-subtle ml-3 space-y-1 border-l pl-2"
                         >
                           <Link
                             v-for="entry in topic.entries"
@@ -1127,13 +1273,13 @@ onBeforeUnmount(() => {
           </section>
         </nav>
 
-        <div class="shrink-0 border-t border-white/10 px-1 pt-4">
-          <div class="flex items-center gap-3">
-            <Link
-              :href="profileHref"
-              class="block shrink-0"
-              title="View your profile"
-            >
+        <div data-profile-menu-root class="hz-divider-subtle relative shrink-0 border-t px-1 pt-4">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-2xl px-1 py-1 text-left transition hover:bg-[color:var(--color-hover-frost)]"
+            @click="toggleProfileMenu"
+          >
+            <span class="block shrink-0" title="Open profile menu">
               <img
                 v-if="user.discord_avatar"
                 :src="user.discord_avatar"
@@ -1141,28 +1287,82 @@ onBeforeUnmount(() => {
                 class="h-11 w-11 rounded-xl object-cover"
               />
 
-              <div
+              <span
                 v-else
-                class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.04] text-sm font-black text-horizon-white"
+                class="hz-shell-avatar flex h-11 w-11 items-center justify-center rounded-xl text-sm font-black"
               >
                 {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
-              </div>
-            </Link>
+              </span>
+            </span>
 
-            <div class="min-w-0">
-              <div class="text-[11px] text-text-muted">
+            <span class="min-w-0 flex-1">
+              <span class="block text-[11px] text-text-muted">
                 Personnel File
-              </div>
+              </span>
 
-              <div
-                class="truncate text-sm font-bold text-horizon-white"
+              <span
+                class="block truncate text-sm font-bold text-horizon-white"
                 :style="userNameColor ? { color: userNameColor } : undefined"
               >
                 {{ user.rsi_handle ?? user.discord_name ?? 'Member' }}
-              </div>
+              </span>
 
-              <div class="truncate text-sm text-text-secondary">
+              <span class="block truncate text-sm text-text-secondary">
                 {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
+              </span>
+            </span>
+
+            <span class="text-sm text-text-muted transition-transform" :class="profileMenuOpen ? 'rotate-180' : ''">⌃</span>
+          </button>
+
+          <div
+            v-if="profileMenuOpen"
+            class="hz-popover-surface absolute inset-x-1 bottom-full mb-3 rounded-[1.4rem] p-3 backdrop-blur-xl"
+          >
+            <div class="space-y-2">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(profileHref)"
+              >
+                <span>View Profile</span>
+                <span class="text-text-muted">↗</span>
+              </button>
+
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(settingsHref)"
+              >
+                <span>Settings</span>
+                <span class="text-text-muted">⚙</span>
+              </button>
+
+              <button
+                v-if="profileEditHref"
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(profileEditHref)"
+              >
+                <span>Edit Profile</span>
+                <span class="text-text-muted">✎</span>
+              </button>
+            </div>
+
+            <div v-if="canManageRolePreview" class="hz-divider-subtle mt-3 border-t pt-3">
+              <div class="text-[11px] font-black uppercase tracking-[0.2em] text-text-muted">
+                Role Preview
+              </div>
+              <div class="mt-1 text-xs text-text-secondary">
+                {{ previewStatusLabel }}
+              </div>
+              <div class="mt-3">
+                <HorizonSelect
+                  v-model="previewRoleSelection"
+                  :options="previewRoleOptions"
+                  placeholder="Select a role"
+                  @update:model-value="updateRolePreview"
+                />
               </div>
             </div>
           </div>
@@ -1177,10 +1377,10 @@ onBeforeUnmount(() => {
     class="sticky top-0 hidden h-screen shrink-0 transition-[width] duration-300 ease-out md:block"
     :class="desktopExpanded ? 'w-[18rem]' : 'w-[5.25rem]'"
   >
-    <div class="relative h-full overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,var(--horizon-void-700),var(--horizon-void-900))] backdrop-blur-xl">
+    <div class="hz-shell-surface relative h-full overflow-hidden border-r backdrop-blur-xl">
       <div class="relative flex h-full min-h-0 flex-col gap-4 p-4">
         <div
-          class="-mx-4 -mt-4 shrink-0 overflow-hidden border-b border-white/10 bg-black transition-all duration-300"
+          class="hz-shell-header -mx-4 -mt-4 shrink-0 overflow-hidden border-b transition-all duration-300"
           :class="desktopExpanded ? 'h-32' : 'h-20'"
         >
           <img
@@ -1206,7 +1406,7 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition hover:bg-white/[0.04] hover:text-horizon-white"
+            class="hz-shell-hover flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition hover:text-horizon-white"
             :title="desktopExpanded ? 'Collapse sidebar' : 'Expand sidebar'"
             @click="toggleDesktopNav"
           >
@@ -1232,7 +1432,13 @@ onBeforeUnmount(() => {
               :class="groupLabelClass(group)"
               @click="toggleGroup(group)"
             >
-              <span class="truncate">{{ group.label }}</span>
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="truncate">{{ group.label }}</span>
+                <span
+                  v-if="groupHasNotificationDot(group)"
+                  class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                />
+              </span>
               <span class="text-sm transition-transform" :class="groupIsOpen(group) ? 'rotate-90' : ''">›</span>
             </button>
 
@@ -1263,22 +1469,28 @@ onBeforeUnmount(() => {
                       :class="activeRailClass(item)"
                     />
 
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                    <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                       <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-link-${index}`" :d="path.d" />
                       </svg>
                     </span>
 
                     <span
-                      class="min-w-0 flex-1 truncate transition-all duration-200"
+                      class="min-w-0 flex-1 transition-all duration-200"
                       :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
                     >
-                      {{ item.label }}
+                      <span class="flex min-w-0 items-center gap-2">
+                        <span class="truncate">{{ item.label }}</span>
+                        <span
+                          v-if="item.notificationDot"
+                          class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                        />
+                      </span>
                     </span>
 
                     <span
                       v-if="desktopExpanded && item.badge"
-                      class="ml-auto max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] leading-none text-text-secondary"
+                      class="ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
                     >
                       {{ item.badge }}
                     </span>
@@ -1287,7 +1499,7 @@ onBeforeUnmount(() => {
                   <button
                     v-if="desktopExpanded"
                     type="button"
-                    class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                    class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                     @click.stop="toggleItem(item)"
                   >
                     <span class="block transition-transform" :class="itemChildListIsOpen(item) ? 'rotate-90' : ''">›</span>
@@ -1310,22 +1522,28 @@ onBeforeUnmount(() => {
                     :class="activeRailClass(item)"
                   />
 
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                  <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-link-${index}`" :d="path.d" />
                     </svg>
                   </span>
 
                   <span
-                    class="min-w-0 flex-1 truncate transition-all duration-200"
+                    class="min-w-0 flex-1 transition-all duration-200"
                     :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
                   >
-                    {{ item.label }}
+                    <span class="flex min-w-0 items-center gap-2">
+                      <span class="truncate">{{ item.label }}</span>
+                      <span
+                        v-if="item.notificationDot"
+                        class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                      />
+                    </span>
                   </span>
 
                   <span
                     v-if="desktopExpanded && item.badge"
-                    class="ml-auto max-w-20 shrink-0 truncate rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] leading-none text-text-secondary"
+                    class="ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
                   >
                     {{ item.badge }}
                   </span>
@@ -1336,11 +1554,11 @@ onBeforeUnmount(() => {
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="group relative flex items-center rounded-xl text-base font-semibold text-text-secondary transition hover:bg-white/[0.035] hover:text-horizon-white"
+                  class="group relative flex items-center rounded-xl text-base font-semibold text-text-secondary transition hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white"
                   :class="desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5'"
                   :title="desktopExpanded ? undefined : item.label"
                 >
-                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-horizon-white/80">
+                  <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-external-${index}`" :d="path.d" />
                     </svg>
@@ -1363,7 +1581,7 @@ onBeforeUnmount(() => {
 
                 <div
                   v-if="desktopExpanded && itemChildListIsOpen(item)"
-                  class="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
+                  class="hz-divider-subtle ml-6 mt-1 space-y-1 border-l pl-3"
                 >
                   <div
                     v-for="child in item.children"
@@ -1399,7 +1617,7 @@ onBeforeUnmount(() => {
                       <Link
                         v-if="child.showJump !== false"
                         :href="child.href"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                       >
                         ↗
                       </Link>
@@ -1407,7 +1625,7 @@ onBeforeUnmount(() => {
                       <button
                         v-if="child.topics?.length || child.entries?.length"
                         type="button"
-                        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                         @click.stop="toggleItem(child)"
                       >
                         <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
@@ -1416,7 +1634,7 @@ onBeforeUnmount(() => {
 
                     <div
                       v-if="itemChildrenAreOpen(child) && (child.entries?.length || child.topics?.length)"
-                      class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                      class="hz-divider-subtle ml-3 space-y-1 border-l pl-2"
                     >
                       <Link
                         v-for="entry in child.entries"
@@ -1448,7 +1666,7 @@ onBeforeUnmount(() => {
 
                           <Link
                             :href="topic.href"
-                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                           >
                             ↗
                           </Link>
@@ -1456,7 +1674,7 @@ onBeforeUnmount(() => {
                           <button
                             v-if="topic.entries?.length"
                             type="button"
-                            class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:bg-white/[0.03] hover:text-text-secondary"
+                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
                             @click.stop="toggleItem(topic)"
                           >
                             <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
@@ -1465,7 +1683,7 @@ onBeforeUnmount(() => {
 
                         <div
                           v-if="itemChildrenAreOpen(topic) && topic.entries?.length"
-                          class="ml-3 space-y-1 border-l border-white/10 pl-2"
+                          class="hz-divider-subtle ml-3 space-y-1 border-l pl-2"
                         >
                           <Link
                             v-for="entry in topic.entries"
@@ -1486,14 +1704,16 @@ onBeforeUnmount(() => {
           </section>
         </nav>
 
-        <Link
-          :href="profileHref"
-          class="shrink-0 border-t border-white/10 pt-4 transition-all duration-300"
+        <div
+          data-profile-menu-root
+          class="hz-divider-subtle relative shrink-0 border-t pt-4 transition-all duration-300"
           :class="desktopExpanded ? 'px-1' : 'px-0'"
         >
-          <div
-            class="flex items-center"
-            :class="desktopExpanded ? 'gap-3' : 'justify-center'"
+          <button
+            type="button"
+            class="flex w-full items-center rounded-2xl transition hover:bg-[color:var(--color-hover-frost)]"
+            :class="desktopExpanded ? 'gap-3 px-1 py-1 text-left' : 'justify-center px-0 py-1'"
+            @click="toggleProfileMenu"
           >
             <img
               v-if="user.discord_avatar"
@@ -1504,13 +1724,13 @@ onBeforeUnmount(() => {
 
             <div
               v-else
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] text-sm font-black text-horizon-white"
+              class="hz-shell-avatar flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black"
             >
               {{ String(user.rsi_handle ?? user.discord_name ?? 'M').slice(0, 1).toUpperCase() }}
             </div>
 
             <div
-              class="min-w-0 transition-all duration-200"
+              class="min-w-0 flex-1 transition-all duration-200"
               :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
             >
               <div class="text-[11px] text-text-muted">
@@ -1528,8 +1748,69 @@ onBeforeUnmount(() => {
                 {{ rankName }}<span v-if="directorBadgeLabel"> · {{ directorBadgeLabel }}</span>
               </div>
             </div>
+
+            <span
+              v-if="desktopExpanded"
+              class="text-sm text-text-muted transition-transform"
+              :class="profileMenuOpen ? 'rotate-180' : ''"
+            >
+              ⌃
+            </span>
+          </button>
+
+          <div
+            v-if="profileMenuOpen"
+            class="hz-popover-surface absolute bottom-full z-20 mb-3 rounded-[1.4rem] p-3 backdrop-blur-xl"
+            :class="desktopExpanded ? 'inset-x-1' : 'left-0 w-[18rem]'"
+          >
+            <div class="space-y-2">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(profileHref)"
+              >
+                <span>View Profile</span>
+                <span class="text-text-muted">↗</span>
+              </button>
+
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(settingsHref)"
+              >
+                <span>Settings</span>
+                <span class="text-text-muted">⚙</span>
+              </button>
+
+              <button
+                v-if="profileEditHref"
+                type="button"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-horizon-white transition hover:bg-[color:var(--color-hover-frost)]"
+                @click="visitProfile(profileEditHref)"
+              >
+                <span>Edit Profile</span>
+                <span class="text-text-muted">✎</span>
+              </button>
+            </div>
+
+            <div v-if="canManageRolePreview" class="hz-divider-subtle mt-3 border-t pt-3">
+              <div class="text-[11px] font-black uppercase tracking-[0.2em] text-text-muted">
+                Role Preview
+              </div>
+              <div class="mt-1 text-xs text-text-secondary">
+                {{ previewStatusLabel }}
+              </div>
+              <div class="mt-3">
+                <HorizonSelect
+                  v-model="previewRoleSelection"
+                  :options="previewRoleOptions"
+                  placeholder="Select a role"
+                  @update:model-value="updateRolePreview"
+                />
+              </div>
+            </div>
           </div>
-        </Link>
+        </div>
       </div>
     </div>
   </aside>

@@ -54,6 +54,7 @@ class MeController extends Controller
             'notification_settings',
             'availability_status',
             'loa_note',
+            'site_theme',
             'personal_tags',
         ];
 

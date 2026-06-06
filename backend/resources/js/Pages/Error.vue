@@ -81,7 +81,7 @@ function goBack() {
 
   <div class="min-h-screen flex items-center justify-center bg-grid-horizon_3 text-text-primary px-6 py-12">
     <div class="w-full max-w-3xl">
-      <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-bg-surface shadow-xl">
+      <div class="hz-popover-surface relative overflow-hidden rounded-3xl shadow-xl">
         <div class="absolute inset-0 pointer-events-none opacity-[0.22]">
           <div class="absolute -top-48 left-1/2 -translate-x-1/2 w-[90%] h-[520px] rounded-full blur-[160px] bg-[var(--horizon-sunset-blue)]"></div>
           <div class="absolute -bottom-48 left-1/2 -translate-x-1/2 w-[90%] h-[520px] rounded-full blur-[180px] bg-[var(--horizon-sunset-pink)] opacity-70"></div>
@@ -93,7 +93,7 @@ function goBack() {
               <img
                 src="/images/PNG_Symbol%20logo.png"
                 alt="Horizon"
-                class="h-12 w-12 rounded-xl border border-white/10 bg-bg-elevated p-2"
+                class="hz-shell-avatar h-12 w-12 rounded-xl p-2"
               />
               <div class="hz-stack-sm">
                 <div class="hz-title-md tracking-wide">Horizon Navigation</div>
@@ -134,7 +134,7 @@ function goBack() {
             </a>
           </div>
 
-          <div class="mt-8 pt-6 border-t border-white/10">
+          <div class="hz-divider-subtle mt-8 border-t pt-6">
             <div class="hz-body hz-text-soft">
               If you got here by accident, check the URL or head back to a known sector.
             </div>
@@ -148,7 +148,6 @@ function goBack() {
     </div>
   </div>
 </template>
-
 
 
 

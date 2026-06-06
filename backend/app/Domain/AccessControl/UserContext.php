@@ -35,6 +35,12 @@ class UserContext
             return $this->roles;
         }
 
+        if ($this->user->relationLoaded('roles')) {
+            $this->roles = $this->user->getRelation('roles');
+
+            return $this->roles;
+        }
+
         $this->roles = $this->user->roles()->get();
 
         return $this->roles;
@@ -49,6 +55,16 @@ class UserContext
             return $this->permissions;
         }
 
+        if ($this->rolesHaveLoadedPermissions()) {
+            $this->permissions = $this->roles()
+                ->pluck('permissions')
+                ->flatten()
+                ->unique('id')
+                ->values();
+
+            return $this->permissions;
+        }
+
         $cacheKey = 'user_permissions_' . $this->user->id;
 
         $this->permissions = Cache::remember($cacheKey, now()->addMinutes(5), function () {
@@ -56,6 +72,12 @@ class UserContext
         });
 
         return $this->permissions;
+    }
+
+    protected function rolesHaveLoadedPermissions(): bool
+    {
+        return $this->user->relationLoaded('roles')
+            && $this->roles()->every(fn ($role) => $role->relationLoaded('permissions'));
     }
 
     public function hasRole(string $slug): bool

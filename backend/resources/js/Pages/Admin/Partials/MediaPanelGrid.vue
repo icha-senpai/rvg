@@ -56,7 +56,7 @@
       <article
         v-for="item in media"
         :key="item.id"
-        class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.5rem] border border-white/10 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]"
+        class="hz-surface-welcome group relative rounded-[1.5rem] border border-white/10 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055]"
         @click="$emit('select', item)"
       >
         <div class="aspect-[16/10] bg-black/30">
@@ -133,7 +133,6 @@ defineProps({
 
 defineEmits(['select', 'page'])
 </script>
-
 
 
 

@@ -35,9 +35,11 @@ use App\Http\Controllers\Web\OrganizationLedgerInventoryController;
 use App\Http\Controllers\Web\OrganizationLedgerShipAssetController;
 use App\Http\Controllers\Web\OrganizationLedgerTradeController;
 use App\Http\Controllers\Web\OrganizationLedgerTransactionController;
+use App\Http\Controllers\Web\RolePreviewController;
 use App\Http\Controllers\Web\VerifyController;
 use App\Http\Requests\UpdateMeRequest;
 use App\Http\Resources\MeResource;
+use App\Services\LedgerReferenceService;
 use App\Models\Squadron;
 use App\Models\User;
 
@@ -74,7 +76,7 @@ Route::get('/login', function () {
     return redirect()->to('/auth/discord');
 })->name('login');
 
-Route::get('/user/{user}', function (string $user) {
+Route::get('/user/{user}', function (string $user, LedgerReferenceService $ledgerReferences) {
     $profileUser = User::query()
         ->when(ctype_digit($user), fn ($query) => $query->orWhere('id', (int) $user))
         ->orWhere('rsi_handle', $user)
@@ -89,6 +91,8 @@ Route::get('/user/{user}', function (string $user) {
             'roles:id,slug,name',
             'squadrons:id,name',
         ])))->resolve(request()),
+        'favoriteShipOptions' => $ledgerReferences->shipReferenceOptions(),
+        'favoriteItemOptions' => $ledgerReferences->itemReferenceOptions(),
     ]);
 })
     ->middleware(['auth', 'rsi.verified'])
@@ -109,6 +113,16 @@ Route::post('/user/{user:rsi_handle}/demote', [MemberPromotionController::class,
 Route::get('/members', [MemberDirectoryController::class, 'index'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('members.index');
+
+Route::get('/settings', function () {
+    return Inertia::render('Member/Settings');
+})
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('settings.index');
+
+Route::post('/role-preview', [RolePreviewController::class, 'update'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('role-preview.update');
 
 Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function () {
     Route::get('/ledger', [MemberLedgerController::class, 'index'])
@@ -166,6 +180,12 @@ Route::middleware(['auth', 'rsi.verified', 'can:access-ledger'])->group(function
     Route::post('/organization/ledger/transfers', [OrganizationLedgerTransactionController::class, 'transfer'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.transactions.transfer');
+    Route::post('/organization/ledger/transfers/{transferRequest}/approve', [OrganizationLedgerTransactionController::class, 'approveTransfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.transfer.approve');
+    Route::post('/organization/ledger/transfers/{transferRequest}/reject', [OrganizationLedgerTransactionController::class, 'rejectTransfer'])
+        ->middleware('can:manage-org-ledger')
+        ->name('organization.ledger.transactions.transfer.reject');
     Route::post('/organization/ledger/transfers/{transferRequest}/reverse', [OrganizationLedgerTransactionController::class, 'reverseTransfer'])
         ->middleware('can:manage-org-ledger')
         ->name('organization.ledger.transactions.transfer.reverse');
@@ -249,6 +269,7 @@ Route::put('/me', function (UpdateMeRequest $request) {
         'notification_settings',
         'availability_status',
         'loa_note',
+        'site_theme',
         'personal_tags',
     ];
 

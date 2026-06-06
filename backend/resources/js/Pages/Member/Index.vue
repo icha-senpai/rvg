@@ -212,8 +212,6 @@ function memberCardStyle(user) {
 
   return {
     '--member-rank-color': roleColor,
-    '--hz-angled-bar-left': '1.5rem',
-    '--hz-angled-bar-width': '5rem',
   }
 }
 
@@ -323,7 +321,7 @@ function hasFavoriteData(user) {
               <article
                 v-for="member in members"
                 :key="member.id"
-                class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.055)] group rounded-[1.9rem] border border-white/[0.055] transition duration-200 hover:-translate-y-0.5 hover:border-white/15 hover:[--hz-angled-corner-border:rgba(255,255,255,0.15)]"
+                class="hz-surface-welcome group rounded-[1.9rem] border border-white/[0.055] transition duration-200 hover:-translate-y-0.5 hover:border-white/15"
                 :style="memberCardStyle(member)"
               >
                 <div class="pointer-events-none absolute inset-x-9 top-[4rem] h-px bg-white/65"></div>

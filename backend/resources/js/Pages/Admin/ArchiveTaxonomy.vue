@@ -155,7 +155,12 @@ function confirmDeleteTag({ close }) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
+
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Taxonomy</div>
@@ -163,6 +168,15 @@ function confirmDeleteTag({ close }) {
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
               Manage the taxonomy that shapes the Archive hierarchy. Categories are the top-level buckets that hold topics. Tags remain smaller searchable signals attached to individual entries.
             </p>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ sortedCategories.length }} Categories
+              </span>
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ sortedTags.length }} Tags
+              </span>
+            </div>
           </div>
 
           <div class="flex flex-wrap gap-3">
@@ -171,22 +185,25 @@ function confirmDeleteTag({ close }) {
             <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive Admin</Link>
             <Link :href="route('admin.archive.audit.index')" class="rounded-xl border border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-blue)]/20">Audit Log</Link>
             <Link :href="route('archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
+            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
           </div>
         </div>
       </section>
 
       <section class="grid gap-6 xl:grid-cols-2">
-        <div class="space-y-4">
+        <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
           <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Categories</div>
               <h2 class="text-2xl font-black text-horizon-white">{{ sortedCategories.length }} categor{{ sortedCategories.length === 1 ? 'y' : 'ies' }}</h2>
+              <p class="mt-1 text-sm text-text-secondary">Top-level archive buckets with direct-entry controls and public-facing category routes.</p>
             </div>
 
             <HorizonButton type="button" variant="ghost" @click="openCategoryCreateDrawer">Create Category</HorizonButton>
           </div>
 
-          <article v-for="category in sortedCategories" :key="category.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+          <div class="mt-4 space-y-4">
+          <article v-for="category in sortedCategories" :key="category.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -208,23 +225,26 @@ function confirmDeleteTag({ close }) {
               </div>
             </div>
           </article>
+          </div>
 
-          <div v-if="!sortedCategories.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+          <div v-if="!sortedCategories.length" class="hz-surface-welcome mt-4 rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
             No categories exist yet. Use New Category to create the first broad bucket.
           </div>
         </div>
 
-        <div class="space-y-4">
+        <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-5 md:p-6">
           <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Tags</div>
               <h2 class="text-2xl font-black text-horizon-white">{{ sortedTags.length }} tag{{ sortedTags.length === 1 ? '' : 's' }}</h2>
+              <p class="mt-1 text-sm text-text-secondary">Searchable labels that stay lightweight but still need the same admin surface treatment.</p>
             </div>
 
             <HorizonButton type="button" variant="ghost" @click="openTagCreateDrawer">Create Tag</HorizonButton>
           </div>
 
-          <article v-for="tag in sortedTags" :key="tag.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+          <div class="mt-4 space-y-4">
+          <article v-for="tag in sortedTags" :key="tag.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -241,8 +261,9 @@ function confirmDeleteTag({ close }) {
               </div>
             </div>
           </article>
+          </div>
 
-          <div v-if="!sortedTags.length" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+          <div v-if="!sortedTags.length" class="hz-surface-welcome mt-4 rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
             No tags exist yet. Use New Tag to create the first searchable signal.
           </div>
         </div>
@@ -339,7 +360,6 @@ function confirmDeleteTag({ close }) {
     </div>
   </HorizonContainer>
 </template>
-
 
 
 

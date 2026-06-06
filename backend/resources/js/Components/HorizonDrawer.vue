@@ -40,7 +40,7 @@ onUnmounted(() => {
   <div class="fixed inset-0 z-40 flex justify-end">
     <!-- Backdrop -->
     <div
-      class="absolute inset-0 bg-black/70 backdrop-blur-md"
+      class="hz-overlay-scrim absolute inset-0 backdrop-blur-md"
       @click.self="requestClose"
     ></div>
 
@@ -48,8 +48,7 @@ onUnmounted(() => {
     <aside
       :class="[
         'relative z-50 flex h-full w-full flex-col overflow-hidden',
-        'border-l border-white/[0.055]',
-        'bg-[linear-gradient(135deg,var(--horizon-void-700),var(--horizon-void-900))]',
+        'hz-shell-surface border-l',
         '',
         'md:w-[78%] xl:w-[68%] 2xl:w-[58%]',
         closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in',
@@ -64,7 +63,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Header -->
-      <header class="relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] px-5 py-4 md:px-6">
+      <header class="hz-shell-header relative shrink-0 border-b px-5 py-4 md:px-6">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <slot name="header" />
@@ -72,7 +71,7 @@ onUnmounted(() => {
 
           <button
             type="button"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
+            class="hz-surface-soft hz-shell-hover flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-text-secondary transition hover:text-horizon-white"
             :aria-label="props.closeLabel"
             @click="requestClose"
           >
@@ -89,14 +88,13 @@ onUnmounted(() => {
       <!-- Footer -->
       <footer
         v-if="$slots.footer"
-        class="relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.025] px-5 py-4 md:px-6"
+        class="hz-shell-header relative shrink-0 border-t px-5 py-4 md:px-6"
       >
         <slot name="footer" />
       </footer>
     </aside>
   </div>
 </template>
-
 
 
 

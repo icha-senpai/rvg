@@ -1,16 +1,33 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import SideNav from '@/Components/SideNav.vue'
+import { normalizeSiteTheme } from '@/siteThemes'
 
 const page = usePage()
 
 const user = computed(() => page.props?.auth?.user ?? null)
+const siteTheme = computed(() => {
+  return normalizeSiteTheme(page.props?.auth?.user?.site_theme)
+})
 const isVerifyPage = computed(() => page.component === 'Verify')
 const isErrorPage = computed(() => page.component === 'Error')
 const shouldRedirectToVerify = computed(() => {
   return !user.value && !isVerifyPage.value && !isErrorPage.value
 })
+
+watch(
+  siteTheme,
+  (theme) => {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    document.documentElement.setAttribute('data-site-theme', theme)
+    document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark'
+  },
+  { immediate: true }
+)
 
 watch(
   shouldRedirectToVerify,
@@ -27,10 +44,19 @@ watch(
   },
   { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  document.documentElement.setAttribute('data-site-theme', 'horizon')
+  document.documentElement.style.colorScheme = 'dark'
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-grid-horizon_3 text-text-primary">
+  <div :data-site-theme="siteTheme" class="min-h-screen flex bg-grid-horizon_3 text-text-primary">
     <SideNav v-if="user" />
 
     <main class="flex-1 min-w-0">
@@ -47,8 +73,6 @@ watch(
     </main>
   </div>
 </template>
-
-
 
 
 

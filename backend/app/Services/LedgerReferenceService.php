@@ -15,17 +15,8 @@ class LedgerReferenceService
     public function referenceOptions(): array
     {
         return [
-            'ships' => DB::table('uex_vehicles')
-                ->select('uex_id', 'name', 'full_name', 'type')
-                ->orderByRaw("LOWER(COALESCE(full_name, name, ''))")
-                ->limit(500)
-                ->get()
-                ->map(fn ($row) => [
-                    'uex_id' => (int) $row->uex_id,
-                    'name' => $row->full_name ?: $row->name ?: 'Unnamed ship',
-                    'type' => $row->type,
-                ])
-                ->all(),
+            'ships' => $this->shipReferenceOptions(),
+            'items' => $this->itemReferenceOptions(),
             'commodities' => DB::table('uex_commodities')
                 ->select('uex_id', 'name', 'code')
                 ->orderByRaw("LOWER(COALESCE(name, code, ''))")
@@ -35,21 +26,63 @@ class LedgerReferenceService
                     'name' => $row->name ?: $row->code ?: 'Unknown commodity',
                 ])
                 ->all(),
-            'items' => DB::table('uex_items')
-                ->select('uex_id', 'name', 'type', 'category_uex_id')
-                ->orderByRaw("LOWER(COALESCE(name, ''))")
-                ->get()
-                ->map(fn ($row) => [
-                    'uex_id' => (int) $row->uex_id,
-                    'name' => $row->name ?: "Item {$row->uex_id}",
-                    'type' => $row->type,
-                    'category_uex_id' => $row->category_uex_id ? (int) $row->category_uex_id : null,
-                ])
-                ->all(),
             'tradePricing' => $this->tradePricingSuggestions(),
             'inventoryValuations' => $this->inventoryValuationSuggestions(),
             'shipPricing' => $this->shipPricingSuggestions(),
         ];
+    }
+
+    public function shipReferenceOptions(): array
+    {
+        return DB::table('uex_vehicles')
+            ->select('uex_id', 'name', 'full_name', 'type', 'source_payload')
+            ->orderByRaw("LOWER(COALESCE(full_name, name, ''))")
+            ->limit(500)
+            ->get()
+            ->map(function ($row) {
+                $payload = json_decode($row->source_payload ?? '[]', true);
+                $gallery = $payload['url_photos'] ?? null;
+
+                if (is_string($gallery) && str_starts_with(ltrim($gallery), '[')) {
+                    $decodedGallery = json_decode($gallery, true);
+                    $gallery = is_array($decodedGallery) ? $decodedGallery : $gallery;
+                }
+
+                $imageUrl = null;
+
+                foreach ([
+                    $payload['url_photo'] ?? null,
+                    is_array($gallery) ? collect($gallery)->first(fn ($value) => is_string($value) && trim($value) !== '') : $gallery,
+                ] as $candidate) {
+                    if (is_string($candidate) && trim($candidate) !== '') {
+                        $imageUrl = trim($candidate);
+                        break;
+                    }
+                }
+
+                return [
+                    'uex_id' => (int) $row->uex_id,
+                    'name' => $row->full_name ?: $row->name ?: 'Unnamed ship',
+                    'type' => $row->type,
+                    'image_url' => $imageUrl,
+                ];
+            })
+            ->all();
+    }
+
+    public function itemReferenceOptions(): array
+    {
+        return DB::table('uex_items')
+            ->select('uex_id', 'name', 'type', 'category_uex_id')
+            ->orderByRaw("LOWER(COALESCE(name, ''))")
+            ->get()
+            ->map(fn ($row) => [
+                'uex_id' => (int) $row->uex_id,
+                'name' => $row->name ?: "Item {$row->uex_id}",
+                'type' => $row->type,
+                'category_uex_id' => $row->category_uex_id ? (int) $row->category_uex_id : null,
+            ])
+            ->all();
     }
 
     public function tradePricingSuggestions(): array

@@ -6,6 +6,7 @@ use App\Models\LedgerAccount;
 use App\Models\LedgerInventoryItem;
 use App\Models\LedgerShipAsset;
 use App\Models\LedgerTrade;
+use App\Models\LedgerTransferRequest;
 use App\Models\LedgerTransaction;
 use App\Models\Role;
 use App\Models\Squadron;
@@ -72,6 +73,137 @@ class LedgerFeatureTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Member/Ledger')
                 ->where('ledger.account.name', 'Personal Ledger')
+            );
+    }
+
+    public function test_shared_pending_transfer_badges_are_exposed_for_personal_squadron_and_org_ledgers(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $director = $this->directorUser();
+        $otherMember = $this->memberUser([
+            'discord_id' => 'badge-target-member',
+            'discord_name' => 'Badge Target Member',
+            'rsi_handle' => 'BadgeTargetMember',
+        ]);
+
+        $squadron = Squadron::query()->create([
+            'name' => 'Badge Watch',
+            'slug' => 'badge-watch',
+            'status' => 'active',
+            'branch' => 'operations',
+            'division' => 'alpha',
+            'leader_id' => $director->id,
+            'recruiting' => true,
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $director->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_LEADER,
+            'joined_at' => now()->subDays(5),
+        ]);
+
+        LedgerTransferRequest::query()->create([
+            'transfer_kind' => 'funds',
+            'status' => 'pending',
+            'requested_by_user_id' => $otherMember->id,
+            'source_user_id' => $otherMember->id,
+            'destination_user_id' => $director->id,
+            'currency' => 'aUEC',
+            'amount' => 1500,
+            'description' => 'Personal approval needed',
+        ]);
+
+        LedgerTransferRequest::query()->create([
+            'transfer_kind' => 'inventory',
+            'status' => 'pending',
+            'requested_by_user_id' => $director->id,
+            'source_user_id' => $director->id,
+            'destination_user_id' => $otherMember->id,
+            'currency' => 'aUEC',
+            'quantity' => 2,
+            'description' => 'Personal outbound pending',
+        ]);
+
+        LedgerTransferRequest::query()->create([
+            'transfer_kind' => 'funds',
+            'status' => 'pending',
+            'requested_by_user_id' => $otherMember->id,
+            'source_user_id' => $otherMember->id,
+            'destination_squadron_id' => $squadron->id,
+            'currency' => 'aUEC',
+            'amount' => 4200,
+            'description' => 'Squadron approval needed',
+        ]);
+
+        LedgerTransferRequest::query()->create([
+            'transfer_kind' => 'inventory',
+            'status' => 'pending',
+            'requested_by_user_id' => $director->id,
+            'source_user_id' => $director->id,
+            'destination_is_org_owned' => true,
+            'currency' => 'aUEC',
+            'quantity' => 1,
+            'description' => 'Org approval needed',
+        ]);
+
+        $this
+            ->actingAs($director)
+            ->get(route('ledger.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Member/Ledger')
+                ->where('pendingTransferBadges.personal', 1)
+                ->where('pendingTransferBadges.squadron', 1)
+                ->where('pendingTransferBadges.organization', 1)
+            );
+    }
+
+    public function test_shared_pending_squadron_applications_count_is_exposed_for_managers(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $director = $this->directorUser();
+        $applicant = $this->memberUser([
+            'discord_id' => 'squad-applicant',
+            'discord_name' => 'Squad Applicant',
+            'rsi_handle' => 'SquadApplicant',
+        ]);
+
+        $squadron = Squadron::query()->create([
+            'name' => 'Application Watch',
+            'slug' => 'application-watch',
+            'status' => 'active',
+            'branch' => 'operations',
+            'division' => 'alpha',
+            'leader_id' => $director->id,
+            'recruiting' => true,
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $director->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_LEADER,
+            'joined_at' => now()->subDays(5),
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $applicant->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_PENDING,
+            'role' => SquadronMember::ROLE_MEMBER,
+        ]);
+
+        $this
+            ->actingAs($director)
+            ->get(route('ledger.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Member/Ledger')
+                ->where('pendingSquadronApplications', 1)
             );
     }
 
@@ -720,7 +852,10 @@ class LedgerFeatureTest extends TestCase
             'name' => 'C2',
             'full_name' => 'Hercules Starlifter C2',
             'type' => 'Ship',
-            'source_payload' => json_encode(['name' => 'C2']),
+            'source_payload' => json_encode([
+                'name' => 'C2',
+                'url_photo' => 'https://cdn.uex.test/ships/c2.jpg',
+            ]),
             'last_synced_at' => $timestamp,
             'created_at' => $timestamp,
             'updated_at' => $timestamp,
@@ -889,6 +1024,7 @@ class LedgerFeatureTest extends TestCase
                 ->where('ledger.references.inventoryValuations.items.0.purchase_terminal_name', 'CenterMass')
                 ->where('ledger.references.inventoryValuations.items.0.unit_estimated_value', 6200)
                 ->where('ledger.references.inventoryValuations.items.0.estimated_terminal_name', 'Cousin Crows')
+                ->where('ledger.references.ships.0.image_url', 'https://cdn.uex.test/ships/c2.jpg')
                 ->has('ledger.references.shipPricing', 1)
                 ->where('ledger.references.shipPricing.0.purchase_price', 4900000)
                 ->where('ledger.references.shipPricing.0.purchase_terminal_name', 'New Deal')

@@ -385,7 +385,7 @@ function saveAfterActionReport() {
   <section
     v-if="operation?.status === 'completed'"
     :class="compact
-      ? 'rounded-[1.25rem] border border-white/[0.055] bg-black/10 p-4'
+      ? 'hz-surface-deep rounded-[1.25rem] p-4'
       : 'hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5'"
   >
     <div v-if="!compact" class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -403,7 +403,7 @@ function saveAfterActionReport() {
         </p>
       </div>
 
-      <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+      <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
         {{ attendanceDraft.length }} attended · {{ noShowDraft.length }} no-show
       </div>
     </div>
@@ -435,7 +435,7 @@ function saveAfterActionReport() {
 
           <div
             v-else
-            class="mt-3 min-h-52 rounded-[1rem] border border-white/[0.055] bg-black/10 p-4 text-sm leading-7 text-text-secondary"
+            class="hz-surface-deep mt-3 min-h-52 rounded-[1rem] p-4 text-sm leading-7 text-text-secondary"
           >
             <div v-if="operation?.after_action_report" class="whitespace-pre-line">
               {{ operation.after_action_report }}
@@ -462,7 +462,7 @@ function saveAfterActionReport() {
             <div
               v-for="userId in attendanceDraft"
               :key="userId"
-              class="flex items-center gap-2 rounded-full border border-white/[0.055] bg-white/[0.035] px-2.5 py-1.5"
+              class="hz-surface-soft-strong flex items-center gap-2 rounded-full px-2.5 py-1.5"
             >
               <img
                 v-if="memberAvatar(attendanceUser(userId))"
@@ -474,7 +474,7 @@ function saveAfterActionReport() {
 
               <div
                 v-else
-                class="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-black text-horizon-white"
+                class="hz-shell-avatar flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black"
               >
                 {{ memberInitial(attendanceUser(userId)) }}
               </div>
@@ -501,14 +501,14 @@ function saveAfterActionReport() {
 
           <div
             v-if="!attendanceDraft.length"
-            class="mt-3 rounded-[1rem] border border-dashed border-white/15 bg-black/10 px-4 py-5 text-sm text-text-secondary"
+            class="hz-surface-deep hz-divider-subtle mt-3 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
           >
             No final attendance has been recorded yet.
           </div>
 
           <div
             v-if="canEditAttendance"
-            class="mt-4 space-y-3 rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
+            class="hz-surface-deep mt-4 space-y-3 rounded-[1rem] p-4"
           >
             <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Add Verified Member
@@ -524,7 +524,7 @@ function saveAfterActionReport() {
                 v-for="member in filteredVerifiedMembers"
                 :key="member.id"
                 type="button"
-                class="flex items-center justify-between gap-3 rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-left transition hover:bg-white/[0.04]"
+                class="hz-surface-soft hz-shell-hover flex items-center justify-between gap-3 rounded-[1rem] px-3 py-2 text-left transition"
                 @click="addAttendance(member.id)"
               >
                 <div class="flex min-w-0 items-center gap-3">
@@ -538,7 +538,7 @@ function saveAfterActionReport() {
 
                   <div
                     v-else
-                    class="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-xs font-black text-horizon-white"
+                    class="hz-shell-avatar flex h-8 w-8 items-center justify-center rounded-full text-xs font-black"
                   >
                     {{ memberInitial(member) }}
                   </div>
@@ -561,7 +561,7 @@ function saveAfterActionReport() {
 
             <div
               v-if="memberSearch && !filteredVerifiedMembers.length"
-              class="rounded-[1rem] border border-dashed border-white/15 px-4 py-3 text-sm text-text-secondary"
+              class="hz-divider-subtle rounded-[1rem] border border-dashed px-4 py-3 text-sm text-text-secondary"
             >
               No verified members matched that search.
             </div>
@@ -590,7 +590,7 @@ function saveAfterActionReport() {
             <div
               v-for="userId in noShowDraft"
               :key="`no-show-${userId}`"
-              class="flex items-center gap-2 rounded-full border border-white/[0.055] bg-white/[0.035] px-2.5 py-1.5"
+              class="hz-surface-soft-strong flex items-center gap-2 rounded-full px-2.5 py-1.5"
             >
               <img
                 v-if="memberAvatar(noShowUser(userId))"
@@ -602,7 +602,7 @@ function saveAfterActionReport() {
 
               <div
                 v-else
-                class="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-black text-horizon-white"
+                class="hz-shell-avatar flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black"
               >
                 {{ memberInitial(noShowUser(userId)) }}
               </div>
@@ -629,14 +629,14 @@ function saveAfterActionReport() {
 
           <div
             v-if="!noShowDraft.length"
-            class="mt-3 rounded-[1rem] border border-dashed border-white/15 bg-black/10 px-4 py-5 text-sm text-text-secondary"
+            class="hz-surface-deep hz-divider-subtle mt-3 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
           >
             No no-shows have been recorded yet.
           </div>
 
           <div
             v-if="canEditAttendance"
-            class="mt-4 space-y-3 rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
+            class="hz-surface-deep mt-4 space-y-3 rounded-[1rem] p-4"
           >
             <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Add No Show
@@ -652,7 +652,7 @@ function saveAfterActionReport() {
                 v-for="member in filteredNoShowMembers"
                 :key="`no-show-member-${member.id}`"
                 type="button"
-                class="flex items-center justify-between gap-3 rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-left transition hover:bg-white/[0.04]"
+                class="hz-surface-soft hz-shell-hover flex items-center justify-between gap-3 rounded-[1rem] px-3 py-2 text-left transition"
                 @click="addNoShow(member.id)"
               >
                 <div class="flex min-w-0 items-center gap-3">
@@ -666,7 +666,7 @@ function saveAfterActionReport() {
 
                   <div
                     v-else
-                    class="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-xs font-black text-horizon-white"
+                    class="hz-shell-avatar flex h-8 w-8 items-center justify-center rounded-full text-xs font-black"
                   >
                     {{ memberInitial(member) }}
                   </div>
@@ -689,7 +689,7 @@ function saveAfterActionReport() {
 
             <div
               v-if="noShowSearch && !filteredNoShowMembers.length"
-              class="rounded-[1rem] border border-dashed border-white/15 px-4 py-3 text-sm text-text-secondary"
+              class="hz-divider-subtle rounded-[1rem] border border-dashed px-4 py-3 text-sm text-text-secondary"
             >
               No signed-up members matched that search.
             </div>
@@ -711,7 +711,7 @@ function saveAfterActionReport() {
           </div>
 
           <div class="mt-3 grid gap-3">
-            <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+            <div class="hz-surface-soft rounded-[1rem] px-4 py-3">
               <div class="text-xs uppercase tracking-[0.14em] text-text-muted">
                 Signed Up
               </div>
@@ -720,7 +720,7 @@ function saveAfterActionReport() {
               </div>
             </div>
 
-            <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+            <div class="hz-surface-soft rounded-[1rem] px-4 py-3">
               <div class="text-xs uppercase tracking-[0.14em] text-text-muted">
                 Final Attendance
               </div>

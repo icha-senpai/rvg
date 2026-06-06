@@ -15,7 +15,7 @@
       type="button"
       variant="ghost"
       size="md"
-      class="hz-select-button flex w-full items-center justify-between rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.72)] px-3 py-2 font-normal text-[var(--color-text-primary)] transition hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-[rgba(42,120,200,0.25)]"
+      class="hz-select-button flex w-full items-center justify-between rounded-lg px-3 py-2 font-normal text-[var(--color-text-primary)] transition hover:border-[color:var(--color-divider-subtle)] focus:outline-none focus:ring-2 focus:ring-[rgba(42,120,200,0.25)]"
       @click="toggle"
     >
       <span class="truncate">
@@ -35,12 +35,12 @@
     <transition name="fade-scale">
       <div
         v-if="open"
-        class="hz-select-menu absolute left-0 z-[10060] max-h-64 w-full overflow-y-auto rounded-lg border border-white/[0.055] bg-[rgba(27,32,53,0.9)] shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+        class="hz-popover-surface absolute left-0 z-[10060] max-h-64 w-full overflow-y-auto rounded-lg"
         :class="menuOpensUpward ? 'bottom-full mb-1' : 'top-full mt-1'"
       >
         <div
           v-if="searchable"
-          class="sticky top-0 z-[1] border-b border-white/[0.055] bg-[rgba(18,22,38,0.95)] p-2"
+          class="hz-shell-header sticky top-0 z-[1] border-b p-2"
         >
           <input
             ref="searchInput"
@@ -56,8 +56,8 @@
         <li
           v-for="opt in filteredOptions"
           :key="opt.value"
-          class="cursor-pointer px-3 py-2 text-[var(--color-text-primary)] hover:bg-[var(--color-horizon-blue-20)]"
-          :class="{ 'bg-[var(--color-bg-elevated)]': isSelected(opt.value) }"
+          class="cursor-pointer px-3 py-2 text-[var(--color-text-primary)] hover:bg-[color:var(--color-hover-frost)]"
+          :class="{ 'bg-[color:var(--color-panel-active)]': isSelected(opt.value) }"
           @click="choose(opt.value)"
         >
           {{ opt.label }}
@@ -237,8 +237,6 @@ onBeforeUnmount(() => {
   transform: scale(0.98);
 }
 </style>
-
-
 
 
 

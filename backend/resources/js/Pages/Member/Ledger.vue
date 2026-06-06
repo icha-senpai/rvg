@@ -7,6 +7,7 @@ import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDateTimePicker from '@/Components/HorizonDateTimePicker.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import { notifyErrorFromErrors } from '@/errors'
 
@@ -158,6 +159,12 @@ const editingTransactionId = ref(null)
 const editingTradeId = ref(null)
 const editingInventoryItemId = ref(null)
 const editingShipId = ref(null)
+const transactionDrawerOpen = ref(false)
+const tradeDrawerOpen = ref(false)
+const inventoryDrawerOpen = ref(false)
+const shipDrawerOpen = ref(false)
+const fundTransferDrawerOpen = ref(false)
+const inventoryTransferDrawerOpen = ref(false)
 const suppressInventorySourceReset = ref(false)
 const confirmDialog = ref(null)
 const pendingConfirmation = ref(null)
@@ -312,6 +319,15 @@ const transferInventoryItems = computed(() => props.ledger?.transferInventoryOpt
 const pendingFundTransfers = computed(() => props.ledger?.pendingFundTransfers ?? [])
 const pendingInventoryTransfers = computed(() => props.ledger?.pendingInventoryTransfers ?? [])
 const recentFundTransfers = computed(() => props.ledger?.recentFundTransfers ?? [])
+const transferTabBadge = computed(() => {
+  const count = [...pendingFundTransfers.value, ...pendingInventoryTransfers.value]
+    .filter(transfer => transfer?.can_approve)
+    .length
+
+  if (count <= 0) return null
+
+  return count > 99 ? '99+' : String(count)
+})
 const transferTargetOptions = computed(() => transferTargets.value.map(target => ({
   value: target.key,
   label: target.label,
@@ -411,6 +427,7 @@ const shipSelectOptions = computed(() => (references.value.ships ?? []).map(ship
   value: String(ship.uex_id),
   label: ship.name,
 })))
+const shipReferenceByVehicleId = computed(() => mapSuggestionsByUexId(references.value.ships ?? []))
 
 const transactionSourceSuggestions = computed(() => rememberedDefaults.value.transactionSourceHistory ?? [])
 const shipAcquisitionSourceSuggestions = computed(() => rememberedDefaults.value.shipAcquisitionSourceHistory ?? [])
@@ -452,6 +469,11 @@ const selectedInventorySuggestion = computed(() => {
   return null
 })
 const selectedShipPricing = computed(() => shipPricingByVehicleId.value[String(shipForm.vehicle_uex_id ?? '')] ?? null)
+const selectedShipReference = computed(() => shipReferenceByVehicleId.value[String(shipForm.vehicle_uex_id ?? '')] ?? null)
+
+function shipImageUrlForVehicle(vehicleUexId) {
+  return shipReferenceByVehicleId.value[String(vehicleUexId ?? '')]?.image_url ?? null
+}
 
 function isTransferPanelOpen(panel) {
   return openTransferPanels.value[panel] === true
@@ -620,6 +642,10 @@ function transactionTransferHref() {
 }
 
 function transactionTransferApproveHref(id) {
+  if (isOrganizationLedger.value) {
+    return route('organization.ledger.transactions.transfer.approve', id)
+  }
+
   if (isSquadronLedger.value) {
     return route('squadrons.ledger.transactions.transfer.approve', { squadron: props.squadron?.id, transferRequest: id })
   }
@@ -628,6 +654,10 @@ function transactionTransferApproveHref(id) {
 }
 
 function transactionTransferRejectHref(id) {
+  if (isOrganizationLedger.value) {
+    return route('organization.ledger.transactions.transfer.reject', id)
+  }
+
   if (isSquadronLedger.value) {
     return route('squadrons.ledger.transactions.transfer.reject', { squadron: props.squadron?.id, transferRequest: id })
   }
@@ -899,14 +929,12 @@ watch(
   ([fundsAvailable, inventoryAvailable]) => {
     if (!fundsAvailable) {
       openTransferPanels.value.funds = false
+      closeFundTransferDrawer()
     }
 
     if (!inventoryAvailable) {
       openTransferPanels.value.inventory = false
-    }
-
-    if (!fundsAvailable && inventoryAvailable && !isTransferPanelOpen('inventory')) {
-      openTransferPanels.value.inventory = true
+      closeInventoryTransferDrawer()
     }
   },
   { immediate: true }
@@ -1305,6 +1333,66 @@ function resetShipForm() {
   shipForm.notes = ''
 }
 
+function openTransactionDrawer() {
+  resetTransactionForm()
+  transactionDrawerOpen.value = true
+}
+
+function closeTransactionDrawer() {
+  transactionDrawerOpen.value = false
+  resetTransactionForm()
+}
+
+function openTradeDrawer() {
+  resetTradeForm()
+  tradeDrawerOpen.value = true
+}
+
+function closeTradeDrawer() {
+  tradeDrawerOpen.value = false
+  resetTradeForm()
+}
+
+function openInventoryDrawer() {
+  resetInventoryForm()
+  inventoryDrawerOpen.value = true
+}
+
+function closeInventoryDrawer() {
+  inventoryDrawerOpen.value = false
+  resetInventoryForm()
+}
+
+function openShipDrawer() {
+  resetShipForm()
+  shipDrawerOpen.value = true
+}
+
+function closeShipDrawer() {
+  shipDrawerOpen.value = false
+  resetShipForm()
+}
+
+function openFundTransferDrawer() {
+  resetTransferForm()
+  fundTransferDrawerOpen.value = true
+}
+
+function closeFundTransferDrawer() {
+  fundTransferDrawerOpen.value = false
+  resetTransferForm()
+}
+
+function openInventoryTransferDrawer() {
+  resetInventoryTransferForm()
+  inventoryTransferDrawerOpen.value = true
+}
+
+function closeInventoryTransferDrawer() {
+  inventoryTransferDrawerOpen.value = false
+  resetInventoryTransferForm()
+}
+
 function toLocalInputValue(value) {
   if (!value) return ''
 
@@ -1317,6 +1405,7 @@ function toLocalInputValue(value) {
 
 function startTransactionEdit(transaction) {
   editingTransactionId.value = transaction.id
+  transactionDrawerOpen.value = true
   transactionForm.clearErrors()
   transactionForm.ledger_account_id = transaction.ledger_account_id ?? props.ledger?.account?.id ?? null
   transactionForm.wipe_cycle_id = transaction.wipe_cycle_id ?? defaultFormWipeId()
@@ -1334,6 +1423,7 @@ function startTransactionEdit(transaction) {
 
 function startTradeEdit(trade) {
   editingTradeId.value = trade.id
+  tradeDrawerOpen.value = true
   tradeForm.clearErrors()
   resetTradeSuggestionTracking()
   tradeForm.ledger_account_id = trade.ledger_account_id ?? props.ledger?.account?.id ?? null
@@ -1350,6 +1440,7 @@ function startTradeEdit(trade) {
 
 function startInventoryEdit(item) {
   editingInventoryItemId.value = item.id
+  inventoryDrawerOpen.value = true
   inventoryForm.clearErrors()
   resetInventorySuggestionTracking()
 
@@ -1377,6 +1468,7 @@ function startInventoryEdit(item) {
 
 function startShipEdit(ship) {
   editingShipId.value = ship.id
+  shipDrawerOpen.value = true
   shipForm.clearErrors()
   resetShipSuggestionTracking()
   shipForm.wipe_cycle_id = ship.wipe_cycle_id ?? defaultFormWipeId()
@@ -1394,6 +1486,7 @@ function startShipEdit(ship) {
 
 function duplicateTransaction(transaction) {
   resetTransactionForm()
+  transactionDrawerOpen.value = true
   transactionForm.wipe_cycle_id = transaction.wipe_cycle_id ?? defaultFormWipeId()
   transactionForm.type = transaction.type ?? 'income'
   transactionForm.amount = transaction.amount ?? ''
@@ -1409,6 +1502,7 @@ function duplicateTransaction(transaction) {
 
 function duplicateTrade(trade) {
   resetTradeForm()
+  tradeDrawerOpen.value = true
   tradeForm.wipe_cycle_id = trade.wipe_cycle_id ?? defaultFormWipeId()
   tradeForm.commodity_uex_id = trade.commodity_uex_id ?? ''
   tradeForm.quantity = trade.quantity ?? ''
@@ -1422,6 +1516,7 @@ function duplicateTrade(trade) {
 
 function duplicateInventoryItem(item) {
   resetInventoryForm()
+  inventoryDrawerOpen.value = true
 
   withSuppressedInventorySourceReset(() => {
     inventoryForm.wipe_cycle_id = item.wipe_cycle_id ?? defaultFormWipeId()
@@ -1447,6 +1542,7 @@ function duplicateInventoryItem(item) {
 
 function duplicateShip(ship) {
   resetShipForm()
+  shipDrawerOpen.value = true
   shipForm.wipe_cycle_id = ship.wipe_cycle_id ?? defaultFormWipeId()
   shipForm.vehicle_uex_id = ship.vehicle_uex_id ?? ''
   shipForm.custom_name = ship.custom_name ?? ''
@@ -1472,7 +1568,7 @@ function submitTransaction() {
         lastTransactionSourceType: transactionForm.source_type,
         transactionSourceHistory: rememberHistoryEntry(transactionSourceSuggestions.value, transactionForm.source_type),
       })
-      resetTransactionForm()
+      closeTransactionDrawer()
     },
   }
 
@@ -1491,7 +1587,7 @@ function submitTransfer() {
       showLedgerFormError(errors, 'Please choose a destination, amount, and reason for the transfer.', 'Missing Transfer Info')
     },
     onSuccess: () => {
-      resetTransferForm()
+      closeFundTransferDrawer()
     },
   }
 
@@ -1505,7 +1601,7 @@ function submitInventoryTransfer() {
       showLedgerFormError(errors, 'Please choose an inventory record, destination, and quantity to move.', 'Missing Inventory Transfer Info')
     },
     onSuccess: () => {
-      resetInventoryTransferForm()
+      closeInventoryTransferDrawer()
     },
   }
 
@@ -1513,9 +1609,25 @@ function submitInventoryTransfer() {
 }
 
 function approveFundTransfer(transfer) {
-  router.post(transactionTransferApproveHref(transfer.id), {}, {
-    preserveScroll: true,
-  })
+  pendingConfirmation.value = {
+    title: 'Approve Transfer',
+    message: 'Approve this fund transfer request?',
+    confirmLabel: 'Approve',
+    variant: 'success',
+    action: ({ close, finish }) => {
+      router.post(transactionTransferApproveHref(transfer.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          close()
+        },
+        onFinish: () => {
+          finish()
+        },
+      })
+    },
+  }
+
+  confirmDialog.value?.show()
 }
 
 function rejectFundTransfer(transfer) {
@@ -1563,9 +1675,25 @@ function reverseFundTransfer(transfer) {
 }
 
 function approveInventoryTransfer(transfer) {
-  router.post(inventoryTransferApproveHref(transfer.id), {}, {
-    preserveScroll: true,
-  })
+  pendingConfirmation.value = {
+    title: 'Approve Inventory Move',
+    message: 'Approve this inventory transfer request?',
+    confirmLabel: 'Approve',
+    variant: 'success',
+    action: ({ close, finish }) => {
+      router.post(inventoryTransferApproveHref(transfer.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          close()
+        },
+        onFinish: () => {
+          finish()
+        },
+      })
+    },
+  }
+
+  confirmDialog.value?.show()
 }
 
 function rejectInventoryTransfer(transfer) {
@@ -1601,7 +1729,7 @@ function submitTrade() {
         preferredCycleId: tradeForm.wipe_cycle_id,
         lastTradeUnitType: tradeForm.unit_type || DEFAULT_TRADE_UNIT_TYPE,
       })
-      resetTradeForm()
+      closeTradeDrawer()
     },
   }
 
@@ -1624,7 +1752,7 @@ function submitInventory() {
         preferredCycleId: inventoryForm.wipe_cycle_id,
         lastInventorySourceType: inventoryForm.source_type,
       })
-      resetInventoryForm()
+      closeInventoryDrawer()
     },
   }
 
@@ -1648,7 +1776,7 @@ function submitShip() {
         lastShipAcquisitionSource: shipForm.acquisition_source,
         shipAcquisitionSourceHistory: rememberHistoryEntry(shipAcquisitionSourceSuggestions.value, shipForm.acquisition_source),
       })
-      resetShipForm()
+      closeShipDrawer()
     },
   }
 
@@ -1968,12 +2096,12 @@ function tabClass(key) {
 
             <div class="hz-ledger-panel-soft rounded-[1.5rem] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Income This View</div>
-              <div class="mt-2 text-2xl font-black text-emerald-100">{{ formatMoney(ledger.overview?.cards?.income) }}</div>
+              <div class="hz-ledger-value-positive mt-2 text-2xl font-black">{{ formatMoney(ledger.overview?.cards?.income) }}</div>
             </div>
 
             <div class="hz-ledger-panel-soft rounded-[1.5rem] p-4">
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Expenses This View</div>
-              <div class="mt-2 text-2xl font-black text-red-100">{{ formatMoney(ledger.overview?.cards?.expenses) }}</div>
+              <div class="hz-ledger-value-negative mt-2 text-2xl font-black">{{ formatMoney(ledger.overview?.cards?.expenses) }}</div>
             </div>
 
             <div class="hz-ledger-panel-soft rounded-[1.5rem] p-4">
@@ -1989,11 +2117,17 @@ function tabClass(key) {
               v-for="tab in tabs"
               :key="tab.key"
               type="button"
-              class="shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition duration-200"
+              class="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition duration-200"
               :class="tabClass(tab.key)"
               @click="activeTab = tab.key"
             >
-              {{ tab.label }}
+              <span>{{ tab.label }}</span>
+              <span
+                v-if="tab.key === 'transfers' && transferTabBadge"
+                class="grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
+              >
+                {{ transferTabBadge }}
+              </span>
             </button>
           </div>
 
@@ -2297,15 +2431,17 @@ function tabClass(key) {
         </aside>
       </section>
 
-      <section v-else-if="activeTab === 'transactions'" class="grid gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
-        <aside v-if="canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ transactionModeLabel }}</div>
-          <h3 class="mt-1 text-xl font-black text-horizon-white">Income, Expense, Or Adjustment</h3>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ editingTransactionId ? 'Update this ledger entry and keep the original cycle context intact.' : 'Log payouts, refuel bills, repairs, or manual balance adjustments.' }}
-          </p>
+      <section v-else-if="activeTab === 'transactions'" class="space-y-4">
+        <HorizonDrawer v-if="canEditCurrentView && transactionDrawerOpen" close-label="Close transaction editor drawer" @close="closeTransactionDrawer">
+          <template #header>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ transactionModeLabel }}</div>
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Income, Expense, Or Adjustment</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              {{ editingTransactionId ? 'Update this ledger entry and keep the original cycle context intact.' : 'Log payouts, refuel bills, repairs, or manual balance adjustments.' }}
+            </p>
+          </template>
 
-          <form class="mt-4 space-y-4" @submit.prevent="submitTransaction">
+          <form class="space-y-4" @submit.prevent="submitTransaction">
             <HorizonSelect
               v-model="transactionForm.wipe_cycle_id"
               :options="formCycleOptions"
@@ -2364,7 +2500,7 @@ function tabClass(key) {
                 type="button"
                 variant="secondary"
                 :disabled="transactionForm.processing"
-                @click="resetTransactionForm"
+                @click="closeTransactionDrawer"
               >
                 Cancel Edit
               </HorizonButton>
@@ -2374,9 +2510,9 @@ function tabClass(key) {
               </HorizonButton>
             </div>
           </form>
-        </aside>
+        </HorizonDrawer>
 
-        <aside v-else class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+        <aside v-if="!canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Read Only</div>
           <h3 class="mt-1 text-xl font-black text-horizon-white">{{ readOnlySectionContent('Transaction', 'transactions').heading }}</h3>
           <p class="mt-2 text-sm text-text-secondary">
@@ -2385,7 +2521,12 @@ function tabClass(key) {
         </aside>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transaction Log</div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transaction Log</div>
+            <HorizonButton v-if="canEditCurrentView" type="button" size="sm" @click="openTransactionDrawer">
+              New Transaction
+            </HorizonButton>
+          </div>
           <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div class="space-y-3">
               <div class="text-sm text-text-secondary">
@@ -2493,7 +2634,7 @@ function tabClass(key) {
       </section>
 
       <section v-else-if="activeTab === 'transfers'" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="space-y-4">
+        <div class="flex flex-col gap-4">
           <div v-if="pendingFundTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Pending Fund Requests</div>
             <div class="mt-4 space-y-3">
@@ -2537,7 +2678,7 @@ function tabClass(key) {
                       Waiting on approval
                     </span>
                     <template v-else>
-                      <HorizonButton type="button" size="sm" variant="ghost" @click="approveFundTransfer(transfer)">
+                      <HorizonButton type="button" size="sm" variant="success" @click="approveFundTransfer(transfer)">
                         Approve
                       </HorizonButton>
                       <HorizonButton type="button" size="sm" variant="danger" @click="rejectFundTransfer(transfer)">
@@ -2593,7 +2734,7 @@ function tabClass(key) {
                       Waiting on approval
                     </span>
                     <template v-else>
-                      <HorizonButton type="button" size="sm" variant="ghost" @click="approveInventoryTransfer(transfer)">
+                      <HorizonButton type="button" size="sm" variant="success" @click="approveInventoryTransfer(transfer)">
                         Approve
                       </HorizonButton>
                       <HorizonButton type="button" size="sm" variant="danger" @click="rejectInventoryTransfer(transfer)">
@@ -2606,7 +2747,7 @@ function tabClass(key) {
             </div>
           </div>
 
-          <div v-if="recentFundTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+          <div v-if="recentFundTransfers.length" class="order-3 hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
             <button
               type="button"
               class="flex w-full items-start justify-between gap-4 text-left"
@@ -2666,26 +2807,16 @@ function tabClass(key) {
             </div>
           </div>
 
-          <div v-if="canTransferFunds" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-            <button
-              type="button"
-              class="flex w-full items-start justify-between gap-4 text-left"
-              @click="toggleTransferPanel('funds')"
-            >
-              <div>
-                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Funds</div>
-                <h3 class="mt-1 text-xl font-black text-horizon-white">Ledger Transfer</h3>
-                <p class="mt-2 text-sm text-text-secondary">
-                  Send funds out of {{ ledger.account?.name }} and let Horizon write the matching in and out records for you.
-                </p>
-              </div>
+          <HorizonDrawer v-if="canTransferFunds && fundTransferDrawerOpen" close-label="Close fund transfer drawer" @close="closeFundTransferDrawer">
+            <template #header>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Funds</div>
+              <h3 class="mt-1 text-xl font-black text-horizon-white">Funds Transfer</h3>
+              <p class="mt-2 text-sm text-text-secondary">
+                Send funds out of {{ ledger.account?.name }} as an approval request. Horizon writes the matching in and out records after the destination approves it.
+              </p>
+            </template>
 
-              <div class="hz-ledger-panel-soft mt-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
-                {{ isTransferPanelOpen('funds') ? 'Close' : 'Open' }}
-              </div>
-            </button>
-
-            <form v-if="isTransferPanelOpen('funds')" class="mt-4 space-y-4" @submit.prevent="submitTransfer">
+            <form class="space-y-4" @submit.prevent="submitTransfer">
               <HorizonSelect
                 v-model="transferForm.wipe_cycle_id"
                 :options="formCycleOptions"
@@ -2734,28 +2865,33 @@ function tabClass(key) {
                 </HorizonButton>
               </div>
             </form>
+          </HorizonDrawer>
+
+          <div v-if="canTransferFunds || canTransferInventory" class="order-2 grid gap-4 lg:grid-cols-2">
+          <div v-if="canTransferFunds" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Funds</div>
+              <HorizonButton type="button" size="sm" @click="openFundTransferDrawer">
+                New Fund Transfer
+              </HorizonButton>
+            </div>
+
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Funds Transfer</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              Send funds out of {{ ledger.account?.name }} as an approval request. Horizon writes the matching in and out records after the destination approves it.
+            </p>
           </div>
 
-          <div v-if="canTransferInventory" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-            <button
-              type="button"
-              class="flex w-full items-start justify-between gap-4 text-left"
-              @click="toggleTransferPanel('inventory')"
-            >
-              <div>
-                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Inventory</div>
-                <h3 class="mt-1 text-xl font-black text-horizon-white">Inventory Transfer</h3>
-                <p class="mt-2 text-sm text-text-secondary">
-                  Move tracked cargo, components, or gear into another ledger while keeping the original cycle history attached to the item.
-                </p>
-              </div>
+          <HorizonDrawer v-if="canTransferInventory && inventoryTransferDrawerOpen" close-label="Close inventory transfer drawer" @close="closeInventoryTransferDrawer">
+            <template #header>
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Inventory</div>
+              <h3 class="mt-1 text-xl font-black text-horizon-white">Inventory Transfer</h3>
+              <p class="mt-2 text-sm text-text-secondary">
+                Move tracked cargo, components, or gear into another ledger as an approval request while keeping the original cycle history attached to the item.
+              </p>
+            </template>
 
-              <div class="hz-ledger-panel-soft mt-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
-                {{ isTransferPanelOpen('inventory') ? 'Close' : 'Open' }}
-              </div>
-            </button>
-
-            <form v-if="isTransferPanelOpen('inventory')" class="mt-4 space-y-4" @submit.prevent="submitInventoryTransfer">
+            <form class="space-y-4" @submit.prevent="submitInventoryTransfer">
               <HorizonSelect
                 v-model="inventoryTransferForm.inventory_item_id"
                 :options="transferInventoryItemOptions"
@@ -2808,9 +2944,24 @@ function tabClass(key) {
                 </HorizonButton>
               </div>
             </form>
+          </HorizonDrawer>
+
+          <div v-if="canTransferInventory" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Inventory</div>
+              <HorizonButton type="button" size="sm" @click="openInventoryTransferDrawer">
+                New Inventory Move
+              </HorizonButton>
+            </div>
+
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Inventory Transfer</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              Move tracked cargo, components, or gear into another ledger as an approval request while keeping the original cycle history attached to the item.
+            </p>
+          </div>
           </div>
 
-          <div v-if="!canTransferFunds && !canTransferInventory" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+          <div v-if="!canTransferFunds && !canTransferInventory" class="order-2 hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transfers Locked</div>
             <h3 class="mt-1 text-xl font-black text-horizon-white">{{ isHistoryView ? 'Archived Cycle View' : 'No Available Destinations' }}</h3>
             <p class="mt-2 text-sm text-text-secondary">
@@ -2833,15 +2984,17 @@ function tabClass(key) {
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'trades'" class="grid gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
-        <aside v-if="canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ tradeModeLabel }}</div>
-          <h3 class="mt-1 text-xl font-black text-horizon-white">Commodity Run</h3>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ editingTradeId ? 'Adjust the route, prices, or ship assignment for this run.' : 'Record buy and sell legs so Horizon can keep your cargo profit clean.' }}
-          </p>
+      <section v-else-if="activeTab === 'trades'" class="space-y-4">
+        <HorizonDrawer v-if="canEditCurrentView && tradeDrawerOpen" close-label="Close trade editor drawer" @close="closeTradeDrawer">
+          <template #header>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ tradeModeLabel }}</div>
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Commodity Run</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              {{ editingTradeId ? 'Adjust the route, prices, or ship assignment for this run.' : 'Record buy and sell legs so Horizon can keep your cargo profit clean.' }}
+            </p>
+          </template>
 
-          <form class="mt-4 space-y-4" @submit.prevent="submitTrade">
+          <form class="space-y-4" @submit.prevent="submitTrade">
             <HorizonSelect
               v-model="tradeForm.wipe_cycle_id"
               :options="formCycleOptions"
@@ -2915,7 +3068,7 @@ function tabClass(key) {
                 type="button"
                 variant="secondary"
                 :disabled="tradeForm.processing"
-                @click="resetTradeForm"
+                @click="closeTradeDrawer"
               >
                 Cancel Edit
               </HorizonButton>
@@ -2925,9 +3078,9 @@ function tabClass(key) {
               </HorizonButton>
             </div>
           </form>
-        </aside>
+        </HorizonDrawer>
 
-        <aside v-else class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+        <aside v-if="!canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Read Only</div>
           <h3 class="mt-1 text-xl font-black text-horizon-white">{{ readOnlySectionContent('Trade', 'trade runs').heading }}</h3>
           <p class="mt-2 text-sm text-text-secondary">
@@ -2936,7 +3089,12 @@ function tabClass(key) {
         </aside>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Runs</div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Runs</div>
+            <HorizonButton v-if="canEditCurrentView" type="button" size="sm" @click="openTradeDrawer">
+              New Trade
+            </HorizonButton>
+          </div>
           <div class="mt-4 space-y-3">
             <article
               v-for="trade in ledger.trades ?? []"
@@ -2987,15 +3145,17 @@ function tabClass(key) {
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'inventory'" class="grid gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
-        <aside v-if="canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ inventoryModeLabel }}</div>
-          <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Items</h3>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ editingInventoryItemId ? 'Refine the item source, quantity, value, or assigned ship.' : 'Track weapons, components, commodities, and custom stash records against a cycle.' }}
-          </p>
+      <section v-else-if="activeTab === 'inventory'" class="space-y-4">
+        <HorizonDrawer v-if="canEditCurrentView && inventoryDrawerOpen" close-label="Close inventory editor drawer" @close="closeInventoryDrawer">
+          <template #header>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ inventoryModeLabel }}</div>
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Items</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              {{ editingInventoryItemId ? 'Refine the item source, quantity, value, or assigned ship.' : 'Track weapons, components, commodities, and custom stash records against a cycle.' }}
+            </p>
+          </template>
 
-          <form class="mt-4 space-y-4" @submit.prevent="submitInventory">
+          <form class="space-y-4" @submit.prevent="submitInventory">
             <HorizonSelect
               v-model="inventoryForm.wipe_cycle_id"
               :options="formCycleOptions"
@@ -3059,7 +3219,7 @@ function tabClass(key) {
                 type="button"
                 variant="secondary"
                 :disabled="inventoryForm.processing"
-                @click="resetInventoryForm"
+                @click="closeInventoryDrawer"
               >
                 Cancel Edit
               </HorizonButton>
@@ -3069,9 +3229,9 @@ function tabClass(key) {
               </HorizonButton>
             </div>
           </form>
-        </aside>
+        </HorizonDrawer>
 
-        <aside v-else class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+        <aside v-if="!canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Read Only</div>
           <h3 class="mt-1 text-xl font-black text-horizon-white">{{ readOnlySectionContent('Inventory', 'inventory records').heading }}</h3>
           <p class="mt-2 text-sm text-text-secondary">
@@ -3080,7 +3240,12 @@ function tabClass(key) {
         </aside>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Records</div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Records</div>
+            <HorizonButton v-if="canEditCurrentView" type="button" size="sm" @click="openInventoryDrawer">
+              New Inventory
+            </HorizonButton>
+          </div>
           <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div class="space-y-3">
               <div class="text-sm text-text-secondary">
@@ -3218,15 +3383,17 @@ function tabClass(key) {
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'ships'" class="grid gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
-        <aside v-if="canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ shipModeLabel }}</div>
-          <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Ships</h3>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ editingShipId ? 'Update the hull, status, or hangar notes for this asset.' : 'Keep a cycle-aware list of owned, pledged, loaned, or rented ships.' }}
-          </p>
+      <section v-else-if="activeTab === 'ships'" class="space-y-4">
+        <HorizonDrawer v-if="canEditCurrentView && shipDrawerOpen" close-label="Close ship editor drawer" @close="closeShipDrawer">
+          <template #header>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ shipModeLabel }}</div>
+            <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Ships</h3>
+            <p class="mt-2 text-sm text-text-secondary">
+              {{ editingShipId ? 'Update the hull, status, or hangar notes for this asset.' : 'Keep a cycle-aware list of owned, pledged, loaned, or rented ships.' }}
+            </p>
+          </template>
 
-          <form class="mt-4 space-y-4" @submit.prevent="submitShip">
+          <form class="space-y-4" @submit.prevent="submitShip">
             <HorizonSelect
               v-model="shipForm.wipe_cycle_id"
               :options="formCycleOptions"
@@ -3242,6 +3409,33 @@ function tabClass(key) {
               searchable
               search-placeholder="Search ships"
             />
+
+            <div
+              v-if="selectedShipReference?.image_url"
+              class="hz-ledger-panel-soft overflow-hidden rounded-[1rem] border border-white/[0.08]"
+            >
+              <img
+                :src="selectedShipReference.image_url"
+                :alt="selectedShipReference.name"
+                class="h-48 w-full object-cover"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+              <div class="flex items-center justify-between gap-3 px-3 py-2 text-xs text-text-secondary">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="truncate font-semibold text-horizon-white">{{ selectedShipReference.name }}</span>
+                  <span v-if="selectedShipReference.type" class="shrink-0">{{ selectedShipReference.type }}</span>
+                </div>
+                <a
+                  :href="selectedShipReference.image_url"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="shrink-0 text-sky-200 underline decoration-sky-300/40 underline-offset-2 transition hover:text-sky-100"
+                >
+                  Open image
+                </a>
+              </div>
+            </div>
 
             <div
               v-if="selectedShipPricing"
@@ -3284,7 +3478,7 @@ function tabClass(key) {
                 type="button"
                 variant="secondary"
                 :disabled="shipForm.processing"
-                @click="resetShipForm"
+                @click="closeShipDrawer"
               >
                 Cancel Edit
               </HorizonButton>
@@ -3294,9 +3488,9 @@ function tabClass(key) {
               </HorizonButton>
             </div>
           </form>
-        </aside>
+        </HorizonDrawer>
 
-        <aside v-else class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+        <aside v-if="!canEditCurrentView" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Read Only</div>
           <h3 class="mt-1 text-xl font-black text-horizon-white">{{ readOnlySectionContent('Fleet', 'ship assets').heading }}</h3>
           <p class="mt-2 text-sm text-text-secondary">
@@ -3305,7 +3499,12 @@ function tabClass(key) {
         </aside>
 
         <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Ship Assets</div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Ship Assets</div>
+            <HorizonButton v-if="canEditCurrentView" type="button" size="sm" @click="openShipDrawer">
+              New Ship
+            </HorizonButton>
+          </div>
           <div class="mt-4 grid gap-3 md:grid-cols-2">
             <article
               v-for="ship in ledger.shipAssets ?? []"
@@ -3315,6 +3514,24 @@ function tabClass(key) {
                 ? 'border-[color:var(--horizon-sunset-blue)]/40'
                 : 'border-white/[0.055]'"
             >
+              <img
+                v-if="shipImageUrlForVehicle(ship.vehicle_uex_id)"
+                :src="shipImageUrlForVehicle(ship.vehicle_uex_id)"
+                :alt="ship.ship_name"
+                class="mb-3 h-40 w-full rounded-[1rem] object-cover"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+              <div v-if="shipImageUrlForVehicle(ship.vehicle_uex_id)" class="mb-3">
+                <a
+                  :href="shipImageUrlForVehicle(ship.vehicle_uex_id)"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="text-xs font-semibold text-sky-200 underline decoration-sky-300/40 underline-offset-2 transition hover:text-sky-100"
+                >
+                  Open image
+                </a>
+              </div>
               <div class="text-base font-black text-horizon-white">{{ ship.ship_name }}</div>
               <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
                 {{ formatLedgerStatus(ship.status) }}<span v-if="ship.serial_or_label"> • {{ ship.serial_or_label }}</span>

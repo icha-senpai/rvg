@@ -51,6 +51,7 @@ class User extends Authenticatable
         'personal_tags',
         'availability_status',
         'loa_note',
+        'site_theme',
         'rsi_handle',
         'rsi_verified_at',
     ];

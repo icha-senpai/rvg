@@ -187,7 +187,7 @@ const CalloutNode = Node.create({
         'data-type': 'hz-rte-callout',
         class: `hz-rte-callout hz-rte-callout-${isCustomTone ? 'custom' : tone}`,
         style: isCustomTone
-          ? `border-color: color-mix(in srgb, ${customColor} 45%, transparent); background: color-mix(in srgb, ${customColor} 100%, rgb(27 32 53 / 1));`
+          ? `--hz-callout-custom-color: ${customColor}; border-color: color-mix(in srgb, ${customColor} 42%, transparent);`
           : null,
       }),
       0,
@@ -224,10 +224,26 @@ const uploadError = ref('')
 const isMobileViewport = ref(false)
 const isCompactToolbarExpanded = ref(false)
 const editorViewport = ref(null)
+const colorPickerPanel = ref(null)
+const colorPickerField = ref(null)
+const colorPickerSlider = ref(null)
+const colorPickerPanelStyle = ref({})
+const colorPickerAnchorRect = ref(null)
 const selectedImageFrame = ref(null)
 const isResizingImage = ref(false)
+const isColorPickerOpen = ref(false)
+const isColorPickerAdvancedOpen = ref(false)
+const colorPickerTarget = ref('')
+const colorPickerHexValue = ref('')
+const colorPickerInitialHex = ref('')
+const colorPickerHue = ref(0)
+const colorPickerSaturation = ref(100)
+const colorPickerValue = ref(100)
+const colorPickerCustomColors = ref(Array(16).fill(''))
+const activeCustomColorIndex = ref(-1)
 
 let imageResizeCleanup = null
+let colorPickerDragCleanup = null
 
 function bumpToolbar() {
   toolbarTick.value += 1
@@ -436,18 +452,6 @@ const textColorOptions = [
   { value: 'hz-rte-color-yellow-dark', label: 'Yellow Dark', hex: '#a16207' },
 ]
 
-const highlightColorOptions = [
-  { value: '', label: 'Highlight: None', hex: '#1e293b' },
-  { value: '#60a5fa', label: 'Highlight Blue', hex: '#60a5fa' },
-  { value: '#67e8f9', label: 'Highlight Cyan', hex: '#67e8f9' },
-  { value: '#e879f9', label: 'Highlight Magenta', hex: '#e879f9' },
-  { value: '#ff8db4', label: 'Highlight Pink', hex: '#ff8db4' },
-  { value: '#fdba74', label: 'Highlight Orange', hex: '#fdba74' },
-  { value: '#86efac', label: 'Highlight Green', hex: '#86efac' },
-  { value: '#fca5a5', label: 'Highlight Red', hex: '#fca5a5' },
-  { value: '#fde047', label: 'Highlight Yellow', hex: '#fde047' },
-]
-
 const calloutToneOptions = [
   { value: '', label: 'Field: None', hex: '#1b2035' },
   { value: 'blue', label: 'Field: Blue', hex: '#1e40af' },
@@ -461,8 +465,15 @@ const calloutToneOptions = [
 const defaultTextColorHex = '#b6c2d3'
 const defaultHighlightHex = '#1e293b'
 const defaultCalloutHex = '#1e40af'
+const classicColorSwatches = [
+  '#ff8080', '#ffff80', '#80ff80', '#00ff80', '#80ffff', '#0080ff', '#ff80c0', '#ff80ff',
+  '#ff0000', '#ffff00', '#80ff00', '#00ff40', '#00ffff', '#0080c0', '#c080ff', '#ff00ff',
+  '#804040', '#ff8040', '#00ff00', '#008040', '#008080', '#004080', '#8080c0', '#800040',
+  '#800000', '#ff8000', '#008000', '#808000', '#0000ff', '#0000a0', '#8080ff', '#800080',
+  '#400000', '#804000', '#004000', '#004040', '#000080', '#000040', '#400080', '#400040',
+  '#000000', '#808080', '#408080', '#c0c0c0', '#4080ff', '#ffffff', '#d9d9d9', '#f5f5f5',
+]
 const textColorHexLookup = new Map(textColorOptions.filter(option => option.value).map(option => [option.value, option.hex]))
-const highlightColorValueLookup = new Set(highlightColorOptions.filter(option => option.value).map(option => option.value))
 const calloutToneHexLookup = new Map(calloutToneOptions.filter(option => option.value).map(option => [option.value, option.hex]))
 
 const currentFontFamilyPreview = computed(() => {
@@ -470,28 +481,35 @@ const currentFontFamilyPreview = computed(() => {
   return match?.preview || ''
 })
 
-const currentTextColorSelectValue = computed(() => {
-  if (currentTextColor.value) return currentTextColor.value
-  return currentInlineTextColor.value ? '__custom' : ''
-})
-
 const currentTextColorHex = computed(() => currentInlineTextColor.value || textColorHexLookup.get(currentTextColor.value) || defaultTextColorHex)
-
-const currentHighlightSelectValue = computed(() => {
-  if (!currentHighlightColor.value) return ''
-  return highlightColorValueLookup.has(currentHighlightColor.value) ? currentHighlightColor.value : '__custom'
-})
 
 const currentHighlightHex = computed(() => currentHighlightColor.value || defaultHighlightHex)
 
-const currentCalloutSelectValue = computed(() => {
-  if (!isCalloutActive.value) return ''
-  if (currentCalloutCustomColor.value) return '__custom'
-  return currentCalloutTone.value || ''
-})
-
 const currentCalloutHex = computed(() => currentCalloutCustomColor.value || calloutToneHexLookup.get(currentCalloutTone.value) || defaultCalloutHex)
 const showAdvancedToolbar = computed(() => !isMobileViewport.value || isCompactToolbarExpanded.value)
+const colorPickerDraftHex = computed(() => {
+  const rgb = hsvToRgb(colorPickerHue.value, colorPickerSaturation.value, colorPickerValue.value)
+  return rgbToHex(rgb.r, rgb.g, rgb.b)
+})
+const colorPickerDraftRgb = computed(() => hexToRgb(colorPickerDraftHex.value))
+const colorPickerHueInput = computed(() => Math.round(colorPickerHue.value))
+const colorPickerSatInput = computed(() => Math.round((colorPickerSaturation.value / 100) * 240))
+const colorPickerLumInput = computed(() => Math.round((colorPickerValue.value / 100) * 240))
+const colorPickerPreviewLabel = computed(() => {
+  if (colorPickerTarget.value === 'highlight') return 'Highlight'
+  if (colorPickerTarget.value === 'callout') return 'Field'
+  return 'Text'
+})
+const colorPickerFieldStyle = computed(() => ({
+  background: `linear-gradient(to top, rgb(0 0 0 / 1), transparent), linear-gradient(to right, rgb(255 255 255 / 1), hsl(${colorPickerHue.value} 100% 50%))`,
+}))
+const colorPickerFieldCursorStyle = computed(() => ({
+  left: `${colorPickerSaturation.value}%`,
+  top: `${100 - colorPickerValue.value}%`,
+}))
+const colorPickerSliderCursorStyle = computed(() => ({
+  top: `${(colorPickerHue.value / 360) * 100}%`,
+}))
 
 function normalizeHexColor(value) {
   const raw = String(value || '').trim()
@@ -524,6 +542,369 @@ function normalizeHexColor(value) {
     .map(part => Math.max(0, Math.min(255, part)))
     .map(part => part.toString(16).padStart(2, '0'))
     .join('')}`
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function normalizeHueValue(value) {
+  const numeric = Number(value)
+
+  if (!Number.isFinite(numeric)) {
+    return 0
+  }
+
+  const wrapped = numeric % 360
+  return wrapped < 0 ? wrapped + 360 : wrapped
+}
+
+function rgbToHex(r, g, b) {
+  return `#${[r, g, b]
+    .map(channel => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+function hexToRgb(value) {
+  const normalized = normalizeHexColor(value)
+
+  if (!normalized) {
+    return { r: 255, g: 255, b: 255 }
+  }
+
+  return {
+    r: Number.parseInt(normalized.slice(1, 3), 16),
+    g: Number.parseInt(normalized.slice(3, 5), 16),
+    b: Number.parseInt(normalized.slice(5, 7), 16),
+  }
+}
+
+function rgbToHsv(r, g, b) {
+  const red = clamp(r, 0, 255) / 255
+  const green = clamp(g, 0, 255) / 255
+  const blue = clamp(b, 0, 255) / 255
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  const delta = max - min
+
+  let hue = 0
+
+  if (delta !== 0) {
+    if (max === red) {
+      hue = 60 * (((green - blue) / delta) % 6)
+    } else if (max === green) {
+      hue = 60 * (((blue - red) / delta) + 2)
+    } else {
+      hue = 60 * (((red - green) / delta) + 4)
+    }
+  }
+
+  if (hue < 0) {
+    hue += 360
+  }
+
+  const saturation = max === 0 ? 0 : (delta / max) * 100
+  const value = max * 100
+
+  return { h: hue, s: saturation, v: value }
+}
+
+function hsvToRgb(hue, saturation, value) {
+  const normalizedHue = normalizeHueValue(hue)
+  const normalizedSaturation = clamp(saturation, 0, 100) / 100
+  const normalizedValue = clamp(value, 0, 100) / 100
+  const chroma = normalizedValue * normalizedSaturation
+  const segment = normalizedHue / 60
+  const second = chroma * (1 - Math.abs((segment % 2) - 1))
+  const match = normalizedValue - chroma
+
+  let red = 0
+  let green = 0
+  let blue = 0
+
+  if (segment >= 0 && segment < 1) {
+    red = chroma
+    green = second
+  } else if (segment < 2) {
+    red = second
+    green = chroma
+  } else if (segment < 3) {
+    green = chroma
+    blue = second
+  } else if (segment < 4) {
+    green = second
+    blue = chroma
+  } else if (segment < 5) {
+    red = second
+    blue = chroma
+  } else {
+    red = chroma
+    blue = second
+  }
+
+  return {
+    r: Math.round((red + match) * 255),
+    g: Math.round((green + match) * 255),
+    b: Math.round((blue + match) * 255),
+  }
+}
+
+function setColorPickerFromHex(value) {
+  const rgb = hexToRgb(value)
+  const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b)
+
+  colorPickerHue.value = hsv.h
+  colorPickerSaturation.value = hsv.s
+  colorPickerValue.value = hsv.v
+}
+
+function setColorPickerFromRgb(r, g, b) {
+  const hsv = rgbToHsv(r, g, b)
+  colorPickerHue.value = hsv.h
+  colorPickerSaturation.value = hsv.s
+  colorPickerValue.value = hsv.v
+}
+
+function targetHexForPicker(target) {
+  if (target === 'highlight') return currentHighlightHex.value || defaultHighlightHex
+  if (target === 'callout') return currentCalloutHex.value || defaultCalloutHex
+  return currentTextColorHex.value || defaultTextColorHex
+}
+
+function positionColorPicker(triggerElement = null) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (triggerElement instanceof HTMLElement) {
+    colorPickerAnchorRect.value = triggerElement.getBoundingClientRect()
+  }
+
+  const rect = colorPickerAnchorRect.value
+  if (!rect) {
+    colorPickerPanelStyle.value = {}
+    return
+  }
+
+  const panelWidth = Math.min(384, window.innerWidth - 24)
+  const left = clamp(rect.left, 12, Math.max(12, window.innerWidth - panelWidth - 12))
+  const estimatedHeight = colorPickerPanel.value instanceof HTMLElement
+    ? colorPickerPanel.value.offsetHeight
+    : 360
+  const spaceBelow = window.innerHeight - rect.bottom - 12
+  const spaceAbove = rect.top - 12
+  const shouldOpenAbove = spaceBelow < Math.min(estimatedHeight, 280) && spaceAbove > spaceBelow
+  const top = shouldOpenAbove
+    ? Math.max(12, rect.top - estimatedHeight - 8)
+    : Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - estimatedHeight - 12))
+
+  colorPickerPanelStyle.value = {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${panelWidth}px`,
+    maxHeight: `${Math.max(220, window.innerHeight - 24)}px`,
+    overflowY: 'auto',
+    zIndex: '60',
+  }
+}
+
+function openColorPicker(target, event = null) {
+  if (props.disabled) return
+
+  rememberSelection()
+
+  const startingHex = targetHexForPicker(target)
+
+  colorPickerTarget.value = target
+  colorPickerHexValue.value = startingHex.toUpperCase()
+  colorPickerInitialHex.value = startingHex
+  setColorPickerFromHex(startingHex)
+  isColorPickerAdvancedOpen.value = false
+  positionColorPicker(event?.currentTarget ?? null)
+  isColorPickerOpen.value = true
+  nextTick(() => positionColorPicker())
+}
+
+function closeColorPicker() {
+  isColorPickerOpen.value = false
+  isColorPickerAdvancedOpen.value = false
+  colorPickerTarget.value = ''
+  colorPickerHexValue.value = ''
+  activeCustomColorIndex.value = -1
+  colorPickerPanelStyle.value = {}
+  colorPickerAnchorRect.value = null
+  stopColorPickerDrag()
+}
+
+function confirmColorPicker() {
+  const nextColor = colorPickerDraftHex.value
+
+  if (colorPickerTarget.value === 'highlight') {
+    applyHighlightColor(nextColor)
+  } else if (colorPickerTarget.value === 'callout') {
+    applyCustomCalloutColor(nextColor)
+  } else {
+    applyCustomTextColor(nextColor)
+  }
+
+  closeColorPicker()
+}
+
+function applyColorPickerRgbChannel(channel, value) {
+  const current = { ...colorPickerDraftRgb.value }
+  current[channel] = clamp(Number.parseInt(value, 10) || 0, 0, 255)
+  setColorPickerFromRgb(current.r, current.g, current.b)
+}
+
+function applyColorPickerHexInput(value) {
+  colorPickerHexValue.value = String(value ?? '').trim().toUpperCase()
+
+  const normalized = normalizeHexColor(colorPickerHexValue.value)
+
+  if (!normalized) {
+    return
+  }
+
+  setColorPickerFromHex(normalized)
+  colorPickerHexValue.value = normalized.toUpperCase()
+}
+
+function confirmColorPickerHexInput() {
+  const normalized = normalizeHexColor(colorPickerHexValue.value)
+
+  if (!normalized) {
+    colorPickerHexValue.value = colorPickerDraftHex.value.toUpperCase()
+    return
+  }
+
+  setColorPickerFromHex(normalized)
+  colorPickerHexValue.value = normalized.toUpperCase()
+  confirmColorPicker()
+}
+
+function applyColorPickerHueInput(value) {
+  colorPickerHue.value = normalizeHueValue(Number.parseInt(value, 10) || 0)
+}
+
+function applyColorPickerSatInput(value) {
+  const numeric = clamp(Number.parseInt(value, 10) || 0, 0, 240)
+  colorPickerSaturation.value = (numeric / 240) * 100
+}
+
+function applyColorPickerLumInput(value) {
+  const numeric = clamp(Number.parseInt(value, 10) || 0, 0, 240)
+  colorPickerValue.value = (numeric / 240) * 100
+}
+
+function updateColorPickerFieldFromPoint(clientX, clientY) {
+  const field = colorPickerField.value
+  if (!(field instanceof HTMLElement)) return
+
+  const rect = field.getBoundingClientRect()
+  const x = clamp((clientX - rect.left) / rect.width, 0, 1)
+  const y = clamp((clientY - rect.top) / rect.height, 0, 1)
+
+  colorPickerSaturation.value = x * 100
+  colorPickerValue.value = (1 - y) * 100
+}
+
+function updateColorPickerSliderFromPoint(clientY) {
+  const slider = colorPickerSlider.value
+  if (!(slider instanceof HTMLElement)) return
+
+  const rect = slider.getBoundingClientRect()
+  const y = clamp((clientY - rect.top) / rect.height, 0, 1)
+  colorPickerHue.value = y * 360
+}
+
+function stopColorPickerDrag() {
+  colorPickerDragCleanup?.()
+  colorPickerDragCleanup = null
+}
+
+function startColorPickerDrag(event, target) {
+  if (props.disabled) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  const onMouseMove = moveEvent => {
+    if (target === 'field') {
+      updateColorPickerFieldFromPoint(moveEvent.clientX, moveEvent.clientY)
+      return
+    }
+
+    updateColorPickerSliderFromPoint(moveEvent.clientY)
+  }
+
+  const onMouseUp = () => {
+    stopColorPickerDrag()
+  }
+
+  colorPickerDragCleanup = () => {
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseup', onMouseUp)
+  }
+
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+
+  if (target === 'field') {
+    updateColorPickerFieldFromPoint(event.clientX, event.clientY)
+  } else {
+    updateColorPickerSliderFromPoint(event.clientY)
+  }
+}
+
+function selectClassicColor(hex) {
+  setColorPickerFromHex(hex)
+}
+
+function selectCustomColor(index) {
+  const value = colorPickerCustomColors.value[index]
+  if (!value) return
+
+  activeCustomColorIndex.value = index
+  setColorPickerFromHex(value)
+}
+
+function addCurrentColorToCustomColors() {
+  const nextColor = colorPickerDraftHex.value
+  const existingIndex = colorPickerCustomColors.value.findIndex(color => color === nextColor)
+
+  if (existingIndex !== -1) {
+    activeCustomColorIndex.value = existingIndex
+    return
+  }
+
+  const nextIndex = colorPickerCustomColors.value.findIndex(color => !color)
+  const targetIndex = nextIndex !== -1
+    ? nextIndex
+    : (activeCustomColorIndex.value !== -1 ? activeCustomColorIndex.value : colorPickerCustomColors.value.length - 1)
+
+  const nextColors = [...colorPickerCustomColors.value]
+  nextColors[targetIndex] = nextColor
+  colorPickerCustomColors.value = nextColors
+  activeCustomColorIndex.value = targetIndex
+}
+
+function handleDocumentMouseDown(event) {
+  if (!isColorPickerOpen.value) return
+
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return
+
+  if (colorPickerPanel.value?.contains(target) || target.closest('.rich-editor-color-picker-trigger')) {
+    return
+  }
+
+  closeColorPicker()
+}
+
+function refreshColorPickerPosition() {
+  if (!isColorPickerOpen.value) return
+  positionColorPicker()
 }
 
 function syncViewportState() {
@@ -836,16 +1217,6 @@ function setTextAlign(value) {
   editor.chain().setTextAlign(value).run()
 }
 
-function applyTextColor(value) {
-  if (value === '__custom') return
-  focusAndRestoreSelection()
-  if (!value) {
-    editor.chain().unsetColor().unsetRteColor().run()
-    return
-  }
-  editor.chain().unsetColor().setRteColor(value).run()
-}
-
 function applyCustomTextColor(value) {
   const normalized = normalizeHexColor(value)
 
@@ -872,26 +1243,6 @@ function applyHighlightColor(value) {
   }
 
   editor.chain().setHighlight({ color: normalized }).run()
-}
-
-function applyCalloutTone(value) {
-  if (value === '__custom') return
-
-  focusAndRestoreSelection()
-
-  if (!value) {
-    if (editor.isActive('calloutBox')) {
-      editor.chain().unsetCallout().run()
-    }
-    return
-  }
-
-  if (editor.isActive('calloutBox')) {
-    editor.chain().updateAttributes('calloutBox', { tone: value, customColor: null }).run()
-    return
-  }
-
-  editor.chain().setCallout({ tone: value, customColor: null }).run()
 }
 
 function applyCustomCalloutColor(value) {
@@ -1061,11 +1412,32 @@ function handleWindowResize() {
 onMounted(() => {
   syncViewportState()
   window.addEventListener('resize', handleWindowResize)
+  window.addEventListener('scroll', refreshColorPickerPosition, true)
+  document.addEventListener('mousedown', handleDocumentMouseDown)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleWindowResize)
+  window.removeEventListener('scroll', refreshColorPickerPosition, true)
+  document.removeEventListener('mousedown', handleDocumentMouseDown)
   stopImageResize()
+  stopColorPickerDrag()
+})
+
+watch(isColorPickerAdvancedOpen, () => {
+  if (!isColorPickerOpen.value) return
+  nextTick(() => positionColorPicker())
+})
+
+watch(colorPickerDraftHex, value => {
+  if (!isColorPickerOpen.value) return
+
+  const normalizedDraft = normalizeHexColor(value)
+  const normalizedInput = normalizeHexColor(colorPickerHexValue.value)
+
+  if (!normalizedInput || normalizedInput === normalizedDraft) {
+    colorPickerHexValue.value = String(value ?? '').toUpperCase()
+  }
 })
 
 onBeforeUnmount(() => editor?.destroy())
@@ -1148,48 +1520,25 @@ onBeforeUnmount(() => editor?.destroy())
           </select>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Text color preset">
-          <select class="hz-input" style="max-width: 190px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentTextColorSelectValue" @mousedown.stop @change="applyTextColor($event.target.value)">
-            <option value="">Text: Default</option>
-            <option value="__custom" disabled>Text: Custom</option>
-            <option v-for="opt in textColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-        </div>
-
         <div class="rich-editor-tooltip" data-tooltip="Custom text color">
-          <div class="rich-editor-color-group">
-            <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @input="applyCustomTextColor($event.target.value)" />
-            <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentTextColorHex" @mousedown.stop @change="applyCustomTextColor($event.target.value)" />
-          </div>
-        </div>
-
-        <div class="rich-editor-tooltip" data-tooltip="Highlight color preset">
-          <select class="hz-input" style="max-width: 200px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentHighlightSelectValue" @mousedown.stop @change="applyHighlightColor($event.target.value)">
-            <option value="">Highlight: None</option>
-            <option value="__custom" disabled>Highlight: Custom</option>
-            <option v-for="opt in highlightColorOptions.filter(option => option.value)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('text', $event)">
+            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentTextColorHex }"></span>
+            <span>Text Color</span>
+          </button>
         </div>
 
         <div class="rich-editor-tooltip" data-tooltip="Custom highlight color">
-          <div class="rich-editor-color-group">
-            <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @input="applyHighlightColor($event.target.value)" />
-            <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentHighlightHex" @mousedown.stop @change="applyHighlightColor($event.target.value)" />
-          </div>
-        </div>
-
-        <div class="rich-editor-tooltip" data-tooltip="Field preset">
-          <select class="hz-input" style="max-width: 180px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentCalloutSelectValue" @mousedown.stop @change="applyCalloutTone($event.target.value)">
-            <option value="__custom" disabled>Field: Custom</option>
-            <option v-for="opt in calloutToneOptions" :key="opt.value || '__none'" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('highlight', $event)">
+            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentHighlightHex }"></span>
+            <span>Highlight Color</span>
+          </button>
         </div>
 
         <div class="rich-editor-tooltip" data-tooltip="Custom field color">
-          <div class="rich-editor-color-group">
-            <input type="color" class="rich-editor-color-chip" :disabled="disabled" :value="currentCalloutHex" @mousedown.stop @input="applyCustomCalloutColor($event.target.value)" />
-            <input type="text" class="hz-input rich-editor-hex-input" :disabled="disabled" :value="currentCalloutHex" @mousedown.stop @change="applyCustomCalloutColor($event.target.value)" />
-          </div>
+          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('callout', $event)">
+            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentCalloutHex }"></span>
+            <span>Field Color</span>
+          </button>
         </div>
 
         <div class="rich-editor-tooltip" data-tooltip="Clear custom text styling">
@@ -1242,6 +1591,143 @@ onBeforeUnmount(() => editor?.destroy())
         </div>
         <div class="rich-editor-tooltip" data-tooltip="Delete table">
           <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="isColorPickerOpen"
+      ref="colorPickerPanel"
+      class="hz-popover-surface rich-editor-color-panel overflow-hidden rounded-xl"
+      :style="colorPickerPanelStyle"
+      @mousedown.stop
+    >
+      <div class="space-y-3 px-3 py-3">
+        <div class="flex items-center gap-2">
+          <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerInitialHex }"></div>
+          <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerDraftHex }"></div>
+          <input
+            type="text"
+            class="hz-input rich-editor-color-hex-input"
+            :value="colorPickerHexValue"
+            spellcheck="false"
+            @mousedown.stop
+            @input="applyColorPickerHexInput($event.target.value)"
+            @blur="applyColorPickerHexInput($event.target.value)"
+            @keydown.enter.prevent="confirmColorPickerHexInput"
+          />
+          <div class="min-w-0">
+            <div class="text-[11px] font-semibold text-[var(--color-text-primary)]">{{ colorPickerPreviewLabel }} Color</div>
+            <div class="truncate text-[11px] font-mono uppercase text-[var(--color-text-secondary)]">{{ colorPickerDraftHex }}</div>
+          </div>
+          <div class="ml-auto flex items-center gap-1">
+            <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="closeColorPicker">Close</HorizonButton>
+            <HorizonButton type="button" size="xs" variant="primary" @mousedown.prevent @click="confirmColorPicker">Done</HorizonButton>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-[minmax(0,1fr)_1rem] gap-2">
+          <div
+            ref="colorPickerField"
+            class="rich-editor-color-field"
+            :style="colorPickerFieldStyle"
+            @mousedown="startColorPickerDrag($event, 'field')"
+          >
+            <div class="rich-editor-color-field-cursor" :style="colorPickerFieldCursorStyle"></div>
+          </div>
+
+          <div
+            ref="colorPickerSlider"
+            class="rich-editor-color-slider"
+            @mousedown="startColorPickerDrag($event, 'slider')"
+          >
+            <div class="rich-editor-color-slider-cursor" :style="colorPickerSliderCursorStyle"></div>
+          </div>
+        </div>
+
+        <div class="hz-stack-xs">
+          <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Preset Colors</div>
+          <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--compact">
+            <button
+              v-for="hex in classicColorSwatches"
+              :key="hex"
+              type="button"
+              class="rich-editor-color-swatch"
+              :class="colorPickerDraftHex === hex ? 'rich-editor-color-swatch--active' : ''"
+              :style="{ backgroundColor: hex }"
+              @mousedown.prevent
+              @click="selectClassicColor(hex)"
+            ></button>
+          </div>
+        </div>
+
+        <div class="border-t border-[color:var(--color-surface-border)] pt-2">
+          <button
+            type="button"
+            class="rich-editor-color-advanced-toggle"
+            @mousedown.prevent
+            @click="isColorPickerAdvancedOpen = !isColorPickerAdvancedOpen"
+          >
+            <span>Advanced</span>
+            <span class="text-[10px] text-[var(--color-text-secondary)]">{{ isColorPickerAdvancedOpen ? 'Hide' : 'Show' }}</span>
+          </button>
+        </div>
+
+        <div v-if="isColorPickerAdvancedOpen" class="space-y-3">
+          <div class="hz-stack-xs">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Saved Colors</div>
+              <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="addCurrentColorToCustomColors">Save</HorizonButton>
+            </div>
+            <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--custom">
+              <button
+                v-for="(hex, index) in colorPickerCustomColors"
+                :key="`custom-${index}`"
+                type="button"
+                class="rich-editor-color-swatch"
+                :class="activeCustomColorIndex === index ? 'rich-editor-color-swatch--active' : ''"
+                :style="{ backgroundColor: hex || 'transparent' }"
+                @mousedown.prevent
+                @click="selectCustomColor(index)"
+              >
+                <span v-if="!hex" class="rich-editor-color-swatch-empty"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Hue</span>
+              <input type="number" class="hz-input" min="0" max="359" :value="colorPickerHueInput" @mousedown.stop @input="applyColorPickerHueInput($event.target.value)" />
+            </label>
+
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Sat</span>
+              <input type="number" class="hz-input" min="0" max="240" :value="colorPickerSatInput" @mousedown.stop @input="applyColorPickerSatInput($event.target.value)" />
+            </label>
+
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Lum</span>
+              <input type="number" class="hz-input" min="0" max="240" :value="colorPickerLumInput" @mousedown.stop @input="applyColorPickerLumInput($event.target.value)" />
+            </label>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Red</span>
+              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.r" @mousedown.stop @input="applyColorPickerRgbChannel('r', $event.target.value)" />
+            </label>
+
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Green</span>
+              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.g" @mousedown.stop @input="applyColorPickerRgbChannel('g', $event.target.value)" />
+            </label>
+
+            <label class="hz-stack-xs">
+              <span class="text-[11px] text-[var(--color-text-secondary)]">Blue</span>
+              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.b" @mousedown.stop @input="applyColorPickerRgbChannel('b', $event.target.value)" />
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -1407,28 +1893,175 @@ onBeforeUnmount(() => editor?.destroy())
   transform: translateX(-50%) translateY(0);
 }
 
-.rich-editor-color-group {
+.rich-editor-color-picker-trigger {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
   align-items: center;
+  gap: 0.55rem;
+  min-width: 8.9rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 0.8rem;
+  background: var(--color-panel-surface);
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
-.rich-editor-color-chip {
-  width: 2.5rem;
-  height: 2.35rem;
-  padding: 0.2rem;
-  border: 1px solid rgb(255 255 255 / 0.1);
+.rich-editor-color-picker-trigger:hover:not(:disabled) {
+  background: var(--color-panel-open);
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+}
+
+.rich-editor-color-picker-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rich-editor-color-trigger-swatch {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+}
+
+.rich-editor-color-panel {
+  box-shadow: 0 18px 36px rgb(2 6 23 / 0.26);
+}
+
+.rich-editor-color-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.rich-editor-color-swatch-grid--compact {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.rich-editor-color-swatch-grid--custom {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rich-editor-color-swatch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 0.65rem;
+  background: var(--color-panel-deep-surface);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.rich-editor-color-swatch:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+}
+
+.rich-editor-color-swatch--active {
+  border-color: var(--horizon-sunset-blue);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--horizon-sunset-blue) 55%, transparent);
+}
+
+.rich-editor-color-swatch-empty {
+  position: absolute;
+  inset: 0.32rem;
+  border: 1px dashed color-mix(in srgb, var(--color-text-secondary) 45%, transparent);
+  border-radius: 0.45rem;
+}
+
+.rich-editor-color-field {
+  position: relative;
+  min-height: 10rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.rich-editor-color-slider {
+  position: relative;
+  min-height: 10rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    #ff0000 0%,
+    #ffff00 17%,
+    #00ff00 33%,
+    #00ffff 50%,
+    #0000ff 67%,
+    #ff00ff 83%,
+    #ff0000 100%
+  );
+  overflow: hidden;
+  cursor: ns-resize;
+}
+
+.rich-editor-color-field-cursor,
+.rich-editor-color-slider-cursor {
+  position: absolute;
+  pointer-events: none;
+}
+
+.rich-editor-color-field-cursor {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgb(255 255 255 / 0.95);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.rich-editor-color-slider-cursor {
+  left: 50%;
+  width: calc(100% + 0.4rem);
+  height: 0.55rem;
+  border: 2px solid rgb(255 255 255 / 0.95);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.rich-editor-color-preview-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.rich-editor-color-preview-chip {
+  height: 3rem;
+  border: 1px solid var(--color-surface-border);
   border-radius: 0.85rem;
-  background: rgb(27 32 53 / 1);
-  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
 }
 
-.rich-editor-hex-input {
-  width: 7.5rem;
-  min-width: 7.5rem;
+.rich-editor-color-preview-chip--small {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+}
+
+.rich-editor-color-hex-input {
+  width: 6.9rem;
+  min-width: 6.9rem;
+  padding-inline: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-transform: uppercase;
+}
+
+.rich-editor-color-advanced-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 @media (max-width: 767px) {
@@ -1495,12 +2128,34 @@ onBeforeUnmount(() => editor?.destroy())
     display: none;
   }
 
-  .rich-editor-color-group {
-    flex-wrap: nowrap;
+  .rich-editor-color-panel {
+    max-width: calc(100vw - 24px);
   }
 
-  .rich-editor-hex-input {
-    display: none;
+  .rich-editor-color-picker-trigger {
+    min-width: 7.75rem;
+  }
+
+  .rich-editor-color-hex-input {
+    width: 6.1rem;
+    min-width: 6.1rem;
+  }
+
+  .rich-editor-color-swatch-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .rich-editor-color-swatch-grid--compact {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .rich-editor-color-swatch-grid--custom {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .rich-editor-color-field,
+  .rich-editor-color-slider {
+    min-height: 8.5rem;
   }
 }
 
@@ -1623,14 +2278,18 @@ onBeforeUnmount(() => editor?.destroy())
   outline-offset: 2px;
 }
 
+.rich-editor-body :deep(.ProseMirror) {
+  min-height: inherit;
+  background: transparent;
+}
+
+.rich-editor-body :deep(.hz-rte-callout) {
+  border-radius: 0 !important;
+}
+
 .rich-editor-body :deep(p::after) {
   content: '';
   display: block;
   clear: both;
 }
 </style>
-
-
-
-
-

@@ -146,6 +146,23 @@ class LedgerTransferService
         return $this->requests->rejectTransferRequestForContext($actor, $transferRequest, $this->squadronInboxContext($actor, $squadron), 'inventory', $data);
     }
 
+    public function approvePendingFundTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest): array
+    {
+        return $this->requests->approveTransferRequestForContext(
+            $actor,
+            $transferRequest,
+            $this->organizationInboxContext($actor),
+            'funds',
+            fn (User $approver, LedgerTransferRequest $request) => $this->completeFundTransferRequest($approver, $request),
+            fn (User $approver, LedgerTransferRequest $request) => $this->completeInventoryTransferRequest($approver, $request)
+        );
+    }
+
+    public function rejectPendingFundTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest, array $data = []): LedgerTransferRequest
+    {
+        return $this->requests->rejectTransferRequestForContext($actor, $transferRequest, $this->organizationInboxContext($actor), 'funds', $data);
+    }
+
     public function approvePendingInventoryTransferForOrganization(User $actor, LedgerTransferRequest $transferRequest): array
     {
         return $this->requests->approveTransferRequestForContext(
@@ -189,7 +206,7 @@ class LedgerTransferService
                 'type' => 'personal',
                 'user_id' => $actor->id,
                 'label' => 'My Assets & Funds',
-                'description' => 'Move funds or tracked assets into your personal records.',
+                'description' => 'Move funds or tracked assets into your personal records. Approval is required before Horizon completes the transfer.',
             ];
         }
 
@@ -205,7 +222,7 @@ class LedgerTransferService
                 'key' => 'organization',
                 'type' => 'organization',
                 'label' => 'Horizon Treasury',
-                'description' => 'Move funds or tracked assets into Horizon Treasury.',
+                'description' => 'Move funds or tracked assets into Horizon Treasury. Approval is required before Horizon completes the transfer.',
             ];
         }
 
@@ -219,6 +236,11 @@ class LedgerTransferService
     public function pendingTransferRequestsForContext(User $viewer, array $context, string $transferKind, array $referenceMaps): array
     {
         return $this->requests->pendingTransferRequestsForContext($viewer, $context, $transferKind, $referenceMaps);
+    }
+
+    public function pendingTransferCountsForContexts(User $viewer, array $contextsByKey): array
+    {
+        return $this->requests->pendingTransferCountsForContexts($viewer, $contextsByKey);
     }
 
     public function recentFundTransfersForContext(User $viewer, array $context): array
@@ -360,39 +382,12 @@ class LedgerTransferService
 
     protected function transferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
     {
-        if (
-            $sourceContext['type'] === 'personal'
-            && $destinationContext['type'] === 'personal'
-            && (int) ($sourceContext['user_id'] ?? 0) !== (int) ($destinationContext['user_id'] ?? 0)
-        ) {
-            return true;
-        }
-
-        if (
-            $destinationContext['type'] === 'squadron'
-            && ($destinationContext['squadron'] ?? null) instanceof Squadron
-            && ! $this->contexts->canActorDirectlySendIntoSquadron($actor, $destinationContext['squadron'])
-        ) {
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     protected function inventoryTransferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
     {
-        if ($this->transferRequiresApproval($actor, $sourceContext, $destinationContext)) {
-            return true;
-        }
-
-        if (
-            $destinationContext['type'] === 'organization'
-            && ! $this->contexts->canManageOrganizationLedger($actor)
-        ) {
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     protected function logPendingTransferRequest(
@@ -703,9 +698,7 @@ class LedgerTransferService
                 'type' => 'personal',
                 'user_id' => $user->id,
                 'label' => "{$this->contexts->transferDisplayName($user)}'s Assets & Funds",
-                'description' => ($includeSelf || (int) $user->id === (int) $actor->id)
-                    ? 'Move funds or tracked assets into this verified member\'s personal records.'
-                    : 'Move funds or tracked assets into this verified member\'s personal records. They will need to approve it first.',
+                'description' => 'Move funds or tracked assets into this verified member\'s personal records. The receiving ledger must approve it before Horizon completes the transfer.',
             ])
             ->values()
             ->all();
@@ -745,17 +738,13 @@ class LedgerTransferService
                 return '2-' . mb_strtolower($squadron->name);
             })
             ->values()
-            ->map(function (Squadron $squadron) use ($actor) {
-                $requiresApproval = ! $this->contexts->canActorDirectlySendIntoSquadron($actor, $squadron);
-
+            ->map(function (Squadron $squadron) {
                 return [
                     'key' => "member-squadron:{$squadron->id}",
                     'type' => 'squadron',
                     'squadron_id' => $squadron->id,
                     'label' => "{$squadron->name} Squadron Assets & Funds",
-                    'description' => $requiresApproval
-                        ? 'Move funds or tracked assets into this squadron\'s shared records. A squadron ledger manager will need to approve it first.'
-                        : 'Move funds or tracked assets into this squadron\'s shared records.',
+                    'description' => 'Move funds or tracked assets into this squadron\'s shared records. A squadron ledger manager must approve it before Horizon completes the transfer.',
                 ];
             })
             ->values()
@@ -780,7 +769,7 @@ class LedgerTransferService
                 'type' => 'squadron',
                 'squadron_id' => $squadron->id,
                 'label' => "{$squadron->name} Squadron Assets & Funds",
-                'description' => 'Move funds or tracked assets into the shared squadron records.',
+                'description' => 'Move funds or tracked assets into the shared squadron records. A squadron ledger manager must approve it before Horizon completes the transfer.',
             ])
             ->values()
             ->all();

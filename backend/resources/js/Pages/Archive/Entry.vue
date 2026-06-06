@@ -1,7 +1,9 @@
 <script setup>
+import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import { normalizeRichTextHtml } from '@/richText'
 
 const props = defineProps({
   category: { type: Object, default: null },
@@ -9,6 +11,8 @@ const props = defineProps({
   entry: Object,
   relatedEntries: { type: Array, default: () => [] },
 })
+
+const entryBodyHtml = computed(() => normalizeRichTextHtml(props.entry?.body))
 </script>
 
 <template>
@@ -77,8 +81,8 @@ const props = defineProps({
 
         <div
           v-if="entry.body"
-          class="hz-rte-content max-w-none"
-          v-html="entry.body"
+          class="hz-soft hz-rte-content max-w-none space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_.hz-rte-callout]:rounded-none [&_.hz-rte-callout]:border [&_.hz-rte-callout]:border-(--color-bg-hover) [&_.hz-rte-callout]:bg-bg-elevated"
+          v-html="entryBodyHtml"
         />
         <div v-else class="rounded-2xl border border-white/10 bg-black/20 p-5 text-text-secondary">
           No body content has been written for this archive entry yet.
@@ -98,7 +102,7 @@ const props = defineProps({
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.055)] group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:[--hz-angled-corner-border:color-mix(in_srgb,var(--horizon-sunset-blue)_45%,transparent)]">
+          <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="hz-surface-welcome group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
             <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
 
             <div v-if="related.categories?.length || related.tags?.length" class="relative mb-3 flex flex-wrap gap-2 text-xs font-semibold">
@@ -119,8 +123,9 @@ const props = defineProps({
   </HorizonContainer>
 </template>
 
-
-
-
-
+<style scoped>
+:deep(.hz-rte-content .hz-rte-callout) {
+  border-radius: 0 !important;
+}
+</style>
 

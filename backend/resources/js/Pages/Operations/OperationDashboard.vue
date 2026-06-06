@@ -971,7 +971,7 @@ function statusCardClass(status) {
           <article
             v-for="op in filteredOperations"
             :key="op.id"
-            class="hz-surface-welcome hz-surface-angled-subtle [--hz-angled-corner-border:rgba(255,255,255,0.075)] group relative rounded-[1.75rem] border border-white/[0.075] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:[--hz-angled-corner-border:rgba(255,255,255,0.12)] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
+            class="hz-surface-welcome group relative rounded-[1.75rem] border border-white/[0.075] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:shadow-[0_10px_28px_rgb(0_0_0/0.22)]"
             :class="statusCardClass(op.status)"
           >
             <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
@@ -1227,7 +1227,7 @@ function statusCardClass(status) {
             <article
               v-for="operation in filteredAfterActionOperations"
               :key="`${operation.id}-${operation.after_action_report_updated_at ?? 'na'}`"
-              class="hz-surface-welcome hz-surface-angled-subtle [--hz-angled-corner-border:rgba(255,255,255,0.055)] rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5"
+              class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5"
             >
               <div
                 class="cursor-pointer"

@@ -26,7 +26,7 @@ class LedgerTransferFeatureTest extends TestCase
         $this->seed(RoleAndPermissionSeeder::class);
     }
 
-    public function test_personal_transfer_to_squadron_creates_balanced_records(): void
+    public function test_personal_transfer_to_squadron_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -46,27 +46,14 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => null,
-            'is_org_owned' => false,
-            'type' => 'expense',
-            'amount' => '12500.00',
-            'source_type' => 'transfer',
-            'description' => 'Transfer to Atlas Finance Squadron Assets & Funds: Fuel reserve',
-        ]);
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => $squadron->id,
-            'is_org_owned' => false,
-            'type' => 'income',
-            'amount' => '12500.00',
-            'source_type' => 'transfer',
-            'description' => "Transfer from {$actor->rsi_handle}'s Assets & Funds: Fuel reserve",
+        $this->assertSame('pending', $request->status);
+        $this->assertSame($squadron->id, $request->destination_squadron_id);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
         ]);
-
-        $this->assertSame(2, LedgerActivityLog::query()->where('action', 'transfer.created')->count());
+        $this->assertSame(2, LedgerActivityLog::query()->where('action', 'transfer.requested')->count());
     }
 
     public function test_personal_transfer_to_verified_member_creates_pending_request_until_recipient_approves(): void
@@ -99,7 +86,7 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
-    public function test_verified_member_can_transfer_from_personal_to_their_active_squadron_without_managing_it(): void
+    public function test_verified_member_personal_transfer_to_their_active_squadron_stays_pending_until_approved(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -119,14 +106,12 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => $squadron->id,
-            'is_org_owned' => false,
-            'type' => 'income',
-            'amount' => '7200.00',
-            'source_type' => 'transfer',
-            'description' => "Transfer from {$actor->rsi_handle}'s Assets & Funds: Shared pool top-up",
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertSame($squadron->id, $request->destination_squadron_id);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
         ]);
     }
 
@@ -159,7 +144,7 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
-    public function test_verified_member_can_transfer_from_personal_to_horizon_treasury_without_org_manage_permission(): void
+    public function test_verified_member_personal_transfer_to_horizon_treasury_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -177,18 +162,16 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => null,
-            'is_org_owned' => true,
-            'type' => 'income',
-            'amount' => '8800.00',
-            'source_type' => 'transfer',
-            'description' => "Transfer from {$actor->rsi_handle}'s Assets & Funds: Treasury donation",
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertTrue((bool) $request->destination_is_org_owned);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
         ]);
     }
 
-    public function test_squadron_transfer_to_org_creates_balanced_records(): void
+    public function test_squadron_transfer_to_org_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -207,28 +190,16 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => $squadron->id,
-            'is_org_owned' => false,
-            'type' => 'expense',
-            'amount' => '48000.00',
-            'source_type' => 'transfer',
-            'description' => 'Transfer to Horizon Treasury: Ops tax sweep',
-        ]);
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $actor->id,
-            'squadron_id' => null,
-            'is_org_owned' => true,
-            'type' => 'income',
-            'amount' => '48000.00',
-            'source_type' => 'transfer',
-            'description' => 'Transfer from Signal Accountants Squadron Assets & Funds: Ops tax sweep',
+        $this->assertSame('pending', $request->status);
+        $this->assertTrue((bool) $request->destination_is_org_owned);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
         ]);
     }
 
-    public function test_org_manager_can_transfer_to_a_verified_member_personal_records(): void
+    public function test_org_manager_transfer_to_a_verified_member_personal_records_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -248,18 +219,16 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('ledger_transactions', [
-            'user_id' => $recipient->id,
-            'squadron_id' => null,
-            'is_org_owned' => false,
-            'type' => 'income',
-            'amount' => '15000.00',
-            'source_type' => 'transfer',
-            'description' => 'Transfer from Horizon Treasury: Mission reimbursement',
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertSame($recipient->id, $request->destination_user_id);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
         ]);
     }
 
-    public function test_director_level_squadron_transfer_to_another_active_squadron_completes_immediately(): void
+    public function test_director_level_squadron_transfer_to_another_active_squadron_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -282,11 +251,49 @@ class LedgerTransferFeatureTest extends TestCase
 
         $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
 
-        $this->assertSame('completed', $request->status);
+        $this->assertSame('pending', $request->status);
         $this->assertSame($recipientSquadron->id, $request->destination_squadron_id);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
+        ]);
+    }
+
+    public function test_org_manager_can_approve_pending_fund_transfer_into_horizon_treasury(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('TreasuryDonor', 'treasury-donor-approve');
+        $approver = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $this
+            ->actingAs($actor)
+            ->post(route('ledger.transactions.transfer'), [
+                'wipe_cycle_id' => $wipe->id,
+                'destination_type' => 'organization',
+                'amount' => 9100,
+                'description' => 'Treasury donation',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertTrue((bool) $request->destination_is_org_owned);
+        $this->assertNull($request->incoming_transaction_id);
+
+        $this->actingAs($approver)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
+
+        $request->refresh();
+
+        $this->assertSame('completed', $request->status);
+        $this->assertNotNull($request->incoming_transaction_id);
         $this->assertDatabaseHas('ledger_transactions', [
             'id' => $request->incoming_transaction_id,
-            'squadron_id' => $recipientSquadron->id,
+            'is_org_owned' => true,
             'type' => 'income',
             'source_type' => 'transfer',
         ]);
@@ -595,6 +602,12 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
+
         $transaction = LedgerTransaction::query()
             ->where('user_id', $actor->id)
             ->whereNull('squadron_id')
@@ -642,6 +655,10 @@ class LedgerTransferFeatureTest extends TestCase
         ])->assertRedirect();
 
         $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
 
         $this->actingAs($actor)
             ->post(route('ledger.transactions.transfer.reverse', $request->id), [
@@ -701,6 +718,12 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('squadrons.ledger.inventory.transfer.approve', ['squadron' => $squadron->id, 'transferRequest' => $request->id]))
+            ->assertRedirect();
+
         $item->refresh();
 
         $this->assertSame('15.0000', $item->quantity);
@@ -752,6 +775,12 @@ class LedgerTransferFeatureTest extends TestCase
             ])
             ->assertRedirect();
 
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.inventory.transfer.approve', $request->id))
+            ->assertRedirect();
+
         $item->refresh();
 
         $this->assertTrue((bool) $item->is_org_owned);
@@ -790,6 +819,12 @@ class LedgerTransferFeatureTest extends TestCase
             'quantity' => 1,
             'notes' => 'Moved into treasury stock',
         ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.inventory.transfer.approve', $request->id))
+            ->assertRedirect();
 
         $item->refresh();
 

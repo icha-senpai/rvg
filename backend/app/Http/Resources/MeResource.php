@@ -80,6 +80,7 @@ class MeResource extends JsonResource
             'notification_settings' => $this->notification_settings,
             'availability_status' => $this->availability_status,
             'loa_note'            => $this->loa_note,
+            'site_theme'          => $this->site_theme,
             'personal_tags'       => $this->personal_tags,
 
             'operations_completed_count' => $canViewRestrictedOperationStats ? $this->operations_completed_count : null,

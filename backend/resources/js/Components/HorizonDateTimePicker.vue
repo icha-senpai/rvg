@@ -4,7 +4,7 @@
 
     <button
       type="button"
-      class="hz-input w-full text-left cursor-pointer flex items-center justify-between gap-3 bg-[rgba(21,25,42,0.8)]"
+      class="hz-input w-full cursor-pointer text-left flex items-center justify-between gap-3"
       @click="togglePicker"
     >
       <span class="truncate">{{ displayValue }}</span>
@@ -13,12 +13,12 @@
 
     <div
       v-if="pickerOpen"
-      class="mt-2 w-full rounded-xl shadow-2xl overflow-visible bg-bg-surface border border-white/[0.055]"
+      class="hz-popover-surface mt-2 w-full overflow-visible rounded-xl"
     >
-      <div class="px-3 py-3 border-b border-white/10 flex items-center justify-between gap-2">
+      <div class="hz-shell-header flex items-center justify-between gap-2 border-b px-3 py-3">
         <button
           type="button"
-          class="px-2 py-1 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042]"
+          class="hz-surface-soft hz-shell-hover rounded-lg px-2 py-1"
           @click="goPrevMonth"
         >
           ‹
@@ -30,7 +30,7 @@
 
         <button
           type="button"
-          class="px-2 py-1 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042]"
+          class="hz-surface-soft hz-shell-hover rounded-lg px-2 py-1"
           @click="goNextMonth"
         >
           ›
@@ -52,8 +52,8 @@
               cell.isBlank
                 ? 'opacity-0 pointer-events-none'
                 : (cell.isSelected
-                    ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white border border-[color:var(--horizon-sunset-blue)] font-semibold'
-                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'),
+                ? 'bg-[color:var(--horizon-sunset-blue)] text-horizon-white border border-[color:var(--horizon-sunset-blue)] font-semibold'
+                    : 'text-[var(--color-text-primary)] hover:bg-[color:var(--color-hover-frost)]'),
               (!cell.isBlank && cell.isTodayHighlight && !cell.isSelected)
                 ? 'w-10 justify-self-center rounded-full border border-[color:var(--horizon-sunset-blue)] text-[color:var(--horizon-sunset-blue)] font-semibold hover:bg-transparent sm:w-9'
                 : '',
@@ -65,7 +65,7 @@
         </div>
       </div>
 
-      <div class="px-3 py-3 border-t border-white/10">
+      <div class="hz-shell-header border-t px-3 py-3">
         <div class="hz-stack-sm">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
             <div class="hz-stack-xs w-20">
@@ -73,7 +73,7 @@
               <button
                 type="button"
                 ref="hourButton"
-                class="hz-input bg-[rgba(21,25,42,0.8)] w-20 text-left px-3 py-2 flex items-center justify-between"
+                class="hz-input flex w-20 items-center justify-between px-3 py-2 text-left"
                 @click="toggleHourMenu"
               >
                 <span>{{ String(hour).padStart(2, '0') }}</span>
@@ -83,7 +83,7 @@
               <div
                 v-if="hourMenuOpen"
                 ref="hourMenu"
-                class="fixed max-h-40 overflow-y-auto rounded-lg shadow-2xl bg-bg-surface border border-bg-hover p-1 z-50"
+                class="hz-popover-surface fixed z-50 max-h-40 overflow-y-auto rounded-lg p-1"
                 :style="hourMenuStyle"
               >
                 <button
@@ -92,8 +92,8 @@
                   type="button"
                   class="w-full px-2 py-1 rounded-md text-sm text-left"
                   :class="(hour === (h - 1))
-                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
-                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'"
+                    ? 'bg-[color:var(--color-panel-active)] text-horizon-white border border-[color:var(--color-surface-border)]'
+                    : 'text-[var(--color-text-primary)] hover:bg-[color:var(--color-hover-frost)]'"
                   @click="selectHour(h - 1)"
                 >
                   {{ String(h - 1).padStart(2, '0') }}
@@ -106,7 +106,7 @@
               <button
                 type="button"
                 ref="minuteButton"
-                class="hz-input bg-[rgba(21,25,42,0.8)] w-24 text-left px-3 py-2 flex items-center justify-between"
+                class="hz-input flex w-24 items-center justify-between px-3 py-2 text-left"
                 @click="toggleMinuteMenu"
               >
                 <span>{{ String(minute).padStart(2, '0') }}</span>
@@ -116,7 +116,7 @@
               <div
                 v-if="minuteMenuOpen"
                 ref="minuteMenu"
-                class="fixed max-h-40 overflow-y-auto rounded-lg shadow-2xl bg-bg-surface border border-bg-hover p-1 z-50"
+                class="hz-popover-surface fixed z-50 max-h-40 overflow-y-auto rounded-lg p-1"
                 :style="minuteMenuStyle"
               >
                 <button
@@ -125,8 +125,8 @@
                   type="button"
                   class="w-full px-2 py-1 rounded-md text-sm text-left"
                   :class="(minute === m)
-                    ? 'bg-white/[0.042] text-horizon-white border border-white/[0.055]'
-                    : 'text-[var(--color-text-primary)] hover:bg-white/[0.03]'"
+                    ? 'bg-[color:var(--color-panel-active)] text-horizon-white border border-[color:var(--color-surface-border)]'
+                    : 'text-[var(--color-text-primary)] hover:bg-[color:var(--color-hover-frost)]'"
                   @click="selectMinute(m)"
                 >
                   {{ String(m).padStart(2, '0') }}
@@ -137,7 +137,7 @@
             <div v-if="showNow" class="sm:ml-auto">
               <button
                 type="button"
-                class="w-full rounded-lg border border-white/[0.055] bg-white/[0.024] px-3 py-2 text-sm hover:bg-white/[0.042] sm:w-auto"
+                class="hz-surface-soft hz-shell-hover w-full rounded-lg px-3 py-2 text-sm sm:w-auto"
                 @click="setNow"
               >
                 Now
@@ -148,7 +148,7 @@
           <div v-if="clearable" class="flex items-center justify-end gap-2 flex-wrap">
             <button
               type="button"
-              class="px-3 py-2 rounded-lg bg-white/[0.024] border border-white/[0.055] hover:bg-white/[0.042] text-sm"
+              class="hz-surface-soft hz-shell-hover rounded-lg px-3 py-2 text-sm"
               @click="clear"
             >
               Clear
@@ -514,7 +514,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleViewportChanged, true)
 })
 </script>
-
 
 
 

@@ -48,6 +48,7 @@ class UpdateMeRequest extends FormRequest
 
             'availability_status' => ['nullable', 'string', 'max:32'],
             'loa_note' => ['nullable', 'string', 'max:1000'],
+            'site_theme' => ['nullable', 'string', 'in:horizon,dark,aegis,anvil,argo,crusader,drake,origin,misc,mirai,rsi,consolidated_outland,aopoa,banu,esperia,gatac,kruger,greycat,tumbril'],
 
             'personal_tags' => ['nullable', 'array'],
             'personal_tags.*' => ['string', 'max:50'],

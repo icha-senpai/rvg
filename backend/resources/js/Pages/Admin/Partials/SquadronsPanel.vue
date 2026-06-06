@@ -69,7 +69,7 @@
         <article
           v-for="sq in squadrons"
           :key="sq.id"
-          class="hz-surface-welcome hz-surface-angled [--hz-angled-corner-border:rgba(255,255,255,0.1)] group relative rounded-[1.75rem] border border-white/10 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055] hover:[--hz-angled-corner-border:rgba(255,255,255,0.055)]"
+          class="hz-surface-welcome group relative rounded-[1.75rem] border border-white/10 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.055]"
         >
           <div class="pointer-events-none absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -198,199 +198,172 @@
       </div>
     </section>
 
-    <!-- CREATE / EDIT MODAL -->
-    <div
-      v-if="modalOpen"
-      class="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-4"
-      @click.self="closeModal"
-    >
-      <div class="hz-surface-welcome relative z-10 my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.5rem] border border-white/[0.055] hz-animate-pop sm:max-h-[88vh] sm:rounded-[2rem]">
-        <div class="pointer-events-none absolute inset-0 opacity-40">
-          <div class="absolute left-8 top-0 h-px w-56 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
-          <div class="absolute bottom-0 right-10 h-px w-72 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+    <HorizonDrawer v-if="modalOpen" close-label="Close squadron editor drawer" @close="closeModal">
+      <template #header>
+        <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+          {{ isEditing ? 'Edit Squadron' : 'Create Squadron' }}
         </div>
 
-        <header class="hz-surface-welcome relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 p-5">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-                {{ isEditing ? 'Edit Squadron' : 'Create Squadron' }}
-              </div>
+        <div class="mt-1 text-2xl font-black text-horizon-white">
+          {{ isEditing ? editingSquadron?.name : 'New Squadron Record' }}
+        </div>
 
-              <div class="mt-1 text-2xl font-black text-horizon-white">
-                {{ isEditing ? editingSquadron?.name : 'New Squadron Record' }}
-              </div>
+        <p class="mt-1 text-sm text-text-secondary">
+          Configure squadron identity, branch, division, status, and leadership assignment.
+        </p>
+      </template>
 
-              <p class="mt-1 text-sm text-text-secondary">
-                Configure squadron identity, branch, division, status, and leadership assignment.
-              </p>
+      <div class="space-y-5">
+        <section class="hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-4">
+          <div class="mb-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Identity
             </div>
 
-            <button
+            <p class="mt-1 text-sm text-text-secondary">
+              Core public squadron naming and URL identity.
+            </p>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                Name
+              </label>
+              <input
+                v-model="form.name"
+                class="hz-input w-full"
+              />
+            </div>
+
+            <div>
+              <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                Slug
+              </label>
+              <input
+                v-model="form.slug"
+                class="hz-input w-full"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="hz-surface-welcome relative z-30 rounded-[1.5rem] border border-white/[0.055] p-4">
+          <div class="mb-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Organization
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Operational status, branch alignment, and division.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <HorizonSelect
+              v-model="form.status"
+              :options="[
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' },
+                { label: 'Disbanded', value: 'disbanded' },
+              ]"
+              label="Status"
+              class="w-full"
+            />
+
+            <HorizonSelect
+              v-model="form.branch"
+              :options="branchOptions"
+              label="Branch"
+              class="w-full"
+            />
+
+            <HorizonSelect
+              v-model="form.division"
+              :options="divisionOptions"
+              label="Division"
+              class="w-full"
+            />
+          </div>
+        </section>
+
+        <section class="hz-surface-welcome relative z-20 rounded-[1.5rem] border border-white/[0.055] p-4">
+          <div class="mb-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Leadership
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Assign or clear the squadron leader.
+            </p>
+          </div>
+
+          <div
+            v-if="isEditing"
+            class="hz-surface-welcome mb-4 rounded-2xl border border-white/[0.055] p-3 text-sm text-text-secondary"
+          >
+            Current leader:
+            <span
+              v-if="editingSquadron?.leader"
+              class="font-semibold text-horizon-white"
+            >
+              {{ editingSquadron.leader.rsi_handle ?? editingSquadron.leader.discord_name }}
+            </span>
+            <span v-else>None</span>
+
+            <HorizonButton
+              v-if="form.leader_id"
+              class="ml-3"
+              size="xs"
+              variant="ghost"
               type="button"
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.055] hover:bg-white/[0.042] hover:text-horizon-white"
-              aria-label="Close squadron editor"
+              @click="form.leader_id = null"
+            >
+              Unassign
+            </HorizonButton>
+          </div>
+
+          <HorizonSelect
+            v-model="form.leader_id"
+            :options="[
+              { label: 'None', value: null },
+              ...eligibleLeaders.map(u => ({
+                label: `${u.rank ?? 'Rank'} (${u.rank_level}) • ${u.rsi_handle ?? u.discord_name ?? 'Unknown'}`,
+                value: u.id,
+              })),
+            ]"
+            label="Leader"
+            class="w-full"
+          />
+        </section>
+      </div>
+
+      <template #footer>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="text-sm text-text-secondary">
+            {{ isEditing ? 'Save changes to this squadron record.' : 'Create a new squadron record.' }}
+          </div>
+
+          <div class="flex flex-wrap gap-2 sm:justify-end">
+            <HorizonButton
+              variant="ghost"
+              size="sm"
               @click="closeModal"
             >
-              ✕
-            </button>
-          </div>
-        </header>
+              Cancel
+            </HorizonButton>
 
-        <div class="relative flex-1 overflow-y-auto p-5">
-          <div class="space-y-5">
-            <section class="hz-surface-welcome rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 p-4">
-              <div class="mb-4">
-                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                  Identity
-                </div>
-
-                <p class="mt-1 text-sm text-text-secondary">
-                  Core public squadron naming and URL identity.
-                </p>
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Name
-                  </label>
-                  <input
-                    v-model="form.name"
-                    class="hz-input w-full"
-                  />
-                </div>
-
-                <div>
-                  <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Slug
-                  </label>
-                  <input
-                    v-model="form.slug"
-                    class="hz-input w-full"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section class="hz-surface-welcome relative z-30 rounded-[1.5rem] border border-white/[0.055] p-4">
-              <div class="mb-4">
-                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                  Organization
-                </div>
-
-                <p class="mt-1 text-sm text-text-secondary">
-                  Operational status, branch alignment, and division.
-                </p>
-              </div>
-
-              <div class="grid gap-4 lg:grid-cols-3">
-                <HorizonSelect
-                  v-model="form.status"
-                  :options="[
-                    { label: 'Active', value: 'active' },
-                    { label: 'Inactive', value: 'inactive' },
-                    { label: 'Disbanded', value: 'disbanded' },
-                  ]"
-                  label="Status"
-                  class="w-full"
-                />
-
-                <HorizonSelect
-                  v-model="form.branch"
-                  :options="branchOptions"
-                  label="Branch"
-                  class="w-full"
-                />
-
-                <HorizonSelect
-                  v-model="form.division"
-                  :options="divisionOptions"
-                  label="Division"
-                  class="w-full"
-                />
-              </div>
-            </section>
-
-            <section class="hz-surface-welcome relative z-20 rounded-[1.5rem] border border-white/[0.055] p-4">
-              <div class="mb-4">
-                <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                  Leadership
-                </div>
-
-                <p class="mt-1 text-sm text-text-secondary">
-                  Assign or clear the squadron leader.
-                </p>
-              </div>
-
-              <div
-                v-if="isEditing"
-                class="hz-surface-welcome mb-4 rounded-2xl border border-white/[0.055] p-3 text-sm text-text-secondary"
-              >
-                Current leader:
-                <span
-                  v-if="editingSquadron?.leader"
-                  class="font-semibold text-horizon-white"
-                >
-                  {{ editingSquadron.leader.rsi_handle ?? editingSquadron.leader.discord_name }}
-                </span>
-                <span v-else>None</span>
-
-                <HorizonButton
-                  v-if="form.leader_id"
-                  class="ml-3"
-                  size="xs"
-                  variant="ghost"
-                  type="button"
-                  @click="form.leader_id = null"
-                >
-                  Unassign
-                </HorizonButton>
-              </div>
-
-              <HorizonSelect
-                v-model="form.leader_id"
-                :options="[
-                  { label: 'None', value: null },
-                  ...eligibleLeaders.map(u => ({
-                    label: `${u.rank ?? 'Rank'} (${u.rank_level}) • ${u.rsi_handle ?? u.discord_name ?? 'Unknown'}`,
-                    value: u.id,
-                  })),
-                ]"
-                label="Leader"
-                class="w-full"
-              />
-            </section>
+            <HorizonButton
+              variant="primary"
+              size="sm"
+              @click="saveSquadron"
+            >
+              {{ isEditing ? 'Save Changes' : 'Create Squadron' }}
+            </HorizonButton>
           </div>
         </div>
-
-        <footer class="hz-surface-welcome relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 p-5">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="text-sm text-text-secondary">
-              {{ isEditing ? 'Save changes to this squadron record.' : 'Create a new squadron record.' }}
-            </div>
-
-            <div class="flex flex-wrap gap-2 sm:justify-end">
-              <HorizonButton
-                variant="ghost"
-                size="sm"
-                @click="closeModal"
-              >
-                Cancel
-              </HorizonButton>
-
-              <HorizonButton
-                variant="primary"
-                size="sm"
-                @click="saveSquadron"
-              >
-                {{ isEditing ? 'Save Changes' : 'Create Squadron' }}
-              </HorizonButton>
-            </div>
-          </div>
-        </footer>
-      </div>
-    </div>
+      </template>
+    </HorizonDrawer>
   </div>
 
   <HorizonConfirmDialog
@@ -405,12 +378,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -516,13 +490,6 @@ const isEditing = ref(false)
 
 const editingSquadron = ref(null)
 
-function handleKeydown(event) {
-  if (event.key !== 'Escape') return
-  if (!modalOpen.value) return
-
-  closeModal()
-}
-
 /* OPEN CREATE */
 function openCreateModal() {
   isEditing.value = false
@@ -565,14 +532,6 @@ function closeModal() {
   editingSquadron.value = null
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
-
 /* SAVE */
 function saveSquadron() {
   if (isEditing.value) {
@@ -614,4 +573,3 @@ function confirmDeleteSquadron({ close }) {
   })
 }
 </script>
-

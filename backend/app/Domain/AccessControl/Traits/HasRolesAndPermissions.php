@@ -23,6 +23,14 @@ trait HasRolesAndPermissions
      */
     public function permissions()
     {
+        if ($this->relationLoaded('roles') && $this->roles->every(fn ($role) => $role->relationLoaded('permissions'))) {
+            return $this->roles
+                ->pluck('permissions')
+                ->flatten()
+                ->unique('id')
+                ->values();
+        }
+
         return $this->roles()
             ->with('permissions')
             ->get()
@@ -36,6 +44,10 @@ trait HasRolesAndPermissions
      */
     public function hasRole(string $slug): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->pluck('slug')->contains($slug);
+        }
+
         return $this->roles->pluck('slug')->contains($slug);
     }
 
@@ -44,6 +56,10 @@ trait HasRolesAndPermissions
      */
     public function hasAnyRole(array $slugs): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->pluck('slug')->intersect($slugs)->isNotEmpty();
+        }
+
         return $this->roles->pluck('slug')->intersect($slugs)->isNotEmpty();
     }
 

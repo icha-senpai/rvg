@@ -11,8 +11,11 @@ use App\Models\ArchiveCategory;
 use App\Models\ArchiveEntry;
 use App\Models\ArchiveTopic;
 use App\Models\Media;
+use App\Models\SquadronMember;
 use App\Models\User;
 use App\Services\LedgerFeatureService;
+use App\Services\LedgerTransferService;
+use App\Services\RolePreviewService;
 use Inertia\Middleware;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -28,6 +31,8 @@ class HandleInertiaRequests extends Middleware
         protected MediaService $mediaService,
         protected MediaVisibility $mediaVisibility,
         protected LedgerFeatureService $ledgerFeature,
+        protected LedgerTransferService $ledgerTransfers,
+        protected RolePreviewService $rolePreview,
     ) {}
 
     public function share(Request $request): array
@@ -46,13 +51,14 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
-        /** @var User|null $user */
-        $user = Auth::user();
-
+        /** @var User|null $effectiveUser */
+        $effectiveUser = Auth::user();
+        $managerUser = $this->rolePreview->managerUser($request, $effectiveUser);
         $can = [];
+        $ledgerEnabled = false;
 
-        if ($user) {
-            $user->load([
+        if ($effectiveUser) {
+            $effectiveUser->loadMissing([
                 // 🔥 Add RBAC roles to payload
                 'roles:id,slug,name',
 
@@ -69,7 +75,7 @@ class HandleInertiaRequests extends Middleware
                 },
             ]);
 
-            $user->squadrons?->each(function ($sq) {
+            $effectiveUser->squadrons?->each(function ($sq) {
                 $emblemUrl = null;
                 $emblemEmbedded = null;
 
@@ -89,29 +95,31 @@ class HandleInertiaRequests extends Middleware
                 $sq->setAttribute('emblem', $emblemEmbedded);
             });
 
-            if ($this->access->isDirectorLike($user)) {
+            if ($this->access->isDirectorLike($effectiveUser)) {
                 $can = array_fill_keys(PermissionRegistry::all(), true);
             } else {
-                $permissionSlugs = $this->access->context($user)->permissions()->pluck('slug')->all();
+                $permissionSlugs = $this->access->context($effectiveUser)->permissions()->pluck('slug')->all();
                 $permissionSlugSet = array_fill_keys($permissionSlugs, true);
 
-                $can = [];
                 foreach (PermissionRegistry::all() as $slug) {
                     $can[$slug] = isset($permissionSlugSet[$slug]);
                 }
             }
+
+            $ledgerEnabled = $this->ledgerFeature->canAccess($effectiveUser);
         }
 
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $user
-                    ? $user
+                'user' => $effectiveUser
+                    ? $effectiveUser
                     : null,
                 'can' => $can,
             ],
             'features' => [
-                'ledger' => $user ? $this->ledgerFeature->canAccess($user) : false,
+                'ledger' => $ledgerEnabled,
             ],
+            'rolePreview' => $this->rolePreview->share($request, $managerUser),
             'flash' => [
                 'operation' => fn () => $request->session()->get('operation'),
                 'operationTemplate' => fn () => $request->session()->get('operationTemplate'),
@@ -120,7 +128,58 @@ class HandleInertiaRequests extends Middleware
             ],
             'mediaPicker' => fn () => $this->resolveMediaPicker($request),
             'archiveNavigation' => fn () => $this->resolveArchiveNavigation($request),
+            'pendingTransferBadges' => fn () => $this->resolvePendingTransferBadges($effectiveUser),
+            'pendingSquadronApplications' => fn () => $this->resolvePendingSquadronApplications($effectiveUser),
         ]);
+    }
+
+    protected function resolvePendingTransferBadges(?User $user): array
+    {
+        $badges = [
+            'personal' => 0,
+            'squadron' => 0,
+            'organization' => 0,
+        ];
+
+        if (! $user || ! $this->ledgerFeature->canAccess($user)) {
+            return $badges;
+        }
+
+        $contexts = [
+            'personal' => $this->ledgerTransfers->personalInboxContext($user),
+        ];
+
+        $activeSquadron = $user->squadrons?->first(fn ($squadron) => $squadron?->pivot?->membership_status === 'active')
+            ?? $user->squadrons?->first();
+
+        if ($activeSquadron) {
+            $contexts['squadron'] = $this->ledgerTransfers->squadronInboxContext($user, $activeSquadron);
+        }
+
+        if ($user->can('manage-org-ledger')) {
+            $contexts['organization'] = $this->ledgerTransfers->organizationInboxContext($user);
+        }
+
+        return array_merge($badges, $this->ledgerTransfers->pendingTransferCountsForContexts($user, $contexts));
+    }
+
+    protected function resolvePendingSquadronApplications(?User $user): int
+    {
+        if (! $user) {
+            return 0;
+        }
+
+        $activeSquadron = $user->squadrons?->first(fn ($squadron) => $squadron?->pivot?->membership_status === 'active')
+            ?? $user->squadrons?->first();
+
+        if (! $activeSquadron || ! $this->access->canManageSquadronMembers($user, $activeSquadron)) {
+            return 0;
+        }
+
+        return SquadronMember::query()
+            ->where('squadron_id', $activeSquadron->id)
+            ->where('membership_status', SquadronMember::STATUS_PENDING)
+            ->count();
     }
 
     protected function resolveArchiveNavigation(Request $request): ?array

@@ -133,11 +133,11 @@ const copyVerificationCode = async () => {
 </script>
 
 <template>
-    <HorizonContainer class="flex items-center justify-center">
-        <div class="w-full max-w-xl p-6 rounded-2xl bg-gray-900 shadow-xl border border-white/10 text-white">
+    <HorizonContainer class="bg-grid-horizon_3 flex items-center justify-center">
+        <div class="hz-popover-surface w-full max-w-xl rounded-2xl p-6 text-text-primary">
 
-            <h1 class="text-3xl font-bold mb-2">Horizon Interstellar Verification</h1>
-            <p class="text-sm text-gray-400 mb-6">
+            <h1 class="mb-2 text-3xl font-bold text-horizon-white">Horizon Interstellar Verification</h1>
+            <p class="mb-6 text-sm text-text-secondary">
                 Step 1: Link Discord · Step 2: Prove RSI org membership.
             </p>
 
@@ -159,7 +159,7 @@ const copyVerificationCode = async () => {
             <!-- STEP 1: Discord -->
             <div v-if="!discordVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 1 · Verify with Discord</h2>
-                <p class="text-sm text-gray-300 mb-4">
+                <p class="mb-4 text-sm text-text-secondary">
                     Click below to log in with Discord. You'll return here afterward.
                 </p>
 
@@ -174,7 +174,7 @@ const copyVerificationCode = async () => {
             <!-- STEP 2: RSI — only if not yet verified -->
             <div v-else-if="!rsiVerified">
                 <h2 class="text-xl font-semibold mb-3">Step 2 · RSI Verification</h2>
-                <p class="text-sm text-gray-300 mb-4">
+                <p class="mb-4 text-sm text-text-secondary">
                     1) Make sure Horizon is set as your main org!!<br>
                     2) Generate your code and paste it into your RSI bio.<br>
                     3) Enter your RSI handle and click "Verify RSI".
@@ -193,11 +193,11 @@ const copyVerificationCode = async () => {
                 </HorizonButton>
 
                 <!-- Show code -->
-                <div v-if="verificationCode" class="mb-4 rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm">
-                    <p class="text-gray-400 mb-1">Paste this EXACTLY in your RSI bio:</p>
-                    <p v-if="verificationCodeExpiresAt" class="text-xs text-gray-500 mb-2">Expires at {{ new Date(verificationCodeExpiresAt).toLocaleString() }}</p>
+                <div v-if="verificationCode" class="hz-surface-deep mb-4 rounded-lg px-3 py-2 text-sm">
+                    <p class="mb-1 text-text-secondary">Paste this EXACTLY in your RSI bio:</p>
+                    <p v-if="verificationCodeExpiresAt" class="mb-2 text-xs text-text-muted">Expires at {{ new Date(verificationCodeExpiresAt).toLocaleString() }}</p>
                     <div class="flex items-center justify-between gap-3">
-                        <code class="font-mono text-lg tracking-widest">{{ verificationCode }}</code>
+                        <code class="font-mono text-lg tracking-widest text-horizon-white">{{ verificationCode }}</code>
                         <HorizonButton
                             type="button"
                             variant="outline"
@@ -213,7 +213,7 @@ const copyVerificationCode = async () => {
 
                 <!-- RSI handle input -->
                 <div class="mb-3">
-                    <label class="block text-xs uppercase tracking-wide text-gray-400 mb-1">
+                    <label class="mb-1 block text-xs uppercase tracking-wide text-text-muted">
                         RSI Handle
                     </label>
                     <input
@@ -223,8 +223,8 @@ const copyVerificationCode = async () => {
                         :class="[
                             'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2',
                             rsiHandleFieldError
-                                ? 'bg-red-900/30 border-red-500 focus:ring-red-500'
-                                : 'bg-gray-800 border border-white/10 focus:ring-indigo-500'
+                                ? 'border border-red-500 bg-red-500/10 text-red-100 focus:ring-red-500'
+                                : 'hz-input focus:ring-indigo-500'
                         ]"
                     />
                 </div>
@@ -246,8 +246,6 @@ const copyVerificationCode = async () => {
         </div>
     </HorizonContainer>
 </template>
-
-
 
 
 

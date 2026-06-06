@@ -652,7 +652,7 @@ function showFirstError(errors) {
   <section
     v-if="operation?.status === 'completed'"
     :class="compact
-      ? 'rounded-[1.25rem] border border-white/[0.055] bg-black/10 p-4'
+      ? 'hz-surface-deep rounded-[1.25rem] p-4'
       : 'hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5'"
   >
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -681,11 +681,11 @@ function showFirstError(errors) {
           Export CSV
         </HorizonButton>
 
-        <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+        <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
           {{ moneyRows.length }} payout rows
         </div>
 
-        <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+        <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
           {{ lootRows.length }} loot rows
         </div>
 
@@ -701,27 +701,27 @@ function showFirstError(errors) {
     </div>
 
     <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <div class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
         <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Assigned Money</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(assignedMoneyTotal) }}</div>
       </div>
 
-      <div class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
         <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Recipients</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ assignedRecipientCount }}</div>
       </div>
 
-      <div class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
         <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Payout Rows</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ moneyRows.length }}</div>
       </div>
 
-      <div class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
         <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Loot Rows</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ lootRows.length }}</div>
       </div>
 
-      <div class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3">
+      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
         <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Needs Attention</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ unassignedRowCount }}</div>
       </div>
@@ -735,7 +735,7 @@ function showFirstError(errors) {
       <span v-if="finalizedAtLabel"> Finalized {{ finalizedAtLabel }}.</span>
     </div>
 
-    <div class="mt-4 rounded-[1.25rem] border border-white/[0.055] bg-black/10 p-4">
+    <div class="hz-surface-deep mt-4 rounded-[1.25rem] p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Settlement Activity</div>
@@ -744,7 +744,7 @@ function showFirstError(errors) {
           </div>
         </div>
         <div
-          class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+          class="hz-surface-soft rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
         >
           {{ isFinalized ? 'Live in ledgers' : 'Still in draft' }}
         </div>
@@ -754,7 +754,7 @@ function showFirstError(errors) {
         <div
           v-for="row in settlementActivityRows"
           :key="row.label"
-          class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3"
+          class="hz-surface-soft rounded-[1rem] px-4 py-3"
         >
           <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{{ row.label }}</div>
           <div class="mt-2 text-sm font-semibold text-horizon-white">
@@ -766,13 +766,13 @@ function showFirstError(errors) {
     </div>
 
     <div v-if="canManage && !isFinalized" class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-      <div class="rounded-[1.25rem] border border-white/[0.055] bg-black/10 p-4">
+      <div class="hz-surface-deep rounded-[1.25rem] p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Attendance Quick Add</div>
             <div class="mt-1 text-sm text-text-secondary">Drop in payout or loot rows for the final attendee list without re-picking the same recipients.</div>
           </div>
-          <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+          <div class="hz-surface-soft rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
             {{ participantTargets.length }} attendees
           </div>
         </div>
@@ -781,7 +781,7 @@ function showFirstError(errors) {
           <div
             v-for="participant in participantTargets"
             :key="participant.key"
-            class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-3 py-3"
+            class="hz-surface-soft rounded-[1rem] px-3 py-3"
           >
             <div class="text-sm font-semibold text-horizon-white">{{ participant.label }}</div>
             <div class="mt-3 flex flex-wrap gap-2">
@@ -807,13 +807,13 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="mt-4 rounded-[1rem] border border-dashed border-white/15 bg-white/[0.024] px-4 py-4 text-sm text-text-secondary"
+          class="hz-surface-soft hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-4 text-sm text-text-secondary"
         >
           Final attendance will show up here once the AAR roster is filled in.
         </div>
       </div>
 
-      <div class="rounded-[1.25rem] border border-white/[0.055] bg-black/10 p-4">
+      <div class="hz-surface-deep rounded-[1.25rem] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Settlement Helpers</div>
         <div class="mt-1 text-sm text-text-secondary">
           Use one amount field for quick attendee splits, reserve rows, and Horizon’s 10 percent share.
@@ -865,7 +865,7 @@ function showFirstError(errors) {
             </HorizonButton>
           </div>
 
-          <div class="rounded-[1rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3">
+          <div class="hz-surface-soft rounded-[1rem] px-4 py-3">
             <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Helper Math</div>
             <div class="mt-3 grid gap-3 sm:grid-cols-3">
               <div>
@@ -925,7 +925,7 @@ function showFirstError(errors) {
           <div
             v-for="row in moneyRows"
             :key="row.row_key"
-            class="rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
+            class="hz-surface-deep rounded-[1rem] p-4"
           >
             <template v-if="canManage && !isFinalized">
               <div class="grid gap-3 md:grid-cols-2">
@@ -989,7 +989,7 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="mt-4 rounded-[1rem] border border-dashed border-white/15 bg-black/10 px-4 py-5 text-sm text-text-secondary"
+          class="hz-surface-deep hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
         >
           No payout rows yet.
         </div>
@@ -1016,7 +1016,7 @@ function showFirstError(errors) {
           <div
             v-for="row in lootRows"
             :key="row.row_key"
-            class="rounded-[1rem] border border-white/[0.055] bg-black/10 p-4"
+            class="hz-surface-deep rounded-[1rem] p-4"
           >
             <template v-if="canManage && !isFinalized">
               <div class="grid gap-3 md:grid-cols-2">
@@ -1100,7 +1100,7 @@ function showFirstError(errors) {
                   </div>
                 </div>
 
-                <div class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+                <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ row.source_type ?? 'loot' }}
                 </div>
               </div>
@@ -1110,7 +1110,7 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="mt-4 rounded-[1rem] border border-dashed border-white/15 bg-black/10 px-4 py-5 text-sm text-text-secondary"
+          class="hz-surface-deep hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
         >
           No loot rows yet.
         </div>
@@ -1119,7 +1119,7 @@ function showFirstError(errors) {
 
     <div
       v-if="canManage"
-      class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-4"
+      class="hz-surface-deep mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[1rem] px-4 py-4"
     >
       <div class="text-sm text-text-secondary">
         Draft rows stay editable until you finalize them into the ledgers.

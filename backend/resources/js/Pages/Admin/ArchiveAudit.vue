@@ -18,6 +18,15 @@ const selectedAction = ref(props.filters?.action ?? '')
 const search = ref(props.filters?.search ?? '')
 const rows = computed(() => props.logs?.data ?? [])
 const links = computed(() => props.logs?.links ?? [])
+const totalLogs = computed(() => Number(props.logs?.total ?? rows.value.length ?? 0))
+const activeFilterCount = computed(() => {
+  let count = 0
+
+  if (selectedAction.value) count += 1
+  if (search.value) count += 1
+
+  return count
+})
 
 function applyFilters() {
   router.get(route('admin.archive.audit.index'), {
@@ -52,7 +61,12 @@ function prettyMeta(meta) {
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
+
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Archive Security Trail</div>
@@ -60,16 +74,32 @@ function prettyMeta(meta) {
             <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
               Review topic, entry, category, and tag changes made through the Archive admin tools.
             </p>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ totalLogs }} Logged Events
+              </span>
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                {{ activeFilterCount }} Active Filter{{ activeFilterCount === 1 ? '' : 's' }}
+              </span>
+            </div>
           </div>
 
           <div class="flex flex-wrap gap-3">
             <Link :href="route('admin.archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Archive</Link>
             <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.042] px-4 py-2 text-sm font-bold text-horizon-white hover:bg-[color:var(--horizon-sunset-magenta)]/20">Categories & Tags</Link>
+            <Link :href="route('archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Archive</Link>
+            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
           </div>
         </div>
       </section>
 
       <section class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
+        <div class="mb-4">
+          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Filter Console</div>
+          <p class="mt-1 text-sm text-text-secondary">Narrow the activity stream by action type or search terms without losing the shared archive admin look.</p>
+        </div>
+
         <form class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_auto] lg:items-end" @submit.prevent="applyFilters">
           <HorizonSelect v-model="selectedAction" label="Action" :options="actionOptions" />
           <HorizonInput v-model="search" label="Search" placeholder="Search title, name, slug, action..." />
@@ -109,7 +139,7 @@ function prettyMeta(meta) {
         </div>
       </section>
 
-      <nav v-if="links.length > 3" class="flex flex-wrap gap-2">
+      <nav v-if="links.length > 3" class="hz-surface-welcome flex flex-wrap gap-2 rounded-3xl border border-white/[0.055] p-4">
         <Link
           v-for="link in links"
           :key="link.label"
@@ -127,7 +157,6 @@ function prettyMeta(meta) {
     </div>
   </HorizonContainer>
 </template>
-
 
 
 

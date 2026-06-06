@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ApplyRolePreview;
 use App\Http\Middleware\ForceDiscordAuth;
 use App\Http\Middleware\EnforceMaxAuthAge;
 use Illuminate\Session\TokenMismatchException;
@@ -59,10 +60,16 @@ return Application::configure(basePath: dirname(__DIR__))
         | - Forced Discord authentication for all web routes
         */
         $middleware->web(append: [
+            ApplyRolePreview::class,
             HandleInertiaRequests::class,
             ForceDiscordAuth::class,
             EnforceMaxAuthAge::class,
         ]);
+
+        $middleware->appendToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            ApplyRolePreview::class,
+        );
 
         /*
         |--------------------------------------------------------------------------

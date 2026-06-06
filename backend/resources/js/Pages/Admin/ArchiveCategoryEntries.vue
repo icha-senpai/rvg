@@ -174,7 +174,12 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
 <template>
   <HorizonContainer class="py-8 md:py-10">
     <div class="mx-auto max-w-7xl space-y-8">
-      <section class="rounded-[2rem] border border-white/[0.055] bg-white/[0.024] p-6 md:p-8">
+      <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
+        <div class="pointer-events-none absolute inset-0 opacity-40">
+          <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
+          <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
+        </div>
+
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category Entries</div>
@@ -185,8 +190,8 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
               <span class="rounded-full border border-white/10 px-3 py-1">/{{ category.slug }}</span>
               <span class="rounded-full border border-white/10 px-3 py-1">Direct category entries</span>
-              <span class="rounded-full border px-3 py-1 border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
-                Visible in preview
+              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-[color:var(--horizon-text-primary)]">
+                {{ sortedEntries.length }} entr{{ sortedEntries.length === 1 ? 'y' : 'ies' }}
               </span>
             </div>
           </div>
@@ -195,11 +200,12 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
             <HorizonButton type="button" @click="openCreateDrawer">New Category Entry</HorizonButton>
             <Link :href="route('admin.archive.taxonomy.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Back to Categories</Link>
             <Link :href="category.public_href" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/45">View Category</Link>
+            <Link :href="route('admin.dashboard')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-4 py-2 text-sm font-bold text-text-secondary hover:text-horizon-white">Admin Dashboard</Link>
           </div>
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+      <section class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Rank Preview</div>
@@ -219,13 +225,14 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Direct Entries</div>
             <h2 class="text-2xl font-black text-horizon-white">{{ sortedEntries.length }} entr{{ sortedEntries.length === 1 ? 'y' : 'ies' }}</h2>
+            <p class="mt-1 text-sm text-text-secondary">Category-level documents live beside topics, so this screen should feel like the same admin archive system instead of a separate tool.</p>
           </div>
 
           <HorizonButton type="button" variant="ghost" @click="openCreateDrawer">Create Category Entry</HorizonButton>
         </div>
 
         <div v-if="sortedEntries.length" class="space-y-4">
-          <article v-for="entry in sortedEntries" :key="entry.id" class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-5">
+          <article v-for="entry in sortedEntries" :key="entry.id" class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-5">
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
                 <div class="flex flex-wrap gap-2">
@@ -256,7 +263,7 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
           </article>
         </div>
 
-        <div v-else class="rounded-3xl border border-white/[0.055] bg-white/[0.024] p-6 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome rounded-3xl border border-white/[0.055] p-6 text-sm text-text-secondary">
           No direct category entries exist yet. Use New Category Entry to create the first document.
         </div>
       </section>

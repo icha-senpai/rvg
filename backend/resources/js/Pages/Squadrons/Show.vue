@@ -9,6 +9,7 @@ import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+import { normalizeRichTextHtml } from '@/richText'
 
 /* -------------------------------------------------
    Props from Inertia
@@ -63,6 +64,8 @@ const squadron = computed(() => payload.value?.squadron ?? null)
 const members = computed(() => Array.isArray(payload.value?.members) ? payload.value.members : [])
 const viewerMembership = computed(() => payload.value?.viewer_membership ?? null)
 const permissions = computed(() => payload.value?.permissions ?? {})
+const squadronDescriptionHtml = computed(() => normalizeRichTextHtml(squadron.value?.description))
+const squadronRecruitmentHtml = computed(() => normalizeRichTextHtml(squadron.value?.recruitment_propaganda))
 
 const canEditSquadron = computed(() => permissions.value?.can_update_squadron === true)
 const canManageMembers = computed(() => permissions.value?.can_manage_members === true)
@@ -682,24 +685,57 @@ watch(
         <div class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 md:p-8">
           <!-- Header -->
           <div class="border-b border-white/[0.055] pb-6">
-            <div class="flex items-center gap-4">
-              <img
-                v-if="squadron.emblem_url"
-                :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
-                :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
-                class="h-20 w-20 rounded-2xl object-contain md:h-24 md:w-24"
-                loading="lazy"
-              />
-              <div v-else class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl font-bold text-white md:h-24 md:w-24">
-                {{ squadron.name?.[0] || '?' }}
-              </div>
-              <div>
-                <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
-                  {{ formatTitle(squadron.branch) }}
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div class="flex items-center gap-4">
+                <img
+                  v-if="squadron.emblem_url"
+                  :src="squadron.emblem?.medium_url || squadron.emblem?.url || squadron.emblem_url"
+                  :alt="squadron.emblem?.alt_text || `${squadron.name} emblem`"
+                  class="h-20 w-20 rounded-2xl object-contain md:h-24 md:w-24"
+                  loading="lazy"
+                />
+                <div v-else class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.05] text-2xl font-bold text-white md:h-24 md:w-24">
+                  {{ squadron.name?.[0] || '?' }}
                 </div>
-                <h1 class="text-3xl font-black tracking-tight text-white md:text-5xl">
-                  {{ squadron.name }}
-                </h1>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
+                    {{ formatTitle(squadron.branch) }}
+                  </div>
+                  <h1 class="text-3xl font-black tracking-tight text-white md:text-5xl">
+                    {{ squadron.name }}
+                  </h1>
+                </div>
+              </div>
+
+              <div v-if="permissions?.can_apply || permissions?.can_leave || canEditSquadron" class="flex flex-wrap gap-2 lg:justify-end">
+                <HorizonButton
+                  v-if="permissions?.can_apply"
+                  variant="primary"
+                  size="sm"
+                  :disabled="!!activeAction"
+                  @click="applyToSquadron"
+                >
+                  {{ activeAction === 'apply' ? 'Applying…' : 'Apply' }}
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="permissions?.can_leave"
+                  variant="ghostDanger"
+                  size="sm"
+                  :disabled="!!activeAction"
+                  @click="askLeaveSquadron"
+                >
+                  {{ activeAction === 'leave' ? 'Leaving…' : 'Leave Squadron' }}
+                </HorizonButton>
+
+                <HorizonButton
+                  v-if="canEditSquadron"
+                  variant="primary"
+                  size="sm"
+                  @click="openEditModal"
+                >
+                  Edit Squadron
+                </HorizonButton>
               </div>
             </div>
 
@@ -727,8 +763,8 @@ watch(
             <div v-if="squadron.recruitment_propaganda" class="space-y-3">
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Recruitment</div>
               <div
-                class="hz-rte-content"
-                v-html="squadron.recruitment_propaganda"
+                class="hz-soft hz-rte-content max-w-none space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_.hz-rte-callout]:rounded-2xl [&_.hz-rte-callout]:border [&_.hz-rte-callout]:border-(--color-bg-hover) [&_.hz-rte-callout]:bg-bg-elevated"
+                v-html="squadronRecruitmentHtml"
               />
             </div>
 
@@ -737,10 +773,65 @@ watch(
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">About</div>
               <div
                 v-if="squadron.description"
-                class="hz-rte-content"
-                v-html="squadron.description"
+                class="hz-soft hz-rte-content max-w-none space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-medium [&_h6]:text-xs [&_h6]:font-medium [&_blockquote]:border-l-2 [&_blockquote]:border-(--color-bg-hover) [&_blockquote]:pl-3 [&_blockquote]:opacity-90 [&_hr]:my-3 [&_hr]:border-(--color-bg-hover) [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-bg-elevated [&_pre]:rounded [&_pre]:p-3 [&_pre]:bg-bg-elevated [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-(--color-bg-hover) [&_th]:bg-bg-hover [&_th]:p-2 [&_td]:border [&_td]:border-(--color-bg-hover) [&_td]:bg-bg-elevated [&_td]:p-2 [&_mark]:rounded [&_mark]:px-1 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_.hz-rte-callout]:rounded-2xl [&_.hz-rte-callout]:border [&_.hz-rte-callout]:border-(--color-bg-hover) [&_.hz-rte-callout]:bg-bg-elevated"
+                v-html="squadronDescriptionHtml"
               />
               <p v-else class="text-sm text-text-secondary">No description provided.</p>
+            </div>
+
+          </main>
+
+          <aside class="space-y-6">
+            <!-- Your Status -->
+            <div class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Your Status</div>
+              <div class="text-lg font-semibold text-horizon-white">{{ viewerStatusLabel }}</div>
+              <div class="text-sm text-text-secondary">
+                {{ viewerMembership ? 'You have an existing relationship with this squadron.' : 'You are not currently assigned to this squadron.' }}
+              </div>
+            </div>
+
+            <!-- Officer Tools -->
+            <div v-if="canEditSquadron || canManageMembers" class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Officer Tools</div>
+              <div class="flex flex-col gap-2">
+                <div v-if="canManageMembers" class="text-sm text-text-secondary">{{ pendingMembers.length }} pending</div>
+              </div>
+            </div>
+
+            <!-- Quick Facts -->
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Branch</span>
+                <span class="flex items-center gap-2 font-semibold text-horizon-white">
+                  <img v-if="branchLogoSrc(squadron.branch)" :src="branchLogoSrc(squadron.branch)" class="h-4 w-4 object-contain" loading="lazy" />
+                  {{ formatTitle(squadron.branch) }}
+                </span>
+              </div>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Division</span>
+                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.division) }}</span>
+              </div>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Status</span>
+                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.status) }}</span>
+              </div>
+              <div class="flex justify-between gap-2">
+                <span class="text-text-muted">Recruiting</span>
+                <span class="font-semibold text-horizon-white">{{ squadron.recruiting ? 'Open' : 'Closed' }}</span>
+              </div>
+            </div>
+
+            <!-- Capacity -->
+            <div class="space-y-2">
+              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Capacity</div>
+              <div class="text-2xl font-semibold text-horizon-white">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
+              <div class="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  class="h-full rounded-full bg-white/[0.3]"
+                  :style="{ width: `${rosterPercent}%` }"
+                ></div>
+              </div>
             </div>
 
             <!-- Roster -->
@@ -750,15 +841,14 @@ watch(
                 <div class="text-xs text-text-secondary">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
               </div>
 
-              <div class="space-y-6">
-                <!-- Pending applications -->
+              <div class="max-h-[48rem] space-y-5 overflow-y-auto pr-1">
                 <div v-if="canManageMembers && pendingMembers.length" class="space-y-3">
                   <div class="flex items-center justify-between">
                     <div class="text-xs font-bold uppercase tracking-[0.16em] text-amber-100/80">Pending</div>
                     <div class="text-xs font-bold text-amber-100">{{ pendingMembers.length }}</div>
                   </div>
 
-                  <div class="grid gap-3 md:grid-cols-2">
+                  <div class="space-y-3">
                     <article
                       v-for="member in pendingMembers"
                       :key="member.id"
@@ -815,7 +905,6 @@ watch(
                   </div>
                 </div>
 
-                <!-- Commanding officer -->
                 <div v-if="leaderMember || leader" class="space-y-2">
                   <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Commanding Officer</div>
                   <div class="flex items-center gap-2">
@@ -841,17 +930,16 @@ watch(
                       {{ memberName(leaderMember) }}
                     </Link>
 
-                        <span
-                          v-else
-                          class="text-sm font-semibold text-horizon-white"
-                          :style="leaderColor ? { color: leaderColor } : undefined"
-                        >
-                          {{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}
-                        </span>
+                    <span
+                      v-else
+                      class="text-sm font-semibold text-horizon-white"
+                      :style="leaderColor ? { color: leaderColor } : undefined"
+                    >
+                      {{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- Lieutenants -->
                 <section class="space-y-2">
                   <div class="flex items-center justify-between gap-3">
                     <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -863,7 +951,7 @@ watch(
                     </div>
                   </div>
 
-                  <div v-if="lieutenantMembers.length" class="grid gap-3 md:grid-cols-2">
+                  <div v-if="lieutenantMembers.length" class="space-y-3">
                     <article
                       v-for="member in lieutenantMembers"
                       :key="member.id"
@@ -936,13 +1024,12 @@ watch(
                   </p>
                 </section>
 
-                <!-- Members -->
                 <section class="space-y-2">
                   <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                     Members
                   </div>
 
-                  <div v-if="sortedRegularMembers.length" class="grid gap-3 md:grid-cols-2">
+                  <div v-if="sortedRegularMembers.length" class="space-y-3">
                     <article
                       v-for="member in sortedRegularMembers"
                       :key="member.id"
@@ -1014,95 +1101,6 @@ watch(
                     No regular members are listed yet.
                   </p>
                 </section>
-              </div>
-            </div>
-          </main>
-
-          <aside class="space-y-6">
-            <!-- Your Status -->
-            <div class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Your Status</div>
-              <div class="text-lg font-semibold text-horizon-white">{{ viewerStatusLabel }}</div>
-              <div class="text-sm text-text-secondary">
-                {{ viewerMembership ? 'You have an existing relationship with this squadron.' : 'You are not currently assigned to this squadron.' }}
-              </div>
-              <div class="flex flex-wrap gap-2 pt-2">
-                <HorizonButton
-                  v-if="permissions?.can_apply"
-                  variant="primary"
-                  size="sm"
-                  :disabled="!!activeAction"
-                  @click="applyToSquadron"
-                >
-                  {{ activeAction === 'apply' ? 'Applying…' : 'Apply' }}
-                </HorizonButton>
-
-                <HorizonButton
-                  v-if="permissions?.can_leave"
-                  variant="secondary"
-                  size="sm"
-                  :disabled="!!activeAction"
-                  @click="askLeaveSquadron"
-                >
-                  {{ activeAction === 'leave' ? 'Leaving…' : 'Leave Squadron' }}
-                </HorizonButton>
-              </div>
-            </div>
-
-            <!-- Officer Tools -->
-            <div v-if="canEditSquadron || canManageMembers" class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Officer Tools</div>
-              <div class="flex flex-col gap-2">
-                <HorizonButton v-if="canEditSquadron" variant="primary" size="sm" class="w-full" @click="openEditModal">Edit Squadron</HorizonButton>
-                <div v-if="canManageMembers" class="text-sm text-text-secondary">{{ pendingMembers.length }} pending</div>
-              </div>
-            </div>
-
-            <!-- Quick Facts -->
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between gap-2">
-                <span class="text-text-muted">Branch</span>
-                <span class="flex items-center gap-2 font-semibold text-horizon-white">
-                  <img v-if="branchLogoSrc(squadron.branch)" :src="branchLogoSrc(squadron.branch)" class="h-4 w-4 object-contain" loading="lazy" />
-                  {{ formatTitle(squadron.branch) }}
-                </span>
-              </div>
-              <div class="flex justify-between gap-2">
-                <span class="text-text-muted">Division</span>
-                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.division) }}</span>
-              </div>
-              <div class="flex justify-between gap-2">
-                <span class="text-text-muted">Status</span>
-                <span class="font-semibold text-horizon-white">{{ formatTitle(squadron.status) }}</span>
-              </div>
-              <div class="flex justify-between gap-2">
-                <span class="text-text-muted">Recruiting</span>
-                <span class="font-semibold text-horizon-white">{{ squadron.recruiting ? 'Open' : 'Closed' }}</span>
-              </div>
-            </div>
-
-            <!-- Capacity -->
-            <div class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Capacity</div>
-              <div class="text-2xl font-semibold text-horizon-white">{{ activeMemberCount }} / {{ maxRosterSize }}</div>
-              <div class="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                <div
-                  class="h-full rounded-full bg-white/[0.3]"
-                  :style="{ width: `${rosterPercent}%` }"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Leadership -->
-            <div class="space-y-3">
-              <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Leadership</div>
-              <div class="space-y-1">
-                <div class="text-sm font-semibold text-horizon-white">{{ leader?.rsi_handle ?? leader?.display_name ?? leader?.name ?? 'None Assigned' }}</div>
-                <div class="text-xs text-text-muted">Commander</div>
-              </div>
-              <div class="space-y-1">
-                <div class="text-sm font-semibold text-horizon-white">{{ lieutenantMembers.length }} / 2</div>
-                <div class="text-xs text-text-muted">Lieutenants</div>
               </div>
             </div>
           </aside>
@@ -1311,4 +1309,8 @@ watch(
   />
 </template>
 
-
+<style scoped>
+:deep(.hz-rte-content .hz-rte-callout) {
+  border-radius: 0 !important;
+}
+</style>

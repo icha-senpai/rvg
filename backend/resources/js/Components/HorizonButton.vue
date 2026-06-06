@@ -24,10 +24,12 @@ defineProps({
 */
 const variantMap = {
   primary: 'hz-btn-primary',
+  success: 'hz-btn-success',
   secondary: 'hz-btn-secondary',
   outline: 'hz-btn-ghost',
   neutral: 'hz-btn-secondary',
   ghost: 'hz-btn-ghost',
+  ghostDanger: 'hz-btn-ghost-danger',
   danger: 'hz-btn-danger',
 };
 
@@ -41,8 +43,6 @@ const sizeMap = {
   lg: 'min-h-12 hz-btn-lg',
 };
 </script>
-
-
 
 
 

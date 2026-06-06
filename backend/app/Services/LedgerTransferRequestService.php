@@ -43,6 +43,36 @@ class LedgerTransferRequestService
             ->all();
     }
 
+    public function pendingTransferCountsForContexts(User $viewer, array $contextsByKey): array
+    {
+        if ($contextsByKey === []) {
+            return [];
+        }
+
+        $counts = array_fill_keys(array_keys($contextsByKey), 0);
+
+        $requests = LedgerTransferRequest::query()
+            ->where('status', 'pending')
+            ->get([
+                'source_user_id',
+                'source_squadron_id',
+                'source_is_org_owned',
+                'destination_user_id',
+                'destination_squadron_id',
+                'destination_is_org_owned',
+            ]);
+
+        foreach ($requests as $request) {
+            foreach ($contextsByKey as $key => $context) {
+                if ($this->canApproveTransferRequestForContext($viewer, $request, $context)) {
+                    $counts[$key]++;
+                }
+            }
+        }
+
+        return $counts;
+    }
+
     public function recentFundTransfersForContext(User $viewer, array $context): array
     {
         return LedgerTransferRequest::query()

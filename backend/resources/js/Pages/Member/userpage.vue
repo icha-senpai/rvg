@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonDrawer from '@/Components/HorizonDrawer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import { isAdmiralPlus } from '@/auth'
 import { extractFirstErrorMessage as extractSharedErrorMessage } from '@/errors'
@@ -14,6 +15,8 @@ const page = usePage()
 
 const inertiaUser = computed(() => page.props?.auth?.user ?? null)
 const profileUser = computed(() => page.props?.profileUser ?? null)
+const favoriteShipReferences = computed(() => Array.isArray(page.props?.favoriteShipOptions) ? page.props.favoriteShipOptions : [])
+const favoriteItemReferences = computed(() => Array.isArray(page.props?.favoriteItemOptions) ? page.props.favoriteItemOptions : [])
 const isViewingOwnProfile = computed(() => {
   const authedId = inertiaUser.value?.id
   const targetId = (profileUser.value ?? inertiaUser.value)?.id
@@ -55,8 +58,6 @@ const form = ref({
     medical: null,
   },
 })
-
-const newFavoriteGun = ref('')
 
 const roleOptions = [
   { label: 'Not set', value: '' },
@@ -160,322 +161,57 @@ const timezoneOptions = computed(() => {
 })
 
 const favoriteShipSearch = ref('')
+const favoriteItemSearch = ref('')
 
-const favoriteShipOptions = [
-  {
-    label: 'Aegis Dynamics (AEGS)',
-    options: [
-      'Avenger Titan',
-      'Avenger Titan Renegade',
-      'Avenger Stalker',
-      'Avenger Warlock',
-      'Gladius',
-      'Gladius Valiant',
-      'Gladius Pirate Edition',
-      'Sabre',
-      'Sabre Comet',
-      'Sabre Raven',
-      'Sabre Firebird',
-      'Sabre Peregrine',
-      'Vanguard Warden',
-      'Vanguard Harbinger',
-      'Vanguard Sentinel',
-      'Vanguard Hoplite',
-      'Retaliator Bomber',
-      'Retaliator Living quarters / other modules',
-      'Eclipse',
-      'Eclipse Best in Show Edition',
-      'Hammerhead',
-      'Hammerhead Best In Show Edition',
-      'Reclaimer',
-      'Reclaimer Best In Show Edition',
-      'Idris-P',
-      'Idris-M',
-      'Idris-K',
-      'Redeemer',
-      'Javelin',
-      'Nautilus',
-      'Nautilus Solstice Edition',
-      'Vulcan',
-    ],
-  },
-  {
-    label: 'Anvil Aerospace (ANVL)',
-    options: [
-      'F7C Hornet',
-      'F7C Hornet Wildfire',
-      'F7A Hornet',
-      'F7C-S Hornet Ghost',
-      'F7C-R Hornet Tracker',
-      'F7C-M Super Hornet',
-      'F7C-M Super Hornet Heartseeker',
-      'F7C Hornet Mk II',
-      'F7C-R Hornet Tracker Mk II',
-      'F7C-S Hornet Ghost Mk II',
-      'F7C-M Super Hornet Mk II',
-      'F7A Hornet Mk II',
-      'Arrow',
-      'Gladiator',
-      'Hawk',
-      'Hurricane',
-      'Crucible',
-      'Terrapin',
-      'Terrapin Medic',
-      'Valkyrie',
-      'Valkyrie Liberator Edition',
-      'Carrack',
-      'Carrack w/C8X Pisces',
-      'Carrack Expedition',
-      'Carrack Expedition w/C8X',
-      'Liberator',
-      'Spartan',
-      'Centurion',
-      'Legionnaire',
-      'Ballista',
-      'Ballista Snowblind',
-      'Ballista Dunestalker',
-      'C8 Pisces',
-      'C8X Pisces Expedition',
-      'C8R Pisces Rescue',
-      'F8C Lightning',
-      'F8C Lightning Executive-Edition',
-      'Paladin',
-      'Asgard',
-    ],
-  },
-  {
-    label: 'ARGO Astronautics (ARGO)',
-    options: [
-      'MPUV Personnel',
-      'MPUV Cargo',
-      'MPUV Tractor',
-      'Moth',
-      'MOLE',
-      'MOLE Carbon',
-      'MOLE Talus',
-      'RAFT',
-      'SRV',
-      'ATLS',
-      'ATLS GEO',
-      'ATLS IKTI',
-      'CSV-SM',
-    ],
-  },
-  {
-    label: 'Banu Souli (BANU)',
-    options: [
-      'Defender', 
-      'Merchantman'
-    ],
-  },
-  {
-    label: 'Consolidated Outland (CNOU)',
-    options: [
-      'Mustang Alpha', 
-      'Mustang Beta', 
-      'Mustang Delta', 
-      'Mustang Gamma', 
-      'Mustang Omega', 
-      'Nomad', 
-      'Pioneer'
-    ],
-  },
-  {
-    label: 'Crusader Industries (CRUS)',
-    options: [
-      'Mercury Star Runner',
-      'C2 Hercules',
-      'M2 Hercules',
-      'A2 Hercules',
-      'Ares Inferno',
-      'Ares Ion',
-      'C1 Spirit',
-      'E1 Spirit',
-      'A1 Spirit',
-      'Genesis Starliner',
-      'Intrepid',
-    ],
-  },
-  {
-    label: 'Drake Interplanetary (DRAK)',
-    options: [
-      'Cutlass Black',
-      'Cutlass Blue',
-      'Cutlass Red',
-      'Cutlass Steel',
-      'Corsair',
-      'Caterpillar',
-      'Caterpillar Best in Show Edition',
-      'Dragonfly',
-      'Dragonfly Yellowjacket',
-      'Dragonfly Black',
-      'Buccaneer',
-      'Golem',
-      'Golem Ox',
-      'Herald',
-      'Kraken',
-      'Kraken Privateer',
-      'Ironclad',
-      'Ironclad Assault',
-    ],
-  },
-  {
-    label: 'Esperia (ESPR)',
-    options: [
-      'Prowler',
-      'Prowler Utility', 
-      'Blade', 
-      'Glaive', 
-      'Talon', 
-      'Talon Shrike', 
-      'Stinger',
-    ],
-  },
-  {
-    label: "Grey's Market (GLSN / Grey's Market)",
-    options: [
-      'Shiv',
-    ],
-  },
-  {
-    label: 'Greycat Industrial',
-    options: [
-      'ROC', 
-      'STV',
-      'Cydnus',
-    ],
-  },
-  {
-    label: 'Kruger Intergalactic (KRIG)',
-    options: [
-      'P-52 Merlin', 
-      'P-72 Archimedes', 
-      'L-21 Wolf', 
-      'L-22 Alpha Wolf',
-    ],
-  },
-  {
-    label: 'MISC (MISC)',
-    options: [
-      'Freelancer',
-      'Freelancer MAX',
-      'Freelancer DUR',
-      'Freelancer MIS',
-      'Starfarer',
-      'Starfarer Gemini',
-      'Starlite',
-      'Prospector',
-      'Hull A',
-      'Hull B',
-      'Hull C',
-      'Hull D',
-      'Hull E',
-      'Endeavor',
-      'Expanse',
-      'Razor',
-      'Razor EX',
-      'Razor LX',
-      'Reliant Kore',
-      'Reliant Mako',
-      'Reliant Sen',
-      'Reliant Tana',
-    ],
-  },
-  {
-    label: 'Mirai (MRAI)',
-    options: [
-      'Fury',
-      'Fury LX', 
-      'Fury MX', 
-      'Guardian', 
-      'Guardian QI', 
-      'Guardian MX',
-    ],
-  },
-  {
-    label: 'Origin Jumpworks (ORIG)',
-    options: [
-      '100i',
-      '125a',
-      '135c',
-      '300i',
-      '315p',
-      '325a',
-      '350r',
-      '400i',
-      '600i Touring',
-      '600i Explorer',
-      '890 Jump',
-      'X1',
-      '85x',
-      'M50',
-      'M80',
-    ],
-  },
-  {
-    label: 'Roberts Space Industries (RSI)',
-    options: [
-      'Aurora ES',
-      'Aurora MR',
-      'Aurora LN',
-      'Aurora LX',
-      'Aurora CL',
-      'Aurora MKII',
-      'Constellation Andromeda',
-      'Constellation Taurus',
-      'Constellation Aquila',
-      'Constellation Phoenix',
-      'Constellation Phoenix Emerald',
-      'Galaxy',
-      'Perseus',
-      'Pegasus',
-      'Polaris',
-      'Bengal',
-      'Apollo',
-      'Apollo Triage',
-      'Apollo Medivac',
-      'Hermes',
-      'Salvation',
-      'Scorpius',
-      'Scorpius Antares',
-      'Zeus',
-      'Zeus mkII',
-      'Zeus mkII CL',
-      'Zeus mkII ES',
-      'Zeus mkII MR',
-      'Zeus mkII ST',
-    ],
-  },
-  {
-    label: 'Tumbril',
-    options: [
-      'Cyclone',
-      'Cyclone-RC',
-      'Cyclone-RN',
-      'Cyclone-RR',
-      'Cyclone-TR',
-      'Nova',
-    ],
-  },
-  {
-    label: 'Other / Alien / Rare',
-    options: [
-      'Retribution',
-      'Khartu-al',
-      "San'tok.yāi",
-      'Railen',
-      'Syulen',
-      'Cleaver',
-      'Driller',
-      'Harvester',
-      'Hunter',
-      'Mualer',
-      'Scythe',
-      'Stinger',
-      'Void',
-    ],
-  },
-]
+const favoriteShipOptions = computed(() => {
+  const groupedOptions = new Map()
+
+  favoriteShipReferences.value.forEach(ship => {
+    const name = String(ship?.name ?? '').trim()
+    if (!name) return
+
+    const label = String(ship?.type ?? '').trim() || 'Other'
+    const current = groupedOptions.get(label) ?? []
+
+    if (!current.includes(name)) {
+      current.push(name)
+    }
+
+    groupedOptions.set(label, current)
+  })
+
+  return Array.from(groupedOptions.entries())
+    .map(([label, options]) => ({
+      label,
+      options: options.sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label))
+})
+
+const favoriteItemOptions = computed(() => {
+  const groupedOptions = new Map()
+
+  favoriteItemReferences.value.forEach(item => {
+    const name = String(item?.name ?? '').trim()
+    if (!name) return
+
+    const label = String(item?.type ?? '').trim() || 'Other'
+    const current = groupedOptions.get(label) ?? []
+
+    if (!current.includes(name)) {
+      current.push(name)
+    }
+
+    groupedOptions.set(label, current)
+  })
+
+  return Array.from(groupedOptions.entries())
+    .map(([label, options]) => ({
+      label,
+      options: options.sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label))
+})
 
 const displayName = computed(() => {
   const u = me.value
@@ -566,23 +302,6 @@ const experienceRatings = computed(() => {
   return normalizeExperienceRatings(incoming)
 })
 
-function addFavoriteGun() {
-  const value = String(newFavoriteGun.value ?? '').trim()
-  if (!value) return
-
-  const current = Array.isArray(form.value.favorite_guns) ? form.value.favorite_guns : []
-  if (!current.includes(value)) {
-    form.value.favorite_guns = [...current, value]
-  }
-
-  newFavoriteGun.value = ''
-}
-
-function removeFavoriteGun(gun) {
-  const current = Array.isArray(form.value.favorite_guns) ? form.value.favorite_guns : []
-  form.value.favorite_guns = current.filter(g => g !== gun)
-}
-
 function toggleFavoriteShip(ship) {
   const current = Array.isArray(form.value.favorite_ships) ? form.value.favorite_ships : []
   if (current.includes(ship)) {
@@ -598,13 +317,40 @@ function removeFavoriteShip(ship) {
   form.value.favorite_ships = current.filter(s => s !== ship)
 }
 
+function toggleFavoriteItem(item) {
+  const current = Array.isArray(form.value.favorite_guns) ? form.value.favorite_guns : []
+  if (current.includes(item)) {
+    form.value.favorite_guns = current.filter(entry => entry !== item)
+    return
+  }
+
+  form.value.favorite_guns = [...current, item]
+}
+
+function removeFavoriteItem(item) {
+  const current = Array.isArray(form.value.favorite_guns) ? form.value.favorite_guns : []
+  form.value.favorite_guns = current.filter(entry => entry !== item)
+}
+
 const filteredFavoriteShipOptions = computed(() => {
   const query = String(favoriteShipSearch.value ?? '').trim().toLowerCase()
-  if (!query) return favoriteShipOptions
+  if (!query) return favoriteShipOptions.value
 
-  return favoriteShipOptions
+  return favoriteShipOptions.value
     .map(group => {
       const options = (group.options ?? []).filter(ship => String(ship).toLowerCase().includes(query))
+      return { ...group, options }
+    })
+    .filter(group => group.options.length)
+})
+
+const filteredFavoriteItemOptions = computed(() => {
+  const query = String(favoriteItemSearch.value ?? '').trim().toLowerCase()
+  if (!query) return favoriteItemOptions.value
+
+  return favoriteItemOptions.value
+    .map(group => {
+      const options = (group.options ?? []).filter(item => String(item).toLowerCase().includes(query))
       return { ...group, options }
     })
     .filter(group => group.options.length)
@@ -722,13 +468,51 @@ function startEdit() {
   if (!canEditProfile.value) return
   seedFormFromUser(me.value ?? inertiaUser.value)
   favoriteShipSearch.value = ''
+  favoriteItemSearch.value = ''
   isEditing.value = true
 }
 
 function cancelEdit() {
   seedFormFromUser(me.value ?? inertiaUser.value)
   favoriteShipSearch.value = ''
+  favoriteItemSearch.value = ''
   isEditing.value = false
+}
+
+function pageHasEditQuery() {
+  const rawUrl = String(page.url ?? '')
+
+  try {
+    const resolved = new URL(rawUrl, window.location.origin)
+    return resolved.searchParams.get('edit') === '1'
+  } catch {
+    return false
+  }
+}
+
+function consumeEditQuery() {
+  try {
+    const resolved = new URL(window.location.href)
+
+    if (!resolved.searchParams.has('edit')) {
+      return
+    }
+
+    resolved.searchParams.delete('edit')
+    const nextUrl = `${resolved.pathname}${resolved.search}${resolved.hash}`
+    window.history.replaceState(window.history.state, '', nextUrl)
+  } catch {
+    // Best effort only.
+  }
+}
+
+function maybeOpenEditorFromQuery() {
+  if (!canEditProfile.value || isEditing.value || !pageHasEditQuery()) {
+    return
+  }
+
+  startEdit()
+  consumeEditQuery()
 }
 
 function applyUpdatedProfile(pagePayload) {
@@ -818,6 +602,7 @@ function demoteProfileMember() {
 
 onMounted(() => {
   seedFormFromUser(me.value)
+  maybeOpenEditorFromQuery()
 })
 
 watch(
@@ -831,6 +616,13 @@ watch(
     isPromotionConfirmOpen.value = false
     selectedPromotionBranchRoleId.value = ''
     seedFormFromUser(me.value)
+  }
+)
+
+watch(
+  () => page.url,
+  () => {
+    maybeOpenEditorFromQuery()
   }
 )
 </script>
@@ -1542,7 +1334,7 @@ watch(
                 </div>
 
                 <div class="mt-1 text-sm font-semibold text-horizon-white">
-                  {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }} Ships · {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }} Guns
+                  {{ normalizeProfileArray(isEditing ? form.favorite_ships : me?.favorite_ships).length }} Ships · {{ normalizeProfileArray(isEditing ? form.favorite_guns : me?.favorite_guns).length }} Items
                 </div>
               </div>
             </div>
@@ -1646,7 +1438,7 @@ watch(
                     </div>
 
                     <div v-if="!filteredFavoriteShipOptions.length" class="text-sm text-text-muted">
-                      No ships match your search.
+                      {{ favoriteShipOptions.length ? 'No ships match your search.' : 'No synced UEX ships are available yet.' }}
                     </div>
                   </div>
 
@@ -1660,11 +1452,11 @@ watch(
                 <div class="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-                      Favorite Guns
+                      Favorite Items
                     </div>
 
                     <div class="mt-1 text-sm text-text-secondary">
-                      Preferred personal weapons and combat tools.
+                      Preferred armors, weapons, tools, and items.
                     </div>
                   </div>
 
@@ -1679,12 +1471,12 @@ watch(
                     class="flex flex-wrap gap-2"
                   >
                     <span
-                      v-for="gun in profilePreviewList(me?.favorite_guns).items"
-                      :key="gun"
+                      v-for="item in profilePreviewList(me?.favorite_guns).items"
+                      :key="item"
                       class="max-w-full truncate rounded-full border border-white/[0.055] bg-white/[0.035] px-3 py-1 text-xs font-semibold text-text-secondary"
-                      :title="gun"
+                      :title="item"
                     >
-                      {{ gun }}
+                      {{ item }}
                     </span>
 
                     <span
@@ -1699,45 +1491,67 @@ watch(
                     v-else
                     class="hz-surface-welcome rounded-2xl border border-dashed border-white/15 p-4 text-sm text-text-secondary"
                   >
-                    No favorite guns listed.
+                    No favorite items listed.
                   </div>
                 </template>
 
                 <div v-else class="space-y-4">
-                  <div class="flex gap-2">
-                    <input
-                      v-model="newFavoriteGun"
-                      type="text"
-                      class="hz-input"
-                      placeholder="Type a gun name and press Enter…"
-                      @keydown.enter.prevent="addFavoriteGun"
-                    />
-
-                    <HorizonButton
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      @click="addFavoriteGun"
-                    >
-                      Add
-                    </HorizonButton>
-                  </div>
+                  <input
+                    v-model="favoriteItemSearch"
+                    type="text"
+                    class="hz-input"
+                    placeholder="Search items…"
+                  />
 
                   <div v-if="form.favorite_guns?.length" class="flex flex-wrap gap-2">
                     <button
-                      v-for="gun in form.favorite_guns"
-                      :key="gun"
+                      v-for="item in form.favorite_guns"
+                      :key="item"
                       type="button"
                       class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-[color:var(--horizon-sunset-magenta)]/20"
-                      :title="'Remove ' + gun"
-                      @click="removeFavoriteGun(gun)"
+                      :title="'Remove ' + item"
+                      @click="removeFavoriteItem(item)"
                     >
-                      {{ gun }} ✕
+                      {{ item }} ✕
                     </button>
                   </div>
 
+                  <div class="max-h-80 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <div
+                      v-for="group in filteredFavoriteItemOptions"
+                      :key="group.label"
+                      class="mb-4 last:mb-0"
+                    >
+                      <div class="mb-2 text-xs font-bold uppercase tracking-wide text-text-muted">
+                        {{ group.label }}
+                      </div>
+
+                      <div class="grid grid-cols-1 gap-2">
+                        <button
+                          v-for="item in group.options"
+                          :key="group.label + '::' + item"
+                          type="button"
+                          class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
+                          :class="
+                            form.favorite_guns?.includes(item)
+                              ? 'border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] text-horizon-white'
+                              : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:border-white/[0.055] hover:bg-white/[0.05] hover:text-horizon-white'
+                          "
+                          @click="toggleFavoriteItem(item)"
+                        >
+                          <span class="truncate">{{ item }}</span>
+                          <span v-if="form.favorite_guns?.includes(item)" class="shrink-0 text-xs text-fuchsia-200">Selected</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div v-if="!filteredFavoriteItemOptions.length" class="text-sm text-text-muted">
+                      {{ favoriteItemOptions.length ? 'No items match your search.' : 'No synced UEX items are available yet.' }}
+                    </div>
+                  </div>
+
                   <div class="text-sm text-text-muted">
-                    Click a tag to remove it.
+                    Tap to select or unselect. Tap a tag above to remove.
                   </div>
                 </div>
               </div>
@@ -1889,6 +1703,421 @@ watch(
       </section>
     </div>
   </HorizonContainer>
+
+  <HorizonDrawer v-if="isEditing && canEditProfile" close-label="Close profile editor drawer" @close="cancelEdit">
+    <template #header>
+      <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+        Profile Editor
+      </div>
+
+      <div class="mt-1 text-2xl font-black text-horizon-white md:text-3xl">
+        {{ displayName }}
+      </div>
+
+      <p class="mt-1 text-sm text-text-secondary">
+        Update your Horizon profile, readiness details, availability, and equipment preferences in one place.
+      </p>
+    </template>
+
+    <div class="space-y-6">
+      <div
+        v-if="errorMessage"
+        class="rounded-[1.5rem] border border-red-300/25 bg-red-300/10 p-4 text-sm font-semibold text-red-100"
+      >
+        {{ errorMessage }}
+      </div>
+
+      <section class="hz-surface-welcome rounded-[1.75rem] border border-[color:var(--horizon-sunset-blue)]/20 p-5">
+        <div class="mb-5">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Identity
+          </div>
+
+          <h3 class="mt-1 text-xl font-black text-horizon-white">
+            Callsign + Bio
+          </h3>
+
+          <p class="mt-1 text-sm text-text-secondary">
+            Set how you show up across the org and give people a quick read on who you are.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Callsign
+            </label>
+            <HorizonInput
+              v-model="form.callsign"
+              label=""
+              placeholder="Your callsign"
+            />
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Member Bio
+            </label>
+            <HorizonInput
+              v-model="form.bio"
+              type="textarea"
+              label=""
+              placeholder="Tell the org a little about you…"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-5">
+        <div class="mb-5">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Readiness
+          </div>
+
+          <h3 class="mt-1 text-xl font-black text-horizon-white">
+            Roles + Experience
+          </h3>
+
+          <p class="mt-1 text-sm text-text-secondary">
+            Shape the role mix and experience profile other leaders see.
+          </p>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Primary Role
+            </label>
+            <HorizonInput
+              v-model="form.primary_role"
+              type="select"
+              label=""
+              :options="roleOptions"
+            />
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Secondary Role
+            </label>
+            <HorizonInput
+              v-model="form.secondary_role"
+              type="select"
+              label=""
+              :options="roleOptions"
+            />
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Gameplay Style
+            </label>
+            <HorizonInput
+              v-model="form.preferred_gameplay_style"
+              type="select"
+              label=""
+              :options="gameplayStyleOptions"
+            />
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Operation Commitment
+            </label>
+            <HorizonInput
+              v-model="form.typical_op_commitment"
+              type="select"
+              label=""
+              :options="opCommitmentOptions"
+            />
+          </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div
+            v-for="item in [
+              { key: 'space_combat', label: 'Space Combat' },
+              { key: 'ground_combat', label: 'Ground Combat' },
+              { key: 'logistics_support', label: 'Logistics / Support' },
+              { key: 'medical', label: 'Medical' },
+            ]"
+            :key="`profile-drawer-rating-${item.key}`"
+            class="rounded-2xl border border-white/10 bg-black/10 p-4"
+          >
+            <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              {{ item.label }}
+            </div>
+
+            <div class="mt-3 flex gap-2">
+              <button
+                v-for="n in 5"
+                :key="`${item.key}_${n}`"
+                type="button"
+                class="h-4 w-4 rounded-full border border-[color:var(--horizon-sunset-blue)]/50 transition"
+                :class="(form.experience_ratings?.[item.key] ?? 0) >= n ? 'bg-[color:var(--horizon-sunset-blue)]' : 'bg-transparent'"
+                @click="setExperienceRating(item.key, n)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 text-sm text-text-muted">
+          Click dots to set rating from 1–5.
+        </div>
+      </section>
+
+      <section class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-5">
+        <div class="mb-5">
+          <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            Availability
+          </div>
+
+          <h3 class="mt-1 text-xl font-black text-horizon-white">
+            Time + Status
+          </h3>
+
+          <p class="mt-1 text-sm text-text-secondary">
+            Keep timezone, region, availability, and leave notes current.
+          </p>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-3">
+          <div>
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Region
+            </label>
+            <HorizonInput
+              v-model="form.region"
+              type="select"
+              label=""
+              :options="[
+                { label: 'Select region', value: '' },
+                ...regionOptions,
+              ]"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Timezone
+            </label>
+            <HorizonInput
+              v-model="form.timezone"
+              type="select"
+              label=""
+              :options="[
+                { label: 'Select timezone', value: '' },
+                ...timezoneOptions,
+              ]"
+            />
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              Availability
+            </label>
+            <HorizonInput
+              v-model="form.availability_status"
+              label=""
+              placeholder="e.g. Evenings, Weekends, On-call"
+            />
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+              LOA Note
+            </label>
+            <HorizonInput
+              v-model="form.loa_note"
+              type="textarea"
+              label=""
+              placeholder="Optional: leave of absence notes…"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-5">
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Favorite Ships
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Pick the hulls you want leaders to know you prefer flying.
+            </p>
+          </div>
+
+          <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold text-horizon-white">
+            {{ normalizeProfileArray(form.favorite_ships).length }}
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <input
+            v-model="favoriteShipSearch"
+            type="text"
+            class="hz-input"
+            placeholder="Search ships…"
+          />
+
+          <div v-if="form.favorite_ships?.length" class="flex flex-wrap gap-2">
+            <button
+              v-for="ship in form.favorite_ships"
+              :key="`profile-drawer-ship-${ship}`"
+              type="button"
+              class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-[color:var(--horizon-sunset-blue)]/20"
+              :title="'Remove ' + ship"
+              @click="removeFavoriteShip(ship)"
+            >
+              {{ ship }} ✕
+            </button>
+          </div>
+
+          <div class="max-h-80 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+            <div
+              v-for="group in filteredFavoriteShipOptions"
+              :key="`profile-drawer-group-${group.label}`"
+              class="mb-4 last:mb-0"
+            >
+              <div class="mb-2 text-xs font-bold uppercase tracking-wide text-text-muted">
+                {{ group.label }}
+              </div>
+
+              <div class="grid grid-cols-1 gap-2">
+                <button
+                  v-for="ship in group.options"
+                  :key="`${group.label}::${ship}`"
+                  type="button"
+                  class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
+                  :class="
+                    form.favorite_ships?.includes(ship)
+                      ? 'border-[color:var(--horizon-sunset-blue)]/35 bg-white/[0.042] text-horizon-white'
+                      : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:border-white/[0.055] hover:bg-white/[0.05] hover:text-horizon-white'
+                  "
+                  @click="toggleFavoriteShip(ship)"
+                >
+                  <span class="truncate">{{ ship }}</span>
+                  <span v-if="form.favorite_ships?.includes(ship)" class="shrink-0 text-xs text-cyan-200">Selected</span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="!filteredFavoriteShipOptions.length" class="text-sm text-text-muted">
+              {{ favoriteShipOptions.length ? 'No ships match your search.' : 'No synced UEX ships are available yet.' }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-5">
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Favorite Items
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Preferred armors, weapons, tools, and items.
+            </p>
+          </div>
+
+          <div class="hz-surface-welcome rounded-full border border-white/[0.055] px-3 py-1 text-xs font-bold text-horizon-white">
+            {{ normalizeProfileArray(form.favorite_guns).length }}
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <input
+            v-model="favoriteItemSearch"
+            type="text"
+            class="hz-input"
+            placeholder="Search items…"
+          />
+
+          <div v-if="form.favorite_guns?.length" class="flex flex-wrap gap-2">
+            <button
+              v-for="item in form.favorite_guns"
+              :key="`profile-drawer-item-${item}`"
+              type="button"
+              class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-fuchsia-100 transition hover:bg-[color:var(--horizon-sunset-magenta)]/20"
+              :title="'Remove ' + item"
+              @click="removeFavoriteItem(item)"
+            >
+              {{ item }} ✕
+            </button>
+          </div>
+
+          <div class="max-h-80 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+            <div
+              v-for="group in filteredFavoriteItemOptions"
+              :key="`profile-drawer-item-group-${group.label}`"
+              class="mb-4 last:mb-0"
+            >
+              <div class="mb-2 text-xs font-bold uppercase tracking-wide text-text-muted">
+                {{ group.label }}
+              </div>
+
+              <div class="grid grid-cols-1 gap-2">
+                <button
+                  v-for="item in group.options"
+                  :key="`${group.label}::${item}`"
+                  type="button"
+                  class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left text-sm transition"
+                  :class="
+                    form.favorite_guns?.includes(item)
+                      ? 'border-[color:var(--horizon-sunset-magenta)]/35 bg-white/[0.042] text-horizon-white'
+                      : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:border-white/[0.055] hover:bg-white/[0.05] hover:text-horizon-white'
+                  "
+                  @click="toggleFavoriteItem(item)"
+                >
+                  <span class="truncate">{{ item }}</span>
+                  <span v-if="form.favorite_guns?.includes(item)" class="shrink-0 text-xs text-fuchsia-200">Selected</span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="!filteredFavoriteItemOptions.length" class="text-sm text-text-muted">
+              {{ favoriteItemOptions.length ? 'No items match your search.' : 'No synced UEX items are available yet.' }}
+            </div>
+          </div>
+
+          <div class="text-sm text-text-muted">
+            Tap to select or unselect. Tap a tag above to remove.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <template #footer>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-sm text-text-secondary">
+          Save once to apply all profile changes together.
+        </div>
+
+        <div class="flex flex-wrap gap-2 sm:justify-end">
+          <HorizonButton
+            variant="ghost"
+            size="sm"
+            :disabled="isSaving"
+            @click="cancelEdit"
+          >
+            Cancel
+          </HorizonButton>
+
+          <HorizonButton
+            variant="primary"
+            size="sm"
+            :disabled="isSaving"
+            @click="saveProfile"
+          >
+            {{ isSaving ? 'Saving…' : 'Save Changes' }}
+          </HorizonButton>
+        </div>
+      </div>
+    </template>
+  </HorizonDrawer>
 
   <div
     v-if="isPromotionConfirmOpen && promotionPanel?.next_rank"
