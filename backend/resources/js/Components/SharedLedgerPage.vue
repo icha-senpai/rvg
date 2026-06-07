@@ -2182,7 +2182,7 @@ function tabClass(key) {
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ overviewScopeLabel }}</div>
                 <div class="mt-1 text-sm text-text-secondary">
-                  UEX-backed estimates show up with a label so you can tell what was inferred instead of typed.
+                 
                 </div>
               </div>
             </div>
