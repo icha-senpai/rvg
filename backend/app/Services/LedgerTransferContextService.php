@@ -273,7 +273,7 @@ class LedgerTransferContextService
 
     protected function transferContextForOrganizationDestination(User $actor, array $sourceContext): array
     {
-        if ($sourceContext['type'] === 'personal') {
+        if (in_array($sourceContext['type'], ['personal', 'squadron'], true)) {
             $account = $this->cycles->defaultOrgAccountFor($actor);
 
             return [

@@ -10,7 +10,7 @@ class AccessControlServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->singleton(AccessService::class, function ($app) {
-            return new AccessService();
+            return new AccessService($app->make(\App\Domain\AccessControl\SquadronMembershipReadService::class));
         });
     }
 }

@@ -17,19 +17,30 @@ use App\Models\OperationTemplate;
  */
 class AccessService
 {
+    /** @var array<string, UserContext> */
+    protected array $contexts = [];
+
+    protected ?OperationTemplateAccessService $operationTemplateAccess = null;
+    protected ?OperationAccessService $operationAccess = null;
+    protected ?SquadronAccessService $squadronAccess = null;
+
+    public function __construct(
+        protected SquadronMembershipReadService $memberships
+    ) {}
+
     protected function templates(): OperationTemplateAccessService
     {
-        return app(OperationTemplateAccessService::class);
+        return $this->operationTemplateAccess ??= app(OperationTemplateAccessService::class);
     }
 
     protected function operations(): OperationAccessService
     {
-        return app(OperationAccessService::class);
+        return $this->operationAccess ??= app(OperationAccessService::class);
     }
 
     protected function squadrons(): SquadronAccessService
     {
-        return app(SquadronAccessService::class);
+        return $this->squadronAccess ??= app(SquadronAccessService::class);
     }
 
     /**
@@ -37,7 +48,13 @@ class AccessService
      */
     public function context(User $user): UserContext
     {
-        return UserContext::for($user);
+        $cacheKey = $this->userCacheKey($user);
+
+        if (! isset($this->contexts[$cacheKey])) {
+            $this->contexts[$cacheKey] = new UserContext($user, $this->memberships);
+        }
+
+        return $this->contexts[$cacheKey];
     }
 
     /**
@@ -108,7 +125,7 @@ class AccessService
      */
     public function squadronMembership(User $user, Squadron $squadron)
     {
-        return $this->squadronMembershipForId($user, $squadron->id);
+        return $this->memberships->activeMembership($user, $squadron);
     }
 
     /**
@@ -358,5 +375,24 @@ class AccessService
     public function canManageSquadronLedger(User $user, Squadron $squadron): bool
     {
         return $this->squadrons()->canManageLedger($user, $squadron);
+    }
+
+    protected function userCacheKey(User $user): string
+    {
+        $baseKey = $user->getKey() !== null
+            ? 'user:' . $user->getKey()
+            : 'object:' . spl_object_id($user);
+
+        if (! $user->relationLoaded('roles')) {
+            return $baseKey . '|roles:unloaded';
+        }
+
+        $roleSignature = $user->getRelation('roles')
+            ->pluck('slug')
+            ->filter()
+            ->sort()
+            ->implode(',');
+
+        return $baseKey . '|roles:' . $roleSignature;
     }
 }

@@ -81,6 +81,28 @@ class SquadronAccessServiceTest extends TestCase
         $this->assertTrue($service->canViewLedger($user, $squadron));
     }
 
+    public function test_active_regular_member_cannot_view_or_manage_squadron_ledger_without_override(): void
+    {
+        $service = app(SquadronAccessService::class);
+        $user = User::factory()->create();
+        $squadron = Squadron::create([
+            'name' => 'Harbor Ledger',
+            'slug' => 'harbor-ledger',
+            'status' => 'active',
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $user->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMembershipStatus::Active->value,
+            'role' => SquadronRole::Member->value,
+            'joined_at' => now(),
+        ]);
+
+        $this->assertFalse($service->canViewLedger($user, $squadron));
+        $this->assertFalse($service->canManageLedger($user, $squadron));
+    }
+
     public function test_non_member_cannot_manage_members_without_override(): void
     {
         $service = app(SquadronAccessService::class);

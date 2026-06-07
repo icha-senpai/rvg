@@ -333,7 +333,7 @@
   --color-bg-elevated: color-mix(in srgb, var(--site-theme-dark) 62%, #141a22);
   --color-bg-hover: color-mix(in srgb, var(--site-theme-primary) 18%, var(--site-theme-dark));
   --color-border: color-mix(in srgb, var(--site-theme-primary) 18%, rgba(255, 255, 255, 0.08));
-  --color-grid-overlay: color-mix(in srgb, var(--site-theme-dark) 84%, black);
+  --color-grid-overlay: color-mix(in srgb, var(--site-theme-dark) 84%, transparent);
   --color-grid-base: color-mix(in srgb, var(--site-theme-dark) 78%, #020305);
   --color-glass-surface-sm: color-mix(in srgb, var(--site-theme-dark) 54%, transparent);
   --color-glass-surface-md: color-mix(in srgb, var(--site-theme-dark) 60%, transparent);

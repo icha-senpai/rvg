@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Application\Operations\Queries\OperationQuery;
 use App\Domain\Operations\Enums\CompletionOutcome;
 use App\Domain\Operations\Enums\OperationStatus;
@@ -61,7 +62,7 @@ class OperationController extends Controller
         $operation = $this->service->loadGraph($operation);
 
         return response()->json(
-            OperationPresenter::make($operation)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($operation))->full()
         );
     }
 
@@ -75,7 +76,7 @@ class OperationController extends Controller
         $operation = $this->service->create($request->validated(), $squadron);
 
         return response()->json(
-            OperationPresenter::make($operation)->full(),
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($operation))->full(),
             201
         );
     }
@@ -90,7 +91,7 @@ class OperationController extends Controller
         $operation = $this->service->create($request->validated(), null);
 
         return response()->json(
-            OperationPresenter::make($operation)->full(),
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($operation))->full(),
             201
         );
     }
@@ -105,7 +106,7 @@ class OperationController extends Controller
         $updated = $this->service->update($operation, $request->validated());
 
         return response()->json(
-            OperationPresenter::make($updated)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full()
         );
     }
 
@@ -126,7 +127,7 @@ class OperationController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Operation canceled',
-            'operation' => OperationPresenter::make($deleted)->summary(),
+            'operation' => OperationPresenter::make(OperationPresenterRelations::loadForSummary($deleted))->summary(),
         ]);
     }
 
@@ -147,7 +148,7 @@ class OperationController extends Controller
         );
 
         return response()->json(
-            OperationPresenter::make($updated)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full()
         );
     }
 
@@ -161,7 +162,7 @@ class OperationController extends Controller
         $updated = $this->service->transition($operation, OperationStatus::InProgress->value);
 
         return response()->json(
-            OperationPresenter::make($updated)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full()
         );
     }
 
@@ -184,7 +185,7 @@ class OperationController extends Controller
         );
 
         return response()->json(
-            OperationPresenter::make($updated)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full()
         );
     }
 
@@ -206,7 +207,7 @@ class OperationController extends Controller
         );
 
         return response()->json(
-            OperationPresenter::make($updated)->full()
+            OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full()
         );
     }
 }

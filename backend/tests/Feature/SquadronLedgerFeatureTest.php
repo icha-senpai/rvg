@@ -26,7 +26,7 @@ class SquadronLedgerFeatureTest extends TestCase
         $this->seed(RoleAndPermissionSeeder::class);
     }
 
-    public function test_active_squadron_member_sees_only_squadron_owned_entries(): void
+    public function test_squadron_leader_sees_only_squadron_owned_entries(): void
     {
         config()->set('services.ledger.enabled', true);
 
@@ -353,6 +353,53 @@ class SquadronLedgerFeatureTest extends TestCase
                 'description' => 'Should fail',
                 'transaction_date' => now()->toDateTimeString(),
             ])
+            ->assertForbidden();
+    }
+
+    public function test_regular_active_member_cannot_view_squadron_ledger(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $leader = $this->memberUser([
+            'discord_id' => 'squadron-ledger-leader-view-only',
+            'discord_name' => 'Squadron Ledger Leader View Only',
+            'rsi_handle' => 'SquadronLedgerLeaderViewOnly',
+        ]);
+        $member = $this->memberUser([
+            'discord_id' => 'squadron-ledger-member-view-only',
+            'discord_name' => 'Squadron Ledger Member View Only',
+            'rsi_handle' => 'SquadronLedgerMemberViewOnly',
+        ]);
+
+        $squadron = Squadron::query()->create([
+            'name' => 'Amber Echo',
+            'slug' => 'amber-echo',
+            'status' => 'active',
+            'branch' => 'operations',
+            'division' => 'delta',
+            'leader_id' => $leader->id,
+            'recruiting' => true,
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_LEADER,
+            'joined_at' => now()->subDays(5),
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $member->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_MEMBER,
+            'joined_at' => now()->subDays(3),
+        ]);
+
+        $this
+            ->actingAs($member)
+            ->get(route('squadrons.ledger', ['squadron' => $squadron->slug]))
             ->assertForbidden();
     }
 

@@ -3,6 +3,7 @@
 namespace App\Application\Operations\Queries;
 
 use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Domain\Operations\Enums\OperationStatus;
 use App\Models\Operation;
 
@@ -25,7 +26,9 @@ class OperationSummaryListQuery
 
         $operations->setCollection(
             $operations->getCollection()->map(
-                fn (Operation $operation) => OperationPresenter::make($operation)->summary()
+                fn (Operation $operation) => OperationPresenter::make(
+                    OperationPresenterRelations::loadForSummary($operation)
+                )->summary()
             )
         );
 

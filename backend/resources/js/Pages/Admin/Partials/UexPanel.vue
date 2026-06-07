@@ -82,14 +82,14 @@ function statusClass(status) {
     case 'failed':
       return 'border-red-300/35 bg-red-300/10 text-red-100'
     default:
-      return 'border-white/[0.055] bg-white/[0.024] text-text-secondary'
+      return 'border-white/[0.055] bg-[color:var(--color-surface-soft)] text-text-secondary'
   }
 }
 
 function sectionClass(section) {
   return activeSection.value === section
     ? 'border-amber-300/35 bg-amber-300/10 text-horizon-white'
-    : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:bg-white/[0.04] hover:text-horizon-white'
+    : 'border-white/[0.055] bg-[color:var(--color-surface-soft)] text-text-secondary hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white'
 }
 
 function focusViewerSearchInput() {
@@ -238,7 +238,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] px-4 py-3 text-right">
+      <div class="hz-surface-soft rounded-[1.25rem] px-4 py-3 text-right">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
           Local Rows
         </div>
@@ -271,13 +271,13 @@ onMounted(() => {
 
     <template v-if="activeSection === 'overview'">
       <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-soft rounded-[1.25rem] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Last Run</div>
           <div class="mt-2 text-lg font-black text-horizon-white">#{{ uex.last_run?.id ?? '—' }}</div>
           <div class="mt-1 text-sm text-text-secondary">{{ formatDate(uex.last_run?.finished_at ?? uex.last_run?.started_at) }}</div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-soft rounded-[1.25rem] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Scope</div>
           <div class="mt-2 text-lg font-black text-horizon-white">{{ formatScope(uex.last_run?.scope ?? 'all') }}</div>
           <div class="mt-1 text-sm text-text-secondary">
@@ -285,7 +285,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <div class="hz-surface-soft rounded-[1.25rem] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Processed</div>
           <div class="mt-2 text-lg font-black text-horizon-white">{{ uex.last_run?.total_records ?? 0 }}</div>
           <div class="mt-1 text-sm text-text-secondary">Rows touched in the latest sync run.</div>
@@ -309,7 +309,7 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.02] p-5">
+      <section class="hz-surface-soft rounded-[1.75rem] p-5">
         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Recommended Commands</div>
@@ -325,7 +325,7 @@ onMounted(() => {
           <div
             v-for="(command, key) in uex.commands"
             :key="key"
-            class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.024] p-4"
+            class="hz-surface-soft rounded-[1.25rem] p-4"
           >
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -364,7 +364,7 @@ onMounted(() => {
         <article
           v-for="group in uex.groups ?? []"
           :key="group.key"
-          class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5"
+          class="hz-surface-soft rounded-[1.75rem] p-5"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -386,7 +386,7 @@ onMounted(() => {
             <div
               v-for="resource in group.resources"
               :key="resource.resource"
-              class="rounded-[1rem] border border-white/[0.055] bg-black/10 px-4 py-3"
+              class="hz-surface-deep rounded-[1rem] px-4 py-3"
             >
               <div class="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
                 {{ resource.label }}
@@ -406,7 +406,7 @@ onMounted(() => {
 
       <section
         v-if="uex.last_run?.resource_results?.length"
-        class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.02] p-5"
+        class="hz-surface-soft rounded-[1.75rem] p-5"
       >
         <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Latest Run Detail</div>
         <h4 class="mt-1 text-xl font-black text-horizon-white">Per-Resource Results</h4>
@@ -438,7 +438,7 @@ onMounted(() => {
 
             <div
               v-if="result.error"
-              class="mt-3 rounded-xl border border-black/10 bg-black/10 px-3 py-2 text-xs leading-5"
+              class="hz-surface-deep mt-3 rounded-xl px-3 py-2 text-xs leading-5"
             >
               {{ result.error }}
             </div>
@@ -449,7 +449,7 @@ onMounted(() => {
 
     <template v-else>
       <section class="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-4">
+        <aside class="hz-surface-soft rounded-[1.75rem] p-4">
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">UEX Groups</div>
           <div class="mt-4 space-y-3">
             <button
@@ -459,7 +459,7 @@ onMounted(() => {
               class="w-full rounded-[1.25rem] border p-4 text-left transition"
               :class="activeGroup === group.key
                 ? 'border-amber-300/35 bg-amber-300/10'
-                : 'border-white/[0.055] bg-black/10 hover:bg-white/[0.04]'"
+                : 'border-white/[0.055] bg-[color:var(--color-surface-deep)] hover:bg-[color:var(--color-hover-frost)]'"
               @click="selectGroup(group.key)"
             >
               <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">{{ group.label }}</div>
@@ -470,7 +470,7 @@ onMounted(() => {
         </aside>
 
         <section class="space-y-5">
-          <div class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.024] p-5">
+          <div class="hz-surface-soft rounded-[1.75rem] p-5">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -538,7 +538,7 @@ onMounted(() => {
                 class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] transition"
                 :class="selectedResource === resource.resource
                   ? 'border-amber-300/35 bg-amber-300/10 text-horizon-white'
-                  : 'border-white/[0.055] bg-white/[0.024] text-text-secondary hover:bg-white/[0.04] hover:text-horizon-white'"
+                  : 'border-white/[0.055] bg-[color:var(--color-surface-soft)] text-text-secondary hover:bg-[color:var(--color-hover-frost)] hover:text-horizon-white'"
                 @click="selectResource(resource.resource)"
               >
                 {{ resource.label }}
@@ -553,7 +553,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <section class="rounded-[1.75rem] border border-white/[0.055] bg-white/[0.02] p-5">
+          <section class="hz-surface-soft rounded-[1.75rem] p-5">
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -587,7 +587,7 @@ onMounted(() => {
 
             <div
               v-else-if="!visibleRows.length && !viewerLoading"
-              class="mt-4 rounded-[1.25rem] border border-dashed border-white/15 bg-white/[0.02] p-8 text-center"
+              class="hz-surface-soft mt-4 rounded-[1.25rem] border border-dashed border-white/15 p-8 text-center"
             >
               <div class="text-sm font-bold uppercase tracking-[0.18em] text-text-muted">No Rows Found</div>
               <p class="mt-2 text-sm text-text-secondary">
@@ -613,7 +613,7 @@ onMounted(() => {
                     </tr>
                   </thead>
 
-                  <tbody class="divide-y divide-white/[0.055] bg-white/[0.02]">
+                  <tbody class="divide-y divide-white/[0.055] bg-[color:var(--color-surface-soft)]">
                     <tr
                       v-for="(row, index) in visibleRows"
                       :key="`${viewerData.resource}-${index}`"

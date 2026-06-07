@@ -9,13 +9,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class SharedAccessService
 {
+    /** @var array<string, UserContext> */
+    protected array $contexts = [];
+
     public function __construct(
         protected SquadronMembershipReadService $memberships
     ) {}
 
     public function context(User $user): UserContext
     {
-        return UserContext::for($user);
+        $cacheKey = $this->userCacheKey($user);
+
+        if (! isset($this->contexts[$cacheKey])) {
+            $this->contexts[$cacheKey] = new UserContext($user, $this->memberships);
+        }
+
+        return $this->contexts[$cacheKey];
     }
 
     public function can(User $user, string $permission, ?Model $context = null): bool
@@ -84,5 +93,24 @@ class SharedAccessService
     public function isOfficer(User $user): bool
     {
         return $this->atLeast($user, 'lieutenant');
+    }
+
+    protected function userCacheKey(User $user): string
+    {
+        $baseKey = $user->getKey() !== null
+            ? 'user:' . $user->getKey()
+            : 'object:' . spl_object_id($user);
+
+        if (! $user->relationLoaded('roles')) {
+            return $baseKey . '|roles:unloaded';
+        }
+
+        $roleSignature = $user->getRelation('roles')
+            ->pluck('slug')
+            ->filter()
+            ->sort()
+            ->implode(',');
+
+        return $baseKey . '|roles:' . $roleSignature;
     }
 }

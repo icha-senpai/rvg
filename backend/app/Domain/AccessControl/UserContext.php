@@ -14,6 +14,8 @@ class UserContext
 
     protected ?Collection $roles = null;
     protected ?Collection $permissions = null;
+    protected ?array $roleSlugLookup = null;
+    protected ?array $permissionSlugLookup = null;
 
     public function __construct(User $user, ?SquadronMembershipReadService $memberships = null)
     {
@@ -82,19 +84,25 @@ class UserContext
 
     public function hasRole(string $slug): bool
     {
-        return $this->roles()->contains('slug', $slug);
+        return isset($this->roleSlugLookup()[$slug]);
     }
 
     public function hasAnyRole(array $slugs): bool
     {
-        return $this->roles()
-            ->whereIn('slug', $slugs)
-            ->isNotEmpty();
+        $roleSlugLookup = $this->roleSlugLookup();
+
+        foreach ($slugs as $slug) {
+            if (isset($roleSlugLookup[$slug])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function hasPermission(string $slug): bool
     {
-        return $this->permissions()->contains('slug', $slug);
+        return isset($this->permissionSlugLookup()[$slug]);
     }
 
     public function hasAnyPermission(array $slugs): bool
@@ -150,5 +158,36 @@ class UserContext
     {
         Cache::forget('user_permissions_' . $this->user->id);
         $this->permissions = null;
+        $this->permissionSlugLookup = null;
+    }
+
+    protected function roleSlugLookup(): array
+    {
+        if ($this->roleSlugLookup !== null) {
+            return $this->roleSlugLookup;
+        }
+
+        $this->roleSlugLookup = $this->roles()
+            ->pluck('slug')
+            ->filter()
+            ->mapWithKeys(fn ($slug) => [$slug => true])
+            ->all();
+
+        return $this->roleSlugLookup;
+    }
+
+    protected function permissionSlugLookup(): array
+    {
+        if ($this->permissionSlugLookup !== null) {
+            return $this->permissionSlugLookup;
+        }
+
+        $this->permissionSlugLookup = $this->permissions()
+            ->pluck('slug')
+            ->filter()
+            ->mapWithKeys(fn ($slug) => [$slug => true])
+            ->all();
+
+        return $this->permissionSlugLookup;
     }
 }

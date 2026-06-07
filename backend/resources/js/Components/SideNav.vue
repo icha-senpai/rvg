@@ -71,6 +71,23 @@ const mySquadron = computed(() => {
   )
 })
 
+const canSeeSquadronLedger = computed(() => {
+  if (!ledgerEnabled.value || !mySquadron.value) {
+    return false
+  }
+
+  if (isDirectorLike.value || page.props?.auth?.can?.['ledger.manage-squadron-ledger']) {
+    return true
+  }
+
+  if (mySquadron.value?.pivot?.membership_status !== 'active') {
+    return false
+  }
+
+  return mySquadron.value?.pivot?.role === 'leader'
+    || mySquadron.value?.pivot?.role === 'lieutenant'
+})
+
 const mySquadronLedgerRouteName = computed(() => {
   if (!mySquadron.value) return null
 
@@ -98,15 +115,13 @@ const squadronLedgerActive = computed(() => {
 })
 
 const canSeeOrgLedger = computed(() => {
-  if (page.props?.auth?.can?.['ledger.manage-org-ledger']) {
-    return true
-  }
-
-  const roleSlugs = (user.value?.roles ?? [])
-    .map(role => role?.slug ?? role?.name ?? role)
-    .filter(Boolean)
-
-  return roleSlugs.includes('director') || roleSlugs.includes('grand_admiral')
+  return Boolean(
+    ledgerEnabled.value
+      && (
+        isDirectorLike.value
+        || page.props?.auth?.can?.['manage-org-ledger']
+      )
+  )
 })
 
 const profileHref = computed(() => {
@@ -479,7 +494,7 @@ function groupHasNotificationDot(group) {
 
   if (group?.key === 'ledgers') {
     return Number(pendingTransferBadges.value.personal ?? 0) > 0
-      || Number(pendingTransferBadges.value.squadron ?? 0) > 0
+      || (canSeeSquadronLedger.value && Number(pendingTransferBadges.value.squadron ?? 0) > 0)
       || Number(pendingTransferBadges.value.organization ?? 0) > 0
   }
 
@@ -616,7 +631,7 @@ const navGroups = computed(() => {
           routeName: mySquadronLedgerRouteName.value,
           params: mySquadronLedgerRouteParams.value,
           isActive: squadronLedgerActive.value,
-          show: !!mySquadron.value,
+          show: canSeeSquadronLedger.value,
           tone: 'cyan',
           status: 'Squadron',
           badge: navBadgeLabel(pendingTransferBadges.value.squadron),

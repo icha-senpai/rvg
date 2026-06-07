@@ -24,7 +24,7 @@ watch(
     }
 
     document.documentElement.setAttribute('data-site-theme', theme)
-    document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark'
+    document.documentElement.style.colorScheme = 'dark'
   },
   { immediate: true }
 )
@@ -73,7 +73,6 @@ onBeforeUnmount(() => {
     </main>
   </div>
 </template>
-
 
 
 

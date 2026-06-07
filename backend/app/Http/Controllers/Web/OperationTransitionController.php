@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Domain\Operations\Enums\CompletionOutcome;
 use App\Domain\Operations\Enums\OperationStatus;
 use App\Domain\Operations\Services\OperationService;
@@ -42,7 +43,7 @@ class OperationTransitionController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }
@@ -74,7 +75,7 @@ class OperationTransitionController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }
@@ -100,7 +101,7 @@ class OperationTransitionController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }
@@ -126,7 +127,7 @@ class OperationTransitionController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }

@@ -130,13 +130,14 @@ class RolePreviewService
 
     public function share(Request $request, ?User $user): array
     {
+        $canManage = $this->canManage($user);
         $activeSlug = $this->activeRoleSlug($request, $user);
 
         return [
-            'canManage' => $this->canManage($user),
+            'canManage' => $canManage,
             'activeRoleSlug' => $activeSlug,
             'activeRoleLabel' => $activeSlug ? $this->roleLabel($activeSlug) : null,
-            'options' => $this->previewOptions(),
+            'options' => $canManage ? $this->previewOptions() : [],
         ];
     }
 

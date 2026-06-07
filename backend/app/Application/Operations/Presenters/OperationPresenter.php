@@ -14,19 +14,12 @@ use App\Models\User;
 class OperationPresenter
 {
     protected Operation $operation;
+
     protected ?User $viewer;
 
     public function __construct(Operation $operation, ?User $viewer = null)
     {
         $this->operation = $operation;
-        $this->operation->loadMissing([
-            'squadron',
-            'squadron.emblem',
-            'squadron.leader',
-            'creator',
-            'creator.roles',
-        ]);
-
         $this->viewer = $viewer;
     }
 
@@ -56,46 +49,14 @@ class OperationPresenter
             'after_action_no_show_user_ids' => $this->operation->after_action_no_show_user_ids ?? [],
             'after_action_report_updated_at' => $this->operation->after_action_report_updated_at?->toIso8601String(),
             'created_by' => $this->operation->created_by,
-            'creator' => $this->operation->creator
-                ? [
-                    'id' => $this->operation->creator->id,
-                    'rsi_handle' => $this->operation->creator->rsi_handle,
-                    'discord_avatar' => $this->operation->creator->discord_avatar,
-                    'rank' => $this->operation->creator->rank,
-                    'rank_level' => $this->operation->creator->rank_level,
-                    'rank_name' => $this->operation->creator->rank_name,
-                    'roles' => $this->operation->creator->roles->map(fn ($role) => [
-                        'slug' => $role->slug,
-                        'name' => $role->name,
-                    ])->values(),
-                ]
-                : null,
-            'squadron' => [
-                'id' => $this->operation->squadron?->id,
-                'name' => $this->operation->squadron?->name,
-                'emblem_url' => $this->operation->squadron?->emblem
-                    ? $this->operation->squadron->emblem->display_url
-                    : ($this->operation->squadron?->emblem_path ? asset('storage/' . $this->operation->squadron->emblem_path) : null),
-                'emblem' => $this->operation->squadron?->emblem
-                    ? MediaPresenter::make($this->operation->squadron->emblem)->embedded()
-                    : null,
-                'leader' => $this->operation->squadron?->leader
-                    ? $this->operation->squadron->leader->only(['id', 'rsi_handle'])
-                    : null,
-            ],
+            'creator' => $this->creatorPayload(),
+            'squadron' => $this->squadronPayload(true),
             'selected_squadrons' => $this->selectedSquadronsPayload(),
         ];
     }
 
     public function full(): array
     {
-        $this->operation->loadMissing([
-            'participants.user',
-            'roles.participants.user',
-            'images',
-            'creator.roles',
-        ]);
-
         $primaryImage = $this->operation->images->first();
 
         return [
@@ -134,31 +95,8 @@ class OperationPresenter
                 'alt_text' => $primaryImage->alt_text,
                 'original_filename' => $primaryImage->original_filename,
             ] : null,
-            'creator' => [
-                'id' => $this->operation->creator?->id,
-                'rsi_handle' => $this->operation->creator?->rsi_handle,
-                'discord_avatar' => $this->operation->creator?->discord_avatar,
-                'rank' => $this->operation->creator?->rank,
-                'rank_level' => $this->operation->creator?->rank_level,
-                'rank_name' => $this->operation->creator?->rank_name,
-                'roles' => $this->operation->creator
-                    ? $this->operation->creator->roles->map(fn ($role) => [
-                        'slug' => $role->slug,
-                        'name' => $role->name,
-                    ])->values()
-                    : [],
-            ],
-            'squadron' => [
-                'id' => $this->operation->squadron?->id,
-                'name' => $this->operation->squadron?->name,
-                'rsi_handle' => $this->operation->squadron?->rsi_handle,
-                'emblem_url' => $this->operation->squadron?->emblem
-                    ? $this->operation->squadron->emblem->display_url
-                    : ($this->operation->squadron?->emblem_path ? asset('storage/' . $this->operation->squadron->emblem_path) : null),
-                'emblem' => $this->operation->squadron?->emblem
-                    ? MediaPresenter::make($this->operation->squadron->emblem)->embedded()
-                    : null,
-            ],
+            'creator' => $this->creatorPayload(true),
+            'squadron' => $this->squadronPayload(),
             'selected_squadrons' => $this->selectedSquadronsPayload(),
             'participants' => $this->operation->participants->map(function ($participant) {
                 return [
@@ -205,7 +143,6 @@ class OperationPresenter
 
     public function form(): array
     {
-        $this->operation->loadMissing(['images', 'roles']);
         $primaryImage = $this->operation->images->first();
         $formRoles = $this->operation->roles->isNotEmpty()
             ? $this->operation->roles
@@ -321,5 +258,45 @@ class OperationPresenter
             })
             ->values()
             ->all();
+    }
+
+    protected function creatorPayload(bool $allowEmpty = false): ?array
+    {
+        if (! $this->operation->creator && ! $allowEmpty) {
+            return null;
+        }
+
+        return [
+            'id' => $this->operation->creator?->id,
+            'rsi_handle' => $this->operation->creator?->rsi_handle,
+            'discord_avatar' => $this->operation->creator?->discord_avatar,
+            'rank' => $this->operation->creator?->rank,
+            'rank_level' => $this->operation->creator?->rank_level,
+            'rank_name' => $this->operation->creator?->rank_name,
+            'roles' => $this->operation->creator
+                ? $this->operation->creator->roles->map(fn ($role) => [
+                    'slug' => $role->slug,
+                    'name' => $role->name,
+                ])->values()
+                : [],
+        ];
+    }
+
+    protected function squadronPayload(bool $includeLeader = false): array
+    {
+        return [
+            'id' => $this->operation->squadron?->id,
+            'name' => $this->operation->squadron?->name,
+            'rsi_handle' => $this->operation->squadron?->rsi_handle,
+            'emblem_url' => $this->operation->squadron?->emblem
+                ? $this->operation->squadron->emblem->display_url
+                : ($this->operation->squadron?->emblem_path ? asset('storage/' . $this->operation->squadron->emblem_path) : null),
+            'emblem' => $this->operation->squadron?->emblem
+                ? MediaPresenter::make($this->operation->squadron->emblem)->embedded()
+                : null,
+            'leader' => $includeLeader && $this->operation->squadron?->leader
+                ? $this->operation->squadron->leader->only(['id', 'rsi_handle'])
+                : null,
+        ];
     }
 }

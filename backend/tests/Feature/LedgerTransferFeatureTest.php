@@ -199,6 +199,34 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_regular_squadron_leader_can_transfer_to_org_without_org_permission(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('SquadBanker', 'squad-banker');
+        $squadron = $this->managedSquadronFor($actor, 'Signal Accountants');
+        $wipe = $this->currentWipe();
+
+        $this
+            ->actingAs($actor)
+            ->post(route('squadrons.ledger.transactions.transfer', ['squadron' => $squadron->id]), [
+                'wipe_cycle_id' => $wipe->id,
+                'destination_type' => 'organization',
+                'amount' => 18000,
+                'description' => 'Shared tax sweep',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertTrue((bool) $request->destination_is_org_owned);
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'transfer_request_id' => $request->id,
+        ]);
+    }
+
     public function test_org_manager_transfer_to_a_verified_member_personal_records_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);

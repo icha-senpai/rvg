@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Application\Operations\OperationShowDataService;
 use App\Application\Operations\Presenters\OperationPresenter;
+use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Application\Operations\Queries\OperationQuery;
 use App\Application\Squadrons\Presenters\SquadronPresenter;
 use App\Http\Controllers\Controller;
@@ -135,7 +136,7 @@ class OperationPageController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($operation)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($operation))->full(),
                 ],
             ], 201);
         }
@@ -180,7 +181,7 @@ class OperationPageController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($operation)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($operation))->full(),
                 ],
             ], 201);
         }
@@ -283,7 +284,7 @@ class OperationPageController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }
@@ -321,7 +322,7 @@ class OperationPageController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'payload' => [
-                    'operation' => OperationPresenter::make($updated)->full(),
+                    'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
             ]);
         }

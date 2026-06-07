@@ -95,6 +95,50 @@ class MemberPromotionWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_authorized_viewer_can_cancel_pending_offer_from_profile(): void
+    {
+        $this->configurePromotionWorkflow();
+
+        Http::fake(['*' => Http::response([], 200)]);
+
+        $viewer = $this->makeUserWithRank('admiral', [
+            'rsi_handle' => 'FleetLead',
+            'discord_id' => 'viewer-discord',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $member = $this->makeUserWithRank('member', [
+            'rsi_handle' => 'PilotZero',
+            'discord_id' => 'member-discord',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $offer = PromotionOffer::create([
+            'member_id' => $member->id,
+            'promoter_id' => $viewer->id,
+            'from_rank' => 'member',
+            'to_rank' => 'cit',
+            'discord_branch_role_id' => 'branch-cit-line',
+            'state' => PromotionOffer::STATE_PENDING,
+            'expires_at' => now()->addHours(4),
+        ]);
+
+        $this->actingAs($viewer)
+            ->from(route('member.profile', $member->rsi_handle))
+            ->post(route('member.promotions.cancel', [$member->rsi_handle, $offer->id]))
+            ->assertRedirect(route('member.profile', $member->rsi_handle))
+            ->assertSessionHas('success', 'Promotion offer cancelled.');
+
+        $offer->refresh();
+
+        $this->assertSame(PromotionOffer::STATE_CANCELLED, $offer->state);
+        $this->assertNotNull($offer->cancelled_at);
+        $this->assertDatabaseHas('auth_audit_logs', [
+            'user_id' => $viewer->id,
+            'action' => 'promotion_offer.cancelled',
+        ]);
+    }
+
     public function test_bot_prepare_and_finalize_acceptance_updates_rank_after_discord_success(): void
     {
         $this->configurePromotionWorkflow();
@@ -165,6 +209,53 @@ class MemberPromotionWorkflowTest extends TestCase
             'user_id' => $member->id,
             'action' => 'promotion_offer.accepted',
         ]);
+    }
+
+    public function test_expired_offer_is_marked_expired_when_bot_tries_to_prepare_acceptance(): void
+    {
+        $this->configurePromotionWorkflow();
+        Http::fake(['*' => Http::response([], 200)]);
+
+        $member = $this->makeUserWithRank('member', [
+            'rsi_handle' => 'AceOne',
+            'discord_id' => 'member-discord',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $promoter = $this->makeUserWithRank('grand_admiral', [
+            'rsi_handle' => 'CommandPrime',
+            'discord_id' => 'promoter-discord',
+            'rsi_verified_at' => now(),
+        ]);
+
+        $offer = PromotionOffer::create([
+            'member_id' => $member->id,
+            'promoter_id' => $promoter->id,
+            'from_rank' => 'member',
+            'to_rank' => 'cit',
+            'discord_branch_role_id' => 'branch-cit-line',
+            'discord_dm_message_id' => 'dm-expired-1',
+            'state' => PromotionOffer::STATE_PENDING,
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $headers = [
+            'X-Bot-Secret' => 'test-bot-secret',
+            'Accept' => 'application/json',
+        ];
+
+        $this->postJson('/api/v1/bot/promotions/messages/dm-expired-1/prepare-accept', [
+            'discord_id' => 'member-discord',
+            'message_id' => 'dm-expired-1',
+        ], $headers)
+            ->assertStatus(422)
+            ->assertJsonPath('status', 'error')
+            ->assertJsonPath('message', 'This promotion offer is no longer pending.');
+
+        $offer->refresh();
+
+        $this->assertSame(PromotionOffer::STATE_EXPIRED, $offer->state);
+        $this->assertNotNull($offer->expired_at);
     }
 
     public function test_admiral_promotion_is_wired_but_blocked_until_dm_template_exists(): void

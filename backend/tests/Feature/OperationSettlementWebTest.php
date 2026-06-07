@@ -400,6 +400,14 @@ class OperationSettlementWebTest extends TestCase
             ])
             ->assertRedirect();
 
+        $transferRequest = \App\Models\LedgerTransferRequest::query()
+            ->where('transfer_kind', 'inventory')
+            ->firstOrFail();
+
+        $this->actingAs($creator)
+            ->post(route('organization.ledger.inventory.transfer.approve', $transferRequest->id))
+            ->assertRedirect();
+
         $this->actingAs($creator)
             ->from('/operations/dashboard')
             ->post(route('operations.settlement.reopen', $operation))

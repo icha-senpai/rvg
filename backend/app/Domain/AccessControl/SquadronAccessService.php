@@ -108,7 +108,7 @@ class SquadronAccessService
             return true;
         }
 
-        return $this->shared->isSquadronMember($user, $squadron);
+        return $this->canManageSquadronMembers($user, $squadron);
     }
 
     public function canManageLedger(User $user, Squadron $squadron): bool

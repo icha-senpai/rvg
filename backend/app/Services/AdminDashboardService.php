@@ -3,18 +3,13 @@
 namespace App\Services;
 
 use App\Application\Operations\OperationShowDataService;
+use App\Application\Operations\OperationMemberPayloadService;
 use App\Domain\Media\Presenters\MediaPresenter;
 use App\Domain\Squadrons\SquadronService;
 use App\Models\Operation;
-use App\Models\ArchiveCategory;
-use App\Models\ArchiveEntry;
-use App\Models\ArchiveTag;
-use App\Models\ArchiveTopic;
 use App\Models\Role;
-use App\Models\UexSyncRun;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class AdminDashboardService
 {
@@ -22,6 +17,9 @@ class AdminDashboardService
         protected SquadronService $squadrons,
         protected LedgerService $ledger,
         protected OperationShowDataService $operationShowData,
+        protected OperationMemberPayloadService $members,
+        protected AdminArchiveStatsService $archiveStats,
+        protected AdminUexStatusService $uexStatus,
     ) {}
 
     public function build(string $search): array
@@ -33,9 +31,9 @@ class AdminDashboardService
             'operations' => $this->completedOperations(),
             'canceledOperations' => $this->canceledOperations(),
             'operationSettlementLootOptions' => $this->operationShowData->settlementLootOptions(),
-            'verifiedMembers' => $this->verifiedMembers(),
-            'archiveStats' => $this->archiveStats(),
-            'uex' => $this->uexStatus(),
+            'verifiedMembers' => $this->operationShowData->verifiedMembers(),
+            'archiveStats' => $this->archiveStats->build(),
+            'uex' => $this->uexStatus->build(),
             'ledger' => $this->ledger->buildAdminData(),
             'eligibleLeaders' => $this->squadrons->eligibleLeaders(),
             'filters' => [
@@ -135,89 +133,11 @@ class AdminDashboardService
 
     protected function completedOperations(): array
     {
-        $operations = Operation::query()
-            ->select(
-                'id',
-                'created_by',
-                'squadron_id',
-                'squadron_name',
-                'title',
-                'description',
-                'starts_at',
-                'ends_at',
-                'status',
-                'completion_outcome',
-                'after_action_report',
-                'after_action_attendance_user_ids',
-                'after_action_no_show_user_ids',
-                'after_action_report_updated_at'
-            )
-            ->with([
-                'creator:id,rsi_handle,discord_name,discord_avatar,name',
-                'participants.user:id,rsi_handle,discord_name,discord_avatar,name',
-                'squadron:id,name',
-                'settlement',
-            ])
-            ->where('status', 'completed')
-            ->whereNotNull('completion_outcome')
-            ->orderByRaw('COALESCE(ends_at, starts_at) DESC')
-            ->orderByDesc('id')
-            ->limit(24)
-            ->get();
+        $viewer = Auth::user();
 
-        $attendanceUsersById = $this->attendanceUsersFor($operations);
-        $settlementLootOptions = $this->operationShowData->settlementLootOptions();
-
-        return $operations
-            ->map(function (Operation $operation) use ($attendanceUsersById, $settlementLootOptions) {
-                $attendance = collect($operation->after_action_attendance_user_ids ?? [])
-                    ->map(fn ($id) => $attendanceUsersById[(int) $id] ?? null)
-                    ->filter()
-                    ->values()
-                    ->all();
-
-                return [
-                    'id' => $operation->id,
-                    'title' => $operation->title,
-                    'description' => $operation->description,
-                    'starts_at' => $operation->starts_at?->toIso8601String(),
-                    'ends_at' => $operation->ends_at?->toIso8601String(),
-                    'status' => $operation->status,
-                    'completion_outcome' => $operation->completion_outcome,
-                    'after_action_report' => $operation->after_action_report,
-                    'after_action_attendance_user_ids' => $operation->after_action_attendance_user_ids ?? [],
-                    'after_action_no_show_user_ids' => $operation->after_action_no_show_user_ids ?? [],
-                    'after_action_report_updated_at' => $operation->after_action_report_updated_at?->toIso8601String(),
-                    'after_action_attendance' => $attendance,
-                    'after_action_no_show' => collect($operation->after_action_no_show_user_ids ?? [])
-                        ->map(fn ($id) => $attendanceUsersById[(int) $id] ?? null)
-                        ->filter()
-                        ->values()
-                        ->all(),
-                    'operation_settlement' => $this->operationShowData->settlementPayload($operation, null, true, $settlementLootOptions, false),
-                    'creator' => $operation->creator ? $this->memberPayload($operation->creator) : null,
-                    'squadron' => $operation->squadron
-                        ? [
-                            'id' => $operation->squadron->id,
-                            'name' => $operation->squadron->name,
-                        ]
-                        : null,
-                    'participants' => $operation->participants
-                        ->map(fn ($participant) => [
-                            'id' => $participant->id,
-                            'slot' => $participant->slot,
-                            'user' => $participant->user ? $this->memberPayload($participant->user) : null,
-                        ])
-                        ->values()
-                        ->all(),
-                    'permissions' => [
-                        'can_manage_aar' => true,
-                        'can_manage_settlement' => true,
-                    ],
-                ];
-            })
-            ->values()
-            ->all();
+        return $viewer
+            ? $this->operationShowData->dashboardAfterActionOperations($viewer, 24)
+            : [];
     }
 
     protected function canceledOperations(): array
@@ -268,171 +188,8 @@ class AdminDashboardService
             ->all();
     }
 
-    protected function verifiedMembers(): array
-    {
-        return User::query()
-            ->select('id', 'rsi_handle', 'discord_name', 'discord_avatar', 'name')
-            ->where('global_status', User::STATUS_ACTIVE)
-            ->whereNotNull('rsi_verified_at')
-            ->orderByRaw("LOWER(COALESCE(rsi_handle, discord_name, name, ''))")
-            ->orderBy('id')
-            ->get()
-            ->map(fn (User $user) => $this->memberPayload($user))
-            ->values()
-            ->all();
-    }
-
-    protected function archiveStats(): array
-    {
-        $deletedTopics = ArchiveTopic::onlyTrashed()->count();
-        $deletedEntries = ArchiveEntry::onlyTrashed()->count();
-        $deletedCategories = ArchiveCategory::onlyTrashed()->count();
-        $deletedTags = ArchiveTag::onlyTrashed()->count();
-
-        return [
-            'topics' => ArchiveTopic::query()->count(),
-            'entries' => ArchiveEntry::query()->count(),
-            'categories' => ArchiveCategory::query()->count(),
-            'tags' => ArchiveTag::query()->count(),
-            'trash_total' => $deletedTopics + $deletedEntries + $deletedCategories + $deletedTags,
-            'trash' => [
-                'topics' => $deletedTopics,
-                'entries' => $deletedEntries,
-                'categories' => $deletedCategories,
-                'tags' => $deletedTags,
-            ],
-        ];
-    }
-
-    protected function uexStatus(): array
-    {
-        $definitions = UexResourceRegistry::definitions();
-        $countsByTable = [];
-
-        foreach ($definitions as $definition) {
-            $table = $definition['table'];
-            $countsByTable[$table] = Schema::hasTable($table)
-                ? DB::table($table)->count()
-                : 0;
-        }
-
-        $groups = collect(UexResourceRegistry::groups())
-            ->map(function (array $resourceNames, string $group) use ($definitions, $countsByTable) {
-                $resources = collect($resourceNames)
-                    ->map(function (string $resourceName) use ($definitions, $countsByTable) {
-                        $definition = $definitions[$resourceName];
-                        $table = $definition['table'];
-
-                        return [
-                            'resource' => $resourceName,
-                            'label' => $definition['label'],
-                            'table' => $table,
-                            'rows' => $countsByTable[$table] ?? 0,
-                        ];
-                    })
-                    ->values();
-
-                return [
-                    'key' => $group,
-                    'label' => str($group)->replace('_', ' ')->title()->toString(),
-                    'resources' => $resources->all(),
-                    'resource_count' => $resources->count(),
-                    'row_count' => $resources->sum('rows'),
-                ];
-            })
-            ->values();
-
-        $lastRun = Schema::hasTable('uex_sync_runs')
-            ? UexSyncRun::query()->orderByDesc('started_at')->orderByDesc('id')->first()
-            : null;
-
-        return [
-            'commands' => [
-                'all' => 'php artisan uex:sync all',
-                'locations' => 'php artisan uex:sync locations',
-                'trade' => 'php artisan uex:sync trade',
-                'vehicles' => 'php artisan uex:sync vehicles',
-                'industry' => 'php artisan uex:sync industry',
-                'commodity_prices' => 'php artisan uex:sync --resource=commodities_prices_all',
-            ],
-            'sync_actions' => [
-                'all' => [
-                    'scope' => 'all',
-                    'resources' => [],
-                ],
-                'locations' => [
-                    'scope' => 'locations',
-                    'resources' => [],
-                ],
-                'trade' => [
-                    'scope' => 'trade',
-                    'resources' => [],
-                ],
-                'vehicles' => [
-                    'scope' => 'vehicles',
-                    'resources' => [],
-                ],
-                'industry' => [
-                    'scope' => 'industry',
-                    'resources' => [],
-                ],
-                'commodity_prices' => [
-                    'scope' => 'all',
-                    'resources' => ['commodities_prices_all'],
-                ],
-            ],
-            'groups' => $groups->all(),
-            'total_rows' => $groups->sum('row_count'),
-            'last_run' => $lastRun ? [
-                'id' => $lastRun->id,
-                'scope' => $lastRun->scope,
-                'status' => $lastRun->status,
-                'requested_resources' => $lastRun->requested_resources ?? [],
-                'resource_results' => $lastRun->resource_results ?? [],
-                'total_records' => $lastRun->total_records,
-                'successful_resources' => $lastRun->successful_resources,
-                'failed_resources' => $lastRun->failed_resources,
-                'error_message' => $lastRun->error_message,
-                'started_at' => $lastRun->started_at?->toIso8601String(),
-                'finished_at' => $lastRun->finished_at?->toIso8601String(),
-            ] : null,
-        ];
-    }
-
-    protected function attendanceUsersFor($operations): array
-    {
-        $attendanceIds = $operations
-            ->flatMap(fn (Operation $operation) => array_merge(
-                $operation->after_action_attendance_user_ids ?? [],
-                $operation->after_action_no_show_user_ids ?? []
-            ))
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
-
-        if ($attendanceIds->isEmpty()) {
-            return [];
-        }
-
-        return User::query()
-            ->select('id', 'rsi_handle', 'discord_name', 'discord_avatar', 'name')
-            ->whereIn('id', $attendanceIds->all())
-            ->get()
-            ->mapWithKeys(fn (User $user) => [
-                $user->id => $this->memberPayload($user),
-            ])
-            ->all();
-    }
-
     protected function memberPayload(User $user): array
     {
-        return [
-            'id' => $user->id,
-            'rsi_handle' => $user->rsi_handle,
-            'discord_name' => $user->discord_name,
-            'discord_avatar' => $user->discord_avatar,
-            'name' => $user->name,
-        ];
+        return $this->members->payload($user);
     }
 }
