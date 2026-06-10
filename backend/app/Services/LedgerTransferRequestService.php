@@ -75,24 +75,12 @@ class LedgerTransferRequestService
 
     public function recentFundTransfersForContext(User $viewer, array $context): array
     {
-        return LedgerTransferRequest::query()
-            ->where('transfer_kind', 'funds')
-            ->whereIn('status', ['completed', 'reversed'])
-            ->with([
-                'requestedBy:id,name,rsi_handle,discord_name',
-                'sourceUser:id,name,rsi_handle,discord_name',
-                'destinationUser:id,name,rsi_handle,discord_name',
-                'sourceSquadron:id,name',
-                'destinationSquadron:id,name',
-            ])
-            ->orderByDesc('completed_at')
-            ->orderByDesc('id')
-            ->get()
-            ->filter(fn (LedgerTransferRequest $request) => $this->transferRequestTouchesContext($request, $context))
-            ->take(10)
-            ->map(fn (LedgerTransferRequest $request) => $this->presentTransferRequest($request, $viewer, $context, []))
-            ->values()
-            ->all();
+        return $this->recentTransfersForContext($viewer, $context, 'funds');
+    }
+
+    public function recentInventoryTransfersForContext(User $viewer, array $context, array $referenceMaps): array
+    {
+        return $this->recentTransfersForContext($viewer, $context, 'inventory', $referenceMaps);
     }
 
     public function approveTransferRequestForContext(
@@ -164,7 +152,7 @@ class LedgerTransferRequestService
                 'from_label' => $sourceContext['label'],
                 'to_label' => $destinationContext['label'],
                 'item_label' => $transferKind === 'inventory' ? $this->resolveTransferRequestItemLabel($transferRequest, $referenceMaps) : null,
-                'quantity' => $transferKind === 'inventory' ? (float) ($transferRequest->quantity ?? 0) : null,
+                'quantity' => $transferKind === 'inventory' ? $this->wholeNumber($transferRequest->quantity ?? 0) : null,
             ];
 
             $this->logActivity(
@@ -215,7 +203,7 @@ class LedgerTransferRequestService
 
             $sourceContext = $this->contexts->transferContextForRequestSource($transferRequest);
             $destinationContext = $this->contexts->transferContextForRequestDestination($transferRequest);
-            $amount = round((float) ($transferRequest->amount ?? 0), 2);
+            $amount = $this->wholeNumber($transferRequest->amount ?? 0);
             $memo = trim((string) ($transferRequest->description ?? ''));
             $reversalDate = now();
             $reversalNotes = $data['reversal_notes'] ?? null;
@@ -238,23 +226,27 @@ class LedgerTransferRequestService
                 'notes' => $reversalNotes,
             ]);
 
-            $destinationReversal = LedgerTransaction::query()->create([
-                'user_id' => $destinationContext['user_id'],
-                'squadron_id' => $destinationContext['squadron_id'],
-                'is_org_owned' => $destinationContext['is_org_owned'],
-                'transfer_request_id' => $transferRequest->id,
-                'reversal_of_transaction_id' => $transferRequest->incoming_transaction_id,
-                'ledger_account_id' => $destinationContext['account']->id,
-                'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
-                'type' => 'expense',
-                'amount' => $amount,
-                'currency' => $destinationContext['account']->currency ?? 'aUEC',
-                'source_type' => 'transfer_reversal',
-                'transfer_direction' => 'reversal',
-                'description' => "Transfer reversal to {$sourceContext['label']}: {$memo}",
-                'transaction_date' => $reversalDate,
-                'notes' => $reversalNotes,
-            ]);
+            $destinationReversal = null;
+
+            if (! $transferRequest->destination_is_external) {
+                $destinationReversal = LedgerTransaction::query()->create([
+                    'user_id' => $destinationContext['user_id'],
+                    'squadron_id' => $destinationContext['squadron_id'],
+                    'is_org_owned' => $destinationContext['is_org_owned'],
+                    'transfer_request_id' => $transferRequest->id,
+                    'reversal_of_transaction_id' => $transferRequest->incoming_transaction_id,
+                    'ledger_account_id' => $destinationContext['account']->id,
+                    'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+                    'type' => 'expense',
+                    'amount' => $amount,
+                    'currency' => $destinationContext['account']->currency ?? 'aUEC',
+                    'source_type' => 'transfer_reversal',
+                    'transfer_direction' => 'reversal',
+                    'description' => "Transfer reversal to {$sourceContext['label']}: {$memo}",
+                    'transaction_date' => $reversalDate,
+                    'notes' => $reversalNotes,
+                ]);
+            }
 
             $transferRequest->forceFill([
                 'status' => 'reversed',
@@ -262,7 +254,7 @@ class LedgerTransferRequestService
                 'reversal_notes' => $reversalNotes,
                 'reversed_at' => now(),
                 'reversal_outgoing_transaction_id' => $sourceReversal->id,
-                'reversal_incoming_transaction_id' => $destinationReversal->id,
+                'reversal_incoming_transaction_id' => $destinationReversal?->id,
             ])->save();
 
             $metadata = [
@@ -284,16 +276,18 @@ class LedgerTransferRequestService
                 $sourceContext['is_org_owned']
             );
 
-            $this->logActivity(
-                $actor,
-                $destinationContext['subject_user'],
-                $transferRequest->wipeCycle,
-                'transfer.reversed',
-                $destinationReversal,
-                array_merge($metadata, ['direction' => 'destination']),
-                $destinationContext['squadron'],
-                $destinationContext['is_org_owned']
-            );
+            if ($destinationReversal) {
+                $this->logActivity(
+                    $actor,
+                    $destinationContext['subject_user'],
+                    $transferRequest->wipeCycle,
+                    'transfer.reversed',
+                    $destinationReversal,
+                    array_merge($metadata, ['direction' => 'destination']),
+                    $destinationContext['squadron'],
+                    $destinationContext['is_org_owned']
+                );
+            }
 
             return [
                 'request' => $transferRequest->fresh(),
@@ -301,6 +295,38 @@ class LedgerTransferRequestService
                 'destination_reversal' => $destinationReversal,
             ];
         });
+    }
+
+    protected function recentTransfersForContext(
+        User $viewer,
+        array $context,
+        string $transferKind,
+        array $referenceMaps = []
+    ): array {
+        $relations = [
+            'requestedBy:id,name,rsi_handle,discord_name',
+            'sourceUser:id,name,rsi_handle,discord_name',
+            'destinationUser:id,name,rsi_handle,discord_name',
+            'sourceSquadron:id,name',
+            'destinationSquadron:id,name',
+        ];
+
+        if ($transferKind === 'inventory') {
+            $relations[] = 'sourceInventoryItem:id,custom_name,uex_reference_type,uex_reference_id';
+        }
+
+        return LedgerTransferRequest::query()
+            ->where('transfer_kind', $transferKind)
+            ->whereIn('status', ['completed', 'reversed'])
+            ->with($relations)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (LedgerTransferRequest $request) => $this->transferRequestTouchesContext($request, $context))
+            ->take(10)
+            ->map(fn (LedgerTransferRequest $request) => $this->presentTransferRequest($request, $viewer, $context, $referenceMaps))
+            ->values()
+            ->all();
     }
 
     protected function presentTransferRequest(
@@ -317,12 +343,14 @@ class LedgerTransferRequestService
             'status' => $request->status,
             'direction' => $direction,
             'from_label' => $this->transferRequestLabelForColumns(
+                false,
                 $request->source_is_org_owned,
                 $request->source_squadron_id,
                 $request->sourceUser,
                 $request->sourceSquadron
             ),
             'to_label' => $this->transferRequestLabelForColumns(
+                (bool) $request->destination_is_external,
                 $request->destination_is_org_owned,
                 $request->destination_squadron_id,
                 $request->destinationUser,
@@ -335,8 +363,8 @@ class LedgerTransferRequestService
             'item_label' => $request->transfer_kind === 'inventory'
                 ? $this->resolveTransferRequestItemLabel($request, $referenceMaps)
                 : null,
-            'amount' => $request->amount !== null ? (float) $request->amount : null,
-            'quantity' => $request->quantity !== null ? (float) $request->quantity : null,
+            'amount' => $request->amount !== null ? $this->wholeNumber($request->amount) : null,
+            'quantity' => $request->quantity !== null ? $this->wholeNumber($request->quantity) : null,
             'currency' => $request->currency ?? 'aUEC',
             'notes' => $request->notes,
             'transaction_date' => $request->transaction_date?->toIso8601String(),
@@ -369,11 +397,16 @@ class LedgerTransferRequestService
     }
 
     protected function transferRequestLabelForColumns(
+        bool $isExternal,
         bool $isOrgOwned,
         ?int $squadronId,
         ?User $user,
         ?Squadron $squadron
     ): string {
+        if ($isExternal) {
+            return 'Outside Horizon';
+        }
+
         if ($isOrgOwned) {
             return 'Horizon Treasury';
         }
@@ -500,6 +533,11 @@ class LedgerTransferRequestService
                 'wipe_cycle_id' => 'Archived cycles are read only. Completed transfers can only be reversed while their cycle is still current.',
             ]);
         }
+    }
+
+    protected function wholeNumber(mixed $value): int
+    {
+        return (int) round((float) $value);
     }
 
     protected function logActivity(

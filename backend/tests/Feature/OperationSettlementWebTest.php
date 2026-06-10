@@ -91,6 +91,73 @@ class OperationSettlementWebTest extends TestCase
             );
     }
 
+    public function test_operation_settlement_rejects_decimal_payouts_and_loot_quantities(): void
+    {
+        $creator = $this->directorUser();
+        $participant = $this->verifiedUser(['rsi_handle' => 'WholeNumberPilot']);
+        $operation = $this->completedOperation($creator, null, [
+            'after_action_attendance_user_ids' => [$participant->id],
+        ]);
+
+        $this->seedUexSettlementReferences();
+
+        $this->actingAs($creator)
+            ->from('/operations/dashboard')
+            ->put(route('operations.settlement.update', $operation), [
+                'money_rows' => [
+                    [
+                        'row_key' => 'money-1',
+                        'recipient_type' => 'member',
+                        'recipient_user_id' => $participant->id,
+                        'amount' => 5000.5,
+                    ],
+                ],
+                'loot_rows' => [
+                    [
+                        'row_key' => 'loot-1',
+                        'source_type' => 'commodity',
+                        'uex_reference_id' => 9001,
+                        'recipient_type' => 'member',
+                        'recipient_user_id' => $participant->id,
+                        'quantity' => 12.5,
+                    ],
+                ],
+            ])
+            ->assertRedirect('/operations/dashboard')
+            ->assertSessionHasErrors([
+                'money_rows.0.amount',
+                'loot_rows.0.quantity',
+            ]);
+    }
+
+    public function test_finalizing_saved_decimal_settlement_draft_is_blocked_until_rows_are_whole_numbers(): void
+    {
+        $creator = $this->directorUser();
+        $participant = $this->verifiedUser(['rsi_handle' => 'LegacyDraftPilot']);
+        $operation = $this->completedOperation($creator, null, [
+            'after_action_attendance_user_ids' => [$participant->id],
+        ]);
+
+        OperationSettlement::query()->create([
+            'operation_id' => $operation->id,
+            'money_rows' => [
+                [
+                    'row_key' => 'money-1',
+                    'recipient_type' => 'member',
+                    'recipient_user_id' => $participant->id,
+                    'amount' => 1500.5,
+                ],
+            ],
+            'loot_rows' => [],
+        ]);
+
+        $this->actingAs($creator)
+            ->from('/operations/dashboard')
+            ->post(route('operations.settlement.finalize', $operation), [])
+            ->assertRedirect('/operations/dashboard')
+            ->assertSessionHasErrors('money_rows');
+    }
+
     public function test_finalizing_operation_settlement_creates_locked_ledger_receipts_and_locks_attendance(): void
     {
         $creator = $this->directorUser();

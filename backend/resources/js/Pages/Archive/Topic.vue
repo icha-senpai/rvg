@@ -135,7 +135,7 @@ function clearFilters() {
           </h1>
 
           <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-            {{ topic.description || 'No description has been written for this archive topic yet.' }}
+            {{ topic.description || '' }}
           </p>
 
           <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">

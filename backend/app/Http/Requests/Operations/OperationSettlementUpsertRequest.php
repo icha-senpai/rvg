@@ -28,7 +28,7 @@ class OperationSettlementUpsertRequest extends FormRequest
                         ->whereNotNull('rsi_verified_at')),
             ],
             'money_rows.*.recipient_squadron_id' => ['nullable', 'integer', Rule::exists('squadrons', 'id')],
-            'money_rows.*.amount' => ['nullable', 'numeric', 'gte:0'],
+            'money_rows.*.amount' => ['nullable', 'integer', 'gte:0'],
             'money_rows.*.notes' => ['nullable', 'string', 'max:2000'],
 
             'loot_rows' => ['nullable', 'array'],
@@ -45,7 +45,7 @@ class OperationSettlementUpsertRequest extends FormRequest
                         ->whereNotNull('rsi_verified_at')),
             ],
             'loot_rows.*.recipient_squadron_id' => ['nullable', 'integer', Rule::exists('squadrons', 'id')],
-            'loot_rows.*.quantity' => ['nullable', 'numeric', 'gt:0'],
+            'loot_rows.*.quantity' => ['nullable', 'integer', 'gt:0'],
             'loot_rows.*.unit_label' => ['nullable', 'string', 'max:32'],
             'loot_rows.*.notes' => ['nullable', 'string', 'max:2000'],
         ];

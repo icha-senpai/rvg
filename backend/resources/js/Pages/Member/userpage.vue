@@ -1877,41 +1877,11 @@ watch(
           </h3>
 
           <p class="mt-1 text-sm text-text-secondary">
-            Keep timezone, region, availability, and leave notes current.
+            Keep your availability and leave notes current.
           </p>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-3">
-          <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-              Region
-            </label>
-            <HorizonInput
-              v-model="form.region"
-              type="select"
-              label=""
-              :options="[
-                { label: 'Select region', value: '' },
-                ...regionOptions,
-              ]"
-            />
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
-              Timezone
-            </label>
-            <HorizonInput
-              v-model="form.timezone"
-              type="select"
-              label=""
-              :options="[
-                { label: 'Select timezone', value: '' },
-                ...timezoneOptions,
-              ]"
-            />
-          </div>
-
+        <div class="grid gap-4">
           <div class="md:col-span-3">
             <label class="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Availability

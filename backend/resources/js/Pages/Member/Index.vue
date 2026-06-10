@@ -229,7 +229,7 @@ function hasFavoriteData(user) {
           <div class="absolute bottom-0 right-10 h-px w-64 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-magenta)] to-transparent"></div>
         </div>
 
-        <div class="relative divide-y divide-white/[0.055]">
+        <div class="relative">
           <div class="p-6">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div class="min-w-0">
@@ -321,7 +321,7 @@ function hasFavoriteData(user) {
               <article
                 v-for="member in members"
                 :key="member.id"
-                class="hz-surface-welcome group rounded-[1.9rem] border border-white/[0.055] transition duration-200 hover:-translate-y-0.5 hover:border-white/15"
+                class="hz-surface-welcome relative overflow-hidden group rounded-[1.9rem] border border-white/[0.055] transition duration-200 hover:-translate-y-0.5 hover:border-white/15"
                 :style="memberCardStyle(member)"
               >
                 <div class="pointer-events-none absolute inset-x-9 top-[4rem] h-px bg-white/65"></div>

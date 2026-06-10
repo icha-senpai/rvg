@@ -23,8 +23,10 @@ use App\Http\Controllers\Web\SquadronManageController;
 use App\Http\Controllers\Web\SquadronPageController;
 use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\MemberDirectoryController;
+use App\Http\Controllers\Web\MemberDiscordRoleController;
 use App\Http\Controllers\Web\MemberLedgerController;
 use App\Http\Controllers\Web\MemberPromotionController;
+use App\Http\Controllers\Web\MemberSettingsController;
 use App\Http\Controllers\Web\DiscordAuthController;
 use App\Http\Controllers\Web\LedgerInventoryController;
 use App\Http\Controllers\Web\LedgerShipAssetController;
@@ -114,11 +116,17 @@ Route::get('/members', [MemberDirectoryController::class, 'index'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('members.index');
 
-Route::get('/settings', function () {
-    return Inertia::render('Member/Settings');
-})
+Route::get('/settings', [MemberSettingsController::class, 'show'])
     ->middleware(['auth', 'rsi.verified'])
     ->name('settings.index');
+
+Route::post('/settings/discord-roles/sync', [MemberDiscordRoleController::class, 'sync'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('settings.discord-roles.sync');
+
+Route::put('/settings/discord-roles', [MemberDiscordRoleController::class, 'update'])
+    ->middleware(['auth', 'rsi.verified'])
+    ->name('settings.discord-roles.update');
 
 Route::post('/role-preview', [RolePreviewController::class, 'update'])
     ->middleware(['auth', 'rsi.verified'])
@@ -655,6 +663,9 @@ Route::middleware(['auth', 'can:access-admin-panel'])
 
         Route::post('/users/unverify', [AdminUserController::class, 'unverify'])
             ->name('admin.users.unverify');
+
+        Route::post('/users/clear-remembered-sessions', [AdminUserController::class, 'clearRememberedSessions'])
+            ->name('admin.users.clearRememberedSessions');
 
         /*
         |-----------------------

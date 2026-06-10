@@ -62,3 +62,6 @@ Artisan::command('uex:sync {scope=all} {--resource=*}', function (UexSyncService
 })->purpose('Sync public UEX reference data into local snapshot tables.');
 
 Schedule::command('promotions:expire-pending')->everyFiveMinutes();
+Schedule::command('uex:sync --resource=commodities_prices_all')
+    ->dailyAt('03:15')
+    ->withoutOverlapping();

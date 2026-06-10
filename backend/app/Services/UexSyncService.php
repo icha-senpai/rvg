@@ -20,6 +20,8 @@ class UexSyncService
 
     public function sync(string $scope = 'all', array $requestedResources = []): UexSyncRun
     {
+        $this->configureRuntime();
+
         $resourceNames = UexResourceRegistry::resolve($scope, $requestedResources);
         $runScope = $requestedResources !== [] ? 'custom' : $scope;
         $startedAt = CarbonImmutable::now();
@@ -34,6 +36,8 @@ class UexSyncService
             'failed_resources' => 0,
             'started_at' => $startedAt,
         ]);
+
+        $this->registerFatalSyncGuard($run->id, $runScope);
 
         $resourceResults = [];
         $totalRecords = 0;
@@ -112,6 +116,62 @@ class UexSyncService
         ])->save();
 
         return $run->fresh();
+    }
+
+    protected function configureRuntime(): void
+    {
+        @set_time_limit(0);
+
+        $memoryLimit = trim((string) config('services.uex.sync_memory_limit', '512M'));
+
+        if ($memoryLimit !== '') {
+            @ini_set('memory_limit', $memoryLimit);
+        }
+    }
+
+    protected function registerFatalSyncGuard(int $runId, string $scope): void
+    {
+        register_shutdown_function(function () use ($runId, $scope): void {
+            $error = error_get_last();
+
+            if (! $error || ! in_array($error['type'], [
+                E_ERROR,
+                E_PARSE,
+                E_CORE_ERROR,
+                E_COMPILE_ERROR,
+                E_USER_ERROR,
+            ], true)) {
+                return;
+            }
+
+            try {
+                $updated = UexSyncRun::query()
+                    ->whereKey($runId)
+                    ->where('status', 'running')
+                    ->update([
+                        'status' => 'failed',
+                        'error_message' => Str::limit('Sync crashed before completion: ' . ($error['message'] ?? 'Unknown fatal error.'), 400),
+                        'finished_at' => CarbonImmutable::now(),
+                    ]);
+
+                if ($updated > 0) {
+                    Log::error('UEX sync crashed fatally', [
+                        'run_id' => $runId,
+                        'scope' => $scope,
+                        'type' => $error['type'] ?? null,
+                        'message' => $error['message'] ?? null,
+                        'file' => $error['file'] ?? null,
+                        'line' => $error['line'] ?? null,
+                    ]);
+                }
+            } catch (Throwable $shutdownException) {
+                Log::error('UEX sync fatal guard failed', [
+                    'run_id' => $runId,
+                    'scope' => $scope,
+                    'error' => $shutdownException->getMessage(),
+                ]);
+            }
+        });
     }
 
     protected function fetchPayload(string $resourceName, array $definition): mixed

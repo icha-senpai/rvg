@@ -1,0 +1,104 @@
+Horizon Solo Developer License 1.0
+
+Copyright (c) 2026 Icha
+All rights reserved.
+
+This is a source-available license. It is not an open source license.
+
+1. Purpose
+
+This license is designed to be friendly to independent solo developers while
+requiring separate permission for team, company, client, and organizational use.
+
+2. Free Solo Developer Grant
+
+Subject to the terms of this license, a Solo Developer is granted a free,
+worldwide, non-exclusive, non-transferable, revocable license to:
+
+- use this software;
+- copy this software;
+- modify this software;
+- self-host and run this software; and
+- create derivative works for their own use.
+
+3. Who Qualifies as a Solo Developer
+
+A "Solo Developer" means one natural person acting alone, for themselves, and
+not on behalf of or for the benefit of any company, employer, client, agency,
+studio, partnership, nonprofit, school, government body, online community, or
+other organization.
+
+You are not a Solo Developer if any of the following are true:
+
+- more than one person has access to the source code, deployment, or admin
+  control of the software;
+- you are using the software for a team, business, startup, client, or other
+  organization;
+- you are building, operating, or customizing the software as part of paid work
+  for someone else; or
+- you are sharing modified or unmodified versions with collaborators,
+  contractors, employees, or community staff.
+
+4. Team, Company, Client, and Organizational Use
+
+Any use that does not qualify as Solo Developer use requires prior written
+permission from the copyright holder.
+
+This includes, without limitation:
+
+- internal team use;
+- commercial company use;
+- client work;
+- agency or studio use;
+- use by communities with multiple staff or contributors;
+- use by schools, nonprofits, or government bodies; and
+- any deployment, maintenance, or development involving more than one person.
+
+If you want to use this software in those situations, you must obtain a
+separate paid commercial or organizational license from the copyright holder.
+
+5. Redistribution Restrictions
+
+You may not sell, sublicense, rent, lease, distribute, publish, or provide this
+software, in whole or in part, to any third party except with prior written
+permission from the copyright holder.
+
+You may not offer this software as a hosted service, template, boilerplate,
+white-label product, SaaS, or managed platform for others except with prior
+written permission from the copyright holder.
+
+6. Attribution
+
+You may keep this license file with the software. You may not remove copyright
+notices from substantial portions of the software where they already exist.
+
+7. Ownership
+
+The software is licensed, not sold. All rights not expressly granted under this
+license are reserved by the copyright holder.
+
+8. Termination
+
+Any violation of this license automatically terminates your rights under it.
+
+Upon termination, you must stop using the software and delete or destroy all
+copies in your possession or control, unless the copyright holder gives you
+separate written permission.
+
+9. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+10. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE
+LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+11. Contact
+
+For team, company, client, community, or other non-solo licensing requests,
+contact the copyright holder for permission and commercial terms.

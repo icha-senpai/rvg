@@ -79,6 +79,16 @@
         </div>
       </div>
 
+      <div class="mb-5 flex flex-wrap justify-end gap-2">
+        <HorizonButton
+          variant="danger"
+          size="sm"
+          @click="clearRememberedSessions"
+        >
+          Clear All Remembered Logins
+        </HorizonButton>
+      </div>
+
       <div class="space-y-4">
         <article
           v-for="u in users.data"
@@ -766,6 +776,16 @@
     message="They will be forced back through verification and their API tokens will be revoked."
     @confirm="confirmUnverifyUser"
   />
+
+  <HorizonConfirmDialog
+    ref="clearRememberedSessionsConfirmDialog"
+    title="Clear Remembered Logins"
+    confirm-label="Clear All"
+    cancel-label="Cancel"
+    variant="danger"
+    message="This clears every stored remember-me token and all web sessions, so everyone will need to log in again."
+    @confirm="confirmClearRememberedSessions"
+  />
 </template>
 
 <script setup>
@@ -1396,6 +1416,7 @@ onBeforeUnmount(() => {
 });
 
 const unverifyConfirmDialog = ref(null);
+const clearRememberedSessionsConfirmDialog = ref(null);
 
 /* ============================================================
    SAVE ACTIONS
@@ -1403,6 +1424,10 @@ const unverifyConfirmDialog = ref(null);
 function unverifyUser() {
   if (!form.value.id) return;
   unverifyConfirmDialog.value?.show();
+}
+
+function clearRememberedSessions() {
+  clearRememberedSessionsConfirmDialog.value?.show();
 }
 
 function buildUsersPageQuery() {
@@ -1441,6 +1466,23 @@ function confirmUnverifyUser({ close }) {
   router.post(
     route('admin.users.unverify'),
     { id: userId },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        close();
+        closeUserEditor();
+        restoreUsersPage(query);
+      },
+    }
+  );
+}
+
+function confirmClearRememberedSessions({ close }) {
+  const query = buildUsersPageQuery();
+
+  router.post(
+    route('admin.users.clearRememberedSessions'),
+    {},
     {
       preserveScroll: true,
       onSuccess: () => {

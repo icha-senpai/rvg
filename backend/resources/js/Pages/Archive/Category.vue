@@ -41,7 +41,7 @@ const props = defineProps({
           </h1>
 
           <p class="mt-3 max-w-3xl text-sm leading-6 text-text-secondary md:text-base">
-            {{ category.description || 'No description has been written for this archive category yet.' }}
+            {{ category.description || '' }}
           </p>
         </div>
       </section>

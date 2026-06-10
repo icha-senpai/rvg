@@ -18,7 +18,7 @@ class StoreLedgerShipAssetRequest extends FormRequest
             'vehicle_uex_id' => ['required', 'integer'],
             'custom_name' => ['nullable', 'string', 'max:255'],
             'serial_or_label' => ['nullable', 'string', 'max:255'],
-            'purchase_price' => ['nullable', 'numeric', 'gte:0'],
+            'purchase_price' => ['nullable', 'integer', 'gte:0'],
             'currency' => ['nullable', 'string', 'max:16'],
             'acquisition_source' => ['nullable', 'string', 'max:120'],
             'current_location' => ['nullable', 'string', 'max:255'],

@@ -62,13 +62,13 @@
 
 The backend is Laravel 12, exposing REST API endpoints under /api/v1.
 
-The frontend is Vue 3 using: inertia.js and tailwindcss
+The frontend is Vue 3 using Inertia.js and Tailwind CSS v4.
 
 Tailwind CSS v4 for all styling.
 
 Do not introduce new frameworks, architectural patterns, or directory structures unless explicitly told, you may suggest but never implement unless explicitly told.
 
-Keep all Laravel business logic strictly within:
+Keep Laravel business logic within the existing application boundaries:
 
 app/
 
@@ -98,26 +98,29 @@ Inertia routes:
 API routes (/api/v1):
 
 - JSON only
-- Must use ApiResponse
-- No Inertia or Blade rendering
-- Designed for external or programmatic consumers
+- Must not return Inertia or Blade rendering
+- Should follow the existing response convention of the surface being touched
+- Use ApiResponse where that endpoint family already uses it, or when intentionally normalizing a touched endpoint
+- Are designed for external or programmatic consumers
 
 Do not mix these two response styles.
 If unsure which applies, ASK before implementing.
 
 ## CODING STYLE RULES
 
-Use Tailwind utility classes exclusively for styling use this file: C:\laragon\www\dev2\backend\resources\css\app.css
+Prefer Tailwind utility classes for styling. Shared or global CSS belongs in: C:\laragon\www\dev2\backend\resources\css\app.css
 
-Custom Tailwind CSS is allowed; add to the existing stylesheet located at: C:\laragon\www\dev2\backend\resources\css\app.css
+Custom Tailwind CSS is allowed; add shared styles to the existing stylesheet located at: C:\laragon\www\dev2\backend\resources\css\app.css
+
+Scoped component styles are allowed when the touched Vue component already uses them or the styling is tightly local.
 
 Favor clear, readable PHP and JavaScript with explicit, intention-revealing variable names.
 
 Comment code when necessary to explain complex logic or non-obvious decisions.
 
-Use Laravel Form Request validation for all API input.
+Use Laravel Form Requests for API input validation when adding or touching API endpoints.
 
-Use Laravel API Resources to format and normalize API output.
+Use Laravel API Resources when that surface already uses them or when normalizing a touched API payload.
 
 All code should be production-ready, with proper error handling, logging, and documentation.
 
@@ -139,6 +142,12 @@ Modify build or tooling configs unless explicitly told, you may suggest but neve
 
 Output pseudo-code instead of real code
 
+Refactor unrelated code
+
+Add new dependencies unless explicitly told
+
+Change public behavior outside the requested scope
+
 Do:
 
 Respect and work within the existing architecture
@@ -148,6 +157,10 @@ Expand functionality only when explicitly requested, you may suggest but never i
 Make changes surgically and locally
 
 Explain reasoning when it adds clarity or prevents mistakes
+
+Prefer incremental, targeted changes over full rewrites
+
+Preserve existing public signatures unless explicitly told otherwise
 
 Keep responses clean, purposeful, explain your reasoning.
 
@@ -159,7 +172,9 @@ All API responses must:
 
 Be JSON
 
-Include a clear status and payload
+Follow the established response shape for the touched endpoint family
+
+Use a clear status and payload shape when working on endpoints that already follow that convention
 
 Never mix Laravel Blade rendering with Vue components.
 Vue is the view layer. Laravel is the backend. No cross-contamination.
@@ -172,7 +187,9 @@ Controllers should remain thin; business logic belongs in services or actions if
 
 Validation and error responses should follow existing API response conventions.
 
-Never refactor across multiple files without approval.
+Avoid broad refactors across multiple files without approval.
+
+Small coordinated changes across related files are allowed when they are directly required by the requested fix or feature and stay within the existing architecture.
 
 Keep functions simple unless real complexity is required.
 
@@ -197,6 +214,16 @@ Prefer incremental, targeted changes versus full rewrites unless absolutely need
 When modifying a file, show only the changed sections unless the full file is explicitly requested.
 
 If a requested change would violate these rules, pause and ask before proceeding.
+
+## Backend structure guidance
+
+- Follow the existing pattern of the bounded context you are touching.
+
+- This repo already uses a mix of `app/Services`, `app/Application`, and `app/Domain/*` structures. Do not force one area into another style without explicit approval.
+
+- If a context already uses actions, presenters, or application services, extend that local pattern instead of inventing a competing one.
+
+- Route closures, controllers, and existing facades may still exist in legacy areas. Improve them surgically instead of using a requested fix as an excuse for broad architectural cleanup.
 
 ## Service layer rules (DDD)
 

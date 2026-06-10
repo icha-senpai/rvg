@@ -132,6 +132,10 @@ class LedgerTransferContextService
 
     public function transferContextForRequestDestination(LedgerTransferRequest $request): array
     {
+        if ($request->destination_is_external) {
+            return $this->transferContextForExternalDestination();
+        }
+
         $attributedUser = $request->requestedBy
             ?? $request->sourceUser
             ?? User::query()->findOrFail($request->requested_by_user_id);
@@ -161,6 +165,7 @@ class LedgerTransferContextService
                 (int) ($data['destination_squadron_id'] ?? 0)
             ),
             'organization' => $this->transferContextForOrganizationDestination($actor, $sourceContext),
+            'external' => $this->transferContextForExternalDestination(),
             default => null,
         };
 
@@ -189,6 +194,7 @@ class LedgerTransferContextService
             'personal' => (int) ($sourceContext['user_id'] ?? 0) === (int) ($destinationContext['user_id'] ?? 0),
             'squadron' => (int) ($sourceContext['squadron_id'] ?? 0) === (int) ($destinationContext['squadron_id'] ?? 0),
             'organization' => true,
+            'external' => true,
             default => false,
         };
     }
@@ -289,6 +295,21 @@ class LedgerTransferContextService
         }
 
         return $this->transferContextForOrganization($actor);
+    }
+
+    protected function transferContextForExternalDestination(): array
+    {
+        return [
+            'type' => 'external',
+            'label' => 'Outside Horizon',
+            'account' => null,
+            'user_id' => null,
+            'subject_user' => null,
+            'squadron_id' => null,
+            'squadron' => null,
+            'is_org_owned' => false,
+            'is_external' => true,
+        ];
     }
 
     protected function transferContextForSquadronRecord(Squadron $squadron, User $attributedUser): array

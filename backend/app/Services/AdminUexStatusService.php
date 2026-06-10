@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\UexSyncRun;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -69,19 +70,42 @@ class AdminUexStatusService
             ],
             'groups' => $groups->all(),
             'total_rows' => $groups->sum('row_count'),
-            'last_run' => $lastRun ? [
-                'id' => $lastRun->id,
-                'scope' => $lastRun->scope,
-                'status' => $lastRun->status,
-                'requested_resources' => $lastRun->requested_resources ?? [],
-                'resource_results' => $lastRun->resource_results ?? [],
-                'total_records' => $lastRun->total_records,
-                'successful_resources' => $lastRun->successful_resources,
-                'failed_resources' => $lastRun->failed_resources,
-                'error_message' => $lastRun->error_message,
-                'started_at' => $lastRun->started_at?->toIso8601String(),
-                'finished_at' => $lastRun->finished_at?->toIso8601String(),
-            ] : null,
+            'last_run' => $this->presentLastRun($lastRun),
+        ];
+    }
+
+    protected function presentLastRun(?UexSyncRun $lastRun): ?array
+    {
+        if (! $lastRun) {
+            return null;
+        }
+
+        $status = $lastRun->status;
+        $errorMessage = $lastRun->error_message;
+        $finishedAt = $lastRun->finished_at;
+
+        if (
+            $lastRun->status === 'running'
+            && $lastRun->finished_at === null
+            && $lastRun->started_at?->lt(CarbonImmutable::now()->subMinutes(10))
+        ) {
+            $status = 'failed';
+            $errorMessage = $errorMessage ?: 'Sync did not finish. The process likely crashed or was interrupted before Horizon could save a final status.';
+            $finishedAt = $lastRun->started_at;
+        }
+
+        return [
+            'id' => $lastRun->id,
+            'scope' => $lastRun->scope,
+            'status' => $status,
+            'requested_resources' => $lastRun->requested_resources ?? [],
+            'resource_results' => $lastRun->resource_results ?? [],
+            'total_records' => $lastRun->total_records,
+            'successful_resources' => $lastRun->successful_resources,
+            'failed_resources' => $lastRun->failed_resources,
+            'error_message' => $errorMessage,
+            'started_at' => $lastRun->started_at?->toIso8601String(),
+            'finished_at' => $finishedAt?->toIso8601String(),
         ];
     }
 }

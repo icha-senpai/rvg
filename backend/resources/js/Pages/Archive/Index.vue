@@ -214,8 +214,7 @@ watch(search, value => {
 
       <section class="space-y-4">
         <div>
-          <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category Library</div>
-          <h2 class="text-2xl font-black text-horizon-white">Curated knowledge blocks by category</h2>
+
         </div>
 
         <div v-if="categoryGroups.length" class="space-y-6">
@@ -232,7 +231,7 @@ watch(search, value => {
               <div>
                 <div class="text-xs font-bold uppercase tracking-[0.24em] text-text-muted">Category</div>
                 <h3 class="mt-1 text-2xl font-black text-horizon-white">{{ group.name }}</h3>
-                <p class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{{ group.description || 'No category description has been written yet.' }}</p>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{{ group.description || '' }}</p>
               </div>
 
               <div class="flex flex-wrap gap-2 text-xs font-semibold text-text-muted">

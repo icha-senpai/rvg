@@ -226,6 +226,13 @@ class LedgerTransferService
             ];
         }
 
+        $targets[] = [
+            'key' => 'external',
+            'type' => 'external',
+            'label' => 'Outside Horizon',
+            'description' => 'Move funds or tracked assets out of Horizon without a receiving ledger. This completes immediately and records the outflow here only.',
+        ];
+
         foreach ($memberTargets as $target) {
             $targets[] = $target;
         }
@@ -248,6 +255,11 @@ class LedgerTransferService
         return $this->requests->recentFundTransfersForContext($viewer, $context);
     }
 
+    public function recentInventoryTransfersForContext(User $viewer, array $context, array $referenceMaps): array
+    {
+        return $this->requests->recentInventoryTransfersForContext($viewer, $context, $referenceMaps);
+    }
+
     public function personalInboxContext(User $actor): array
     {
         return $this->contexts->personalInboxContext($actor);
@@ -268,7 +280,7 @@ class LedgerTransferService
         return DB::transaction(function () use ($actor, $sourceContext, $data) {
             $wipeCycle = $this->cycles->resolveWritableWipeCycle($data['wipe_cycle_id'] ?? null);
             $destinationContext = $this->contexts->resolveTransferDestination($actor, $sourceContext, $data);
-            $amount = round((float) $data['amount'], 2);
+            $amount = $this->wholeNumber($data['amount']);
 
             if ($amount <= 0) {
                 throw ValidationException::withMessages([
@@ -307,7 +319,7 @@ class LedgerTransferService
         return DB::transaction(function () use ($actor, $sourceContext, $data) {
             $sourceItem = $this->resolveInventoryTransferItem($sourceContext, (int) $data['inventory_item_id']);
             $destinationContext = $this->contexts->resolveTransferDestination($actor, $sourceContext, $data);
-            $requestedQuantity = round((float) $data['quantity'], 4);
+            $requestedQuantity = $this->wholeNumber($data['quantity']);
             $availableQuantity = round((float) $sourceItem->quantity, 4);
 
             if ($requestedQuantity <= 0) {
@@ -370,6 +382,7 @@ class LedgerTransferService
                 : null,
             'destination_squadron_id' => $destinationContext['squadron_id'] ?? null,
             'destination_is_org_owned' => (bool) ($destinationContext['is_org_owned'] ?? false),
+            'destination_is_external' => (bool) ($destinationContext['is_external'] ?? false),
             'amount' => $attributes['amount'] ?? null,
             'quantity' => $attributes['quantity'] ?? null,
             'currency' => $attributes['currency'] ?? 'aUEC',
@@ -382,12 +395,12 @@ class LedgerTransferService
 
     protected function transferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
     {
-        return true;
+        return ! (bool) ($destinationContext['is_external'] ?? false);
     }
 
     protected function inventoryTransferRequiresApproval(User $actor, array $sourceContext, array $destinationContext): bool
     {
-        return true;
+        return ! (bool) ($destinationContext['is_external'] ?? false);
     }
 
     protected function logPendingTransferRequest(
@@ -476,7 +489,7 @@ class LedgerTransferService
 
         $memo = trim((string) ($transferRequest->description ?? ''));
         $transactionDate = $transferRequest->transaction_date ?? now();
-        $amount = round((float) ($transferRequest->amount ?? 0), 2);
+        $amount = $this->wholeNumber($transferRequest->amount ?? 0);
 
         $outgoing = LedgerTransaction::query()->create([
             'user_id' => $sourceContext['user_id'],
@@ -495,22 +508,26 @@ class LedgerTransferService
             'notes' => $transferRequest->notes,
         ]);
 
-        $incoming = LedgerTransaction::query()->create([
-            'user_id' => $destinationContext['user_id'],
-            'squadron_id' => $destinationContext['squadron_id'],
-            'is_org_owned' => $destinationContext['is_org_owned'],
-            'transfer_request_id' => $transferRequest->id,
-            'ledger_account_id' => $destinationContext['account']->id,
-            'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
-            'type' => 'income',
-            'amount' => $amount,
-            'currency' => $destinationContext['account']->currency ?? 'aUEC',
-            'source_type' => 'transfer',
-            'transfer_direction' => 'incoming',
-            'description' => "Transfer from {$sourceContext['label']}: {$memo}",
-            'transaction_date' => $transactionDate,
-            'notes' => $transferRequest->notes,
-        ]);
+        $incoming = null;
+
+        if (! ($destinationContext['is_external'] ?? false)) {
+            $incoming = LedgerTransaction::query()->create([
+                'user_id' => $destinationContext['user_id'],
+                'squadron_id' => $destinationContext['squadron_id'],
+                'is_org_owned' => $destinationContext['is_org_owned'],
+                'transfer_request_id' => $transferRequest->id,
+                'ledger_account_id' => $destinationContext['account']->id,
+                'wipe_cycle_id' => $transferRequest->wipe_cycle_id,
+                'type' => 'income',
+                'amount' => $amount,
+                'currency' => $destinationContext['account']->currency ?? 'aUEC',
+                'source_type' => 'transfer',
+                'transfer_direction' => 'incoming',
+                'description' => "Transfer from {$sourceContext['label']}: {$memo}",
+                'transaction_date' => $transactionDate,
+                'notes' => $transferRequest->notes,
+            ]);
+        }
 
         $transferRequest->forceFill([
             'status' => 'completed',
@@ -518,7 +535,7 @@ class LedgerTransferService
             'approved_at' => now(),
             'completed_at' => now(),
             'outgoing_transaction_id' => $outgoing->id,
-            'incoming_transaction_id' => $incoming->id,
+            'incoming_transaction_id' => $incoming?->id,
         ])->save();
 
         $metadata = [
@@ -540,16 +557,18 @@ class LedgerTransferService
             $sourceContext['is_org_owned']
         );
 
-        $this->logActivity(
-            $actor,
-            $destinationContext['subject_user'],
-            $transferRequest->wipeCycle,
-            'transfer.created',
-            $incoming,
-            array_merge($metadata, ['direction' => 'incoming']),
-            $destinationContext['squadron'],
-            $destinationContext['is_org_owned']
-        );
+        if ($incoming) {
+            $this->logActivity(
+                $actor,
+                $destinationContext['subject_user'],
+                $transferRequest->wipeCycle,
+                'transfer.created',
+                $incoming,
+                array_merge($metadata, ['direction' => 'incoming']),
+                $destinationContext['squadron'],
+                $destinationContext['is_org_owned']
+            );
+        }
 
         return [
             'request' => $transferRequest->fresh(),
@@ -572,7 +591,7 @@ class LedgerTransferService
             $sourceContext,
             (int) $transferRequest->source_inventory_item_id
         );
-        $requestedQuantity ??= round((float) ($transferRequest->quantity ?? 0), 4);
+        $requestedQuantity ??= $this->wholeNumber($transferRequest->quantity ?? 0);
 
         $availableQuantity = round((float) $sourceItem->quantity, 4);
 
@@ -593,18 +612,24 @@ class LedgerTransferService
             'to_label' => $destinationContext['label'],
         ];
 
-        if ($fullTransfer) {
-            $sourceItem->forceFill([
-                'user_id' => $destinationContext['user_id'],
-                'squadron_id' => $destinationContext['squadron_id'],
-                'is_org_owned' => $destinationContext['is_org_owned'],
-                'assigned_ship_asset_id' => null,
-                'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
-                'transfer_request_id' => $transferRequest->id,
-                'provenance_locked' => true,
-            ])->save();
+        $destinationItem = null;
 
-            $destinationItem = $sourceItem->fresh();
+        if ($fullTransfer) {
+            if ($destinationContext['is_external'] ?? false) {
+                $sourceItem->delete();
+            } else {
+                $sourceItem->forceFill([
+                    'user_id' => $destinationContext['user_id'],
+                    'squadron_id' => $destinationContext['squadron_id'],
+                    'is_org_owned' => $destinationContext['is_org_owned'],
+                    'assigned_ship_asset_id' => null,
+                    'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
+                    'transfer_request_id' => $transferRequest->id,
+                    'provenance_locked' => true,
+                ])->save();
+
+                $destinationItem = $sourceItem->fresh();
+            }
         } else {
             $sourceQuantity = (float) $sourceItem->quantity;
             $remainingQuantity = round($sourceQuantity - $requestedQuantity, 4);
@@ -620,31 +645,33 @@ class LedgerTransferService
                 'provenance_locked' => true,
             ])->save();
 
-            $destinationItem = LedgerInventoryItem::query()->create([
-                'user_id' => $destinationContext['user_id'],
-                'squadron_id' => $destinationContext['squadron_id'],
-                'is_org_owned' => $destinationContext['is_org_owned'],
-                'wipe_cycle_id' => $sourceItem->wipe_cycle_id,
-                'transfer_request_id' => $transferRequest->id,
-                'transfer_origin_item_id' => $sourceItem->transfer_origin_item_id ?: $sourceItem->id,
-                'source_type' => $sourceItem->source_type,
-                'uex_reference_type' => $sourceItem->uex_reference_type,
-                'uex_reference_id' => $sourceItem->uex_reference_id,
-                'custom_name' => $sourceItem->custom_name,
-                'category' => $sourceItem->category,
-                'quantity' => $requestedQuantity,
-                'unit_label' => $sourceItem->unit_label,
-                'location_name' => $sourceItem->location_name,
-                'terminal_uex_id' => $sourceItem->terminal_uex_id,
-                'assigned_ship_asset_id' => null,
-                'purchase_price' => $movedPurchasePrice,
-                'estimated_value' => $movedEstimatedValue,
-                'currency' => $sourceItem->currency,
-                'status' => $sourceItem->status,
-                'provenance_locked' => true,
-                'acquired_at' => $sourceItem->acquired_at,
-                'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
-            ]);
+            if (! ($destinationContext['is_external'] ?? false)) {
+                $destinationItem = LedgerInventoryItem::query()->create([
+                    'user_id' => $destinationContext['user_id'],
+                    'squadron_id' => $destinationContext['squadron_id'],
+                    'is_org_owned' => $destinationContext['is_org_owned'],
+                    'wipe_cycle_id' => $sourceItem->wipe_cycle_id,
+                    'transfer_request_id' => $transferRequest->id,
+                    'transfer_origin_item_id' => $sourceItem->transfer_origin_item_id ?: $sourceItem->id,
+                    'source_type' => $sourceItem->source_type,
+                    'uex_reference_type' => $sourceItem->uex_reference_type,
+                    'uex_reference_id' => $sourceItem->uex_reference_id,
+                    'custom_name' => $sourceItem->custom_name,
+                    'category' => $sourceItem->category,
+                    'quantity' => $requestedQuantity,
+                    'unit_label' => $sourceItem->unit_label,
+                    'location_name' => $sourceItem->location_name,
+                    'terminal_uex_id' => $sourceItem->terminal_uex_id,
+                    'assigned_ship_asset_id' => null,
+                    'purchase_price' => $movedPurchasePrice,
+                    'estimated_value' => $movedEstimatedValue,
+                    'currency' => $sourceItem->currency,
+                    'status' => $sourceItem->status,
+                    'provenance_locked' => true,
+                    'acquired_at' => $sourceItem->acquired_at,
+                    'notes' => $this->appendTransferNote($sourceItem->notes, $transferRequest->notes),
+                ]);
+            }
         }
 
         $transferRequest->forceFill([
@@ -652,7 +679,7 @@ class LedgerTransferService
             'approval_user_id' => $actor->id,
             'approved_at' => now(),
             'completed_at' => now(),
-            'destination_inventory_item_id' => $destinationItem->id,
+            'destination_inventory_item_id' => $destinationItem?->id,
         ])->save();
 
         $this->logActivity(
@@ -666,21 +693,23 @@ class LedgerTransferService
             $sourceContext['is_org_owned']
         );
 
-        $this->logActivity(
-            $actor,
-            $destinationContext['subject_user'],
-            $destinationItem->wipeCycle,
-            'inventory.transfer_in',
-            $destinationItem,
-            $metadata,
-            $destinationContext['squadron'],
-            $destinationContext['is_org_owned']
-        );
+        if ($destinationItem) {
+            $this->logActivity(
+                $actor,
+                $destinationContext['subject_user'],
+                $destinationItem->wipeCycle,
+                'inventory.transfer_in',
+                $destinationItem,
+                $metadata,
+                $destinationContext['squadron'],
+                $destinationContext['is_org_owned']
+            );
+        }
 
         return [
             'request' => $transferRequest->fresh(),
-            'source' => $sourceItem->fresh(),
-            'destination' => $destinationItem->fresh(),
+            'source' => $sourceItem->exists ? $sourceItem->fresh() : null,
+            'destination' => $destinationItem?->fresh(),
         ];
     }
 
@@ -796,10 +825,15 @@ class LedgerTransferService
             return [$value, null];
         }
 
-        $movedPortion = round(((float) $value) * ($movedQuantity / $sourceQuantity), 2);
-        $remainingPortion = round((float) $value - $movedPortion, 2);
+        $movedPortion = $this->wholeNumber(((float) $value) * ($movedQuantity / $sourceQuantity));
+        $remainingPortion = $this->wholeNumber((float) $value - $movedPortion);
 
         return [$remainingPortion, $movedPortion];
+    }
+
+    protected function wholeNumber(mixed $value): int
+    {
+        return (int) round((float) $value);
     }
 
     protected function appendTransferNote(?string $existingNotes, ?string $transferNotes): ?string

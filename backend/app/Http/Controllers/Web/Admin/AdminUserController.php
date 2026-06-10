@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * Handles admin-only user mutation actions from the dashboard.
@@ -93,20 +94,49 @@ class AdminUserController extends Controller
         ]);
 
         $user = User::findOrFail($data['id']);
+        // Some environments contain duplicate local rows for one Discord account.
+        // Clearing only the clicked row can leave another verified row available
+        // for the next Discord login, so unverify the whole Discord-linked set.
+        $usersToUnverify = User::query()
+            ->when(
+                filled($user->discord_id),
+                fn ($query) => $query->where('discord_id', $user->discord_id),
+                fn ($query) => $query->whereKey($user->id),
+            )
+            ->get();
 
-        $user->rsi_verified_at = null;
-        $user->global_status = 'pending';
-        $user->verification_code = null;
-        $user->verification_expires_at = null;
-        $user->save();
+        foreach ($usersToUnverify as $userToUnverify) {
+            $userToUnverify->rsi_verified_at = null;
+            $userToUnverify->global_status = 'pending';
+            $userToUnverify->verification_code = null;
+            $userToUnverify->verification_expires_at = null;
+            $userToUnverify->remember_token = null;
+            $userToUnverify->save();
 
-        $user->tokens()->delete();
+            $userToUnverify->tokens()->delete();
+            DB::table('sessions')->where('user_id', $userToUnverify->id)->delete();
 
-        Cache::forget("user_roles_{$user->id}");
-        Cache::forget("user_permissions_{$user->id}");
+            Cache::forget("user_roles_{$userToUnverify->id}");
+            Cache::forget("user_permissions_{$userToUnverify->id}");
+        }
 
         return redirect()
             ->route('admin.dashboard')
             ->with('success', 'User marked as unverified.');
+    }
+
+    public function clearRememberedSessions(Request $request)
+    {
+        $this->authorize('access-admin-panel');
+
+        User::query()->whereNotNull('remember_token')->update([
+            'remember_token' => null,
+        ]);
+
+        DB::table('sessions')->delete();
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', 'All remembered logins and web sessions were cleared.');
     }
 }

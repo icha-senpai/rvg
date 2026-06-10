@@ -47,6 +47,65 @@ class LedgerFeatureTest extends TestCase
             );
     }
 
+    public function test_personal_ledger_includes_recent_fund_and_item_transfer_history_capped_at_ten_entries(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $member = $this->memberUser();
+        $recipient = $this->memberUser([
+            'discord_id' => 'transfer-recipient-history',
+            'discord_name' => 'Transfer Recipient',
+            'rsi_handle' => 'TransferRecipient',
+        ]);
+        $wipe = WipeCycle::query()->create([
+            'name' => '4.2 Live',
+            'star_citizen_version' => '4.2',
+            'wipe_type' => 'inventory',
+            'started_at' => now()->subDays(2),
+            'is_current' => true,
+        ]);
+
+        for ($i = 1; $i <= 12; $i++) {
+            LedgerTransferRequest::query()->create([
+                'transfer_kind' => 'funds',
+                'status' => 'completed',
+                'requested_by_user_id' => $member->id,
+                'source_user_id' => $member->id,
+                'destination_user_id' => $recipient->id,
+                'wipe_cycle_id' => $wipe->id,
+                'currency' => 'aUEC',
+                'amount' => 1000 + $i,
+                'description' => "Fund transfer {$i}",
+                'completed_at' => now()->subMinutes(13 - $i),
+            ]);
+
+            LedgerTransferRequest::query()->create([
+                'transfer_kind' => 'inventory',
+                'status' => 'completed',
+                'requested_by_user_id' => $member->id,
+                'source_user_id' => $member->id,
+                'destination_user_id' => $recipient->id,
+                'wipe_cycle_id' => $wipe->id,
+                'currency' => 'aUEC',
+                'quantity' => $i,
+                'description' => "Item transfer {$i}",
+                'completed_at' => now()->subMinutes(13 - $i),
+            ]);
+        }
+
+        $this
+            ->actingAs($member)
+            ->get(route('ledger.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Member/Ledger')
+                ->has('ledger.recentFundTransfers', 10)
+                ->has('ledger.recentInventoryTransfers', 10)
+                ->where('ledger.recentFundTransfers.0.description', 'Fund transfer 12')
+                ->where('ledger.recentInventoryTransfers.0.description', 'Item transfer 12')
+            );
+    }
+
     public function test_feature_disabled_blocks_regular_member_ledger_access(): void
     {
         config()->set('services.ledger.enabled', false);
@@ -303,7 +362,7 @@ class LedgerFeatureTest extends TestCase
             ->actingAs($member)
             ->post(route('ledger.transactions.store'), [
                 'type' => 'income',
-                'amount' => 42500.75,
+                'amount' => 42501,
                 'source_type' => 'salvage',
                 'description' => 'Reclaimer split payout',
             ])
@@ -326,6 +385,30 @@ class LedgerFeatureTest extends TestCase
             'subject_user_id' => $member->id,
             'action' => 'transaction.created',
             'target_type' => 'LedgerTransaction',
+        ]);
+    }
+
+    public function test_member_cannot_create_a_transaction_with_a_decimal_amount(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $member = $this->memberUser();
+
+        $this
+            ->actingAs($member)
+            ->from(route('ledger.index'))
+            ->post(route('ledger.transactions.store'), [
+                'type' => 'income',
+                'amount' => 42500.75,
+                'source_type' => 'salvage',
+                'description' => 'Decimal payout',
+            ])
+            ->assertRedirect(route('ledger.index'))
+            ->assertSessionHasErrors('amount');
+
+        $this->assertDatabaseMissing('ledger_transactions', [
+            'user_id' => $member->id,
+            'description' => 'Decimal payout',
         ]);
     }
 
@@ -453,7 +536,7 @@ class LedgerFeatureTest extends TestCase
                 'ledger_account_id' => $account->id,
                 'wipe_cycle_id' => $wipe->id,
                 'type' => 'expense',
-                'amount' => 1450.5,
+                'amount' => 1451,
                 'currency' => 'aUEC',
                 'source_type' => 'repair',
                 'description' => 'Updated repair bill',
@@ -466,7 +549,7 @@ class LedgerFeatureTest extends TestCase
             'id' => $transaction->id,
             'user_id' => $member->id,
             'type' => 'expense',
-            'amount' => 1450.50,
+            'amount' => 1451,
             'source_type' => 'repair',
             'description' => 'Updated repair bill',
             'notes' => 'Hull patch and restock',

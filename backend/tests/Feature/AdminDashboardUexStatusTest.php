@@ -131,6 +131,33 @@ class AdminDashboardUexStatusTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_stale_running_uex_run_is_presented_as_failed_on_the_dashboard(): void
+    {
+        $director = $this->directorUser();
+
+        UexSyncRun::create([
+            'scope' => 'all',
+            'requested_resources' => ['commodities'],
+            'status' => 'running',
+            'resource_results' => [],
+            'total_records' => 0,
+            'successful_resources' => 0,
+            'failed_resources' => 0,
+            'started_at' => now()->subMinutes(11),
+            'finished_at' => null,
+        ]);
+
+        $this
+            ->actingAs($director)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Dashboard')
+                ->where('uex.last_run.status', 'failed')
+                ->where('uex.last_run.error_message', 'Sync did not finish. The process likely crashed or was interrupted before Horizon could save a final status.')
+            );
+    }
+
     protected function directorUser(): User
     {
         $role = Role::create([

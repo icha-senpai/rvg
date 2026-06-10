@@ -205,7 +205,7 @@ class LedgerWriteService
         return DB::transaction(function () use ($actor, $owner, $data) {
             $account = $owner->resolveAccount($data['ledger_account_id'] ?? null);
             $wipeCycle = $this->cycles->resolveWritableWipeCycle($data['wipe_cycle_id'] ?? null);
-            $amount = round((float) $data['amount'], 2);
+            $amount = $this->wholeNumber($data['amount']);
 
             $this->assertTransactionAmountIsValid($data['type'], $amount, $owner instanceof PersonalLedgerOwner);
 
@@ -245,7 +245,7 @@ class LedgerWriteService
         return DB::transaction(function () use ($actor, $owner, $transaction, $data) {
             $account = $owner->resolveAccount($data['ledger_account_id'] ?? null);
             $wipeCycle = $this->cycles->resolveWritableWipeCycle($data['wipe_cycle_id'] ?? null);
-            $amount = round((float) $data['amount'], 2);
+            $amount = $this->wholeNumber($data['amount']);
 
             $this->assertTransactionAmountIsValid($data['type'], $amount, $owner instanceof PersonalLedgerOwner);
 
@@ -294,9 +294,9 @@ class LedgerWriteService
         return DB::transaction(function () use ($actor, $owner, $data) {
             $account = $owner->resolveAccount($data['ledger_account_id'] ?? null);
             $wipeCycle = $this->cycles->resolveWritableWipeCycle($data['wipe_cycle_id'] ?? null);
-            $quantity = round((float) $data['quantity'], 4);
-            $buyPrice = round((float) $data['buy_price_per_unit'], 2);
-            $sellPrice = round((float) $data['sell_price_per_unit'], 2);
+            $quantity = $this->wholeNumber($data['quantity']);
+            $buyPrice = $this->wholeNumber($data['buy_price_per_unit']);
+            $sellPrice = $this->wholeNumber($data['sell_price_per_unit']);
 
             if ($quantity <= 0 || $buyPrice < 0 || $sellPrice < 0) {
                 throw ValidationException::withMessages([
@@ -304,10 +304,10 @@ class LedgerWriteService
                 ]);
             }
 
-            $totalCost = round($quantity * $buyPrice, 2);
-            $totalRevenue = round($quantity * $sellPrice, 2);
-            $profit = round($totalRevenue - $totalCost, 2);
-            $profitPerUnit = $quantity > 0 ? round($profit / $quantity, 2) : 0.0;
+            $totalCost = $quantity * $buyPrice;
+            $totalRevenue = $quantity * $sellPrice;
+            $profit = $totalRevenue - $totalCost;
+            $profitPerUnit = $sellPrice - $buyPrice;
 
             $trade = LedgerTrade::query()->create($owner->applyOwnership([
                 'ledger_account_id' => $account->id,
@@ -324,7 +324,7 @@ class LedgerWriteService
                 'profit' => $profit,
                 'profit_per_unit' => $profitPerUnit,
                 'ship_asset_id' => $owner->resolveShipAssetId($data['ship_asset_id'] ?? null),
-                'cargo_capacity_used' => $data['cargo_capacity_used'] ?? null,
+                'cargo_capacity_used' => $this->nullableWholeNumber($data['cargo_capacity_used'] ?? null),
                 'trade_date' => $data['trade_date'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ]));
@@ -345,9 +345,9 @@ class LedgerWriteService
         return DB::transaction(function () use ($actor, $owner, $trade, $data) {
             $account = $owner->resolveAccount($data['ledger_account_id'] ?? null);
             $wipeCycle = $this->cycles->resolveWritableWipeCycle($data['wipe_cycle_id'] ?? null);
-            $quantity = round((float) $data['quantity'], 4);
-            $buyPrice = round((float) $data['buy_price_per_unit'], 2);
-            $sellPrice = round((float) $data['sell_price_per_unit'], 2);
+            $quantity = $this->wholeNumber($data['quantity']);
+            $buyPrice = $this->wholeNumber($data['buy_price_per_unit']);
+            $sellPrice = $this->wholeNumber($data['sell_price_per_unit']);
 
             if ($quantity <= 0 || $buyPrice < 0 || $sellPrice < 0) {
                 throw ValidationException::withMessages([
@@ -355,10 +355,10 @@ class LedgerWriteService
                 ]);
             }
 
-            $totalCost = round($quantity * $buyPrice, 2);
-            $totalRevenue = round($quantity * $sellPrice, 2);
-            $profit = round($totalRevenue - $totalCost, 2);
-            $profitPerUnit = $quantity > 0 ? round($profit / $quantity, 2) : 0.0;
+            $totalCost = $quantity * $buyPrice;
+            $totalRevenue = $quantity * $sellPrice;
+            $profit = $totalRevenue - $totalCost;
+            $profitPerUnit = $sellPrice - $buyPrice;
 
             $trade->forceFill([
                 'ledger_account_id' => $account->id,
@@ -375,7 +375,7 @@ class LedgerWriteService
                 'profit' => $profit,
                 'profit_per_unit' => $profitPerUnit,
                 'ship_asset_id' => $owner->resolveShipAssetId($data['ship_asset_id'] ?? null),
-                'cargo_capacity_used' => $data['cargo_capacity_used'] ?? null,
+                'cargo_capacity_used' => $this->nullableWholeNumber($data['cargo_capacity_used'] ?? null),
                 'trade_date' => $data['trade_date'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ])->save();
@@ -431,13 +431,13 @@ class LedgerWriteService
                 'uex_reference_id' => $referenceId,
                 'custom_name' => $data['custom_name'] ?? null,
                 'category' => $data['category'] ?? null,
-                'quantity' => $isPersonal ? ($data['quantity'] ?? 1) : $data['quantity'],
+                'quantity' => $this->wholeNumber($isPersonal ? ($data['quantity'] ?? 1) : $data['quantity']),
                 'unit_label' => $data['unit_label'] ?? null,
                 'location_name' => $data['location_name'] ?? null,
                 'terminal_uex_id' => $data['terminal_uex_id'] ?? null,
                 'assigned_ship_asset_id' => $owner->resolveShipAssetId($data['assigned_ship_asset_id'] ?? null),
-                'purchase_price' => $data['purchase_price'] ?? null,
-                'estimated_value' => $data['estimated_value'] ?? null,
+                'purchase_price' => $this->nullableWholeNumber($data['purchase_price'] ?? null),
+                'estimated_value' => $this->nullableWholeNumber($data['estimated_value'] ?? null),
                 'currency' => $data['currency'] ?? 'aUEC',
                 'status' => $data['status'] ?? 'owned',
                 'acquired_at' => $data['acquired_at'] ?? now(),
@@ -493,13 +493,13 @@ class LedgerWriteService
                 'uex_reference_id' => $referenceId,
                 'custom_name' => $data['custom_name'] ?? null,
                 'category' => $data['category'] ?? null,
-                'quantity' => $isPersonal ? ($data['quantity'] ?? 1) : $data['quantity'],
+                'quantity' => $this->wholeNumber($isPersonal ? ($data['quantity'] ?? 1) : $data['quantity']),
                 'unit_label' => $data['unit_label'] ?? null,
                 'location_name' => $data['location_name'] ?? null,
                 'terminal_uex_id' => $data['terminal_uex_id'] ?? null,
                 'assigned_ship_asset_id' => $owner->resolveShipAssetId($data['assigned_ship_asset_id'] ?? null),
-                'purchase_price' => $data['purchase_price'] ?? null,
-                'estimated_value' => $data['estimated_value'] ?? null,
+                'purchase_price' => $this->nullableWholeNumber($data['purchase_price'] ?? null),
+                'estimated_value' => $this->nullableWholeNumber($data['estimated_value'] ?? null),
                 'currency' => $data['currency'] ?? 'aUEC',
                 'status' => $data['status'] ?? 'owned',
                 'acquired_at' => $data['acquired_at'] ?? now(),
@@ -544,7 +544,7 @@ class LedgerWriteService
                 'vehicle_uex_id' => $data['vehicle_uex_id'] ?? null,
                 'custom_name' => $data['custom_name'] ?? null,
                 'serial_or_label' => $data['serial_or_label'] ?? null,
-                'purchase_price' => $data['purchase_price'] ?? null,
+                'purchase_price' => $this->nullableWholeNumber($data['purchase_price'] ?? null),
                 'currency' => $data['currency'] ?? 'aUEC',
                 'acquisition_source' => $data['acquisition_source'] ?? null,
                 'current_location' => $data['current_location'] ?? null,
@@ -574,7 +574,7 @@ class LedgerWriteService
                 'vehicle_uex_id' => $data['vehicle_uex_id'] ?? null,
                 'custom_name' => $data['custom_name'] ?? null,
                 'serial_or_label' => $data['serial_or_label'] ?? null,
-                'purchase_price' => $data['purchase_price'] ?? null,
+                'purchase_price' => $this->nullableWholeNumber($data['purchase_price'] ?? null),
                 'currency' => $data['currency'] ?? 'aUEC',
                 'acquisition_source' => $data['acquisition_source'] ?? null,
                 'current_location' => $data['current_location'] ?? null,
@@ -642,6 +642,20 @@ class LedgerWriteService
         throw ValidationException::withMessages([
             'transaction' => 'Transfer records stay locked so the paired ledgers stay in sync. Create a new transfer or reversal instead.',
         ]);
+    }
+
+    protected function wholeNumber(mixed $value): int
+    {
+        return (int) round((float) $value);
+    }
+
+    protected function nullableWholeNumber(mixed $value): ?int
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return $this->wholeNumber($value);
     }
 
     protected function logActivity(

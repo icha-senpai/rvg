@@ -241,6 +241,7 @@ const colorPickerSaturation = ref(100)
 const colorPickerValue = ref(100)
 const colorPickerCustomColors = ref(Array(16).fill(''))
 const activeCustomColorIndex = ref(-1)
+const COLOR_PICKER_CUSTOM_COLORS_STORAGE_KEY = 'horizon.rich-editor.custom-colors'
 
 let imageResizeCleanup = null
 let colorPickerDragCleanup = null
@@ -542,6 +543,14 @@ function normalizeHexColor(value) {
     .map(part => Math.max(0, Math.min(255, part)))
     .map(part => part.toString(16).padStart(2, '0'))
     .join('')}`
+}
+
+function normalizeStoredCustomColors(value) {
+  if (!Array.isArray(value)) {
+    return Array(16).fill('')
+  }
+
+  return Array.from({ length: 16 }, (_, index) => normalizeHexColor(value[index]) || '')
 }
 
 function clamp(value, min, max) {
@@ -887,6 +896,46 @@ function addCurrentColorToCustomColors() {
   nextColors[targetIndex] = nextColor
   colorPickerCustomColors.value = nextColors
   activeCustomColorIndex.value = targetIndex
+}
+
+function clearSelectedCustomColor() {
+  if (activeCustomColorIndex.value < 0) {
+    return
+  }
+
+  const nextColors = [...colorPickerCustomColors.value]
+  nextColors[activeCustomColorIndex.value] = ''
+  colorPickerCustomColors.value = nextColors
+  activeCustomColorIndex.value = -1
+}
+
+function loadStoredCustomColors() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    const raw = window.localStorage.getItem(COLOR_PICKER_CUSTOM_COLORS_STORAGE_KEY)
+
+    if (!raw) {
+      return
+    }
+
+    colorPickerCustomColors.value = normalizeStoredCustomColors(JSON.parse(raw))
+  } catch {
+    colorPickerCustomColors.value = Array(16).fill('')
+  }
+}
+
+function persistCustomColors(colors) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(
+    COLOR_PICKER_CUSTOM_COLORS_STORAGE_KEY,
+    JSON.stringify(normalizeStoredCustomColors(colors))
+  )
 }
 
 function handleDocumentMouseDown(event) {
@@ -1411,6 +1460,7 @@ function handleWindowResize() {
 
 onMounted(() => {
   syncViewportState()
+  loadStoredCustomColors()
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('scroll', refreshColorPickerPosition, true)
   document.addEventListener('mousedown', handleDocumentMouseDown)
@@ -1439,6 +1489,10 @@ watch(colorPickerDraftHex, value => {
     colorPickerHexValue.value = String(value ?? '').toUpperCase()
   }
 })
+
+watch(colorPickerCustomColors, colors => {
+  persistCustomColors(colors)
+}, { deep: true })
 
 onBeforeUnmount(() => editor?.destroy())
 </script>
@@ -1546,6 +1600,9 @@ onBeforeUnmount(() => editor?.destroy())
         </div>
         <div class="rich-editor-tooltip" data-tooltip="Remove highlight">
           <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
+        </div>
+        <div class="rich-editor-tooltip" data-tooltip="Remove field">
+          <HorizonButton type="button" size="xs" :variant="isCalloutActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyCustomCalloutColor('')">Clear Field</HorizonButton>
         </div>
         <div class="rich-editor-tooltip" data-tooltip="Strikethrough">
           <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
@@ -1677,7 +1734,19 @@ onBeforeUnmount(() => editor?.destroy())
           <div class="hz-stack-xs">
             <div class="flex items-center justify-between gap-2">
               <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Saved Colors</div>
-              <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="addCurrentColorToCustomColors">Save</HorizonButton>
+              <div class="flex items-center gap-1">
+                <HorizonButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  :disabled="activeCustomColorIndex < 0 || !colorPickerCustomColors[activeCustomColorIndex]"
+                  @mousedown.prevent
+                  @click="clearSelectedCustomColor"
+                >
+                  Clear
+                </HorizonButton>
+                <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="addCurrentColorToCustomColors">Save</HorizonButton>
+              </div>
             </div>
             <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--custom">
               <button
@@ -1692,6 +1761,9 @@ onBeforeUnmount(() => editor?.destroy())
               >
                 <span v-if="!hex" class="rich-editor-color-swatch-empty"></span>
               </button>
+            </div>
+            <div v-if="activeCustomColorIndex !== -1" class="text-[11px] font-medium text-[var(--color-text-secondary)]">
+              Save will update slot {{ activeCustomColorIndex + 1 }}.
             </div>
           </div>
 
@@ -1963,7 +2035,24 @@ onBeforeUnmount(() => editor?.destroy())
 
 .rich-editor-color-swatch--active {
   border-color: var(--horizon-sunset-blue);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--horizon-sunset-blue) 55%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--horizon-sunset-blue) 72%, transparent),
+    inset 0 0 0 2px rgb(255 255 255 / 0.9),
+    0 8px 18px rgb(37 99 235 / 0.22);
+}
+
+.rich-editor-color-swatch--active::after {
+  content: '';
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--horizon-sunset-blue) 82%, transparent),
+    0 1px 4px rgb(15 23 42 / 0.32);
 }
 
 .rich-editor-color-swatch-empty {

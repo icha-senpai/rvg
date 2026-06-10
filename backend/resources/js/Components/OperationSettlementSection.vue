@@ -47,6 +47,26 @@ const isFinalized = computed(() => !!settlement.value?.is_finalized)
 const attendanceLocked = computed(() => !!settlement.value?.locked_attendance)
 const settlementActivity = computed(() => settlement.value?.activity ?? {})
 
+function wholeNumber(value) {
+  const amount = Number(value)
+
+  if (!Number.isFinite(amount)) {
+    return null
+  }
+
+  return Math.round(amount)
+}
+
+function normalizeWholeNumberField(value) {
+  if (value === '' || value === null || typeof value === 'undefined') {
+    return ''
+  }
+
+  const amount = wholeNumber(value)
+
+  return amount === null ? '' : String(amount)
+}
+
 function settlementDraftKey() {
   return `settlement:${props.operation?.id ?? 'unknown'}`
 }
@@ -133,7 +153,7 @@ const squadronTargets = computed(() => {
 
 const assignedMoneyTotal = computed(() => {
   return moneyRows.value.reduce((total, row) => {
-    const amount = Number(row?.amount ?? 0)
+    const amount = wholeNumber(row?.amount ?? 0)
     return total + (Number.isFinite(amount) ? amount : 0)
   }, 0)
 })
@@ -156,8 +176,7 @@ const unassignedRowCount = computed(() => {
 })
 
 const presetAmountValue = computed(() => {
-  const amount = Number(presetAmount.value)
-  return Number.isFinite(amount) ? amount : 0
+  return wholeNumber(presetAmount.value) ?? 0
 })
 
 const attendeeSplitPreview = computed(() => {
@@ -165,7 +184,7 @@ const attendeeSplitPreview = computed(() => {
     return null
   }
 
-  return presetAmountValue.value / participantTargets.value.length
+  return Math.floor(presetAmountValue.value / participantTargets.value.length)
 })
 
 const horizonReservePreview = computed(() => {
@@ -173,7 +192,7 @@ const horizonReservePreview = computed(() => {
     return null
   }
 
-  return presetAmountValue.value * 0.1
+  return Math.round(presetAmountValue.value * 0.1)
 })
 
 const presetCoverageDelta = computed(() => {
@@ -317,7 +336,7 @@ function cloneMoneyRow(row) {
     recipient_type: row?.recipient_type ?? null,
     recipient_user_id: row?.recipient_user_id ?? null,
     recipient_squadron_id: row?.recipient_squadron_id ?? null,
-    amount: row?.amount ?? '',
+    amount: normalizeWholeNumberField(row?.amount),
     notes: row?.notes ?? '',
     recipient_label: row?.recipient_label ?? null,
   }
@@ -331,7 +350,7 @@ function cloneLootRow(row) {
     recipient_type: row?.recipient_type ?? null,
     recipient_user_id: row?.recipient_user_id ?? null,
     recipient_squadron_id: row?.recipient_squadron_id ?? null,
-    quantity: row?.quantity ?? '',
+    quantity: normalizeWholeNumberField(row?.quantity),
     unit_label: row?.unit_label ?? '',
     notes: row?.notes ?? '',
     reference_label: row?.reference_label ?? null,
@@ -346,7 +365,7 @@ function serializeRows(currentMoneyRows, currentLootRows) {
       recipient_type: row.recipient_type,
       recipient_user_id: row.recipient_user_id,
       recipient_squadron_id: row.recipient_squadron_id,
-      amount: row.amount === '' ? null : row.amount,
+      amount: row.amount === '' ? null : wholeNumber(row.amount),
       notes: row.notes || null,
     })),
     loot_rows: currentLootRows.map(row => ({
@@ -356,7 +375,7 @@ function serializeRows(currentMoneyRows, currentLootRows) {
       recipient_type: row.recipient_type,
       recipient_user_id: row.recipient_user_id,
       recipient_squadron_id: row.recipient_squadron_id,
-      quantity: row.quantity === '' ? null : row.quantity,
+      quantity: row.quantity === '' ? null : wholeNumber(row.quantity),
       unit_label: row.unit_label || null,
       notes: row.notes || null,
     })),
@@ -425,9 +444,14 @@ function notifyError(message) {
 
 function formatMoney(amount) {
   return `${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(amount || 0))} aUEC`
+    maximumFractionDigits: 0,
+  }).format(wholeNumber(amount || 0) ?? 0)} aUEC`
+}
+
+function formatWholeNumber(value) {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(wholeNumber(value || 0) ?? 0)
 }
 
 function formatDateLabel(value) {
@@ -447,8 +471,8 @@ function formatDateLabel(value) {
 }
 
 function parsePresetAmount() {
-  const amount = Number(presetAmount.value)
-  return Number.isFinite(amount) && amount > 0 ? amount : null
+  const amount = wholeNumber(presetAmount.value)
+  return Number.isInteger(amount) && amount > 0 ? amount : null
 }
 
 function createRecipientMoneyRow(recipientKey, amount = '', notes = '') {
@@ -473,6 +497,18 @@ function addParticipantLoot(recipientKey) {
   lootRows.value = [...lootRows.value, createRecipientLootRow(recipientKey)]
 }
 
+function normalizeSettlementInputs() {
+  presetAmount.value = normalizeWholeNumberField(presetAmount.value)
+  moneyRows.value = moneyRows.value.map(row => ({
+    ...row,
+    amount: normalizeWholeNumberField(row.amount),
+  }))
+  lootRows.value = lootRows.value.map(row => ({
+    ...row,
+    quantity: normalizeWholeNumberField(row.quantity),
+  }))
+}
+
 function splitPresetAmountAcrossAttendance() {
   const amount = parsePresetAmount()
   const recipients = participantTargets.value
@@ -487,17 +523,16 @@ function splitPresetAmountAcrossAttendance() {
     return
   }
 
-  const totalCents = Math.round(amount * 100)
-  const baseCents = Math.floor(totalCents / recipients.length)
-  let remainderCents = totalCents - (baseCents * recipients.length)
+  const baseAmount = Math.floor(amount / recipients.length)
+  let remainderAmount = amount - (baseAmount * recipients.length)
 
   const newRows = recipients.map((recipient) => {
-    const cents = baseCents + (remainderCents > 0 ? 1 : 0)
-    remainderCents = Math.max(0, remainderCents - 1)
+    const payout = baseAmount + (remainderAmount > 0 ? 1 : 0)
+    remainderAmount = Math.max(0, remainderAmount - 1)
 
     return createRecipientMoneyRow(
       recipient.key,
-      (cents / 100).toFixed(2),
+      String(payout),
       'Even attendee split',
     )
   })
@@ -519,7 +554,7 @@ function addSquadronReserveRow() {
     ...moneyRows.value,
     createRecipientMoneyRow(
       squadronKey,
-      amount ? amount.toFixed(2) : '',
+      amount ? String(amount) : '',
       'Squadron reserve',
     ),
   ]
@@ -527,7 +562,7 @@ function addSquadronReserveRow() {
 
 function reserveTenPercentForHorizon() {
   const moneyBase = moneyRows.value.reduce((total, row) => {
-    const amount = Number(row?.amount ?? 0)
+    const amount = wholeNumber(row?.amount ?? 0)
 
     if (!Number.isFinite(amount) || amount <= 0 || row?.recipient_type === 'organization') {
       return total
@@ -543,7 +578,7 @@ function reserveTenPercentForHorizon() {
     return
   }
 
-  const horizonAmount = (Math.round((baseAmount * 0.10) * 100) / 100).toFixed(2)
+  const horizonAmount = String(Math.round(baseAmount * 0.10))
   const organizationIndex = moneyRows.value.findIndex(row => row?.recipient_type === 'organization')
 
   if (organizationIndex === -1) {
@@ -589,6 +624,7 @@ function updateLootType(row, value) {
 function saveDraft() {
   if (!props.operation?.id || saving.value || !canManage.value || isFinalized.value) return
 
+  normalizeSettlementInputs()
   saving.value = true
 
   router.put(route('operations.settlement.update', props.operation.id, Ziggy), serializeRows(moneyRows.value, lootRows.value), {
@@ -605,6 +641,7 @@ function saveDraft() {
 function finalizeSettlement() {
   if (!props.operation?.id || finalizing.value || !canManage.value || isFinalized.value) return
 
+  normalizeSettlementInputs()
   finalizing.value = true
 
   router.post(route('operations.settlement.finalize', props.operation.id, Ziggy), serializeRows(moneyRows.value, lootRows.value), {
@@ -823,9 +860,10 @@ function showFirstError(errors) {
           <HorizonInput
             v-model="presetAmount"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             placeholder="Preset amount"
+            @blur="presetAmount = normalizeWholeNumberField(presetAmount)"
           />
 
           <HorizonSelect
@@ -941,9 +979,10 @@ function showFirstError(errors) {
                 <HorizonInput
                   v-model="row.amount"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   placeholder="Amount"
+                  @blur="row.amount = normalizeWholeNumberField(row.amount)"
                 />
               </div>
 
@@ -980,7 +1019,7 @@ function showFirstError(errors) {
                 </div>
 
                 <div class="text-lg font-black text-horizon-white">
-                  {{ row.amount ?? '0' }} aUEC
+                  {{ formatMoney(row.amount ?? '0') }}
                 </div>
               </div>
             </template>
@@ -1044,9 +1083,10 @@ function showFirstError(errors) {
                 <HorizonInput
                   v-model="row.quantity"
                   type="number"
-                  step="0.0001"
+                  step="1"
                   min="0"
                   placeholder="Quantity"
+                  @blur="row.quantity = normalizeWholeNumberField(row.quantity)"
                 />
 
                 <HorizonInput
@@ -1092,7 +1132,7 @@ function showFirstError(errors) {
                   </div>
 
                   <div class="mt-1 text-sm text-text-secondary">
-                    {{ row.quantity ?? '0' }} {{ row.unit_label || 'units' }} to {{ row.recipient_label ?? 'Unassigned destination' }}
+                    {{ formatWholeNumber(row.quantity ?? '0') }} {{ row.unit_label || 'units' }} to {{ row.recipient_label ?? 'Unassigned destination' }}
                   </div>
 
                   <div v-if="row.notes" class="mt-2 whitespace-pre-line text-sm text-text-secondary">

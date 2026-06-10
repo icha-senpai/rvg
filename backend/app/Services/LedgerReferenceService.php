@@ -277,7 +277,7 @@ class LedgerReferenceService
             return false;
         }
 
-        return round((float) $item->estimated_value, 2) === round((float) $expectedValue * (float) $item->quantity, 2);
+        return $this->wholeNumber($item->estimated_value) === $this->wholeNumber((float) $expectedValue * (float) $item->quantity);
     }
 
     public function inventoryPurchaseMatchesSuggestion(LedgerInventoryItem $item, array $inventorySuggestionMaps): bool
@@ -289,7 +289,7 @@ class LedgerReferenceService
             return false;
         }
 
-        return round((float) $item->purchase_price, 2) === round((float) $expectedValue * (float) $item->quantity, 2);
+        return $this->wholeNumber($item->purchase_price) === $this->wholeNumber((float) $expectedValue * (float) $item->quantity);
     }
 
     public function shipPurchaseMatchesSuggestion(LedgerShipAsset $asset, Collection $shipPricingMap): bool
@@ -301,7 +301,7 @@ class LedgerReferenceService
             return false;
         }
 
-        return round((float) $asset->purchase_price, 2) === round((float) $expectedValue, 2);
+        return $this->wholeNumber($asset->purchase_price) === $this->wholeNumber($expectedValue);
     }
 
     public function transferInventoryOptions(Collection $items, array $referenceMaps): array
@@ -321,7 +321,7 @@ class LedgerReferenceService
                 return [
                     'id' => $item->id,
                     'label' => $label,
-                    'quantity' => (float) $item->quantity,
+                    'quantity' => $this->wholeNumber($item->quantity),
                     'unit_label' => $item->unit_label ?: 'units',
                     'status' => $item->status,
                 ];
@@ -335,7 +335,7 @@ class LedgerReferenceService
             'id' => $transaction->id,
             'ledger_account_id' => $transaction->ledger_account_id,
             'type' => $transaction->type,
-            'amount' => (float) $transaction->amount,
+            'amount' => $this->wholeNumber($transaction->amount),
             'currency' => $transaction->currency,
             'source_type' => $transaction->source_type,
             'is_transfer' => in_array($transaction->source_type, ['transfer', 'transfer_reversal'], true),
@@ -373,16 +373,16 @@ class LedgerReferenceService
             'commodity' => $this->resolveReferenceLabel('commodity', $trade->commodity_uex_id, $referenceMaps),
             'buy_terminal' => $this->resolveReferenceLabel('terminal', $trade->buy_terminal_uex_id, $referenceMaps),
             'sell_terminal' => $this->resolveReferenceLabel('terminal', $trade->sell_terminal_uex_id, $referenceMaps),
-            'quantity' => (float) $trade->quantity,
+            'quantity' => $this->wholeNumber($trade->quantity),
             'unit_type' => $trade->unit_type,
-            'buy_price_per_unit' => (float) $trade->buy_price_per_unit,
-            'sell_price_per_unit' => (float) $trade->sell_price_per_unit,
-            'total_cost' => (float) $trade->total_cost,
-            'total_revenue' => (float) $trade->total_revenue,
-            'profit' => (float) $trade->profit,
-            'profit_per_unit' => (float) $trade->profit_per_unit,
+            'buy_price_per_unit' => $this->wholeNumber($trade->buy_price_per_unit),
+            'sell_price_per_unit' => $this->wholeNumber($trade->sell_price_per_unit),
+            'total_cost' => $this->wholeNumber($trade->total_cost),
+            'total_revenue' => $this->wholeNumber($trade->total_revenue),
+            'profit' => $this->wholeNumber($trade->profit),
+            'profit_per_unit' => $this->wholeNumber($trade->profit_per_unit),
             'ship_asset_id' => $trade->ship_asset_id,
-            'cargo_capacity_used' => $trade->cargo_capacity_used !== null ? (float) $trade->cargo_capacity_used : null,
+            'cargo_capacity_used' => $trade->cargo_capacity_used !== null ? $this->wholeNumber($trade->cargo_capacity_used) : null,
             'trade_date' => $trade->trade_date?->toIso8601String(),
             'ship_asset' => $trade->shipAsset
                 ? ($trade->shipAsset->custom_name ?: $trade->shipAsset->serial_or_label ?: "Ship {$trade->shipAsset->id}")
@@ -413,14 +413,14 @@ class LedgerReferenceService
                 $referenceMaps
             ),
             'category' => $item->category,
-            'quantity' => (float) $item->quantity,
+            'quantity' => $this->wholeNumber($item->quantity),
             'unit_label' => $item->unit_label,
             'location_name' => $item->location_name,
             'terminal_uex_id' => $item->terminal_uex_id,
             'terminal_name' => $this->resolveReferenceLabel('terminal', $item->terminal_uex_id, $referenceMaps),
-            'purchase_price' => $item->purchase_price !== null ? (float) $item->purchase_price : null,
+            'purchase_price' => $item->purchase_price !== null ? $this->wholeNumber($item->purchase_price) : null,
             'purchase_price_source' => $purchaseMatchesSuggestion ? 'uex_estimate' : 'manual',
-            'estimated_value' => $item->estimated_value !== null ? (float) $item->estimated_value : null,
+            'estimated_value' => $item->estimated_value !== null ? $this->wholeNumber($item->estimated_value) : null,
             'estimated_value_source' => $estimateMatchesSuggestion ? 'uex_estimate' : 'manual',
             'currency' => $item->currency,
             'status' => $item->status,
@@ -451,7 +451,7 @@ class LedgerReferenceService
             'custom_name' => $asset->custom_name,
             'ship_name' => $asset->custom_name ?: $this->resolveReferenceLabel('vehicle', $asset->vehicle_uex_id, $referenceMaps),
             'serial_or_label' => $asset->serial_or_label,
-            'purchase_price' => $asset->purchase_price !== null ? (float) $asset->purchase_price : null,
+            'purchase_price' => $asset->purchase_price !== null ? $this->wholeNumber($asset->purchase_price) : null,
             'purchase_price_source' => $purchaseMatchesSuggestion ? 'uex_estimate' : 'manual',
             'currency' => $asset->currency,
             'acquisition_source' => $asset->acquisition_source,
@@ -499,13 +499,13 @@ class LedgerReferenceService
                 ? "{$metadata['from_label']} -> {$metadata['to_label']}"
                 : ($metadata['description'] ?? null),
             'inventory.transfer_requested', 'inventory.transfer_out', 'inventory.transfer_in', 'inventory.transfer_rejected' => isset($metadata['item_label'], $metadata['quantity'])
-                ? $metadata['item_label'] . ' • ' . rtrim(rtrim(number_format((float) $metadata['quantity'], 4, '.', ''), '0'), '.')
+                ? $metadata['item_label'] . ' • ' . number_format($this->wholeNumber($metadata['quantity']))
                 : null,
             'trade.created', 'trade.updated', 'trade.deleted' => isset($metadata['profit'])
-                ? 'Trade profit: ' . number_format((float) $metadata['profit'], 2) . ' aUEC'
+                ? 'Trade profit: ' . number_format($this->wholeNumber($metadata['profit'])) . ' aUEC'
                 : null,
             'inventory.created', 'inventory.updated', 'inventory.deleted' => isset($metadata['quantity'])
-                ? 'Quantity: ' . rtrim(rtrim(number_format((float) $metadata['quantity'], 4, '.', ''), '0'), '.')
+                ? 'Quantity: ' . number_format($this->wholeNumber($metadata['quantity']))
                 : null,
             'ship_asset.created', 'ship_asset.updated', 'ship_asset.deleted' => $metadata['status'] ?? null,
             'wipe_cycle.created', 'wipe_cycle.current_set', 'wipe_cycle.closed', 'wipe_cycle.updated' => $metadata['name'] ?? null,
@@ -518,6 +518,11 @@ class LedgerReferenceService
             'detail' => $detail,
             'created_at' => $log->created_at?->toIso8601String(),
         ];
+    }
+
+    protected function wholeNumber(mixed $value): int
+    {
+        return (int) round((float) $value);
     }
 
     public function resolveReferenceLabel(?string $type, $id, array $referenceMaps): ?string

@@ -18,7 +18,7 @@ class StoreLedgerTransactionRequest extends FormRequest
             'ledger_account_id' => ['nullable', 'integer', 'exists:ledger_accounts,id'],
             'wipe_cycle_id' => ['nullable', 'integer', 'exists:wipe_cycles,id'],
             'type' => ['required', Rule::in(['income', 'expense', 'adjustment'])],
-            'amount' => ['required', 'numeric'],
+            'amount' => ['required', 'integer'],
             'currency' => ['nullable', 'string', 'max:16'],
             'source_type' => ['nullable', 'string', 'max:64'],
             'description' => ['required', 'string', 'max:255'],

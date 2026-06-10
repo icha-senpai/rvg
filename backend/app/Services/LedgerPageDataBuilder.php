@@ -56,6 +56,11 @@ class LedgerPageDataBuilder
             'pendingFundTransfers' => $this->transfers->pendingTransferRequestsForContext($user, $this->transfers->personalInboxContext($user), 'funds', $state['referenceMaps']),
             'pendingInventoryTransfers' => $this->transfers->pendingTransferRequestsForContext($user, $this->transfers->personalInboxContext($user), 'inventory', $state['referenceMaps']),
             'recentFundTransfers' => $this->transfers->recentFundTransfersForContext($user, $this->transfers->personalInboxContext($user)),
+            'recentInventoryTransfers' => $this->transfers->recentInventoryTransfersForContext(
+                $user,
+                $this->transfers->personalInboxContext($user),
+                $state['referenceMaps']
+            ),
             'overview' => [
                 'cards' => $overviewCards,
                 'cycleSummaries' => $cycleSummaries->values()->all(),
@@ -122,6 +127,11 @@ class LedgerPageDataBuilder
             'pendingFundTransfers' => $viewer ? $this->transfers->pendingTransferRequestsForContext($viewer, $this->transfers->squadronInboxContext($viewer, $squadron), 'funds', $state['referenceMaps']) : [],
             'pendingInventoryTransfers' => $viewer ? $this->transfers->pendingTransferRequestsForContext($viewer, $this->transfers->squadronInboxContext($viewer, $squadron), 'inventory', $state['referenceMaps']) : [],
             'recentFundTransfers' => $viewer ? $this->transfers->recentFundTransfersForContext($viewer, $this->transfers->squadronInboxContext($viewer, $squadron)) : [],
+            'recentInventoryTransfers' => $viewer ? $this->transfers->recentInventoryTransfersForContext(
+                $viewer,
+                $this->transfers->squadronInboxContext($viewer, $squadron),
+                $state['referenceMaps']
+            ) : [],
             'hasEntries' => $this->hasEntries($allTransactions, $allTrades, $allInventoryItems, $allShipAssets),
             'memberCount' => $activeMembers->count(),
             'members' => $activeMembers->map(fn ($member) => [
@@ -233,6 +243,11 @@ class LedgerPageDataBuilder
             'pendingFundTransfers' => $this->transfers->pendingTransferRequestsForContext($actor, $this->transfers->organizationInboxContext($actor), 'funds', $state['referenceMaps']),
             'pendingInventoryTransfers' => $this->transfers->pendingTransferRequestsForContext($actor, $this->transfers->organizationInboxContext($actor), 'inventory', $state['referenceMaps']),
             'recentFundTransfers' => $this->transfers->recentFundTransfersForContext($actor, $this->transfers->organizationInboxContext($actor)),
+            'recentInventoryTransfers' => $this->transfers->recentInventoryTransfersForContext(
+                $actor,
+                $this->transfers->organizationInboxContext($actor),
+                $state['referenceMaps']
+            ),
             'hasEntries' => $this->hasEntries($allTransactions, $allTrades, $allInventoryItems, $allShipAssets),
             'overview' => [
                 'cards' => $overviewCards,

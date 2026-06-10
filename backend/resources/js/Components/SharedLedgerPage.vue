@@ -41,6 +41,7 @@ const page = usePage()
 
 const activeTab = ref('overview')
 const wipeFilter = ref(props.filters?.wipe ?? props.ledger?.activeWipeFilter ?? 'current')
+const transferHelpDialogOpen = ref(false)
 
 const currentWipe = computed(() => props.ledger?.currentWipe ?? null)
 const selectedWipe = computed(() => props.ledger?.selectedWipe ?? null)
@@ -100,7 +101,14 @@ const tabs = [
   { key: 'inventory', label: 'Inventory' },
   { key: 'ships', label: 'Ships' },
   { key: 'reports', label: 'Reports' },
-  { key: 'settings', label: 'Settings' },
+]
+
+const transferHelpNotes = [
+  'Ledger-to-ledger transfers write matched records on both sides, while Outside Horizon transfers record the outflow in the source ledger only.',
+  'Some destinations need approval before the move lands, so pending requests stay visible here until someone accepts or rejects them.',
+  'Inventory moves can transfer the full stack or just part of it. Partial moves split the quantity into a new destination record and lock the transfer chain afterward.',
+  'Fund transfer records and their reversals stay locked so the two books never drift out of sync.',
+  'Use clear notes so both sides of the movement still make sense later when you review the cycle history.',
 ]
 
 const reportPalette = [
@@ -113,6 +121,7 @@ const reportPalette = [
 ]
 
 const INVENTORY_PAGE_SIZE = 10
+const TRANSFER_HISTORY_PAGE_SIZE = 5
 
 const profitLossReportRows = computed(() => normalizeReportRows(props.ledger?.reports?.profitLossByWipe ?? [], {
   limit: 6,
@@ -332,6 +341,7 @@ const transferInventoryItems = computed(() => props.ledger?.transferInventoryOpt
 const pendingFundTransfers = computed(() => props.ledger?.pendingFundTransfers ?? [])
 const pendingInventoryTransfers = computed(() => props.ledger?.pendingInventoryTransfers ?? [])
 const recentFundTransfers = computed(() => props.ledger?.recentFundTransfers ?? [])
+const recentInventoryTransfers = computed(() => props.ledger?.recentInventoryTransfers ?? [])
 const transferTabBadge = computed(() => {
   const count = [...pendingFundTransfers.value, ...pendingInventoryTransfers.value]
     .filter(transfer => transfer?.can_approve)
@@ -358,6 +368,8 @@ const transactionEntryFilter = ref('all')
 const inventorySearch = ref('')
 const inventoryEntryFilter = ref('all')
 const inventoryPage = ref(1)
+const fundTransferHistoryPage = ref(1)
+const inventoryTransferHistoryPage = ref(1)
 const transactions = computed(() => props.ledger?.transactions ?? [])
 const filteredTransactions = computed(() => {
   const query = transactionSearch.value.trim().toLowerCase()
@@ -430,6 +442,36 @@ const inventoryResultsLabel = computed(() => {
 
   return `Showing ${start}-${end} of ${filteredInventoryItems.value.length} inventory records`
 })
+const recentFundTransferPageCount = computed(() => Math.max(1, Math.ceil(recentFundTransfers.value.length / TRANSFER_HISTORY_PAGE_SIZE)))
+const paginatedRecentFundTransfers = computed(() => {
+  const start = (fundTransferHistoryPage.value - 1) * TRANSFER_HISTORY_PAGE_SIZE
+  return recentFundTransfers.value.slice(start, start + TRANSFER_HISTORY_PAGE_SIZE)
+})
+const recentFundTransferResultsLabel = computed(() => {
+  if (!recentFundTransfers.value.length) {
+    return 'No recent fund transfers yet.'
+  }
+
+  const start = ((fundTransferHistoryPage.value - 1) * TRANSFER_HISTORY_PAGE_SIZE) + 1
+  const end = Math.min(fundTransferHistoryPage.value * TRANSFER_HISTORY_PAGE_SIZE, recentFundTransfers.value.length)
+
+  return `Showing ${start}-${end} of ${recentFundTransfers.value.length} recent fund transfers`
+})
+const recentInventoryTransferPageCount = computed(() => Math.max(1, Math.ceil(recentInventoryTransfers.value.length / TRANSFER_HISTORY_PAGE_SIZE)))
+const paginatedRecentInventoryTransfers = computed(() => {
+  const start = (inventoryTransferHistoryPage.value - 1) * TRANSFER_HISTORY_PAGE_SIZE
+  return recentInventoryTransfers.value.slice(start, start + TRANSFER_HISTORY_PAGE_SIZE)
+})
+const recentInventoryTransferResultsLabel = computed(() => {
+  if (!recentInventoryTransfers.value.length) {
+    return 'No recent item transfers yet.'
+  }
+
+  const start = ((inventoryTransferHistoryPage.value - 1) * TRANSFER_HISTORY_PAGE_SIZE) + 1
+  const end = Math.min(inventoryTransferHistoryPage.value * TRANSFER_HISTORY_PAGE_SIZE, recentInventoryTransfers.value.length)
+
+  return `Showing ${start}-${end} of ${recentInventoryTransfers.value.length} recent item transfers`
+})
 
 const inventoryReferenceSelectOptions = computed(() => inventoryReferenceOptions.value.map(option => ({
   value: String(option.uex_id),
@@ -459,6 +501,7 @@ const selectedInventoryTransferItem = computed(() => transferInventoryItems.valu
 const canTransferInventory = computed(() => canEditCurrentView.value && transferTargets.value.length > 0 && transferInventoryItems.value.length > 0)
 const openTransferPanels = ref({
   recent: false,
+  recentInventory: false,
   funds: false,
   inventory: false,
 })
@@ -544,10 +587,10 @@ const tradeRouteAssist = computed(() => {
   const hasQuantity = !isBlankValue(tradeForm.quantity)
   const quantity = effectiveQuantity(tradeForm.quantity)
   const marginPerUnit = buyPrice !== null && sellPrice !== null
-    ? Number((sellPrice - buyPrice).toFixed(2))
+    ? Math.round(sellPrice - buyPrice)
     : null
   const estimatedProfit = marginPerUnit !== null && hasQuantity
-    ? Number((marginPerUnit * quantity).toFixed(2))
+    ? Math.round(marginPerUnit * quantity)
     : null
 
   return {
@@ -883,6 +926,28 @@ watch(filteredInventoryItems, items => {
   }
 })
 
+watch(recentFundTransfers, items => {
+  if (!items.length) {
+    fundTransferHistoryPage.value = 1
+    return
+  }
+
+  if (fundTransferHistoryPage.value > recentFundTransferPageCount.value) {
+    fundTransferHistoryPage.value = recentFundTransferPageCount.value
+  }
+})
+
+watch(recentInventoryTransfers, items => {
+  if (!items.length) {
+    inventoryTransferHistoryPage.value = 1
+    return
+  }
+
+  if (inventoryTransferHistoryPage.value > recentInventoryTransferPageCount.value) {
+    inventoryTransferHistoryPage.value = recentInventoryTransferPageCount.value
+  }
+})
+
 watch(wipeFilter, value => {
   router.visit(ledgerIndexHref(value && value !== 'current' ? { wipe: value } : {}), {
     data: value && value !== 'current' ? { wipe: value } : {},
@@ -1006,6 +1071,33 @@ function showLedgerFormError(errors, fallbackMessage, title) {
   notifyErrorFromErrors(errors, fallbackMessage, title)
 }
 
+function isPositiveFormNumber(value) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return false
+  }
+
+  const numericValue = Number(value)
+  return Number.isInteger(numericValue) && numericValue > 0
+}
+
+function validateLedgerRequiredFields(form, validations, title, fallbackMessage = 'Please fill in the required fields and try again.') {
+  form.clearErrors()
+
+  const errors = Object.fromEntries(
+    validations
+      .filter(validation => validation.isMissing())
+      .map(validation => [validation.field, validation.message])
+  )
+
+  if (!Object.keys(errors).length) {
+    return true
+  }
+
+  form.setError(errors)
+  showLedgerFormError(errors, fallbackMessage, title)
+  return false
+}
+
 function readRememberedLedgerDefaults() {
   if (typeof window === 'undefined') {
     return {}
@@ -1071,7 +1163,7 @@ function isBlankValue(value) {
   return value === null || value === undefined || String(value).trim() === ''
 }
 
-function normalizeNumericValue(value, precision = 2) {
+function normalizeNumericValue(value, precision = 0) {
   if (isBlankValue(value)) {
     return null
   }
@@ -1085,7 +1177,7 @@ function normalizeNumericValue(value, precision = 2) {
   return Number(numericValue.toFixed(precision))
 }
 
-function valuesMatch(currentValue, suggestedValue, precision = 2) {
+function valuesMatch(currentValue, suggestedValue, precision = 0) {
   const normalizedCurrent = normalizeNumericValue(currentValue, precision)
   const normalizedSuggested = normalizeNumericValue(suggestedValue, precision)
 
@@ -1094,7 +1186,7 @@ function valuesMatch(currentValue, suggestedValue, precision = 2) {
     && normalizedCurrent === normalizedSuggested
 }
 
-function canReplaceSuggestedNumericValue(currentValue, lastAppliedValue, precision = 2) {
+function canReplaceSuggestedNumericValue(currentValue, lastAppliedValue, precision = 0) {
   return isBlankValue(currentValue) || valuesMatch(currentValue, lastAppliedValue, precision)
 }
 
@@ -1102,7 +1194,7 @@ function canReplaceSuggestedTextValue(currentValue, lastAppliedValue) {
   return isBlankValue(currentValue) || String(currentValue) === String(lastAppliedValue ?? '')
 }
 
-function formatInputNumber(value, precision = 2) {
+function formatInputNumber(value, precision = 0) {
   const normalizedValue = normalizeNumericValue(value, precision)
 
   if (normalizedValue === null) {
@@ -1115,7 +1207,7 @@ function formatInputNumber(value, precision = 2) {
     .replace(/(\.\d*?)0+$/, '$1')
 }
 
-function applySuggestedNumericField(form, field, nextValue, tracker, precision = 2) {
+function applySuggestedNumericField(form, field, nextValue, tracker, precision = 0) {
   if (nextValue === null || nextValue === undefined) {
     tracker.value = null
     return
@@ -1146,7 +1238,7 @@ function applySuggestedTextField(form, field, nextValue, tracker) {
 }
 
 function effectiveQuantity(value) {
-  const normalizedQuantity = normalizeNumericValue(value, 4)
+  const normalizedQuantity = normalizeNumericValue(value)
 
   if (normalizedQuantity === null || normalizedQuantity <= 0) {
     return 1
@@ -1594,6 +1686,26 @@ function submitTransaction() {
 }
 
 function submitTransfer() {
+  if (!validateLedgerRequiredFields(transferForm, [
+    {
+      field: 'destination_type',
+      message: 'Choose where you want to send these funds before submitting the transfer.',
+      isMissing: () => !selectedTransferTarget.value || !String(transferForm.destination_type ?? '').trim(),
+    },
+    {
+      field: 'amount',
+      message: 'Enter a transfer amount greater than zero.',
+      isMissing: () => !isPositiveFormNumber(transferForm.amount),
+    },
+    {
+      field: 'description',
+      message: 'Add a reason or short description for this fund transfer.',
+      isMissing: () => !String(transferForm.description ?? '').trim(),
+    },
+  ], 'Missing Transfer Info', 'Please choose a destination, amount, and reason for the transfer.')) {
+    return
+  }
+
   const options = {
     preserveScroll: true,
     onError: (errors) => {
@@ -1608,6 +1720,26 @@ function submitTransfer() {
 }
 
 function submitInventoryTransfer() {
+  if (!validateLedgerRequiredFields(inventoryTransferForm, [
+    {
+      field: 'inventory_item_id',
+      message: 'Choose which item or record you want to move first.',
+      isMissing: () => !String(inventoryTransferForm.inventory_item_id ?? '').trim(),
+    },
+    {
+      field: 'destination_type',
+      message: 'Choose where you want to send this item before submitting the transfer.',
+      isMissing: () => !selectedInventoryTransferTarget.value || !String(inventoryTransferForm.destination_type ?? '').trim(),
+    },
+    {
+      field: 'quantity',
+      message: 'Enter a quantity greater than zero for this item transfer.',
+      isMissing: () => !isPositiveFormNumber(inventoryTransferForm.quantity),
+    },
+  ], 'Missing Inventory Transfer Info', 'Please choose an inventory record, destination, and quantity to move.')) {
+    return
+  }
+
   const options = {
     preserveScroll: true,
     onError: (errors) => {
@@ -1879,7 +2011,7 @@ function topReportLabel(rows, fallback) {
 
 function formatMoney(value) {
   const amount = Number(value ?? 0)
-  return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} aUEC`
+  return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} aUEC`
 }
 
 function formatCompactMoney(value) {
@@ -1911,7 +2043,7 @@ function formatCount(value) {
 
 function formatLedgerQuantity(value) {
   const quantity = Number(value ?? 0)
-  return quantity.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+  return quantity.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 function buildDonutStyle(rows) {
@@ -2015,6 +2147,14 @@ function tabClass(key) {
     ? 'hz-ledger-tab-active'
     : 'hz-ledger-tab-inactive'
 }
+
+function openTransferHelpDialog() {
+  transferHelpDialogOpen.value = true
+}
+
+function closeTransferHelpDialog() {
+  transferHelpDialogOpen.value = false
+}
 </script>
 
 <template>
@@ -2027,6 +2167,34 @@ function tabClass(key) {
       :variant="pendingConfirmation?.variant ?? 'danger'"
       @confirm="handleConfirmDialogConfirm"
     />
+    <div
+      v-if="transferHelpDialogOpen"
+      class="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="How transfers work"
+      @click.self="closeTransferHelpDialog"
+    >
+      <div class="hz-ledger-panel w-full max-w-lg rounded-[1.75rem] p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transfer Help</div>
+            <h3 class="mt-1 text-xl font-black text-horizon-white">How Transfers Work</h3>
+          </div>
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-lg font-black text-text-secondary transition hover:text-horizon-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50"
+            aria-label="Close transfer help"
+            @click="closeTransferHelpDialog"
+          >
+            ×
+          </button>
+        </div>
+        <div class="mt-4 max-h-[70vh] space-y-3 overflow-auto pr-1 text-sm text-text-secondary">
+          <p v-for="note in transferHelpNotes" :key="`transfer-help-dialog-${note}`">{{ note }}</p>
+        </div>
+      </div>
+    </div>
 
     <div class="hz-ledger-page mx-auto max-w-7xl space-y-6">
       <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6">
@@ -2358,7 +2526,7 @@ function tabClass(key) {
                 >
                   <div class="text-sm font-black text-horizon-white">{{ trade.commodity || 'Unknown commodity' }}</div>
                   <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
-                    {{ trade.quantity }} {{ trade.unit_type }} • Profit {{ formatMoney(trade.profit) }}
+                    {{ formatLedgerQuantity(trade.quantity) }} {{ trade.unit_type }} • Profit {{ formatMoney(trade.profit) }}
                   </div>
                   <div v-if="trade.notes" class="mt-3 whitespace-pre-line text-sm text-text-secondary">
                     {{ trade.notes }}
@@ -2480,7 +2648,7 @@ function tabClass(key) {
               <option value="adjustment">Adjustment</option>
             </select>
 
-            <input v-model="transactionForm.amount" type="number" step="0.01" class="hz-input" placeholder="Amount" />
+            <input v-model="transactionForm.amount" type="number" step="1" class="hz-input" placeholder="Amount" />
             <input
               v-model="transactionForm.source_type"
               type="text"
@@ -2658,8 +2826,8 @@ function tabClass(key) {
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'transfers'" class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="flex flex-col gap-4">
+      <section v-else-if="activeTab === 'transfers'" class="space-y-4">
+        <div class="relative z-10 flex flex-col gap-4">
           <div v-if="pendingFundTransfers.length" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Pending Fund Requests</div>
             <div class="mt-4 space-y-3">
@@ -2784,6 +2952,9 @@ function tabClass(key) {
                 <p class="mt-2 text-sm text-text-secondary">
                   Review the latest completed and reversed money moves without leaving the transfer tab.
                 </p>
+                <div class="mt-3 text-xs uppercase tracking-[0.14em] text-text-muted">
+                  {{ recentFundTransferResultsLabel }}
+                </div>
               </div>
 
               <div class="hz-ledger-panel-soft mt-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
@@ -2793,7 +2964,7 @@ function tabClass(key) {
 
             <div v-if="isTransferPanelOpen('recent')" class="mt-4 overflow-hidden rounded-[1.25rem] border border-white/10">
               <article
-                v-for="transfer in recentFundTransfers"
+                v-for="transfer in paginatedRecentFundTransfers"
                 :key="`recent-fund-${transfer.id}`"
                 class="border-b border-white/10 px-4 py-3 last:border-b-0"
               >
@@ -2829,6 +3000,112 @@ function tabClass(key) {
                   </div>
                 </div>
               </article>
+
+              <div v-if="recentFundTransferPageCount > 1" class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+                <div class="text-xs uppercase tracking-[0.14em] text-text-muted">
+                  Page {{ fundTransferHistoryPage }} of {{ recentFundTransferPageCount }}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <HorizonButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    :disabled="fundTransferHistoryPage === 1"
+                    @click="fundTransferHistoryPage = Math.max(1, fundTransferHistoryPage - 1)"
+                  >
+                    Previous
+                  </HorizonButton>
+                  <HorizonButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    :disabled="fundTransferHistoryPage === recentFundTransferPageCount"
+                    @click="fundTransferHistoryPage = Math.min(recentFundTransferPageCount, fundTransferHistoryPage + 1)"
+                  >
+                    Next
+                  </HorizonButton>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="recentInventoryTransfers.length" class="order-4 hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+            <button
+              type="button"
+              class="flex w-full items-start justify-between gap-4 text-left"
+              @click="toggleTransferPanel('recentInventory')"
+            >
+              <div>
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Transfer History</div>
+                <h3 class="mt-1 text-xl font-black text-horizon-white">Recent Item Transfers</h3>
+                <p class="mt-2 text-sm text-text-secondary">
+                  Review the latest completed and reversed inventory moves without leaving the transfer tab.
+                </p>
+                <div class="mt-3 text-xs uppercase tracking-[0.14em] text-text-muted">
+                  {{ recentInventoryTransferResultsLabel }}
+                </div>
+              </div>
+
+              <div class="hz-ledger-panel-soft mt-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+                {{ isTransferPanelOpen('recentInventory') ? 'Close' : 'Open' }}
+              </div>
+            </button>
+
+            <div v-if="isTransferPanelOpen('recentInventory')" class="mt-4 overflow-hidden rounded-[1.25rem] border border-white/10">
+              <article
+                v-for="transfer in paginatedRecentInventoryTransfers"
+                :key="`recent-inventory-${transfer.id}`"
+                class="border-b border-white/10 px-4 py-3 last:border-b-0"
+              >
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <div class="truncate text-sm font-black text-horizon-white">
+                        {{ transfer.item_label || transfer.description || 'Completed item transfer' }}
+                      </div>
+                      <span class="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+                        {{ transfer.status === 'reversed' ? 'Reversed' : 'Completed' }}
+                      </span>
+                    </div>
+                    <div class="mt-1 text-xs text-text-muted">
+                      {{ transfer.from_label }} to {{ transfer.to_label }} • {{ formatDate(transfer.completed_at || transfer.created_at) }}
+                    </div>
+                    <div v-if="transfer.notes" class="mt-2 line-clamp-2 text-sm text-text-secondary">
+                      {{ transfer.notes }}
+                    </div>
+                  </div>
+
+                  <div class="text-sm font-black text-horizon-white">
+                    {{ formatLedgerQuantity(transfer.quantity) }}
+                  </div>
+                </div>
+              </article>
+
+              <div v-if="recentInventoryTransferPageCount > 1" class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+                <div class="text-xs uppercase tracking-[0.14em] text-text-muted">
+                  Page {{ inventoryTransferHistoryPage }} of {{ recentInventoryTransferPageCount }}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <HorizonButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    :disabled="inventoryTransferHistoryPage === 1"
+                    @click="inventoryTransferHistoryPage = Math.max(1, inventoryTransferHistoryPage - 1)"
+                  >
+                    Previous
+                  </HorizonButton>
+                  <HorizonButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    :disabled="inventoryTransferHistoryPage === recentInventoryTransferPageCount"
+                    @click="inventoryTransferHistoryPage = Math.min(recentInventoryTransferPageCount, inventoryTransferHistoryPage + 1)"
+                  >
+                    Next
+                  </HorizonButton>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2865,7 +3142,7 @@ function tabClass(key) {
                 {{ selectedTransferTarget.description }}
               </div>
 
-              <input v-model="transferForm.amount" type="number" step="0.01" min="0" class="hz-input" placeholder="Amount" />
+              <input v-model="transferForm.amount" type="number" step="1" min="1" class="hz-input" placeholder="Amount" />
               <input v-model="transferForm.description" type="text" class="hz-input" placeholder="Reason for this transfer" />
               <HorizonDateTimePicker
                 v-model="transferForm.transaction_date"
@@ -2892,8 +3169,8 @@ function tabClass(key) {
             </form>
           </HorizonDrawer>
 
-          <div v-if="canTransferFunds || canTransferInventory" class="order-2 grid gap-4 lg:grid-cols-2">
-          <div v-if="canTransferFunds" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+          <div v-if="canTransferFunds || canTransferInventory" class="relative z-20 order-2 grid gap-4 lg:grid-cols-2">
+          <div v-if="canTransferFunds" class="hz-ledger-panel overflow-visible rounded-[1.75rem] p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Funds</div>
               <HorizonButton type="button" size="sm" @click="openFundTransferDrawer">
@@ -2901,7 +3178,19 @@ function tabClass(key) {
               </HorizonButton>
             </div>
 
-            <h3 class="mt-1 text-xl font-black text-horizon-white">Funds Transfer</h3>
+            <div class="mt-1 flex items-center gap-2">
+              <h3 class="text-xl font-black text-horizon-white">Funds Transfer</h3>
+              <button
+                type="button"
+                class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-white/5 text-[11px] font-black text-text-secondary transition hover:border-sky-300/30 hover:bg-sky-300/10 hover:text-horizon-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50"
+                aria-label="How transfers work"
+                aria-haspopup="dialog"
+                :aria-expanded="transferHelpDialogOpen ? 'true' : 'false'"
+                @click="openTransferHelpDialog"
+              >
+                ?
+              </button>
+            </div>
             <p class="mt-2 text-sm text-text-secondary">
               Send funds out of {{ ledger.account?.name }} as an approval request. Horizon writes the matching in and out records after the destination approves it.
             </p>
@@ -2943,7 +3232,7 @@ function tabClass(key) {
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
-                <input v-model="inventoryTransferForm.quantity" type="number" step="0.0001" min="0" class="hz-input" placeholder="Quantity to move" />
+                <input v-model="inventoryTransferForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity to move" />
                 <div class="hz-ledger-panel-soft rounded-[1rem] px-3 py-3 text-sm text-text-secondary">
                   <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Available</div>
                   <div class="mt-1 font-black text-horizon-white">
@@ -2971,7 +3260,7 @@ function tabClass(key) {
             </form>
           </HorizonDrawer>
 
-          <div v-if="canTransferInventory" class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
+          <div v-if="canTransferInventory" class="hz-ledger-panel overflow-visible rounded-[1.75rem] p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Move Inventory</div>
               <HorizonButton type="button" size="sm" @click="openInventoryTransferDrawer">
@@ -2979,7 +3268,19 @@ function tabClass(key) {
               </HorizonButton>
             </div>
 
-            <h3 class="mt-1 text-xl font-black text-horizon-white">Inventory Transfer</h3>
+            <div class="mt-1 flex items-center gap-2">
+              <h3 class="text-xl font-black text-horizon-white">Inventory Transfer</h3>
+              <button
+                type="button"
+                class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-white/5 text-[11px] font-black text-text-secondary transition hover:border-sky-300/30 hover:bg-sky-300/10 hover:text-horizon-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50"
+                aria-label="How transfers work"
+                aria-haspopup="dialog"
+                :aria-expanded="transferHelpDialogOpen ? 'true' : 'false'"
+                @click="openTransferHelpDialog"
+              >
+                ?
+              </button>
+            </div>
             <p class="mt-2 text-sm text-text-secondary">
               Move tracked cargo, components, or gear into another ledger as an approval request while keeping the original cycle history attached to the item.
             </p>
@@ -2997,16 +3298,6 @@ function tabClass(key) {
           </div>
         </div>
 
-        <div class="hz-ledger-panel rounded-[1.75rem] p-4 sm:p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">How Transfers Work</div>
-          <div class="mt-4 space-y-3 text-sm text-text-secondary">
-            <p>Every transfer writes a matched expense in the source ledger and income in the destination ledger.</p>
-            <p>Some destinations need approval before the move lands, so pending requests stay visible here until someone accepts or rejects them.</p>
-            <p>Inventory moves can transfer the full stack or just part of it. Partial moves split the quantity into a new destination record and lock the transfer chain afterward.</p>
-            <p>Fund transfer records and their reversals stay locked so the two books never drift out of sync.</p>
-            <p>Use clear notes so both sides of the movement still make sense later when you review the cycle history.</p>
-          </div>
-        </div>
       </section>
 
       <section v-else-if="activeTab === 'trades'" class="space-y-4">
@@ -3072,12 +3363,12 @@ function tabClass(key) {
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="tradeForm.quantity" type="number" step="0.0001" class="hz-input" placeholder="Quantity" />
+              <input v-model="tradeForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
               <input v-model="tradeForm.unit_type" type="text" class="hz-input" placeholder="Unit type, like SCU" />
-              <input v-model="tradeForm.buy_price_per_unit" type="number" step="0.01" class="hz-input" placeholder="Buy price per unit" />
-              <input v-model="tradeForm.sell_price_per_unit" type="number" step="0.01" class="hz-input" placeholder="Sell price per unit" />
+              <input v-model="tradeForm.buy_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Buy price per unit" />
+              <input v-model="tradeForm.sell_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Sell price per unit" />
             </div>
-            <input v-model="tradeForm.cargo_capacity_used" type="number" step="0.0001" class="hz-input" placeholder="Cargo capacity used, optional" />
+            <input v-model="tradeForm.cargo_capacity_used" type="number" step="1" min="0" class="hz-input" placeholder="Cargo capacity used, optional" />
             <HorizonDateTimePicker
               v-model="tradeForm.trade_date"
               label="Trade date"
@@ -3133,7 +3424,7 @@ function tabClass(key) {
                 <div>
                   <div class="text-base font-black text-horizon-white">{{ trade.commodity || 'Unknown commodity' }}</div>
                   <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
-                    {{ trade.quantity }} {{ trade.unit_type }}
+                    {{ formatLedgerQuantity(trade.quantity) }} {{ trade.unit_type }}
                   </div>
                   <div class="mt-2 text-sm text-text-secondary">
                     Cost {{ formatMoney(trade.total_cost) }} • Revenue {{ formatMoney(trade.total_revenue) }}
@@ -3222,13 +3513,13 @@ function tabClass(key) {
             <input v-if="inventoryForm.source_type === 'custom'" v-model="inventoryForm.custom_name" type="text" class="hz-input" placeholder="Custom item name" />
             <div class="grid gap-3 sm:grid-cols-2">
               <input v-model="inventoryForm.category" type="text" class="hz-input" placeholder="Category" />
-              <input v-model="inventoryForm.quantity" type="number" step="0.0001" class="hz-input" placeholder="Quantity" />
+              <input v-model="inventoryForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
               <input v-model="inventoryForm.unit_label" type="text" class="hz-input" placeholder="Unit label, like SCU or units" />
               <input v-model="inventoryForm.location_name" type="text" class="hz-input" placeholder="Free-text location" />
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="inventoryForm.purchase_price" type="number" step="0.01" class="hz-input" placeholder="Purchase price, optional" />
-              <input v-model="inventoryForm.estimated_value" type="number" step="0.01" class="hz-input" placeholder="Estimated value, optional" />
+              <input v-model="inventoryForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="Purchase price, optional" />
+              <input v-model="inventoryForm.estimated_value" type="number" step="1" min="0" class="hz-input" placeholder="Estimated value, optional" />
             </div>
             <HorizonDateTimePicker
               v-model="inventoryForm.acquired_at"
@@ -3316,7 +3607,7 @@ function tabClass(key) {
                 <div>
                   <div class="text-base font-black text-horizon-white">{{ item.reference_label || 'Custom entry' }}</div>
                   <div class="mt-1 text-xs uppercase tracking-[0.14em] text-text-muted">
-                    {{ item.source_type }}<span v-if="item.category"> • {{ item.category }}</span> • {{ item.quantity }} {{ item.unit_label || 'units' }}
+                    {{ item.source_type }}<span v-if="item.category"> • {{ item.category }}</span> • {{ formatLedgerQuantity(item.quantity) }} {{ item.unit_label || 'units' }}
                   </div>
                   <div v-if="item.is_operation_settlement || item.operation_title" class="mt-2 flex flex-wrap items-center gap-2">
                     <span
@@ -3478,7 +3769,7 @@ function tabClass(key) {
 
             <input v-model="shipForm.custom_name" type="text" class="hz-input" placeholder="Custom ship name, optional" />
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="shipForm.purchase_price" type="number" step="0.01" class="hz-input" placeholder="aUEC price" />
+              <input v-model="shipForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="aUEC price" />
               <input v-model="shipForm.current_location" type="text" class="hz-input" placeholder="Current location" />
             </div>
 
@@ -3837,34 +4128,6 @@ function tabClass(key) {
         </div>
       </section>
 
-      <section v-else class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Ledger Settings</div>
-          <h3 class="mt-1 text-xl font-black text-horizon-white">{{ settingsHeading }}</h3>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <div class="hz-ledger-panel-soft rounded-[1.25rem] p-4">
-              <div class="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">Default Account</div>
-              <div class="mt-2 text-lg font-black text-horizon-white">{{ ledger.account?.name }}</div>
-              <div class="mt-1 text-sm text-text-secondary">{{ ledger.account?.currency }}</div>
-            </div>
-
-            <div class="hz-ledger-panel-soft rounded-[1.25rem] p-4">
-              <div class="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">Current Cycle</div>
-              <div class="mt-2 text-lg font-black text-horizon-white">{{ currentWipe?.name }}</div>
-              <div class="mt-1 text-sm text-text-secondary">{{ currentWipe?.star_citizen_version || 'Version pending' }}</div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="hz-ledger-panel rounded-[1.75rem] p-5">
-          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Module Notes</div>
-          <div class="mt-4 space-y-3 text-sm text-text-secondary">
-            <p>Ledger balances are calculated from transactions plus recorded trade profit.</p>
-            <p>Cycles archive your history instead of deleting it.</p>
-            <p>UEX records shown here come from the local Horizon snapshot, not live page-load calls.</p>
-          </div>
-        </aside>
-      </section>
         </div>
       </section>
     </div>

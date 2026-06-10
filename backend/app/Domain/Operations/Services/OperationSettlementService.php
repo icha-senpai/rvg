@@ -172,7 +172,11 @@ class OperationSettlementService
         $recipientType = $this->normalizeSettlementRecipientType($row['recipient_type'] ?? null);
         $recipientUserId = filled($row['recipient_user_id'] ?? null) ? (int) $row['recipient_user_id'] : null;
         $recipientSquadronId = filled($row['recipient_squadron_id'] ?? null) ? (int) $row['recipient_squadron_id'] : null;
-        $amount = filled($row['amount'] ?? null) ? round((float) $row['amount'], 2) : null;
+        $amount = $this->nullableWholeNumber(
+            $row['amount'] ?? null,
+            'money_rows',
+            'Payout amounts must be whole numbers.',
+        );
         $notes = $this->nullableTrimmedString($row['notes'] ?? null);
 
         if ($recipientType === null && $recipientUserId === null && $recipientSquadronId === null && $amount === null && $notes === null) {
@@ -228,7 +232,11 @@ class OperationSettlementService
         $recipientUserId = filled($row['recipient_user_id'] ?? null) ? (int) $row['recipient_user_id'] : null;
         $recipientSquadronId = filled($row['recipient_squadron_id'] ?? null) ? (int) $row['recipient_squadron_id'] : null;
         $referenceId = filled($row['uex_reference_id'] ?? null) ? (int) $row['uex_reference_id'] : null;
-        $quantity = filled($row['quantity'] ?? null) ? round((float) $row['quantity'], 4) : null;
+        $quantity = $this->nullableWholeNumber(
+            $row['quantity'] ?? null,
+            'loot_rows',
+            'Loot quantities must be whole numbers.',
+        );
         $unitLabel = $this->nullableTrimmedString($row['unit_label'] ?? null);
         $notes = $this->nullableTrimmedString($row['notes'] ?? null);
 
@@ -513,6 +521,30 @@ class OperationSettlementService
         LedgerTransaction::query()
             ->where('operation_settlement_id', $settlement->id)
             ->delete();
+    }
+
+    protected function nullableWholeNumber(mixed $value, string $field, string $message): ?int
+    {
+        if (! filled($value)) {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
+        }
+
+        $numericValue = (float) $value;
+        $wholeValue = (int) round($numericValue);
+
+        if (abs($numericValue - $wholeValue) > 0.0001) {
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
+        }
+
+        return $wholeValue;
     }
 
     protected function settlementEligibleSquadronIds(Operation $operation): array

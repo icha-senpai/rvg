@@ -23,6 +23,7 @@ class LedgerTransferRequest extends Model
         'destination_user_id',
         'destination_squadron_id',
         'destination_is_org_owned',
+        'destination_is_external',
         'amount',
         'quantity',
         'currency',
@@ -48,6 +49,7 @@ class LedgerTransferRequest extends Model
         return [
             'source_is_org_owned' => 'boolean',
             'destination_is_org_owned' => 'boolean',
+            'destination_is_external' => 'boolean',
             'amount' => 'decimal:2',
             'quantity' => 'decimal:4',
             'transaction_date' => 'datetime',

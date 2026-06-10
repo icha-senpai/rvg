@@ -327,6 +327,41 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_personal_transfer_to_outside_horizon_completes_without_recipient(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('OutboundPilot', 'outbound-pilot');
+        $wipe = $this->currentWipe();
+
+        $this
+            ->actingAs($actor)
+            ->post(route('ledger.transactions.transfer'), [
+                'wipe_cycle_id' => $wipe->id,
+                'destination_type' => 'external',
+                'amount' => 3200,
+                'description' => 'Paid outside contractor',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->assertSame('completed', $request->status);
+        $this->assertTrue((bool) $request->destination_is_external);
+        $this->assertNotNull($request->outgoing_transaction_id);
+        $this->assertNull($request->incoming_transaction_id);
+        $this->assertDatabaseHas('ledger_transactions', [
+            'id' => $request->outgoing_transaction_id,
+            'user_id' => $actor->id,
+            'type' => 'expense',
+            'source_type' => 'transfer',
+            'transfer_direction' => 'outgoing',
+        ]);
+        $this->assertSame(1, LedgerActivityLog::query()->where('action', 'transfer.created')->count());
+        $this->assertSame(0, LedgerActivityLog::query()->where('action', 'transfer.requested')->count());
+    }
+
     public function test_inventory_transfer_to_a_verified_member_creates_pending_request(): void
     {
         config()->set('services.ledger.enabled', true);
@@ -429,6 +464,53 @@ class LedgerTransferFeatureTest extends TestCase
             'quantity' => '4.0000',
             'transfer_request_id' => $request->id,
         ]);
+    }
+
+    public function test_partial_inventory_transfer_to_outside_horizon_reduces_source_without_creating_destination_item(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('CargoDropper', 'cargo-dropper');
+        $wipe = $this->currentWipe();
+
+        $item = LedgerInventoryItem::query()->create([
+            'user_id' => $actor->id,
+            'wipe_cycle_id' => $wipe->id,
+            'source_type' => 'commodity',
+            'uex_reference_type' => 'commodity',
+            'uex_reference_id' => 909,
+            'custom_name' => 'Emergency Rations',
+            'quantity' => 9,
+            'unit_label' => 'SCU',
+            'purchase_price' => 9000,
+            'estimated_value' => 10800,
+            'currency' => 'aUEC',
+            'status' => 'owned',
+            'acquired_at' => now()->subDay(),
+        ]);
+
+        $this
+            ->actingAs($actor)
+            ->post(route('ledger.inventory.transfer'), [
+                'inventory_item_id' => $item->id,
+                'destination_type' => 'external',
+                'quantity' => 4,
+                'notes' => 'Delivered outside Horizon',
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $item->refresh();
+        $this->assertSame('completed', $request->status);
+        $this->assertTrue((bool) $request->destination_is_external);
+        $this->assertNull($request->destination_inventory_item_id);
+        $this->assertSame('5.0000', $item->quantity);
+        $this->assertSame('5000.00', $item->purchase_price);
+        $this->assertSame('6000.00', $item->estimated_value);
+        $this->assertTrue((bool) $item->provenance_locked);
+        $this->assertSame(1, LedgerActivityLog::query()->where('action', 'inventory.transfer_out')->count());
+        $this->assertSame(0, LedgerActivityLog::query()->where('action', 'inventory.transfer_in')->count());
     }
 
     public function test_org_manager_can_reject_pending_inventory_transfer_into_horizon_treasury(): void
@@ -707,6 +789,41 @@ class LedgerTransferFeatureTest extends TestCase
         $this->assertDatabaseHas('ledger_transactions', [
             'id' => $request->reversal_incoming_transaction_id,
             'type' => 'expense',
+            'source_type' => 'transfer_reversal',
+        ]);
+    }
+
+    public function test_completed_external_fund_transfer_can_be_reversed_without_destination_reversal(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('ReverseOutbound', 'reverse-outbound');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'external',
+            'amount' => 4700,
+            'description' => 'Sent outside Horizon',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('ledger.transactions.transfer.reverse', $request->id), [
+                'reversal_notes' => 'Should have stayed internal',
+            ])
+            ->assertRedirect();
+
+        $request->refresh();
+
+        $this->assertSame('reversed', $request->status);
+        $this->assertNotNull($request->reversal_outgoing_transaction_id);
+        $this->assertNull($request->reversal_incoming_transaction_id);
+        $this->assertDatabaseHas('ledger_transactions', [
+            'id' => $request->reversal_outgoing_transaction_id,
+            'type' => 'income',
             'source_type' => 'transfer_reversal',
         ]);
     }
