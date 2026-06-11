@@ -34,6 +34,15 @@
           </div>
 
           <HorizonButton
+            size="sm"
+            variant="ghost"
+            :disabled="discordActionKey === 'shared-role-repair'"
+            @click="repairSharedSquadronRole"
+          >
+            {{ discordActionKey === 'shared-role-repair' ? 'Repairing…' : 'Repair Shared Squadron Role' }}
+          </HorizonButton>
+
+          <HorizonButton
             variant="primary"
             size="sm"
             @click="openCreateModal"
@@ -58,6 +67,10 @@
 
           <p class="mt-1 text-sm text-text-secondary">
             Manage squadron identity, branch alignment, division, status, and assigned command.
+          </p>
+
+          <p class="mt-2 text-xs text-text-muted">
+            Use each squadron card to manage that squadron's channel access. Use the header repair action for the org-wide shared Squadron role.
           </p>
         </div>
       </div>
@@ -152,9 +165,99 @@
                   </span>
                 </div>
               </div>
+
+              <div
+                v-if="sq.roster_issue"
+                class="hz-surface-welcome rounded-2xl border border-amber-300/20 bg-amber-300/8 p-3"
+              >
+                <div class="text-xs font-bold uppercase tracking-[0.18em] text-amber-100">
+                  Roster Repair Needed
+                </div>
+
+                <div class="mt-1 text-sm text-amber-100/90">
+                  {{ sq.roster_issue }}
+                </div>
+
+                <div class="mt-2 text-xs text-amber-100/70">
+                  Repairing the roster rebuilds the missing leader membership row so channel sync can pull from the squadron roster again.
+                </div>
+              </div>
+
+              <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                    Discord Channel
+                  </div>
+
+                  <span
+                    class="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                    :class="discordStatusClasses(sq.discord_sync_status)"
+                  >
+                    {{ discordStatusLabel(sq.discord_sync_status) }}
+                  </span>
+                </div>
+
+                <div class="mt-2 text-sm text-text-secondary">
+                  <template v-if="sq.discord_channel_id">
+                    Linked channel:
+                    <span class="font-semibold text-horizon-white">{{ sq.discord_channel_id }}</span>
+                  </template>
+                  <template v-else>
+                    No Discord channel linked yet.
+                  </template>
+                </div>
+
+                <div
+                  v-if="sq.discord_last_synced_at"
+                  class="mt-1 text-xs text-text-muted"
+                >
+                  Last synced {{ formatTimestamp(sq.discord_last_synced_at) }}
+                </div>
+
+                <div
+                  v-if="sq.discord_sync_error"
+                  class="mt-2 text-xs font-semibold text-amber-200"
+                >
+                  {{ sq.discord_sync_error }}
+                </div>
+
+                <div class="mt-2 text-xs text-text-muted">
+                  This button only manages this squadron's text channel access.
+                </div>
+              </div>
             </div>
 
             <div class="flex flex-wrap gap-2 lg:justify-end">
+              <HorizonButton
+                v-if="sq.roster_status === 'repair_needed'"
+                size="sm"
+                variant="ghost"
+                :disabled="discordActionKey === `${sq.id}:repair-roster`"
+                @click="repairSquadronRoster(sq.id)"
+              >
+                {{ discordActionKey === `${sq.id}:repair-roster` ? 'Repairing…' : 'Repair Roster' }}
+              </HorizonButton>
+
+              <HorizonButton
+                v-if="!sq.discord_channel_id"
+                size="sm"
+                variant="ghost"
+                :disabled="discordActionKey === `${sq.id}:create-channel`"
+                @click="createDiscordChannel(sq.id)"
+              >
+                {{ discordActionKey === `${sq.id}:create-channel` ? 'Creating…' : 'Create Channel' }}
+              </HorizonButton>
+
+              <HorizonButton
+                v-if="sq.discord_channel_id"
+                size="sm"
+                variant="ghost"
+                :disabled="discordActionKey === `${sq.id}:sync`"
+                @click="syncDiscordMembers(sq.id)"
+              >
+                {{ discordActionKey === `${sq.id}:sync` ? 'Syncing…' : (sq.discord_sync_status === 'repair_needed' ? 'Repair Channel Access' : 'Sync Channel Access') }}
+              </HorizonButton>
+
               <HorizonButton
                 size="sm"
                 variant="primary"
@@ -336,6 +439,87 @@
             class="w-full"
           />
         </section>
+
+        <section class="hz-surface-welcome relative z-10 rounded-[1.5rem] border border-white/[0.055] p-4">
+          <div class="mb-4">
+            <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+              Discord
+            </div>
+
+            <p class="mt-1 text-sm text-text-secondary">
+              Link an existing squadron text channel, or let Horizon create one and sync this squadron's channel access for you.
+            </p>
+          </div>
+
+          <div class="space-y-4">
+            <HorizonInput
+              v-model="form.discord_channel_id"
+              label="Discord Channel ID"
+              placeholder="Paste an existing Discord text channel id"
+            />
+
+            <label class="flex items-start gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.03] px-4 py-3 text-sm text-text-secondary">
+              <input
+                v-model="form.create_discord_channel"
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+              />
+
+              <span>
+                <span class="block font-semibold text-horizon-white">Create Discord channel automatically</span>
+                <span class="block text-xs text-text-muted">
+                  If no channel id is entered, Horizon will create a hyphenated text channel from the squadron name and sync this squadron's channel access into it.
+                </span>
+              </span>
+            </label>
+
+            <div
+              v-if="isEditing"
+              class="rounded-2xl border border-white/[0.055] bg-black/15 px-4 py-3"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Discord Status
+                </div>
+
+                <span
+                  class="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                  :class="discordStatusClasses(editingSquadron?.discord_sync_status)"
+                >
+                  {{ discordStatusLabel(editingSquadron?.discord_sync_status) }}
+                </span>
+              </div>
+
+              <div class="mt-2 text-sm text-text-secondary">
+                <template v-if="editingSquadron?.discord_channel_id">
+                  Linked channel:
+                  <span class="font-semibold text-horizon-white">{{ editingSquadron.discord_channel_id }}</span>
+                </template>
+                <template v-else>
+                  No Discord channel linked yet.
+                </template>
+              </div>
+
+              <div
+                v-if="editingSquadron?.discord_last_synced_at"
+                class="mt-1 text-xs text-text-muted"
+              >
+                Last synced {{ formatTimestamp(editingSquadron.discord_last_synced_at) }}
+              </div>
+
+              <div
+                v-if="editingSquadron?.discord_sync_error"
+                class="mt-2 text-xs font-semibold text-amber-200"
+              >
+                {{ editingSquadron.discord_sync_error }}
+              </div>
+
+              <div class="mt-2 text-xs text-text-muted">
+                Saving here handles this squadron's channel access. The shared Squadron role can be repaired separately from the main panel header.
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <template #footer>
@@ -374,7 +558,38 @@
     variant="danger"
     message="This action cannot be undone."
     @confirm="confirmDeleteSquadron"
-  />
+    @cancel="resetDeleteState"
+  >
+    <template #summary>
+      <div
+        v-if="pendingDeleteSquadron?.discord_channel_id"
+        class="rounded-2xl border border-white/[0.055] bg-white/[0.03] px-4 py-3 text-sm text-text-secondary"
+      >
+        <div class="font-semibold text-horizon-white">
+          Linked Discord channel detected
+        </div>
+
+        <div class="mt-1 text-xs text-text-muted">
+          Channel ID: {{ pendingDeleteSquadron.discord_channel_id }}
+        </div>
+
+        <label class="mt-3 flex items-start gap-3">
+          <input
+            v-model="deleteDiscordChannelWithSquadron"
+            type="checkbox"
+            class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+          >
+
+          <span>
+            <span class="block font-semibold text-horizon-white">Also delete Discord channel</span>
+            <span class="block text-xs text-text-muted">
+              If Discord channel deletion fails, the squadron delete will stop so you can retry safely.
+            </span>
+          </span>
+        </label>
+      </div>
+    </template>
+  </HorizonConfirmDialog>
 </template>
 
 <script setup>
@@ -382,6 +597,7 @@ import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDrawer from '@/Components/HorizonDrawer.vue'
@@ -407,6 +623,8 @@ const form = ref({
   branch: null,
   division: null,
   leader_id: null,
+  discord_channel_id: '',
+  create_discord_channel: false,
 })
 
 const branchOptions = [
@@ -478,6 +696,44 @@ function formatTitle(value) {
     .join(' ')
 }
 
+function discordStatusLabel(status) {
+  switch (status) {
+    case 'ready':
+      return 'Ready'
+    case 'repair_needed':
+      return 'Repair Needed'
+    default:
+      return 'Not Linked'
+  }
+}
+
+function discordStatusClasses(status) {
+  if (status === 'ready') {
+    return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+  }
+
+  if (status === 'repair_needed') {
+    return 'border-amber-300/25 bg-amber-300/10 text-amber-100'
+  }
+
+  return 'border-white/[0.055] bg-white/[0.042] text-[color:var(--horizon-text-primary)]'
+}
+
+function formatTimestamp(value) {
+  if (!value) return ''
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
 function leaderNameColor(leader) {
   const slug = getHighestOrgRoleSlug(leader?.roles, leader?.rank)
 
@@ -487,6 +743,7 @@ function leaderNameColor(leader) {
 /* MODAL STATE */
 const modalOpen = ref(false)
 const isEditing = ref(false)
+const discordActionKey = ref(null)
 
 const editingSquadron = ref(null)
 
@@ -505,6 +762,8 @@ function openCreateModal() {
     branch: null,
     division: null,
     leader_id: null,
+    discord_channel_id: '',
+    create_discord_channel: false,
   }
 }
 
@@ -523,6 +782,8 @@ function openEditModal(sq) {
     branch: sq.branch ?? null,
     division: sq.division ?? null,
     leader_id: sq.leader_id ?? null,
+    discord_channel_id: sq.discord_channel_id ?? '',
+    create_discord_channel: false,
   }
 }
 
@@ -547,29 +808,83 @@ function saveSquadron() {
   }
 }
 
+function createDiscordChannel(id) {
+  discordActionKey.value = `${id}:create-channel`
+
+  router.post(route('admin.squadrons.discord.create-channel'), { id }, {
+    preserveScroll: true,
+    onFinish: () => {
+      discordActionKey.value = null
+    },
+  })
+}
+
+function syncDiscordMembers(id) {
+  discordActionKey.value = `${id}:sync`
+
+  router.post(route('admin.squadrons.discord.sync'), { id }, {
+    preserveScroll: true,
+    onFinish: () => {
+      discordActionKey.value = null
+    },
+  })
+}
+
+function repairSharedSquadronRole() {
+  discordActionKey.value = 'shared-role-repair'
+
+  router.post(route('admin.squadrons.discord.repair-shared-role'), {}, {
+    preserveScroll: true,
+    onFinish: () => {
+      discordActionKey.value = null
+    },
+  })
+}
+
+function repairSquadronRoster(id) {
+  discordActionKey.value = `${id}:repair-roster`
+
+  router.post(route('admin.squadrons.roster.repair'), { id }, {
+    preserveScroll: true,
+    onFinish: () => {
+      discordActionKey.value = null
+    },
+  })
+}
+
 const deleteConfirmDialog = ref(null)
-const pendingDeleteSquadronId = ref(null)
+const pendingDeleteSquadron = ref(null)
+const deleteDiscordChannelWithSquadron = ref(false)
 
 /* DELETE */
 function deleteSquadron(id) {
-  pendingDeleteSquadronId.value = id
+  pendingDeleteSquadron.value = props.squadrons.find(sq => sq.id === id) ?? null
+  deleteDiscordChannelWithSquadron.value = false
   deleteConfirmDialog.value?.show()
 }
 
 function confirmDeleteSquadron({ close }) {
-  const id = pendingDeleteSquadronId.value
+  const id = pendingDeleteSquadron.value?.id
 
   if (!id) {
     close()
     return
   }
 
-  router.post(route('admin.squadrons.delete'), { id }, {
+  router.post(route('admin.squadrons.delete'), {
+    id,
+    delete_discord_channel: deleteDiscordChannelWithSquadron.value,
+  }, {
     preserveScroll: true,
     onSuccess: () => {
+      resetDeleteState()
       close()
-      pendingDeleteSquadronId.value = null
     },
   })
+}
+
+function resetDeleteState() {
+  pendingDeleteSquadron.value = null
+  deleteDiscordChannelWithSquadron.value = false
 }
 </script>

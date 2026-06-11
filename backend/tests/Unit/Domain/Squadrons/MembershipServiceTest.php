@@ -12,6 +12,7 @@ use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -78,15 +79,34 @@ class MembershipServiceTest extends TestCase
 
     public function test_promote_and_demote_lieutenant_syncs_membership_and_roles(): void
     {
+        config()->set('services.bot.url', 'http://localhost:3001/bot');
+        config()->set('services.bot.secret', 'bot-secret');
+        config()->set('services.discord.squadron_shared_role_id', '1509259792072442016');
+        config()->set('services.discord.squadron_lieutenant_role_id', '1454412904676724777');
+
+        Http::fake([
+            'http://localhost:3001/bot/squadrons/shared-role/sync-members' => Http::response([
+                'message' => 'Shared Squadron role sync completed.',
+            ], 200),
+            'http://localhost:3001/bot/squadrons/lieutenant/promote' => Http::response([
+                'message' => 'Squadron lieutenant promotion synced.',
+            ], 200),
+            'http://localhost:3001/bot/squadrons/lieutenant/demote' => Http::response([
+                'message' => 'Squadron lieutenant demotion synced.',
+            ], 200),
+        ]);
+
         $service = app(MembershipPromotionService::class);
         $user = User::factory()->create([
             'rank' => 'member',
             'rank_level' => 1,
+            'discord_id' => '83780469845393408',
         ]);
         $squadron = Squadron::create([
             'name' => 'Sentinel',
             'slug' => 'sentinel',
             'status' => 'active',
+            'discord_channel_id' => '1514323015536607262',
         ]);
 
         $memberRole = Role::create(['name' => 'Member', 'slug' => 'member']);
@@ -109,6 +129,13 @@ class MembershipServiceTest extends TestCase
             'user_id' => $user->id,
             'role_id' => $lieutenantRole->id,
         ]);
+        Http::assertSent(function ($request) {
+            return $request->url() === 'http://localhost:3001/bot/squadrons/lieutenant/promote'
+                && $request['member_discord_id'] === '83780469845393408'
+                && $request['lieutenant_role_id'] === '1454412904676724777'
+                && $request['discord_channel_id'] === '1514323015536607262'
+                && $request['announcement_message'] === 'Please congratulate <@83780469845393408> on their promotion to Lieutenant.';
+        });
 
         $demoted = $service->demoteLieutenant($squadron, $user);
 
@@ -121,5 +148,10 @@ class MembershipServiceTest extends TestCase
             'user_id' => $user->id,
             'role_id' => $memberRole->id,
         ]);
+        Http::assertSent(function ($request) {
+            return $request->url() === 'http://localhost:3001/bot/squadrons/lieutenant/demote'
+                && $request['member_discord_id'] === '83780469845393408'
+                && $request['lieutenant_role_id'] === '1454412904676724777';
+        });
     }
 }

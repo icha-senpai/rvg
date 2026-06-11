@@ -91,6 +91,8 @@ class AdminDashboardService
     {
         return $this->squadrons->listAll()
             ->map(function ($squadron) {
+                $rosterSummary = $this->squadrons->rosterConsistencySummary($squadron);
+
                 return [
                     'id' => $squadron->id,
                     'name' => $squadron->name,
@@ -105,6 +107,12 @@ class AdminDashboardService
                         ? MediaPresenter::make($squadron->emblem)->embedded()
                         : null,
                     'leader_id' => $squadron->leader_id,
+                    'discord_channel_id' => $squadron->discord_channel_id,
+                    'discord_sync_status' => $squadron->discord_sync_status,
+                    'discord_last_synced_at' => $squadron->discord_last_synced_at?->toIso8601String(),
+                    'discord_sync_error' => $squadron->discord_sync_error,
+                    'roster_status' => $rosterSummary['status'] ?? 'ok',
+                    'roster_issue' => $rosterSummary['message'] ?? null,
                     'leader' => $squadron->leader
                         ? [
                             'id' => $squadron->leader->id,

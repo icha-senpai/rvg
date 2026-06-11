@@ -39,6 +39,7 @@ if (LOGS_ENABLED) {
 const webhookRoutes = require('./services/webhook');        // nickname sync webhook
 const webhookOpRoutes = require('./services/webhookOperations'); // operation published webhook
 const webhookPromotionRoutes = require('./services/webhookPromotions');
+const webhookSquadronRoutes = require('./services/webhookSquadrons');
 
 log("Loaded webhookOpRoutes:", webhookOpRoutes);
 
@@ -46,6 +47,7 @@ log("Loaded webhookOpRoutes:", webhookOpRoutes);
 app.use('/bot', webhookRoutes);
 app.use('/bot', webhookOpRoutes);
 app.use('/bot', webhookPromotionRoutes);
+app.use('/bot', webhookSquadronRoutes);
 
 // --------------------
 // DISCORD CLIENT

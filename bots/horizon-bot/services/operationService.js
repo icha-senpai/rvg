@@ -7,12 +7,55 @@ const log = (...args) => {
     }
 };
 
+function normalizeDiscordId(value) {
+    const normalized = String(value ?? '').trim();
+
+    return /^\d+$/.test(normalized) ? normalized : null;
+}
+
+function normalizeAnnouncementTargets(rawTargets) {
+    if (!Array.isArray(rawTargets)) {
+        return [];
+    }
+
+    return rawTargets
+        .map((target) => {
+            const channelId = normalizeDiscordId(target?.channel_id);
+
+            if (!channelId) {
+                return null;
+            }
+
+            return {
+                channelId,
+                squadronId: target?.squadron_id ?? null,
+                squadronName: typeof target?.squadron_name === 'string'
+                    ? target.squadron_name.trim()
+                    : '',
+            };
+        })
+        .filter(Boolean)
+        .filter((target, index, list) => list.findIndex((item) => item.channelId === target.channelId) === index);
+}
+
+async function fetchMessageChannel(client, channelId) {
+    const channel = await client.channels.fetch(channelId);
+
+    if (!channel || !channel.send || !channel.messages || typeof channel.messages.delete !== 'function') {
+        throw new Error(`Channel ${channelId} is not message-capable`);
+    }
+
+    return channel;
+}
+
 module.exports = {
     async announceOperation(client, op, actionText = 'A new operation has been posted') {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
         const roleIdToPing = process.env.OP_ANNOUNCE_ROLE_ID;
 
         const shouldPing = op?.ping !== false;
+        const announceToDefaultChannel = op?.announce_to_default_channel !== false;
+        const customTargets = normalizeAnnouncementTargets(op?.discord_targets);
 
         let operationUrl = null;
         if (process.env.API_BASE_URL && op?.id) {
@@ -25,18 +68,32 @@ module.exports = {
             }
         }
 
-        // ------------------------------
-        // VALIDATE CHANNEL
-        // ------------------------------
-        if (!channelId) {
-            console.error('❌ OP_ANNOUNCE_CHANNEL_ID missing in .env!');
-            return;
+        const announcementTargets = [];
+
+        if (customTargets.length > 0) {
+            announcementTargets.push(...customTargets.map((target) => ({
+                ...target,
+                kind: 'squadron',
+            })));
         }
 
-        const channel = client.channels.cache.get(channelId);
-        if (!channel) {
-            console.error(`❌ Announcement channel (${channelId}) not found!`);
-            return;
+        if (announceToDefaultChannel) {
+            if (!channelId) {
+                console.error('❌ OP_ANNOUNCE_CHANNEL_ID missing in .env!');
+                return null;
+            }
+
+            announcementTargets.push({
+                channelId,
+                kind: 'default',
+                squadronId: null,
+                squadronName: '',
+            });
+        }
+
+        if (announcementTargets.length === 0) {
+            log(`[OpWebhook] No Discord announcement targets resolved for operation ${op?.id}`);
+            return null;
         }
 
         // ------------------------------
@@ -179,21 +236,37 @@ module.exports = {
         // SEND TO DISCORD
         // ------------------------------
         try {
-            const content = roleIdToPing && shouldPing
-                ? `${actionText} <@&${roleIdToPing}>`
-                : actionText;
+            const messageTargets = [];
 
-            const message = await channel.send({
-                content,
-                embeds: [embed],
-                allowedMentions: roleIdToPing && shouldPing
-                    ? { roles: [roleIdToPing] }
-                    : { parse: [] },
+            for (const target of announcementTargets) {
+                const channel = await fetchMessageChannel(client, target.channelId);
+                const shouldPingRole = target.kind === 'default' && roleIdToPing && shouldPing;
+                const message = await channel.send({
+                    content: shouldPingRole
+                        ? `${actionText} <@&${roleIdToPing}>`
+                        : actionText,
+                    embeds: [embed],
+                    allowedMentions: shouldPingRole
+                        ? { roles: [roleIdToPing] }
+                        : { parse: [] },
+                });
+
+                if (message?.id) {
+                    messageTargets.push({
+                        channel_id: target.channelId,
+                        message_id: message.id,
+                    });
+                }
+            }
+
+            log(`📢 Operation announced: ${op.title} (#${op.id})`, {
+                targetCount: messageTargets.length,
             });
-            log(`📢 Operation announced: ${op.title} (#${op.id})`);
 
-            // Return message id so the website can persist it and delete + repost on update.
-            return message?.id || null;
+            return {
+                messageId: messageTargets[0]?.message_id ?? null,
+                messageTargets,
+            };
         } catch (err) {
             console.error('❌ Failed to send operation embed:', err);
             return null;
@@ -204,8 +277,57 @@ module.exports = {
         return this.announceOperation(client, op, 'An operation has been updated');
     },
 
-    async deleteOperationAnnouncement(client, messageId) {
+    async deleteOperationAnnouncement(client, payload) {
         const channelId = process.env.OP_ANNOUNCE_CHANNEL_ID;
+        const messageId = typeof payload === 'string' ? payload : payload?.message_id;
+        const messageTargets = Array.isArray(payload?.message_targets)
+            ? payload.message_targets
+            : [];
+
+        const normalizedTargets = messageTargets
+            .map((target) => {
+                const targetChannelId = normalizeDiscordId(target?.channel_id);
+                const targetMessageId = normalizeDiscordId(target?.message_id);
+
+                if (!targetChannelId || !targetMessageId) {
+                    return null;
+                }
+
+                return {
+                    channelId: targetChannelId,
+                    messageId: targetMessageId,
+                };
+            })
+            .filter(Boolean);
+
+        if (normalizedTargets.length > 0) {
+            let deletedCount = 0;
+            let notFoundCount = 0;
+
+            for (const target of normalizedTargets) {
+                let channel = null;
+
+                try {
+                    channel = await fetchMessageChannel(client, target.channelId);
+                    await channel.messages.delete(target.messageId);
+                    deletedCount += 1;
+                } catch (err) {
+                    if (err && typeof err === 'object' && err.code === 10008) {
+                        notFoundCount += 1;
+                        continue;
+                    }
+
+                    console.error('❌ Failed to delete operation announcement:', err);
+                    return { status: 'error', reason: 'delete_failed' };
+                }
+            }
+
+            if (deletedCount === 0 && notFoundCount > 0) {
+                return { status: 'not_found' };
+            }
+
+            return { status: 'deleted' };
+        }
 
         if (!channelId) {
             console.error('❌ OP_ANNOUNCE_CHANNEL_ID missing in .env!');
@@ -216,24 +338,11 @@ module.exports = {
             return { status: 'error', reason: 'missing_message_id' };
         }
 
-        let channel = null;
         try {
-            channel = await client.channels.fetch(channelId);
-        } catch (err) {
-            console.error('❌ Failed to fetch announcement channel:', err);
-            return { status: 'error', reason: 'channel_fetch_failed' };
-        }
-
-        if (!channel || !channel.messages || typeof channel.messages.delete !== 'function') {
-            console.error('❌ Announcement channel is not a message-capable channel');
-            return { status: 'error', reason: 'channel_not_message_capable' };
-        }
-
-        try {
+            const channel = await fetchMessageChannel(client, channelId);
             await channel.messages.delete(messageId);
             return { status: 'deleted' };
         } catch (err) {
-            // Discord "Unknown Message" error code
             if (err && typeof err === 'object' && err.code === 10008) {
                 return { status: 'not_found' };
             }

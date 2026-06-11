@@ -20,6 +20,7 @@ class SquadronService
         protected SquadronAdminService $admin,
         protected SquadronSettingsService $settings,
         protected SquadronEmblemService $emblems,
+        protected SquadronDiscordService $discord,
     ) {}
 
     /**
@@ -95,6 +96,15 @@ class SquadronService
     }
 
     /**
+     * Return the Discord ids whose shared Squadron role may change after this
+     * squadron is deleted.
+     */
+    public function discordIdsAffectedByDeletion(Squadron $squadron): array
+    {
+        return $this->discord->discordIdsAffectedBySquadronDeletion($squadron);
+    }
+
+    /**
      * Load squadron members with the related user roles needed by management and
      * presentation layers.
      */
@@ -144,6 +154,80 @@ class SquadronService
     }
 
     /**
+     * Save a manually linked Discord channel id for the squadron.
+     */
+    public function saveDiscordChannelConfiguration(Squadron $squadron, ?string $channelId): Squadron
+    {
+        return $this->discord->saveChannelConfiguration($squadron, $channelId);
+    }
+
+    /**
+     * Repair legacy mismatches between the assigned squadron leader and the
+     * roster rows stored in squadron_members.
+     */
+    public function repairRosterConsistency(Squadron $squadron): array
+    {
+        return $this->admin->repairRosterConsistency($squadron);
+    }
+
+    /**
+     * Summarize whether the squadron's roster and leader assignment disagree.
+     */
+    public function rosterConsistencySummary(Squadron $squadron): array
+    {
+        return $this->admin->rosterConsistencySummary($squadron);
+    }
+
+    /**
+     * Create a Discord channel for the squadron, then sync the roster.
+     */
+    public function createDiscordChannel(Squadron $squadron): array
+    {
+        return $this->discord->createChannelAndSync($squadron);
+    }
+
+    /**
+     * Delete the linked Discord channel for a squadron when explicitly requested.
+     */
+    public function deleteDiscordChannel(Squadron $squadron): array
+    {
+        return $this->discord->deleteLinkedChannel($squadron);
+    }
+
+    /**
+     * Sync the squadron roster to the configured Discord channel.
+     */
+    public function syncDiscord(Squadron $squadron): array
+    {
+        return $this->discord->syncSquadronChannelAccess($squadron);
+    }
+
+    /**
+     * Run a full repair for the shared Squadron Discord role across the guild.
+     */
+    public function repairDiscordSharedRole(): array
+    {
+        return $this->discord->repairSharedSquadronRole();
+    }
+
+    /**
+     * Re-evaluate the shared Squadron Discord role for users affected by a
+     * deleted squadron.
+     */
+    public function syncSharedRoleAfterDeletion(iterable $discordIds): array
+    {
+        return $this->discord->syncSharedRoleAfterSquadronDeletion($discordIds);
+    }
+
+    /**
+     * Normalize the admin save flow after a squadron record changes.
+     */
+    public function syncDiscordAfterAdminSave(Squadron $squadron, bool $createChannelIfMissing = false): array
+    {
+        return $this->discord->syncAfterAdminSave($squadron, $createChannelIfMissing);
+    }
+
+    /**
      * Upload a new emblem file for the squadron.
      */
     public function uploadEmblem(Squadron $squadron, UploadedFile $file): Squadron
@@ -159,7 +243,10 @@ class SquadronService
      */
     public function assignLeader(Squadron $squadron, User $user): Squadron
     {
-        return $this->admin->assignLeader($squadron, $user);
+        $updated = $this->admin->assignLeader($squadron, $user);
+        $this->discord->syncAfterMembershipChange($updated, [$user->discord_id ?? null]);
+
+        return $updated;
     }
 
     /**

@@ -38,11 +38,12 @@ router.post('/op-published', async (req, res) => {
 
     try {
         const client = req.app.get('client');
-        const messageId = await operationService.announceOperation(client, op);
+        const result = await operationService.announceOperation(client, op);
 
         return res.json({
             message: 'Operation announcement sent.',
-            message_id: messageId,
+            message_id: result?.messageId ?? null,
+            message_targets: result?.messageTargets ?? [],
         });
     } catch (error) {
         console.error('[OpWebhook] Error:', error);
@@ -77,11 +78,12 @@ router.post('/op-updated', async (req, res) => {
 
     try {
         const client = req.app.get('client');
-        const messageId = await operationService.announceOperationUpdated(client, op);
+        const result = await operationService.announceOperationUpdated(client, op);
 
         return res.json({
             message: 'Operation update announcement sent.',
-            message_id: messageId,
+            message_id: result?.messageId ?? null,
+            message_targets: result?.messageTargets ?? [],
         });
     } catch (error) {
         console.error('[OpWebhook] Error:', error);
@@ -102,15 +104,15 @@ router.post('/op-delete', async (req, res) => {
         return res.status(403).json({ message: 'Forbidden' });
     }
 
-    const { message_id: messageId } = req.body || {};
+    const { message_id: messageId, message_targets: messageTargets } = req.body || {};
 
-    if (!messageId || typeof messageId !== 'string') {
+    if ((!messageId || typeof messageId !== 'string') && !Array.isArray(messageTargets)) {
         return res.status(400).json({ message: 'Invalid delete payload' });
     }
 
     try {
         const client = req.app.get('client');
-        const result = await operationService.deleteOperationAnnouncement(client, messageId);
+        const result = await operationService.deleteOperationAnnouncement(client, req.body || {});
 
         if (result?.status === 'deleted') {
             return res.status(200).json({ message: 'Deleted.' });

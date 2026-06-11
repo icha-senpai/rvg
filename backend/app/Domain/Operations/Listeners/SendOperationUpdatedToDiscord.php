@@ -3,11 +3,17 @@
 namespace App\Domain\Operations\Listeners;
 
 use App\Domain\Operations\Events\OperationUpdated;
+use App\Domain\Operations\OperationDiscordAnnouncementService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SendOperationUpdatedToDiscord
 {
+    public function __construct(
+        protected OperationDiscordAnnouncementService $discordAnnouncements,
+    ) {
+    }
+
     public function handle(OperationUpdated $event)
     {
         $op = $event->operation->fresh(['squadron', 'creator']);
@@ -15,20 +21,15 @@ class SendOperationUpdatedToDiscord
         Log::info("📡 Listener fired for UPDATED operation {$op->id}");
 
         try {
-            // We do NOT edit embeds in-place.
-            // Discord is not the source of truth, so on update we delete the old message (if any)
-            // and then repost a fresh embed.
-            if (is_string($op->discord_message_id) && $op->discord_message_id !== '') {
+            $deletePayload = $this->discordAnnouncements->deletePayload($op);
+
+            if ($deletePayload !== null) {
                 $deleteResponse = Http::withHeaders([
                     'X-Bot-Secret' => config('services.bot.secret'),
                 ])
                 ->asJson()
-                ->post(config('services.bot.url') . '/op-delete', [
-                    'message_id' => $op->discord_message_id,
-                    'operation_id' => $op->id,
-                ]);
+                ->post(config('services.bot.url') . '/op-delete', $deletePayload);
 
-                // Treat “already deleted” as success.
                 if (! in_array($deleteResponse->status(), [200, 204, 404], true)) {
                     Log::warning('❌ Bot delete webhook failed; skipping repost to avoid duplicates', [
                         'operation_id' => $op->id,
@@ -39,54 +40,17 @@ class SendOperationUpdatedToDiscord
                     return;
                 }
 
-                // Clear old id once we know the old message is gone (or already gone).
-                $op->forceFill([
-                    'discord_message_id' => null,
-                ])->saveQuietly();
+                $this->discordAnnouncements->clearAnnouncementTracking($op);
             }
 
             $response = Http::withHeaders([
                 'X-Bot-Secret' => config('services.bot.secret'),
             ])
             ->asJson()
-            ->post(config('services.bot.url') . '/op-updated', (function () use ($op) {
-                $operationLeader = $op->creator?->rsi_handle
-                    ?? $op->creator?->name;
+            ->post(config('services.bot.url') . '/op-updated', $this->discordAnnouncements->buildAnnouncementPayload($op));
 
-                $operationLeaderDiscordId = $op->creator?->discord_id;
-                $operationLeaderDiscordName = $op->creator?->discord_name;
-                $operationLeaderDiscordAvatar = $op->creator?->discord_avatar;
-
-                $payload = [
-                    'id' => $op->id,
-                    'title' => $op->title,
-                    'description' => $op->description,
-                    'starts_at_discord' => $op->starts_at ? "<t:{$op->starts_at->timestamp}:f>" : null,
-                    'operation_type' => $op->operation_type,
-                    'operation_strictness' => $op->operation_strictness,
-                    'start_location' => $op->start_location,
-                    'operation_leader' => $operationLeader,
-                    'operation_leader_discord_id' => $operationLeaderDiscordId,
-                    'operation_leader_discord_name' => $operationLeaderDiscordName,
-                    'operation_leader_discord_avatar' => $operationLeaderDiscordAvatar,
-                    // Allow Discord role ping on update announcements (same behavior as publish).
-                    // The bot defaults to pinging unless ping === false.
-                    'ping' => true,
-                ];
-
-                if ($op->squadron_name) {
-                    $payload['squadron_name'] = $op->squadron_name;
-                }
-
-                return $payload;
-            })());
-
-            // Persist the new message id so the next update can delete + repost.
-            $messageId = $response->json('message_id');
-            if (is_string($messageId) && $messageId !== '') {
-                $op->forceFill([
-                    'discord_message_id' => $messageId,
-                ])->saveQuietly();
+            if ($response->successful()) {
+                $this->discordAnnouncements->persistAnnouncementResponse($op, $response->json());
             }
 
             Log::info("🌐 Bot update webhook delivered. Status: {$response->status()}");

@@ -29,7 +29,6 @@ const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassigned
 const canViewSlots = computed(() => !!operation?.permissions?.can_view_slots)
 const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots)
 const participantCount = computed(() => Number(operation?.participants_count ?? participantsList.value.length ?? 0))
-const canUseOfficerCommands = computed(() => userCanCreateOperation(user.value))
 const isDirectorLike = computed(() => userIsDirectorLike(user.value))
 const hasSlotOptions = computed(() => Array.isArray(operation?.slots) && operation.slots.length > 0)
 const operationRoles = computed(() => {
@@ -72,24 +71,15 @@ const canManageOperation = computed(() => {
   if (!squadronId) {
     const creatorId = operation?.creator?.id ?? operation?.created_by ?? null
 
-    if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
-      return false
-    }
-
-    return canUseOfficerCommands.value
+    return !!creatorId && Number(creatorId) === Number(user.value?.id)
   }
 
-  const creatorId = operation?.creator?.id ?? operation?.created_by ?? null
   const membership = user.value?.squadrons?.find((squadron) => Number(squadron?.id) === Number(squadronId))
 
   if (!membership) return false
 
   const membershipStatus = membership.pivot?.membership_status
   if (membershipStatus && membershipStatus !== 'active') return false
-
-  if (creatorId && Number(creatorId) === Number(user.value?.id)) {
-    return canUseOfficerCommands.value
-  }
 
   const role = membership.pivot?.role
 

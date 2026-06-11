@@ -65,6 +65,77 @@ class OperationWebInertiaFlowTest extends TestCase
         );
     }
 
+    public function test_member_operations_index_hides_squadron_only_operation_from_non_members(): void
+    {
+        $viewer = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $creator = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $this->makeOperation($creator, [
+            'status' => 'published',
+            'visibility' => 'squadron',
+            'squadron_name' => 'Ghost Squadron',
+        ]);
+
+        $response = $this
+            ->actingAs($viewer)
+            ->get('/operations');
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Operations/OperationsIndex')
+            ->has('operations.data', 0)
+        );
+    }
+
+    public function test_member_operations_index_shows_squadron_only_operation_to_member_of_selected_squadron(): void
+    {
+        $viewer = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $creator = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+        ]);
+
+        $squadron = Squadron::create([
+            'name' => 'Ghost Squadron',
+            'slug' => 'ghost-squadron',
+            'status' => 'active',
+        ]);
+
+        SquadronMember::create([
+            'user_id' => $viewer->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_MEMBER,
+            'joined_at' => now(),
+        ]);
+
+        $operation = $this->makeOperation($creator, [
+            'status' => 'published',
+            'visibility' => 'squadron',
+            'squadron_name' => 'Ghost Squadron, Nova Wing',
+        ]);
+
+        $response = $this
+            ->actingAs($viewer)
+            ->get('/operations?operation=' . $operation->id);
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Operations/OperationsIndex')
+            ->where('operations.data.0.id', $operation->id)
+            ->where('activeOperation.operation.id', $operation->id)
+        );
+    }
+
     public function test_operation_start_redirects_back_to_dashboard_context(): void
     {
         $user = $this->actingAsDirector();
@@ -159,7 +230,7 @@ class OperationWebInertiaFlowTest extends TestCase
         );
     }
 
-    public function test_cit_creator_can_open_dashboard_editor_for_owned_squadron_operation(): void
+    public function test_cit_creator_cannot_open_dashboard_editor_for_owned_squadron_operation_without_command_role(): void
     {
         $user = $this->actingAsCit();
 
@@ -185,11 +256,7 @@ class OperationWebInertiaFlowTest extends TestCase
             ->actingAs($user)
             ->get('/operations/dashboard?edit=' . $operation->id);
 
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('Operations/OperationDashboard')
-            ->where('editingOperation.mission.id', $operation->id)
-            ->where('editingOperation.squadronId', $squadron->id)
-        );
+        $response->assertStatus(403);
     }
 
     public function test_join_and_update_slot_redirect_back_to_member_page_context(): void

@@ -36,8 +36,12 @@ class OperationAccessService
             return true;
         }
 
-        if ($operation->squadron_id) {
-            return $this->shared->squadronMembershipForId($user, (int) $operation->squadron_id) !== null;
+        if ($operation->visibility === 'private') {
+            return (int) $operation->created_by === (int) $user->id;
+        }
+
+        if ($operation->visibility === 'squadron') {
+            return $this->matchesSquadronAudience($user, $operation);
         }
 
         return false;
@@ -62,36 +66,7 @@ class OperationAccessService
 
     public function canUpdateOperation(User $user, Operation $operation): bool
     {
-        if ($this->shared->isDirectorLike($user)) {
-            return true;
-        }
-
-        if (! $operation->squadron_id) {
-            return (int) $operation->created_by === (int) $user->id
-                && $this->shared->atLeast($user, 'lieutenant');
-        }
-
-        $squadron = $this->memberships->squadronForOperation($operation);
-
-        if (! $squadron) {
-            return false;
-        }
-
-        if ((int) $operation->created_by === (int) $user->id
-            && $this->canCreateOperation($user, $squadron)
-        ) {
-            return true;
-        }
-
-        if ($this->shared->isSquadronLeader($user, $squadron)) {
-            return true;
-        }
-
-        if ($this->shared->isSquadronLieutenant($user, $squadron)) {
-            return true;
-        }
-
-        return false;
+        return $this->canFullyManageOperation($user, $operation);
     }
 
     public function canDeleteOperation(User $user, Operation $operation): bool
@@ -101,32 +76,12 @@ class OperationAccessService
 
     public function canManageOperationMembers(User $user, Operation $operation): bool
     {
-        if ($this->shared->isDirectorLike($user)) {
-            return true;
-        }
-
-        if ($this->shared->can($user, 'operation.members.manage')) {
-            return true;
-        }
-
-        if ($operation->squadron_id) {
-            $squadron = $this->memberships->squadronForOperation($operation);
-
-            if ($squadron && $this->shared->isSquadronLeader($user, $squadron)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->canFullyManageOperation($user, $operation);
     }
 
     public function canViewOperationSlots(User $user, Operation $operation): bool
     {
-        if ($this->shared->isDirectorLike($user)) {
-            return true;
-        }
-
-        return (int) $operation->created_by === (int) $user->id;
+        return $this->canFullyManageOperation($user, $operation);
     }
 
     public function canAssignOperationSlots(User $user, Operation $operation): bool
@@ -136,16 +91,7 @@ class OperationAccessService
 
     public function canAdjustOperationStats(User $user, Operation $operation): bool
     {
-        if ($this->shared->isDirectorLike($user)) {
-            return true;
-        }
-
-        if ($this->shared->can($user, 'analytics.operation')
-            || $this->shared->can($user, 'operation.stats.manage')) {
-            return true;
-        }
-
-        return false;
+        return $this->canFullyManageOperation($user, $operation);
     }
 
     public function canManageAfterActionReport(User $user, Operation $operation): bool
@@ -154,17 +100,56 @@ class OperationAccessService
             return false;
         }
 
-        if ($this->shared->isDirectorLike($user)) {
-            return true;
-        }
-
-        return (int) $operation->created_by === (int) $user->id;
+        return $this->canFullyManageOperation($user, $operation);
     }
 
     public function canManageOperation(User $user, Operation $operation): bool
     {
-        return $this->canUpdateOperation($user, $operation)
-            || $this->canManageOperationMembers($user, $operation)
-            || $this->canAdjustOperationStats($user, $operation);
+        return $this->canFullyManageOperation($user, $operation);
+    }
+
+    protected function canFullyManageOperation(User $user, Operation $operation): bool
+    {
+        if ($this->shared->isDirectorLike($user)) {
+            return true;
+        }
+
+        $squadron = $this->memberships->squadronForOperation($operation);
+
+        if (! $squadron) {
+            return (int) $operation->created_by === (int) $user->id;
+        }
+
+        return $this->isOwningSquadronCommand($user, $squadron);
+    }
+
+    protected function isOwningSquadronCommand(User $user, Squadron $squadron): bool
+    {
+        return $this->shared->isSquadronLeader($user, $squadron)
+            || $this->shared->isSquadronLieutenant($user, $squadron)
+            || (int) $squadron->leader_id === (int) $user->id;
+    }
+
+    protected function matchesSquadronAudience(User $user, Operation $operation): bool
+    {
+        if ($operation->squadron_id && $this->shared->squadronMembershipForId($user, (int) $operation->squadron_id) !== null) {
+            return true;
+        }
+
+        $squadronNames = collect(explode(',', (string) ($operation->squadron_name ?? '')))
+            ->map(fn (string $name) => trim($name))
+            ->filter()
+            ->values();
+
+        if ($squadronNames->isEmpty()) {
+            return false;
+        }
+
+        return $user->squadronMemberships()
+            ->active()
+            ->whereHas('squadron', function ($query) use ($squadronNames) {
+                $query->whereIn('name', $squadronNames->all());
+            })
+            ->exists();
     }
 }

@@ -47,11 +47,7 @@ class SquadronAccessService
             return true;
         }
 
-        if ($this->shared->can($user, 'squadron.manage')) {
-            return true;
-        }
-
-        return $this->shared->isSquadronLeader($user, $squadron);
+        return $this->shared->isSquadronLeader($user, $squadron) || $squadron->leader_id === $user->id;
     }
 
     public function canDeleteSquadron(User $user, Squadron $squadron): bool

@@ -19,6 +19,7 @@ class UpdateOperation
             'starts_at',
             'start_location',
             'operation_strictness',
+            'squadron_id',
             'squadron_name',
             'operation_type',
             'created_by',

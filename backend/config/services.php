@@ -45,6 +45,9 @@ return [
         'frontend_redirect' => env('DISCORD_FRONTEND_REDIRECT'),
         'scopes' => ['identify', 'guilds'],
         'role_sync_cache_minutes' => (int) env('DISCORD_ROLE_SYNC_CACHE_MINUTES', 5),
+        'squadron_category_id' => env('DISCORD_SQUADRON_CATEGORY_ID', '1454412955947892842'),
+        'squadron_shared_role_id' => env('DISCORD_SQUADRON_SHARED_ROLE_ID', '1509259792072442016'),
+        'squadron_lieutenant_role_id' => env('DISCORD_SQUADRON_LIEUTENANT_ROLE_ID', '1454412904676724777'),
         'self_assignable_roles' => [
             'branches' => [
                 [

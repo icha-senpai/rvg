@@ -28,6 +28,7 @@ class SquadronPresenter
             'branch' => $squadron->branch,
             'division' => $squadron->division,
             'status' => $squadron->status,
+            'discord_channel_id' => $squadron->discord_channel_id,
             'is_active' => $squadron->isActive(),
             'is_inactive' => $squadron->isInactive(),
             'is_disbanded' => $squadron->isDisbanded(),

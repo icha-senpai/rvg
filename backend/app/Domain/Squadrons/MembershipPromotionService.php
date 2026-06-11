@@ -22,7 +22,8 @@ use Illuminate\Validation\ValidationException;
 class MembershipPromotionService
 {
     public function __construct(
-        protected MembershipRuleService $rules
+        protected MembershipRuleService $rules,
+        protected SquadronDiscordService $discord,
     ) {}
 
     /**
@@ -60,6 +61,10 @@ class MembershipPromotionService
         if ((int) ($user->rank_level ?? 0) < 2) {
             $user->setRank('lieutenant');
         }
+
+        $this->discord->syncAfterMembershipChange($squadron, [$user->discord_id ?? null]);
+        $this->discord->syncLieutenantPromotion($squadron, (string) ($user->discord_id ?? ''));
+
         return $member->fresh();
     }
 
@@ -113,6 +118,10 @@ class MembershipPromotionService
         if ((int) ($user->rank_level ?? 0) === 2 && $user->rank === 'lieutenant') {
             $user->setRank('member');
         }
+
+        $this->discord->syncAfterMembershipChange($squadron, [$user->discord_id ?? null]);
+        $this->discord->syncLieutenantDemotion((string) ($user->discord_id ?? ''));
+
         return $member->fresh();
     }
 }

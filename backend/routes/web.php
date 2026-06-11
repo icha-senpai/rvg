@@ -682,6 +682,18 @@ Route::middleware(['auth', 'can:access-admin-panel'])
         Route::post('/squadrons/update', [AdminSquadronController::class, 'update'])
             ->name('admin.squadrons.update');
 
+        Route::post('/squadrons/discord/create-channel', [AdminSquadronController::class, 'createDiscordChannel'])
+            ->name('admin.squadrons.discord.create-channel');
+
+        Route::post('/squadrons/discord/sync', [AdminSquadronController::class, 'syncDiscord'])
+            ->name('admin.squadrons.discord.sync');
+
+        Route::post('/squadrons/roster/repair', [AdminSquadronController::class, 'repairRoster'])
+            ->name('admin.squadrons.roster.repair');
+
+        Route::post('/squadrons/discord/repair-shared-role', [AdminSquadronController::class, 'repairDiscordSharedRole'])
+            ->name('admin.squadrons.discord.repair-shared-role');
+
         Route::post('/squadrons/delete', [AdminSquadronController::class, 'destroy'])
             ->name('admin.squadrons.delete');
 

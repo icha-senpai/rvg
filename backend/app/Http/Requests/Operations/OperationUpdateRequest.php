@@ -28,6 +28,10 @@ class OperationUpdateRequest extends FormRequest
             $data['extended_description'] = $data['notes'];
         }
 
+        if (($data['visibility'] ?? null) === 'squadron_only') {
+            $data['visibility'] = 'squadron';
+        }
+
         $this->replace($data);
     }
 

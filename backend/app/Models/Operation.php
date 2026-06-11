@@ -51,6 +51,7 @@ class Operation extends Model
 
         // Discord announcement tracking keeps the linked bot message addressable.
         'discord_message_id',
+        'discord_message_targets',
 
         // Mission structure stores the serialized slot definition payload.
         'slots',
@@ -66,6 +67,7 @@ class Operation extends Model
         'after_action_attendance_user_ids' => 'array',
         'after_action_no_show_user_ids' => 'array',
         'after_action_report_updated_at' => 'datetime',
+        'discord_message_targets' => 'array',
     ];
 
     /**
@@ -198,9 +200,70 @@ class Operation extends Model
      */
     public function scopeVisibleToUser($query, User $user)
     {
-        return $query->whereIn('status', [
-            OperationStatus::Published->value,
-            OperationStatus::InProgress->value,
-        ]);
+        $activeMemberships = $user->squadronMemberships()
+            ->active()
+            ->with('squadron:id,name')
+            ->get();
+
+        $activeSquadronIds = $activeMemberships
+            ->pluck('squadron_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $activeSquadronNames = $activeMemberships
+            ->pluck('squadron.name')
+            ->filter()
+            ->map(fn ($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return $query
+            ->whereIn('status', [
+                OperationStatus::Published->value,
+                OperationStatus::InProgress->value,
+            ])
+            ->where(function ($visibilityQuery) use ($user, $activeSquadronIds, $activeSquadronNames) {
+                $visibilityQuery
+                    ->whereNull('visibility')
+                    ->orWhere('visibility', 'open')
+                    ->orWhere(function ($privateQuery) use ($user) {
+                        $privateQuery
+                            ->where('visibility', 'private')
+                            ->where('created_by', $user->id);
+                    })
+                    ->orWhere(function ($squadronQuery) use ($activeSquadronIds, $activeSquadronNames) {
+                        $squadronQuery->where('visibility', 'squadron');
+
+                        if ($activeSquadronIds === [] && $activeSquadronNames === []) {
+                            $squadronQuery->whereRaw('1 = 0');
+
+                            return;
+                        }
+
+                        $squadronQuery->where(function ($audienceQuery) use ($activeSquadronIds, $activeSquadronNames) {
+                            if ($activeSquadronIds !== []) {
+                                $audienceQuery->orWhereIn('squadron_id', $activeSquadronIds);
+                            }
+
+                            foreach ($activeSquadronNames as $name) {
+                                $this->applySquadronNameAudienceMatch($audienceQuery, $name);
+                            }
+                        });
+                    });
+            });
+    }
+
+    protected function applySquadronNameAudienceMatch($query, string $name): void
+    {
+        $query
+            ->orWhere('squadron_name', $name)
+            ->orWhere('squadron_name', 'like', $name . ', %')
+            ->orWhere('squadron_name', 'like', '%, ' . $name)
+            ->orWhere('squadron_name', 'like', '%, ' . $name . ', %');
     }
 }

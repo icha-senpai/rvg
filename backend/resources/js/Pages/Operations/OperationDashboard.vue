@@ -290,7 +290,7 @@ function visitDashboard(query, only = ['operations', 'activeOperation', 'editing
 
 function openCreateDrawer() {
   createDrawerOpen.value = true
-  createEditorSquadronId.value = userSquadronId.value
+  createEditorSquadronId.value = null
   editorPrefillTemplateId.value = null
   templateToolsOpen.value = false
 
@@ -310,7 +310,7 @@ function openCreateDrawerFromTemplate() {
   const template = (templates.value ?? []).find(item => Number(item?.id) === Number(id))
 
   createDrawerOpen.value = true
-  createEditorSquadronId.value = template?.squadron_id ?? userSquadronId.value
+  createEditorSquadronId.value = template?.squadron_id ?? null
   editorPrefillTemplateId.value = id
   templateToolsOpen.value = true
 
@@ -418,19 +418,6 @@ function closeViewModal() {
 
 const user = computed(() => page.props.auth?.user ?? null)
 
-const userSquadronId = computed(() => {
-  const u = user.value
-  if (!u?.squadrons?.length) return null
-
-  const lt = u.squadrons.find(squadron => squadron.pivot?.role === 'lieutenant')
-  if (lt) return lt.id
-
-  const leader = u.squadrons.find(squadron => squadron.pivot?.role === 'leader')
-  if (leader) return leader.id
-
-  return u.squadrons[0]?.id ?? null
-})
-
 const isDirectorLike = computed(() => {
   return userIsDirectorLike(user.value)
 })
@@ -447,11 +434,7 @@ function canManageOperation(op) {
   if (!squadronId) {
     const creatorId = op?.creator?.id ?? op?.created_by ?? null
 
-    if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
-      return false
-    }
-
-    return canCreateOperation.value
+    return !!creatorId && Number(creatorId) === Number(user.value?.id)
   }
 
   const squadronLeaderId = op?.squadron?.leader?.id
@@ -460,20 +443,25 @@ function canManageOperation(op) {
     return true
   }
 
-  const creatorId = op?.creator?.id ?? op?.created_by ?? null
   const membership = user.value?.squadrons?.find(squadron => Number(squadron?.id) === Number(squadronId))
   if (!membership) return false
 
   const membershipStatus = membership.pivot?.membership_status
   if (membershipStatus && membershipStatus !== 'active') return false
 
-  if (creatorId && Number(creatorId) === Number(user.value?.id)) {
-    return canCreateOperation.value
-  }
-
   const role = membership.pivot?.role
 
   return role === 'leader' || role === 'lieutenant'
+}
+
+function ownershipLabel(op) {
+  if (!op?.squadron?.id) {
+    return 'Global Op'
+  }
+
+  return op?.squadron?.name
+    ? `${op.squadron.name} Squadron Op`
+    : 'Squadron Op'
 }
 
 function creatorNameColor(op) {
@@ -1037,10 +1025,10 @@ function statusCardClass(status) {
               <div class="grid gap-3 md:grid-cols-2">
                 <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
                   <div class="text-xs uppercase tracking-wide text-text-muted">
-                    Squadron
+                    Ownership
                   </div>
                   <div class="mt-1 truncate text-sm font-semibold text-horizon-white">
-                    {{ op.squadron?.name ?? 'Global / TBD' }}
+                    {{ ownershipLabel(op) }}
                   </div>
                 </div>
 

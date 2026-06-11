@@ -14,6 +14,10 @@ class Squadron extends Model
         'branch',
         'division',
         'leader_id',
+        'discord_channel_id',
+        'discord_sync_status',
+        'discord_last_synced_at',
+        'discord_sync_error',
         'motto',
         'description',
         'primary_color',
@@ -25,7 +29,12 @@ class Squadron extends Model
 
     protected $casts = [
         'recruiting' => 'boolean',
+        'discord_last_synced_at' => 'datetime',
     ];
+
+    public const DISCORD_STATUS_NOT_LINKED = 'not_linked';
+    public const DISCORD_STATUS_READY = 'ready';
+    public const DISCORD_STATUS_REPAIR_NEEDED = 'repair_needed';
 
     /* Relationships */
     public function leader()

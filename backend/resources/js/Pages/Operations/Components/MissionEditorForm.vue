@@ -235,6 +235,14 @@ const squadronOptions = computed(() => {
   }))
 })
 
+const allSquadronRecords = computed(() => {
+  return (squadrons.value ?? []).map((squadron) => ({
+    id: squadron.id,
+    name: squadron.name,
+    discord_channel_id: squadron.discord_channel_id ?? null,
+  }))
+})
+
 const startLocationOptions = [
   { label: 'Stanton / Hurston / Lorville', value: 'Stanton / Hurston / Lorville' },
   { label: 'Stanton / Hurston / Everus Harbor', value: 'Stanton / Hurston / Everus Harbor' },
@@ -285,12 +293,148 @@ const isDirectorLike = computed(() => {
   return userIsDirectorLike(authUser.value)
 })
 
+const selectedOwnershipSquadronId = ref(props.squadronId ? String(props.squadronId) : '')
+
+watch(
+  () => props.squadronId,
+  (next) => {
+    selectedOwnershipSquadronId.value = next ? String(next) : ''
+    form.squadron_id = next ?? null
+  }
+)
+
+const availableOwnershipSquadrons = computed(() => {
+  if (isDirectorLike.value) {
+    return (squadrons.value ?? []).map((squadron) => ({
+      id: squadron.id,
+      name: squadron.name,
+      discord_channel_id: squadron.discord_channel_id ?? null,
+    }))
+  }
+
+  return (authUser.value?.squadrons ?? [])
+    .filter((squadron) => !squadron?.pivot?.membership_status || squadron.pivot.membership_status === 'active')
+    .map((squadron) => ({
+      id: squadron.id,
+      name: squadron.name,
+      discord_channel_id: squadron.discord_channel_id ?? null,
+    }))
+})
+
+const ownershipOptions = computed(() => {
+  return [
+    { label: 'Global Op', value: '' },
+    ...availableOwnershipSquadrons.value.map((squadron) => ({
+      label: `${squadron.name} Squadron Op`,
+      value: String(squadron.id),
+    })),
+  ]
+})
+
+const currentOwnershipSquadronId = computed(() => {
+  const raw = String(selectedOwnershipSquadronId.value ?? '').trim()
+  if (!raw) return null
+
+  const id = Number(raw)
+
+  return Number.isInteger(id) && id > 0 ? id : null
+})
+
+const ownershipSquadron = computed(() => {
+  const ownershipId = currentOwnershipSquadronId.value
+
+  if (!ownershipId) return null
+
+  return availableOwnershipSquadrons.value.find((squadron) => Number(squadron.id) === ownershipId) ?? null
+})
+
+const ownershipLabel = computed(() => {
+  if (!ownershipSquadron.value) {
+    return 'Global Op'
+  }
+
+  return `${ownershipSquadron.value.name} Squadron Op`
+})
+
+const selectedDisplaySquadronRecords = computed(() => {
+  const selectedNames = new Set((selectedSquadronNames.value ?? []).map((name) => String(name).trim()).filter(Boolean))
+
+  return allSquadronRecords.value.filter((squadron) => selectedNames.has(squadron.name))
+})
+
+const discordAnnouncementSquadronTargets = computed(() => {
+  const ownershipId = currentOwnershipSquadronId.value
+
+  if (!ownershipId) {
+    return []
+  }
+
+  const targets = []
+  const seenIds = new Set()
+
+  const ownershipRecord = allSquadronRecords.value.find((squadron) => Number(squadron.id) === ownershipId)
+    ?? ownershipSquadron.value
+
+  if (ownershipRecord) {
+    targets.push(ownershipRecord)
+    seenIds.add(Number(ownershipRecord.id))
+  }
+
+  for (const squadron of selectedDisplaySquadronRecords.value) {
+    const squadronId = Number(squadron.id)
+
+    if (seenIds.has(squadronId)) {
+      continue
+    }
+
+    targets.push(squadron)
+    seenIds.add(squadronId)
+  }
+
+  return targets
+})
+
+const linkedDiscordAnnouncementTargetCount = computed(() => {
+  return discordAnnouncementSquadronTargets.value.filter((squadron) => squadron.discord_channel_id).length
+})
+
+const missingDiscordAnnouncementTargetNames = computed(() => {
+  return discordAnnouncementSquadronTargets.value
+    .filter((squadron) => !squadron.discord_channel_id)
+    .map((squadron) => squadron.name)
+})
+
+const discordAnnouncementNote = computed(() => {
+  if (!currentOwnershipSquadronId.value) {
+    return ''
+  }
+
+  const linkedCount = linkedDiscordAnnouncementTargetCount.value
+  const totalTargets = discordAnnouncementSquadronTargets.value.length
+  const missingNames = missingDiscordAnnouncementTargetNames.value
+  const channelLabel = linkedCount === 1 ? 'channel' : 'channels'
+
+  let message = linkedCount > 0
+    ? `This squadron op will post to ${linkedCount} linked squadron Discord ${channelLabel} when published or updated.`
+    : 'This squadron op is set to use squadron Discord posting, but none of the selected squadrons have a linked Discord channel yet.'
+
+  if (totalTargets > 1 && linkedCount > 0) {
+    message += ' The owning squadron is always included.'
+  }
+
+  if (missingNames.length > 0) {
+    message += ` ${missingNames.join(', ')} ${missingNames.length === 1 ? 'does' : 'do'} not have a linked Discord channel yet, so ${missingNames.length === 1 ? 'it' : 'they'} will be skipped.`
+  }
+
+  return message
+})
+
 const canUploadOperationImages = computed(() => {
   return userCanUploadOperationImages(authUser.value)
 })
 
 const canSaveSquadronTemplate = computed(() => {
-  return userCanSaveSquadronTemplate(authUser.value, props.squadronId)
+  return userCanSaveSquadronTemplate(authUser.value, currentOwnershipSquadronId.value)
 })
 
 const templatesSaving = ref(false)
@@ -354,7 +498,7 @@ function confirmSaveTemplate({ close, finish, text }) {
     return
   }
 
-  const squadronId = scope === 'squadron' ? props.squadronId : null
+  const squadronId = scope === 'squadron' ? currentOwnershipSquadronId.value : null
 
   templatesSaving.value = true
   createOperationTemplate({
@@ -447,7 +591,7 @@ const form = useForm({
   extended_description: props.mission?.extended_description ?? props.mission?.notes ?? '',
   visibility: props.mission?.visibility ?? 'open',
   difficulty: props.mission?.difficulty ?? '',
-  operation_strictness: props.mission?.operation_strictness ?? '',
+  operation_strictness: props.mission?.operation_strictness ?? 'normal',
   icon: props.mission?.icon ?? '',
   image_url: props.mission?.image_url ?? '',
   slots: props.mission?.slots ?? [],
@@ -664,7 +808,10 @@ function removeSlot(index) {
 // SUBMIT HANDLER
 // ----------------------
 async function submit(mode) {
+  const ownershipSquadronId = currentOwnershipSquadronId.value
+
   form.squadron_name = normalizeSquadronName(selectedSquadronNames.value)
+  form.squadron_id = ownershipSquadronId
 
   const currentStatus = props.mission?.status ?? 'draft'
   const isPublishing = mode === 'published'
@@ -783,8 +930,8 @@ async function submit(mode) {
       return
     }
 
-    const storeUrl = props.squadronId
-      ? route('operations.store', { squadron: props.squadronId }, Ziggy)
+    const storeUrl = ownershipSquadronId
+      ? route('operations.store', { squadron: ownershipSquadronId }, Ziggy)
       : route('operations.storeGlobal', {}, Ziggy)
 
     router.post(
@@ -852,8 +999,8 @@ async function submit(mode) {
   // CREATE MODE
   // ----------------------
   try {
-    const storeUrl = props.squadronId
-      ? route('operations.store', { squadron: props.squadronId }, Ziggy)
+    const storeUrl = ownershipSquadronId
+      ? route('operations.store', { squadron: ownershipSquadronId }, Ziggy)
       : route('operations.storeGlobal', {}, Ziggy)
 
     const response = await form.post(storeUrl, {
@@ -1256,7 +1403,7 @@ function confirmDestroyOperation({ close, text }) {
               </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
+            <div class="grid gap-4 lg:grid-cols-3">
               <div class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonInput
                   v-model="form.gameplay_type"
@@ -1273,15 +1420,45 @@ function confirmDestroyOperation({ close, text }) {
               </div>
 
               <div class="hz-surface-welcome relative z-[9997] rounded-[1.5rem] border border-white/[0.055] p-4">
+                <template v-if="!isEdit">
+                  <HorizonSelect
+                    v-model="selectedOwnershipSquadronId"
+                    label="Operation Ownership"
+                    :options="ownershipOptions"
+                  />
+
+                  <p class="mt-2 text-xs text-text-muted">
+                    New operations start as global by default. Choose a squadron here only when you want this to become a squadron-owned op.
+                  </p>
+                </template>
+
+                <template v-else>
+                  <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Operation Ownership
+                  </div>
+                  <div class="mt-2 text-sm font-semibold text-horizon-white">
+                    {{ ownershipLabel }}
+                  </div>
+                </template>
+              </div>
+
+              <div class="hz-surface-welcome relative z-[9997] rounded-[1.5rem] border border-white/[0.055] p-4">
                 <HorizonSelect
                   v-model="selectedSquadronNames"
-                  label="Squadron Assignment"
+                  label="Displayed Squadrons"
                   :options="squadronOptions"
                   :multiple="true"
                 />
 
                 <p class="mt-2 text-xs text-text-muted">
-                  Leave empty for a global operation, or select one or more squadrons.
+                  Choose which squadron names appear on the card and dossier. Ownership is controlled separately.
+                </p>
+
+                <p
+                  v-if="discordAnnouncementNote"
+                  class="mt-2 text-xs text-sky-200"
+                >
+                  {{ discordAnnouncementNote }}
                 </p>
 
                 <p
@@ -1300,8 +1477,7 @@ function confirmDestroyOperation({ close, text }) {
                   label="Visibility"
                   :options="[
                     { label: 'Open', value: 'open' },
-                    { label: 'Squadron Only', value: 'squadron_only' },
-                    { label: 'Private', value: 'private' },
+                    { label: 'Squadron Only', value: 'squadron' },
                   ]"
                 />
 
@@ -1318,7 +1494,6 @@ function confirmDestroyOperation({ close, text }) {
                   v-model="form.operation_strictness"
                   label="Comms Strictness"
                   :options="[
-                    { label: 'Default', value: '' },
                     { label: 'Casual', value: 'casual' },
                     { label: 'Normal', value: 'normal' },
                     { label: 'Strict', value: 'strict' },
@@ -1352,6 +1527,10 @@ function confirmDestroyOperation({ close, text }) {
 
                 <span class="rounded-full border-transparent bg-white/[0.042] shadow-none px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ form.visibility ? form.visibility.replace(/[_-]+/g, ' ') : 'open' }}
+                </span>
+
+                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                  {{ ownershipLabel }}
                 </span>
 
                 <span
@@ -1965,8 +2144,3 @@ function confirmDestroyOperation({ close, text }) {
     @confirm="confirmSaveTemplate"
   />
 </template>
-
-
-
-
-

@@ -21,7 +21,8 @@ class MembershipAdminService
 {
     public function __construct(
         protected AccessService $access,
-        protected MembershipRuleService $rules
+        protected MembershipRuleService $rules,
+        protected SquadronDiscordService $discord,
     ) {}
 
     /**
@@ -31,12 +32,16 @@ class MembershipAdminService
     {
         $this->rules->assertUserCanBeAddedToSquadron($userId);
 
-        return SquadronMember::create([
+        $member = SquadronMember::create([
             'user_id' => $userId,
             'squadron_id' => $squadron->id,
             'membership_status' => SquadronMembershipStatus::Active->value,
             'joined_at' => now(),
         ]);
+
+        $this->discord->syncAfterMembershipChange($squadron, [$member->user?->discord_id ?? null]);
+
+        return $member;
     }
 
     /**
@@ -46,13 +51,17 @@ class MembershipAdminService
     {
         $this->rules->assertUserCanBeAddedToSquadron($userId);
 
-        return SquadronMember::create([
+        $member = SquadronMember::create([
             'squadron_id' => $squadron->id,
             'user_id' => $userId,
             'membership_status' => SquadronMembershipStatus::Active->value,
             'role' => null,
             'joined_at' => now(),
         ]);
+
+        $this->discord->syncAfterMembershipChange($squadron, [$member->user?->discord_id ?? null]);
+
+        return $member;
     }
 
     /**
@@ -67,6 +76,8 @@ class MembershipAdminService
             'membership_status' => $status,
         ]);
 
+        $this->discord->syncAfterMembershipChange($squadron, [$member->user?->discord_id ?? null]);
+
         return $member;
     }
 
@@ -80,6 +91,8 @@ class MembershipAdminService
             'membership_status' => $status,
         ]);
 
+        $this->discord->syncAfterMembershipChange($member->squadron()->firstOrFail(), [$member->user?->discord_id ?? null]);
+
         return $member->fresh();
     }
 
@@ -90,12 +103,16 @@ class MembershipAdminService
     {
         $this->assertMemberBelongsToSquadron($squadron, $member);
 
+        $affectedDiscordId = $member->user?->discord_id ?? null;
+
         $member->update([
             'left_at' => now(),
             'membership_status' => SquadronMember::STATUS_PENDING,
         ]);
 
         $member->delete();
+
+        $this->discord->syncAfterMembershipChange($squadron, [$affectedDiscordId]);
     }
 
     /**
@@ -103,7 +120,13 @@ class MembershipAdminService
      */
     public function adminDeleteMember(SquadronMember $member): void
     {
+        $squadron = $member->squadron()->first();
+        $affectedDiscordId = $member->user?->discord_id ?? null;
         $member->delete();
+
+        if ($squadron) {
+            $this->discord->syncAfterMembershipChange($squadron, [$affectedDiscordId]);
+        }
     }
 
     /**
@@ -148,6 +171,8 @@ class MembershipAdminService
                 : $member->joined_at,
         ]);
 
+        $this->discord->syncAfterMembershipChange($squadron, [$member->user?->discord_id ?? null]);
+
         return $member->fresh();
     }
 
@@ -184,7 +209,11 @@ class MembershipAdminService
             ]);
         }
 
+        $affectedDiscordId = $member->user?->discord_id ?? null;
+
         $member->delete();
+
+        $this->discord->syncAfterMembershipChange($squadron, [$affectedDiscordId]);
     }
 
     /**

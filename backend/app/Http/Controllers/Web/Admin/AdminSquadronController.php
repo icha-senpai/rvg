@@ -10,6 +10,7 @@ use App\Models\SquadronMember;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\Rule;
 
 /**
  * Handles admin-only squadron management screens and mutation actions.
@@ -43,23 +44,18 @@ class AdminSquadronController extends Controller
     {
         $this->authorize('create', Squadron::class);
 
-        $data = $request->validate([
-            'name'      => ['required', 'string', 'max:255'],
-            'slug'      => ['required', 'string', 'max:255', 'unique:squadrons,slug'],
-            'status'    => ['required', 'in:active,inactive,disbanded'],
-            'branch'    => ['nullable', 'string', 'in:defence,industries,frontiers,lifeline'],
-            'division'  => ['nullable', 'string', 'in:marines,navy,airforce,procurement,logistics,construction,exploration,science,development,triage,recovery,medical'],
-            'leader_id' => [
-                'nullable',
-                'exists:users,id',
-            ],
-        ]);
+        $data = $request->validate($this->squadronRules());
 
         $this->squadrons->assertEligibleLeader(isset($data['leader_id']) ? (int) $data['leader_id'] : null);
-        $this->squadrons->createForAdmin($data);
+        $squadron = $this->squadrons->createForAdmin($data);
+        $squadron = $this->squadrons->saveDiscordChannelConfiguration($squadron, $data['discord_channel_id'] ?? null);
+        $result = $this->squadrons->syncDiscordAfterAdminSave(
+            $squadron,
+            $request->boolean('create_discord_channel') && blank($data['discord_channel_id'] ?? null)
+        );
 
         return redirect()->route('admin.dashboard')
-            ->with('success', 'Squadron updated.');
+            ->with('success', $this->adminSaveMessage('created', $result));
     }
 
     /**
@@ -69,24 +65,21 @@ class AdminSquadronController extends Controller
     {
         $this->authorize('create', Squadron::class);
 
-        $data = $request->validate([
-            'id'        => ['required', 'exists:squadrons,id'],
-            'name'      => ['required', 'string', 'max:255'],
-            'slug'      => ['required', 'string', 'max:255'],
-            'status'    => ['required', 'in:active,inactive,disbanded'],
-            'branch'    => ['nullable', 'string', 'in:defence,industries,frontiers,lifeline'],
-            'division'  => ['nullable', 'string', 'in:marines,navy,airforce,procurement,logistics,construction,exploration,science,development,triage,recovery,medical'],
-            'leader_id' => [
-                'nullable',
-                'exists:users,id',
-            ],
-        ]);
+        $data = $request->validate(array_merge(
+            ['id' => ['required', 'exists:squadrons,id']],
+            $this->squadronRules(ignoreSquadronId: (int) $request->input('id'))
+        ));
 
         $this->squadrons->assertEligibleLeader(isset($data['leader_id']) ? (int) $data['leader_id'] : null);
-        $this->squadrons->updateForAdmin(Squadron::findOrFail($data['id']), $data);
+        $squadron = $this->squadrons->updateForAdmin(Squadron::findOrFail($data['id']), $data);
+        $squadron = $this->squadrons->saveDiscordChannelConfiguration($squadron, $data['discord_channel_id'] ?? null);
+        $result = $this->squadrons->syncDiscordAfterAdminSave(
+            $squadron,
+            $request->boolean('create_discord_channel') && blank($data['discord_channel_id'] ?? null)
+        );
 
         return redirect()->route('admin.dashboard')
-            ->with('success', 'Squadron updated.');
+            ->with('success', $this->adminSaveMessage('updated', $result));
     }
 
     /**
@@ -98,12 +91,29 @@ class AdminSquadronController extends Controller
 
         $data = $request->validate([
             'id' => ['required', 'exists:squadrons,id'],
+            'delete_discord_channel' => ['nullable', 'boolean'],
         ]);
 
-        $this->squadrons->delete(Squadron::findOrFail($data['id']));
+        $squadron = Squadron::findOrFail($data['id']);
+        $affectedDiscordIds = $this->squadrons->discordIdsAffectedByDeletion($squadron);
+
+        if ($request->boolean('delete_discord_channel')) {
+            $discordResult = $this->squadrons->deleteDiscordChannel($squadron);
+
+            if (! ($discordResult['ok'] ?? false)) {
+                return redirect()->route('admin.dashboard')
+                    ->with('success', 'Squadron delete stopped because the linked Discord channel could not be deleted: ' . ($discordResult['message'] ?? 'Unknown Discord error.'));
+            }
+        }
+
+        $this->squadrons->delete($squadron);
+        $sharedRoleResult = $this->squadrons->syncSharedRoleAfterDeletion($affectedDiscordIds);
 
         return redirect()->route('admin.dashboard')
-            ->with('success', 'Squadron deleted.');
+            ->with('success', $this->deleteSuccessMessage(
+                deletedDiscordChannel: $request->boolean('delete_discord_channel'),
+                sharedRoleResult: $sharedRoleResult,
+            ));
     }
 
     /**
@@ -168,5 +178,152 @@ class AdminSquadronController extends Controller
         return redirect()
             ->route('admin.squadrons.index')
             ->with('success', 'Member removed.');
+    }
+
+    /**
+     * Create a Discord text channel for an existing squadron and sync its roster.
+     */
+    public function createDiscordChannel(Request $request)
+    {
+        $this->authorize('create', Squadron::class);
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:squadrons,id'],
+        ]);
+
+        $squadron = Squadron::findOrFail($data['id']);
+        $repair = $this->squadrons->repairRosterConsistency($squadron);
+        $result = $this->squadrons->createDiscordChannel($repair['squadron']);
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', $result['ok']
+                ? $this->prependRepairMessage(
+                    $repair,
+                    'Discord channel created and squadron channel access synced.'
+                )
+                : 'Discord setup needs repair: ' . $result['message']);
+    }
+
+    /**
+     * Re-sync an existing squadron channel to the current Horizon roster.
+     */
+    public function syncDiscord(Request $request)
+    {
+        $this->authorize('create', Squadron::class);
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:squadrons,id'],
+        ]);
+
+        $squadron = Squadron::findOrFail($data['id']);
+        $repair = $this->squadrons->repairRosterConsistency($squadron);
+        $result = $this->squadrons->syncDiscord($repair['squadron']);
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', $result['ok']
+                ? $this->prependRepairMessage(
+                    $repair,
+                    'Discord squadron channel access synced.'
+                )
+                : 'Discord setup needs repair: ' . $result['message']);
+    }
+
+    /**
+     * Repair legacy roster mismatches for one squadron without running a
+     * Discord sync yet.
+     */
+    public function repairRoster(Request $request)
+    {
+        $this->authorize('create', Squadron::class);
+
+        $data = $request->validate([
+            'id' => ['required', 'exists:squadrons,id'],
+        ]);
+
+        $repair = $this->squadrons->repairRosterConsistency(Squadron::findOrFail($data['id']));
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', $repair['message'] ?? 'No roster repair was needed.');
+    }
+
+    /**
+     * Run a full shared Squadron role repair across the Discord guild.
+     */
+    public function repairDiscordSharedRole(Request $request)
+    {
+        $this->authorize('create', Squadron::class);
+
+        $result = $this->squadrons->repairDiscordSharedRole();
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', $result['ok']
+                ? 'Shared Squadron role repair completed.'
+                : 'Shared Squadron role repair needs attention: ' . $result['message']);
+    }
+
+    protected function squadronRules(?int $ignoreSquadronId = null): array
+    {
+        $slugRules = [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('squadrons', 'slug'),
+        ];
+
+        if ($ignoreSquadronId) {
+            $slugRules[3] = Rule::unique('squadrons', 'slug')->ignore($ignoreSquadronId);
+        }
+
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => $slugRules,
+            'status' => ['required', 'in:active,inactive,disbanded'],
+            'branch' => ['nullable', 'string', 'in:defence,industries,frontiers,lifeline'],
+            'division' => ['nullable', 'string', 'in:marines,navy,airforce,procurement,logistics,construction,exploration,science,development,triage,recovery,medical'],
+            'leader_id' => ['nullable', 'exists:users,id'],
+            'discord_channel_id' => ['nullable', 'string', 'max:32', 'regex:/^\d+$/'],
+            'create_discord_channel' => ['nullable', 'boolean'],
+        ];
+    }
+
+    protected function adminSaveMessage(string $verb, array $result): string
+    {
+        if (($result['status'] ?? null) === Squadron::DISCORD_STATUS_NOT_LINKED) {
+            return 'Squadron ' . $verb . '. Discord channel not linked yet.';
+        }
+
+        if (! ($result['ok'] ?? false)) {
+            return 'Squadron ' . $verb . '. Discord setup needs repair: ' . ($result['message'] ?? 'Unknown Discord error.');
+        }
+
+        return 'Squadron ' . $verb . ' and Discord synced.';
+    }
+
+    protected function prependRepairMessage(array $repair, string $message): string
+    {
+        $repairMessage = trim((string) ($repair['message'] ?? ''));
+
+        if ($repairMessage === '' || $repairMessage === 'No roster repair was needed.') {
+            return $message;
+        }
+
+        return $repairMessage . ' ' . $message;
+    }
+
+    protected function deleteSuccessMessage(bool $deletedDiscordChannel, array $sharedRoleResult): string
+    {
+        $baseMessage = $deletedDiscordChannel
+            ? 'Squadron and linked Discord channel deleted.'
+            : 'Squadron deleted.';
+
+        if (! ($sharedRoleResult['ok'] ?? false)) {
+            return $baseMessage . ' Shared Squadron role repair needs attention: ' . ($sharedRoleResult['message'] ?? 'Unknown Discord error.');
+        }
+
+        return $baseMessage . ' Shared Squadron role synced.';
     }
 }

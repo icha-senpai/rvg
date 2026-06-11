@@ -16,7 +16,8 @@ use App\Models\User;
 class MembershipLifecycleService
 {
     public function __construct(
-        protected MembershipRuleService $rules
+        protected MembershipRuleService $rules,
+        protected SquadronDiscordService $discord,
     ) {}
 
     /**
@@ -47,10 +48,14 @@ class MembershipLifecycleService
     {
         $member = $this->rules->requireMembershipForUser($squadron, $user);
 
+        $affectedDiscordId = $member->user?->discord_id ?? null;
+
         $member->update([
             'left_at' => now(),
         ]);
 
         $member->delete();
+
+        $this->discord->syncAfterMembershipChange($squadron, [$affectedDiscordId]);
     }
 }

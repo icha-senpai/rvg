@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Squadron;
 use App\Models\SquadronMember;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -212,6 +213,36 @@ class SquadronWebRouteTest extends TestCase
         ]);
     }
 
+    public function test_commander_cannot_update_a_squadron_they_do_not_lead(): void
+    {
+        $commander = $this->verifiedUser();
+        $commanderRole = $this->attachRole($commander, 'commander');
+        $this->attachPermission($commanderRole, 'squadron.manage');
+
+        $squadron = $this->squadron([
+            'motto' => 'Original motto',
+        ]);
+
+        $response = $this
+            ->actingAs($commander)
+            ->from('/squadrons?squadron=' . $squadron->slug)
+            ->post('/squadrons/' . $squadron->id . '/settings', [
+                'motto' => 'Changed motto',
+                'recruiting' => true,
+            ]);
+
+        $response
+            ->assertRedirect('/squadrons?squadron=' . $squadron->slug)
+            ->assertSessionHasErrors([
+                'squadron' => 'You do not have permission to update this squadron.',
+            ]);
+
+        $this->assertDatabaseHas('squadrons', [
+            'id' => $squadron->id,
+            'motto' => 'Original motto',
+        ]);
+    }
+
     protected function verifiedUser(): User
     {
         return User::factory()->create([
@@ -230,7 +261,7 @@ class SquadronWebRouteTest extends TestCase
         ], $attributes));
     }
 
-    protected function attachRole(User $user, string $slug): void
+    protected function attachRole(User $user, string $slug): Role
     {
         $role = Role::create([
             'name' => str($slug)->replace('_', ' ')->title()->toString(),
@@ -239,5 +270,19 @@ class SquadronWebRouteTest extends TestCase
         ]);
 
         $user->roles()->syncWithoutDetaching([$role->id]);
+
+        return $role;
+    }
+
+    protected function attachPermission(Role $role, string $slug): Permission
+    {
+        $permission = Permission::create([
+            'name' => str($slug)->replace(['.', '-'], ' ')->title()->toString(),
+            'slug' => $slug,
+        ]);
+
+        $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+        return $permission;
     }
 }

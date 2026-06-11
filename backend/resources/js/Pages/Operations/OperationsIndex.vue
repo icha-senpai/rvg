@@ -75,20 +75,6 @@ const todayLabel = computed(() => {
   })
 })
 
-const userSquadronId = computed(() => {
-  const currentUser = user.value
-
-  if (!currentUser?.squadrons?.length) return null
-
-  const lieutenantSquadron = currentUser.squadrons.find((squadron) => squadron.pivot?.role === 'lieutenant')
-  if (lieutenantSquadron) return lieutenantSquadron.id
-
-  const leaderSquadron = currentUser.squadrons.find((squadron) => squadron.pivot?.role === 'leader')
-  if (leaderSquadron) return leaderSquadron.id
-
-  return currentUser.squadrons[0]?.id ?? null
-})
-
 const sortedOperations = computed(() => {
   const now = new Date()
 
@@ -216,7 +202,7 @@ function visitMemberPage(query, only = ['operations', 'activeOperation', 'editin
 
 function openCreateDrawer() {
   createDrawerOpen.value = true
-  createEditorSquadronId.value = userSquadronId.value
+  createEditorSquadronId.value = null
 
   const query = {
     ...getCurrentQueryParams(),
@@ -294,11 +280,7 @@ function canManageOperation(op) {
   if (!squadronId) {
     const creatorId = op?.creator?.id ?? op?.created_by ?? null
 
-    if (!creatorId || Number(creatorId) !== Number(user.value?.id)) {
-      return false
-    }
-
-    return canUseOfficerCommands.value
+    return !!creatorId && Number(creatorId) === Number(user.value?.id)
   }
 
   const squadronLeaderId = op?.squadron?.leader?.id
@@ -307,17 +289,12 @@ function canManageOperation(op) {
     return true
   }
 
-  const creatorId = op?.creator?.id ?? op?.created_by ?? null
   const membership = user.value?.squadrons?.find((squadron) => Number(squadron?.id) === Number(squadronId))
 
   if (!membership) return false
 
   const membershipStatus = membership.pivot?.membership_status
   if (membershipStatus && membershipStatus !== 'active') return false
-
-  if (creatorId && Number(creatorId) === Number(user.value?.id)) {
-    return canUseOfficerCommands.value
-  }
 
   const role = membership.pivot?.role
 
@@ -599,7 +576,7 @@ function submitCompleteOperation(outcome) {
           :participants-by-slot="activeOperation.participantsBySlot"
           :unassigned-participants="activeOperation.unassignedParticipants"
           :current-participant="activeOperation.currentParticipant"
-          :can-manage-operation="canUseOfficerCommands && canManageOperation(activeOperation.operation)"
+          :can-manage-operation="canManageOperation(activeOperation.operation)"
           :transition-processing="isTransitionProcessing(activeOperation.operation.id)"
           @edit-operation="openEditDrawer"
           @start-operation="askStartOperation"

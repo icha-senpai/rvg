@@ -124,6 +124,190 @@ class SquadronAdminService
     }
 
     /**
+     * Repair legacy mismatches between the squadron leader column and the
+     * underlying roster rows used everywhere else in the app.
+     *
+     * Assumption: when `leader_id` disagrees with the roster, the squadron's
+     * stored leader assignment is the intended source of truth for repair.
+     */
+    public function repairRosterConsistency(Squadron $squadron): array
+    {
+        $squadron = $squadron->fresh();
+        $actions = [];
+
+        $activeLeaderRows = SquadronMember::query()
+            ->where('squadron_id', $squadron->id)
+            ->where('role', SquadronMember::ROLE_LEADER)
+            ->get();
+
+        if (! $squadron->leader_id) {
+            if ($activeLeaderRows->count() === 1) {
+                $inferredLeaderId = (int) $activeLeaderRows->first()->user_id;
+                $squadron->update(['leader_id' => $inferredLeaderId]);
+                $actions[] = 'Set the squadron leader from the existing leader roster row.';
+            } elseif ($activeLeaderRows->count() > 1) {
+                $chosenLeaderRow = $activeLeaderRows
+                    ->sortByDesc(fn (SquadronMember $member) => $member->joined_at?->getTimestamp() ?? 0)
+                    ->first();
+
+                $squadron->update(['leader_id' => $chosenLeaderRow?->user_id]);
+
+                SquadronMember::query()
+                    ->where('squadron_id', $squadron->id)
+                    ->where('role', SquadronMember::ROLE_LEADER)
+                    ->where('id', '!=', $chosenLeaderRow?->id)
+                    ->update(['role' => SquadronMember::ROLE_MEMBER]);
+
+                $actions[] = 'Chose one leader roster row and demoted the stale duplicates.';
+            }
+
+            return [
+                'squadron' => $squadron->fresh(),
+                'actions' => $actions,
+                'message' => $actions === []
+                    ? 'No roster repair was needed.'
+                    : implode(' ', $actions),
+            ];
+        }
+
+        $leaderId = (int) $squadron->leader_id;
+        $leaderMemberships = SquadronMember::query()
+            ->where('user_id', $leaderId)
+            ->orderByRaw('CASE WHEN squadron_id = ? THEN 0 ELSE 1 END', [$squadron->id])
+            ->latest('joined_at')
+            ->latest('id')
+            ->get();
+
+        $primaryMembership = $leaderMemberships->first();
+
+        if (! $primaryMembership) {
+            $primaryMembership = SquadronMember::query()->create([
+                'user_id' => $leaderId,
+                'squadron_id' => $squadron->id,
+                'membership_status' => SquadronMember::STATUS_ACTIVE,
+                'role' => SquadronMember::ROLE_LEADER,
+                'joined_at' => now(),
+            ]);
+
+            $actions[] = 'Created the missing leader roster row.';
+        } else {
+            $primaryUpdates = [];
+
+            if ((int) $primaryMembership->squadron_id !== (int) $squadron->id) {
+                $primaryUpdates['squadron_id'] = $squadron->id;
+                $actions[] = 'Moved the leader roster row into this squadron.';
+            }
+
+            if ($primaryMembership->membership_status !== SquadronMember::STATUS_ACTIVE) {
+                $primaryUpdates['membership_status'] = SquadronMember::STATUS_ACTIVE;
+            }
+
+            if ($primaryMembership->role !== SquadronMember::ROLE_LEADER) {
+                $primaryUpdates['role'] = SquadronMember::ROLE_LEADER;
+            }
+
+            if (! $primaryMembership->joined_at) {
+                $primaryUpdates['joined_at'] = now();
+            }
+
+            if ($primaryMembership->left_at !== null) {
+                $primaryUpdates['left_at'] = null;
+            }
+
+            if ($primaryMembership->removed_at !== null) {
+                $primaryUpdates['removed_at'] = null;
+            }
+
+            if ($primaryUpdates !== []) {
+                $primaryMembership->update($primaryUpdates);
+
+                if (! in_array('Moved the leader roster row into this squadron.', $actions, true)) {
+                    $actions[] = 'Normalized the leader roster row to an active leader membership.';
+                }
+            }
+        }
+
+        $duplicateMembershipCount = SquadronMember::query()
+            ->where('user_id', $leaderId)
+            ->where('id', '!=', $primaryMembership->id)
+            ->delete();
+
+        if ($duplicateMembershipCount > 0) {
+            $actions[] = 'Removed duplicate roster rows for the assigned leader.';
+        }
+
+        $demotedLeaderCount = SquadronMember::query()
+            ->where('squadron_id', $squadron->id)
+            ->where('role', SquadronMember::ROLE_LEADER)
+            ->where('id', '!=', $primaryMembership->id)
+            ->update(['role' => SquadronMember::ROLE_MEMBER]);
+
+        if ($demotedLeaderCount > 0) {
+            $actions[] = 'Demoted stale leader-designated roster rows in this squadron.';
+        }
+
+        return [
+            'squadron' => $squadron->fresh(),
+            'actions' => $actions,
+            'message' => $actions === []
+                ? 'No roster repair was needed.'
+                : implode(' ', $actions),
+        ];
+    }
+
+    /**
+     * Summarize whether the squadron leader assignment and roster disagree.
+     */
+    public function rosterConsistencySummary(Squadron $squadron): array
+    {
+        $squadron = $squadron->fresh();
+
+        if (! $squadron->leader_id) {
+            $leaderRowCount = SquadronMember::query()
+                ->where('squadron_id', $squadron->id)
+                ->where('role', SquadronMember::ROLE_LEADER)
+                ->count();
+
+            if ($leaderRowCount > 0) {
+                return [
+                    'status' => 'repair_needed',
+                    'message' => 'This squadron has a leader roster row but no assigned leader record.',
+                ];
+            }
+
+            return [
+                'status' => 'ok',
+                'message' => null,
+            ];
+        }
+
+        $leaderMembership = SquadronMember::query()
+            ->where('squadron_id', $squadron->id)
+            ->where('user_id', $squadron->leader_id)
+            ->where('membership_status', SquadronMember::STATUS_ACTIVE)
+            ->first();
+
+        if (! $leaderMembership) {
+            return [
+                'status' => 'repair_needed',
+                'message' => 'The assigned leader is missing from this squadron roster.',
+            ];
+        }
+
+        if ($leaderMembership->role !== SquadronMember::ROLE_LEADER) {
+            return [
+                'status' => 'repair_needed',
+                'message' => 'The assigned leader is in the roster but is not marked as the active squadron leader.',
+            ];
+        }
+
+        return [
+            'status' => 'ok',
+            'message' => null,
+        ];
+    }
+
+    /**
      * Pull only the admin-editable squadron fields from the request payload.
      */
     protected function extractAdminAttributes(array $data): array
