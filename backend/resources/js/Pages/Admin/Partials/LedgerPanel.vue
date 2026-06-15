@@ -6,6 +6,7 @@ import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDateTimePicker from '@/Components/HorizonDateTimePicker.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
   ledger: {
@@ -33,6 +34,11 @@ const wipeTypeOptions = [
   'ships',
   'reputation',
 ]
+
+const wipeTypeSelectOptions = wipeTypeOptions.map((option) => ({
+  label: option,
+  value: option,
+}))
 
 const createWipeForm = useForm({
   name: '',
@@ -312,7 +318,7 @@ function buildDonutStyle(rows) {
         </p>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.25rem] px-4 py-3 text-right">
+      <div class="hz-surface-welcome rounded-[1.25rem] px-4 py-3 text-right">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
           Current Cycle
         </div>
@@ -324,7 +330,7 @@ function buildDonutStyle(rows) {
     </div>
 
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <div class="hz-surface-soft rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Feature Flag</div>
         <div class="mt-2 text-lg font-black text-horizon-white">
           {{ ledger.feature?.enabled ? 'Enabled' : 'Preview Only' }}
@@ -334,19 +340,19 @@ function buildDonutStyle(rows) {
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Transactions</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ ledger.counts?.transactions ?? 0 }}</div>
         <div class="mt-1 text-sm text-text-secondary">Recorded ledger entries.</div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Trades</div>
         <div class="mt-2 text-lg font-black text-horizon-white">{{ ledger.counts?.trades ?? 0 }}</div>
         <div class="mt-1 text-sm text-text-secondary">Commodity runs logged so far.</div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Assets</div>
         <div class="mt-2 text-lg font-black text-horizon-white">
           {{ (ledger.counts?.inventory_items ?? 0) + (ledger.counts?.ship_assets ?? 0) }}
@@ -355,7 +361,7 @@ function buildDonutStyle(rows) {
       </div>
     </section>
 
-    <section class="hz-surface-soft rounded-[1.75rem] p-5">
+    <section class="hz-surface-welcome rounded-[1.75rem] p-5">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Leadership Snapshot</div>
@@ -371,7 +377,7 @@ function buildDonutStyle(rows) {
         <div
           v-for="card in leadershipCards"
           :key="card.label"
-          class="hz-surface-soft rounded-[1.25rem] px-4 py-4"
+          class="hz-surface-welcome rounded-[1.25rem] px-4 py-4"
         >
           <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">{{ card.label }}</div>
           <div class="mt-2 text-2xl font-black text-horizon-white">{{ card.value }}</div>
@@ -384,7 +390,7 @@ function buildDonutStyle(rows) {
       <article
         v-for="scope in ownershipSummaries"
         :key="scope.key"
-        class="hz-surface-soft rounded-[1.5rem] p-5"
+        class="hz-surface-welcome rounded-[1.5rem] p-5"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -398,22 +404,22 @@ function buildDonutStyle(rows) {
         </div>
 
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
-          <div class="hz-surface-deep rounded-[1.1rem] px-4 py-3">
+          <div class="hz-surface-welcome rounded-[1.1rem] px-4 py-3">
             <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Net Position</div>
             <div class="mt-2 text-lg font-black text-horizon-white">{{ formatSignedMoney(scope.cards?.net_position ?? 0) }}</div>
           </div>
 
-          <div class="hz-surface-deep rounded-[1.1rem] px-4 py-3">
+          <div class="hz-surface-welcome rounded-[1.1rem] px-4 py-3">
             <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Trade Profit</div>
             <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.trade_profit ?? 0) }}</div>
           </div>
 
-          <div class="hz-surface-deep rounded-[1.1rem] px-4 py-3">
+          <div class="hz-surface-welcome rounded-[1.1rem] px-4 py-3">
             <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Inventory Value</div>
             <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.inventory_value ?? 0) }}</div>
           </div>
 
-          <div class="hz-surface-deep rounded-[1.1rem] px-4 py-3">
+          <div class="hz-surface-welcome rounded-[1.1rem] px-4 py-3">
             <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Fleet Value</div>
             <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(scope.cards?.fleet_value ?? 0) }}</div>
           </div>
@@ -426,7 +432,7 @@ function buildDonutStyle(rows) {
     </section>
 
     <section class="grid gap-5 xl:grid-cols-2">
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Cycle Profit / Loss</div>
@@ -439,7 +445,7 @@ function buildDonutStyle(rows) {
         </div>
 
         <div v-if="cycleProfitRows.length" class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_18rem]">
-          <div class="hz-surface-deep rounded-[1.4rem] p-4">
+          <div class="hz-surface-welcome rounded-[1.4rem] p-4">
             <div class="flex h-56 items-end gap-3">
               <div
                 v-for="row in cycleProfitRows"
@@ -469,7 +475,7 @@ function buildDonutStyle(rows) {
             <div
               v-for="row in cycleProfitRows"
               :key="`cycle-list-${row.label}`"
-              class="hz-surface-deep rounded-[1.1rem] px-4 py-3"
+              class="hz-surface-welcome rounded-[1.1rem] px-4 py-3"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
@@ -487,12 +493,12 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No cycle trend data is available yet.
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Income By Source</div>
@@ -521,7 +527,7 @@ function buildDonutStyle(rows) {
             <div
               v-for="row in incomeSourceRows"
               :key="`income-${row.label}`"
-              class="hz-surface-deep rounded-[1.1rem] px-4 py-3"
+              class="hz-surface-welcome rounded-[1.1rem] px-4 py-3"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
@@ -537,12 +543,12 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No income-source data is available yet.
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Expense By Source</div>
@@ -558,7 +564,7 @@ function buildDonutStyle(rows) {
           <div
             v-for="row in expenseSourceRows"
             :key="`expense-${row.label}`"
-            class="hz-surface-deep rounded-[1.1rem] px-4 py-4"
+            class="hz-surface-welcome rounded-[1.1rem] px-4 py-4"
           >
             <div class="flex items-center justify-between gap-3">
               <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
@@ -573,12 +579,12 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No expense-source data is available yet.
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Trade Profit By Commodity</div>
@@ -594,7 +600,7 @@ function buildDonutStyle(rows) {
           <div
             v-for="row in tradeCommodityRows"
             :key="`trade-${row.label}`"
-            class="hz-surface-deep rounded-[1.1rem] px-4 py-4"
+            class="hz-surface-welcome rounded-[1.1rem] px-4 py-4"
           >
             <div class="flex items-center justify-between gap-3">
               <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
@@ -609,12 +615,12 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No trade profit data is available yet.
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Inventory Value By Category</div>
@@ -643,7 +649,7 @@ function buildDonutStyle(rows) {
             <div
               v-for="row in inventoryCategoryRows"
               :key="`inventory-${row.label}`"
-              class="hz-surface-deep rounded-[1.1rem] px-4 py-3"
+              class="hz-surface-welcome rounded-[1.1rem] px-4 py-3"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
@@ -659,12 +665,12 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No inventory category breakdown is available yet.
         </div>
       </div>
 
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Fleet Status Mix</div>
@@ -680,7 +686,7 @@ function buildDonutStyle(rows) {
           <div
             v-for="row in shipStatusRows"
             :key="`ship-status-${row.label}`"
-            class="hz-surface-deep rounded-[1.1rem] px-4 py-4"
+            class="hz-surface-welcome rounded-[1.1rem] px-4 py-4"
           >
             <div class="flex items-center justify-between gap-3">
               <div class="text-sm font-bold text-horizon-white">{{ row.label }}</div>
@@ -692,14 +698,14 @@ function buildDonutStyle(rows) {
           </div>
         </div>
 
-        <div v-else class="hz-surface-deep mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
+        <div v-else class="hz-surface-welcome mt-5 rounded-[1.4rem] px-4 py-8 text-sm text-text-secondary">
           No ship status mix is available yet.
         </div>
       </div>
     </section>
 
     <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <div class="hz-surface-soft rounded-[1.75rem] p-5">
+      <div class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Cycle History</div>
@@ -715,7 +721,7 @@ function buildDonutStyle(rows) {
           <article
             v-for="wipe in ledger.wipeCycles ?? []"
             :key="wipe.id"
-            class="hz-surface-deep rounded-[1.25rem] p-4"
+            class="hz-surface-welcome rounded-[1.25rem] p-4"
           >
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -726,7 +732,7 @@ function buildDonutStyle(rows) {
                         <label class="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
                           Cycle Name
                         </label>
-                        <input v-model="editCycleForm.name" type="text" class="hz-input" />
+                        <HorizonInput v-model="editCycleForm.name" type="text" class="hz-input" />
                         <div v-if="editCycleForm.errors.name" class="mt-2 text-xs text-rose-200">
                           {{ editCycleForm.errors.name }}
                         </div>
@@ -736,7 +742,7 @@ function buildDonutStyle(rows) {
                         <label class="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
                           Version
                         </label>
-                        <input v-model="editCycleForm.star_citizen_version" type="text" class="hz-input" placeholder="4.1.1" />
+                        <HorizonInput v-model="editCycleForm.star_citizen_version" type="text" class="hz-input" placeholder="4.1.1" />
                         <div v-if="editCycleForm.errors.star_citizen_version" class="mt-2 text-xs text-rose-200">
                           {{ editCycleForm.errors.star_citizen_version }}
                         </div>
@@ -746,11 +752,12 @@ function buildDonutStyle(rows) {
                         <label class="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">
                           Cycle Type
                         </label>
-                        <select v-model="editCycleForm.wipe_type" class="hz-input">
-                          <option v-for="option in wipeTypeOptions" :key="option" :value="option">
-                            {{ option }}
-                          </option>
-                        </select>
+                        <HorizonInput
+                          v-model="editCycleForm.wipe_type"
+                          type="select"
+                          class="hz-input"
+                          :options="wipeTypeSelectOptions"
+                        />
                         <div v-if="editCycleForm.errors.wipe_type" class="mt-2 text-xs text-rose-200">
                           {{ editCycleForm.errors.wipe_type }}
                         </div>
@@ -863,7 +870,7 @@ function buildDonutStyle(rows) {
         </div>
       </div>
 
-      <section class="hz-surface-soft rounded-[1.75rem] p-5">
+      <section class="hz-surface-welcome rounded-[1.75rem] p-5">
         <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">New Cycle</div>
         <h4 class="mt-1 text-xl font-black text-horizon-white">Start Next Cycle</h4>
         <p class="mt-2 text-sm text-text-secondary">
@@ -875,25 +882,26 @@ function buildDonutStyle(rows) {
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Name
             </label>
-            <input v-model="createWipeForm.name" type="text" class="hz-input" placeholder="4.1.1 Live" />
+            <HorizonInput v-model="createWipeForm.name" type="text" class="hz-input" placeholder="4.1.1 Live" />
           </div>
 
           <div>
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Star Citizen Version
             </label>
-            <input v-model="createWipeForm.star_citizen_version" type="text" class="hz-input" placeholder="4.1.1" />
+            <HorizonInput v-model="createWipeForm.star_citizen_version" type="text" class="hz-input" placeholder="4.1.1" />
           </div>
 
           <div>
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Cycle Type
             </label>
-            <select v-model="createWipeForm.wipe_type" class="hz-input">
-              <option v-for="option in wipeTypeOptions" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
+            <HorizonInput
+              v-model="createWipeForm.wipe_type"
+              type="select"
+              class="hz-input"
+              :options="wipeTypeSelectOptions"
+            />
           </div>
 
           <HorizonDateTimePicker
@@ -907,7 +915,7 @@ function buildDonutStyle(rows) {
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Notes
             </label>
-            <textarea v-model="createWipeForm.notes" class="hz-input min-h-28 resize-y" placeholder="Patch notes, cycle scope, or rollout context..."></textarea>
+            <HorizonInput v-model="createWipeForm.notes" type="textarea" class="hz-input min-h-28 resize-y" placeholder="Patch notes, cycle scope, or rollout context..." />
           </div>
 
           <div class="flex justify-end">

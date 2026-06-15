@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-6xl space-y-6">
+  <div class="mx-auto max-w-7xl space-y-6">
     <!-- Squadron admin header -->
     <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-5 ">
       <div class="pointer-events-none absolute inset-0 opacity-40">
@@ -333,9 +333,9 @@
               <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
                 Name
               </label>
-              <input
+              <HorizonInput
                 v-model="form.name"
-                class="hz-input w-full"
+                class="w-full"
               />
             </div>
 
@@ -343,9 +343,9 @@
               <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
                 Slug
               </label>
-              <input
+              <HorizonInput
                 v-model="form.slug"
-                class="hz-input w-full"
+                class="w-full"
               />
             </div>
           </div>
@@ -458,20 +458,13 @@
               placeholder="Paste an existing Discord text channel id"
             />
 
-            <label class="flex items-start gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.03] px-4 py-3 text-sm text-text-secondary">
-              <input
-                v-model="form.create_discord_channel"
-                type="checkbox"
-                class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
-              />
-
-              <span>
-                <span class="block font-semibold text-horizon-white">Create Discord channel automatically</span>
-                <span class="block text-xs text-text-muted">
-                  If no channel id is entered, Horizon will create a hyphenated text channel from the squadron name and sync this squadron's channel access into it.
-                </span>
-              </span>
-            </label>
+            <HorizonCheckbox
+              v-model="form.create_discord_channel"
+              variant="toggle"
+              label="Create Discord channel automatically"
+              description="If no channel id is entered, Horizon will create a hyphenated text channel from the squadron name and sync this squadron's channel access into it."
+              panel-class="bg-white/[0.03]"
+            />
 
             <div
               v-if="isEditing"
@@ -573,20 +566,13 @@
           Channel ID: {{ pendingDeleteSquadron.discord_channel_id }}
         </div>
 
-        <label class="mt-3 flex items-start gap-3">
-          <input
-            v-model="deleteDiscordChannelWithSquadron"
-            type="checkbox"
-            class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
-          >
-
-          <span>
-            <span class="block font-semibold text-horizon-white">Also delete Discord channel</span>
-            <span class="block text-xs text-text-muted">
-              If Discord channel deletion fails, the squadron delete will stop so you can retry safely.
-            </span>
-          </span>
-        </label>
+        <HorizonCheckbox
+          v-model="deleteDiscordChannelWithSquadron"
+          variant="toggle"
+          label="Also delete Discord channel"
+          description="If Discord channel deletion fails, the squadron delete will stop so you can retry safely."
+          panel-class="mt-3 bg-white/[0.03]"
+        />
       </div>
     </template>
   </HorizonConfirmDialog>
@@ -597,6 +583,7 @@ import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonCheckbox from '@/Components/HorizonCheckbox.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'

@@ -86,6 +86,43 @@ class OperationSettlementViewService
         ];
     }
 
+    public function prepPayload(Operation $operation): array
+    {
+        if (! $this->supportsStorage()) {
+            return [
+                'money_rows' => [],
+                'eligible_recipients' => [],
+                'activity' => [
+                    'updated_at' => null,
+                    'updated_by' => null,
+                ],
+                'is_available' => false,
+            ];
+        }
+
+        $settlement = $operation->relationLoaded('settlement')
+            ? $operation->getRelation('settlement')
+            : $operation->settlement()->first();
+        $settlement?->loadMissing([
+            'prepUpdatedBy:id,rsi_handle,discord_name,name',
+        ]);
+
+        $eligibleRecipients = $this->prepEligibleRecipients($operation);
+        $recipientLabels = collect($eligibleRecipients)
+            ->mapWithKeys(fn (array $recipient) => [$recipient['key'] => $recipient['label']])
+            ->all();
+
+        return [
+            'money_rows' => $this->prepMoneyRows($settlement, $recipientLabels),
+            'eligible_recipients' => $eligibleRecipients,
+            'activity' => [
+                'updated_at' => $settlement?->prep_money_rows_updated_at?->toIso8601String(),
+                'updated_by' => $this->members->displayName($settlement?->prepUpdatedBy),
+            ],
+            'is_available' => true,
+        ];
+    }
+
     public function lootOptions(): array
     {
         $references = $this->ledgerReferences->referenceOptions();
@@ -167,9 +204,73 @@ class OperationSettlementViewService
         return $recipients->values()->all();
     }
 
+    protected function prepEligibleRecipients(Operation $operation): array
+    {
+        $operation->loadMissing('participants.user');
+        $recipients = collect();
+
+        foreach ($this->eligibleSquadrons($operation) as $squadron) {
+            $recipients->push([
+                'key' => "squadron:{$squadron->id}",
+                'recipient_type' => 'squadron',
+                'recipient_user_id' => null,
+                'recipient_squadron_id' => $squadron->id,
+                'label' => "{$squadron->name} Squadron Assets & Funds",
+            ]);
+        }
+
+        $recipients->push([
+            'key' => 'organization',
+            'recipient_type' => 'organization',
+            'recipient_user_id' => null,
+            'recipient_squadron_id' => null,
+            'label' => 'Horizon Treasury',
+        ]);
+
+        $members = $operation->participants
+            ->reject(fn ($participant) => $participant->isSignedOffBeforeStart())
+            ->filter(fn ($participant) => $participant->user)
+            ->map(fn ($participant) => $this->members->payload($participant->user))
+            ->unique(fn ($member) => (int) ($member['id'] ?? 0))
+            ->values();
+
+        foreach ($members as $member) {
+            $name = $member['rsi_handle'] ?? $member['discord_name'] ?? $member['name'] ?? "Member #{$member['id']}";
+
+            $recipients->push([
+                'key' => "member:{$member['id']}",
+                'recipient_type' => 'member',
+                'recipient_user_id' => (int) $member['id'],
+                'recipient_squadron_id' => null,
+                'label' => $name,
+            ]);
+        }
+
+        return $recipients->values()->all();
+    }
+
     protected function moneyRows(?OperationSettlement $settlement, array $recipientLabels): array
     {
         return collect($settlement?->money_rows ?? [])
+            ->map(function (array $row) use ($recipientLabels) {
+                $key = $this->recipientKey(
+                    $row['recipient_type'] ?? null,
+                    $row['recipient_user_id'] ?? null,
+                    $row['recipient_squadron_id'] ?? null,
+                );
+
+                return [
+                    ...$row,
+                    'recipient_label' => $key ? ($recipientLabels[$key] ?? null) : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function prepMoneyRows(?OperationSettlement $settlement, array $recipientLabels): array
+    {
+        return collect($settlement?->prep_money_rows ?? [])
             ->map(function (array $row) use ($recipientLabels) {
                 $key = $this->recipientKey(
                     $row['recipient_type'] ?? null,

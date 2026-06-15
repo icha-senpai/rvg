@@ -8,6 +8,7 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDateTimePicker from '@/Components/HorizonDateTimePicker.vue'
 import HorizonDrawer from '@/Components/HorizonDrawer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import { notifyErrorFromErrors } from '@/errors'
 
@@ -46,6 +47,14 @@ const transferHelpDialogOpen = ref(false)
 const currentWipe = computed(() => props.ledger?.currentWipe ?? null)
 const selectedWipe = computed(() => props.ledger?.selectedWipe ?? null)
 const wipeCycles = computed(() => props.ledger?.wipeCycles ?? [])
+const wipeFilterOptions = computed(() => ([
+  { label: 'Current cycle only', value: 'current' },
+  { label: 'All cycles', value: 'all' },
+  ...wipeCycles.value.map((wipe) => ({
+    label: wipe.name,
+    value: String(wipe.id),
+  })),
+]))
 const references = computed(() => props.ledger?.references ?? {})
 const cycleSummaries = computed(() => props.ledger?.overview?.cycleSummaries ?? [])
 const cycleComparison = computed(() => props.ledger?.overview?.cycleComparison ?? null)
@@ -101,6 +110,34 @@ const tabs = [
   { key: 'inventory', label: 'Inventory' },
   { key: 'ships', label: 'Ships' },
   { key: 'reports', label: 'Reports' },
+]
+
+const transactionTypeOptions = [
+  { label: 'Income', value: 'income' },
+  { label: 'Expense', value: 'expense' },
+  { label: 'Adjustment', value: 'adjustment' },
+]
+
+const transactionRelatedTypeOptions = [
+  { label: 'No related UEX reference', value: '' },
+  { label: 'Commodity', value: 'commodity' },
+  { label: 'Item', value: 'item' },
+  { label: 'Component', value: 'component' },
+  { label: 'Ship', value: 'vehicle' },
+]
+
+const inventorySourceTypeOptions = [
+  { label: 'Item', value: 'item' },
+  { label: 'Component', value: 'component' },
+  { label: 'Commodity', value: 'commodity' },
+  { label: 'Custom', value: 'custom' },
+]
+
+const shipStatusOptions = [
+  { label: 'Owned', value: 'owned' },
+  { label: 'Pledged', value: 'pledged' },
+  { label: 'Rented', value: 'rented' },
+  { label: 'Loaner', value: 'loaner' },
 ]
 
 const transferHelpNotes = [
@@ -2328,17 +2365,11 @@ function closeTransferHelpDialog() {
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Cycle Filter
             </label>
-            <select v-model="wipeFilter" class="hz-input">
-              <option value="current">Current cycle only</option>
-              <option value="all">All cycles</option>
-              <option
-                v-for="wipe in wipeCycles"
-                :key="wipe.id"
-                :value="String(wipe.id)"
-              >
-                {{ wipe.name }}
-              </option>
-            </select>
+            <HorizonInput
+              v-model="wipeFilter"
+              type="select"
+              :options="wipeFilterOptions"
+            />
           </div>
         </div>
       </section>
@@ -2642,13 +2673,13 @@ function closeTransferHelpDialog() {
               placeholder="Select cycle"
             />
 
-            <select v-model="transactionForm.type" class="hz-input">
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-              <option value="adjustment">Adjustment</option>
-            </select>
+            <HorizonInput
+              v-model="transactionForm.type"
+              type="select"
+              :options="transactionTypeOptions"
+            />
 
-            <input v-model="transactionForm.amount" type="number" step="1" class="hz-input" placeholder="Amount" />
+            <HorizonInput v-model="transactionForm.amount" type="number" step="1" class="hz-input" placeholder="Amount" />
             <input
               v-model="transactionForm.source_type"
               type="text"
@@ -2659,7 +2690,7 @@ function closeTransferHelpDialog() {
             <datalist id="transaction-source-suggestions">
               <option v-for="source in transactionSourceSuggestions" :key="`transaction-source-${source}`" :value="source" />
             </datalist>
-            <input v-model="transactionForm.description" type="text" class="hz-input" placeholder="Description" />
+            <HorizonInput v-model="transactionForm.description" type="text" class="hz-input" placeholder="Description" />
             <HorizonDateTimePicker
               v-model="transactionForm.transaction_date"
               label="Transaction date"
@@ -2667,13 +2698,11 @@ function closeTransferHelpDialog() {
               show-now
             />
 
-            <select v-model="transactionForm.related_uex_type" class="hz-input">
-              <option value="">No related UEX reference</option>
-              <option value="commodity">Commodity</option>
-              <option value="item">Item</option>
-              <option value="component">Component</option>
-              <option value="vehicle">Ship</option>
-            </select>
+            <HorizonInput
+              v-model="transactionForm.related_uex_type"
+              type="select"
+              :options="transactionRelatedTypeOptions"
+            />
 
             <HorizonSelect
               v-if="transactionForm.related_uex_type"
@@ -2685,7 +2714,7 @@ function closeTransferHelpDialog() {
               search-placeholder="Search related references"
             />
 
-            <textarea v-model="transactionForm.notes" class="hz-input min-h-28 resize-y" placeholder="Notes"></textarea>
+            <HorizonInput v-model="transactionForm.notes" type="textarea" class="hz-input min-h-28 resize-y" placeholder="Notes" />
 
             <div class="flex flex-wrap justify-end gap-2">
               <HorizonButton
@@ -2742,7 +2771,7 @@ function closeTransferHelpDialog() {
             </div>
             <div class="w-full sm:w-80">
               <label class="sr-only" for="ledger-transaction-search">Search transactions</label>
-              <input
+              <HorizonInput
                 id="ledger-transaction-search"
                 v-model="transactionSearch"
                 type="search"
@@ -3142,15 +3171,15 @@ function closeTransferHelpDialog() {
                 {{ selectedTransferTarget.description }}
               </div>
 
-              <input v-model="transferForm.amount" type="number" step="1" min="1" class="hz-input" placeholder="Amount" />
-              <input v-model="transferForm.description" type="text" class="hz-input" placeholder="Reason for this transfer" />
+              <HorizonInput v-model="transferForm.amount" type="number" step="1" min="1" class="hz-input" placeholder="Amount" />
+              <HorizonInput v-model="transferForm.description" type="text" class="hz-input" placeholder="Reason for this transfer" />
               <HorizonDateTimePicker
                 v-model="transferForm.transaction_date"
                 label="Transfer date"
                 clearable
                 show-now
               />
-              <textarea v-model="transferForm.notes" class="hz-input min-h-24 resize-y" placeholder="Notes"></textarea>
+              <HorizonInput v-model="transferForm.notes" type="textarea" class="hz-input min-h-24 resize-y" placeholder="Notes" />
 
               <div class="flex flex-wrap justify-end gap-2">
                 <HorizonButton
@@ -3232,7 +3261,7 @@ function closeTransferHelpDialog() {
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2">
-                <input v-model="inventoryTransferForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity to move" />
+                <HorizonInput v-model="inventoryTransferForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity to move" />
                 <div class="hz-ledger-panel-soft rounded-[1rem] px-3 py-3 text-sm text-text-secondary">
                   <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Available</div>
                   <div class="mt-1 font-black text-horizon-white">
@@ -3241,7 +3270,7 @@ function closeTransferHelpDialog() {
                 </div>
               </div>
 
-              <textarea v-model="inventoryTransferForm.notes" class="hz-input min-h-24 resize-y" placeholder="Notes"></textarea>
+              <HorizonInput v-model="inventoryTransferForm.notes" type="textarea" class="hz-input min-h-24 resize-y" placeholder="Notes" />
 
               <div class="flex flex-wrap justify-end gap-2">
                 <HorizonButton
@@ -3363,12 +3392,12 @@ function closeTransferHelpDialog() {
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="tradeForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
-              <input v-model="tradeForm.unit_type" type="text" class="hz-input" placeholder="Unit type, like SCU" />
-              <input v-model="tradeForm.buy_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Buy price per unit" />
-              <input v-model="tradeForm.sell_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Sell price per unit" />
+              <HorizonInput v-model="tradeForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
+              <HorizonInput v-model="tradeForm.unit_type" type="text" class="hz-input" placeholder="Unit type, like SCU" />
+              <HorizonInput v-model="tradeForm.buy_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Buy price per unit" />
+              <HorizonInput v-model="tradeForm.sell_price_per_unit" type="number" step="1" min="0" class="hz-input" placeholder="Sell price per unit" />
             </div>
-            <input v-model="tradeForm.cargo_capacity_used" type="number" step="1" min="0" class="hz-input" placeholder="Cargo capacity used, optional" />
+            <HorizonInput v-model="tradeForm.cargo_capacity_used" type="number" step="1" min="0" class="hz-input" placeholder="Cargo capacity used, optional" />
             <HorizonDateTimePicker
               v-model="tradeForm.trade_date"
               label="Trade date"
@@ -3376,7 +3405,7 @@ function closeTransferHelpDialog() {
               show-now
             />
 
-            <textarea v-model="tradeForm.notes" class="hz-input min-h-28 resize-y" placeholder="Notes"></textarea>
+            <HorizonInput v-model="tradeForm.notes" type="textarea" class="hz-input min-h-28 resize-y" placeholder="Notes" />
 
             <div class="flex flex-wrap justify-end gap-2">
               <HorizonButton
@@ -3479,12 +3508,11 @@ function closeTransferHelpDialog() {
               placeholder="Select cycle"
             />
 
-            <select v-model="inventoryForm.source_type" class="hz-input">
-              <option value="item">Item</option>
-              <option value="component">Component</option>
-              <option value="commodity">Commodity</option>
-              <option value="custom">Custom</option>
-            </select>
+            <HorizonInput
+              v-model="inventoryForm.source_type"
+              type="select"
+              :options="inventorySourceTypeOptions"
+            />
 
             <HorizonSelect
               v-if="inventoryForm.source_type !== 'custom'"
@@ -3510,16 +3538,16 @@ function closeTransferHelpDialog() {
               </div>
             </div>
 
-            <input v-if="inventoryForm.source_type === 'custom'" v-model="inventoryForm.custom_name" type="text" class="hz-input" placeholder="Custom item name" />
+            <HorizonInput v-if="inventoryForm.source_type === 'custom'" v-model="inventoryForm.custom_name" type="text" class="hz-input" placeholder="Custom item name" />
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="inventoryForm.category" type="text" class="hz-input" placeholder="Category" />
-              <input v-model="inventoryForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
-              <input v-model="inventoryForm.unit_label" type="text" class="hz-input" placeholder="Unit label, like SCU or units" />
-              <input v-model="inventoryForm.location_name" type="text" class="hz-input" placeholder="Free-text location" />
+              <HorizonInput v-model="inventoryForm.category" type="text" class="hz-input" placeholder="Category" />
+              <HorizonInput v-model="inventoryForm.quantity" type="number" step="1" min="1" class="hz-input" placeholder="Quantity" />
+              <HorizonInput v-model="inventoryForm.unit_label" type="text" class="hz-input" placeholder="Unit label, like SCU or units" />
+              <HorizonInput v-model="inventoryForm.location_name" type="text" class="hz-input" placeholder="Free-text location" />
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="inventoryForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="Purchase price, optional" />
-              <input v-model="inventoryForm.estimated_value" type="number" step="1" min="0" class="hz-input" placeholder="Estimated value, optional" />
+              <HorizonInput v-model="inventoryForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="Purchase price, optional" />
+              <HorizonInput v-model="inventoryForm.estimated_value" type="number" step="1" min="0" class="hz-input" placeholder="Estimated value, optional" />
             </div>
             <HorizonDateTimePicker
               v-model="inventoryForm.acquired_at"
@@ -3527,7 +3555,7 @@ function closeTransferHelpDialog() {
               clearable
               show-now
             />
-            <textarea v-model="inventoryForm.notes" class="hz-input min-h-28 resize-y" placeholder="Notes"></textarea>
+            <HorizonInput v-model="inventoryForm.notes" type="textarea" class="hz-input min-h-28 resize-y" placeholder="Notes" />
 
             <div class="flex flex-wrap justify-end gap-2">
               <HorizonButton
@@ -3584,7 +3612,7 @@ function closeTransferHelpDialog() {
             </div>
             <div class="w-full sm:w-80">
               <label class="sr-only" for="ledger-inventory-search">Search inventory</label>
-              <input
+              <HorizonInput
                 id="ledger-inventory-search"
                 v-model="inventorySearch"
                 type="search"
@@ -3767,18 +3795,17 @@ function closeTransferHelpDialog() {
               </div>
             </div>
 
-            <input v-model="shipForm.custom_name" type="text" class="hz-input" placeholder="Custom ship name, optional" />
+            <HorizonInput v-model="shipForm.custom_name" type="text" class="hz-input" placeholder="Custom ship name, optional" />
             <div class="grid gap-3 sm:grid-cols-2">
-              <input v-model="shipForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="aUEC price" />
-              <input v-model="shipForm.current_location" type="text" class="hz-input" placeholder="Current location" />
+              <HorizonInput v-model="shipForm.purchase_price" type="number" step="1" min="0" class="hz-input" placeholder="aUEC price" />
+              <HorizonInput v-model="shipForm.current_location" type="text" class="hz-input" placeholder="Current location" />
             </div>
 
-            <select v-model="shipForm.status" class="hz-input">
-              <option value="owned">Owned</option>
-              <option value="pledged">Pledged</option>
-              <option value="rented">Rented</option>
-              <option value="loaner">Loaner</option>
-            </select>
+            <HorizonInput
+              v-model="shipForm.status"
+              type="select"
+              :options="shipStatusOptions"
+            />
 
             <HorizonDateTimePicker
               v-model="shipForm.acquired_at"
@@ -3786,7 +3813,7 @@ function closeTransferHelpDialog() {
               clearable
               show-now
             />
-            <textarea v-model="shipForm.notes" class="hz-input min-h-28 resize-y" placeholder="Notes"></textarea>
+            <HorizonInput v-model="shipForm.notes" type="textarea" class="hz-input min-h-28 resize-y" placeholder="Notes" />
 
             <div class="flex flex-wrap justify-end gap-2">
               <HorizonButton

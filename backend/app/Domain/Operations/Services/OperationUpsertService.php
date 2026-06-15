@@ -29,7 +29,7 @@ class OperationUpsertService
         $existingRoles = $operation->roles()->get()->keyBy('id');
         $keptRoleIds = [];
 
-        foreach ($incomingRoles as $role) {
+        foreach ($incomingRoles as $index => $role) {
             $roleId = isset($role['id']) ? (int) $role['id'] : null;
             $roleName = trim((string) ($role['role_name'] ?? ''));
             $displayName = trim((string) ($role['role_display_name'] ?? ''));
@@ -42,6 +42,8 @@ class OperationUpsertService
                 'role_name' => $roleName !== '' ? $roleName : str($displayName)->lower()->slug('_')->value(),
                 'role_display_name' => $displayName,
                 'capacity' => $role['capacity'] ?? null,
+                'sort_order' => $role['sort_order'] ?? $index,
+                'is_required' => (bool) ($role['is_required'] ?? false),
             ];
 
             if ($roleId && $existingRoles->has($roleId)) {
@@ -90,7 +92,7 @@ class OperationUpsertService
 
         if (array_key_exists('roles', $data)) {
             $data['roles'] = collect(is_array($data['roles']) ? $data['roles'] : [])
-                ->map(function ($role) {
+                ->map(function ($role, $index) {
                     if (! is_array($role)) {
                         return null;
                     }
@@ -107,6 +109,10 @@ class OperationUpsertService
                         'role_name' => trim((string) ($role['role_name'] ?? '')),
                         'role_display_name' => $displayName,
                         'capacity' => $capacity === '' || $capacity === null ? null : (int) $capacity,
+                        'sort_order' => isset($role['sort_order']) && $role['sort_order'] !== ''
+                            ? (int) $role['sort_order']
+                            : $index,
+                        'is_required' => (bool) ($role['is_required'] ?? false),
                     ];
                 })
                 ->filter()

@@ -47,6 +47,8 @@ class OperationTemplateStoreRequest extends FormRequest
             'payload.roles.*.role_name' => 'nullable|string|max:255',
             'payload.roles.*.role_display_name' => 'required|string|max:255|regex:/\S/',
             'payload.roles.*.capacity' => 'nullable|integer|min:0',
+            'payload.roles.*.sort_order' => 'nullable|integer|min:0',
+            'payload.roles.*.is_required' => 'nullable|boolean',
         ];
     }
 }

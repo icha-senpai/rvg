@@ -4,10 +4,13 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import ProgressPill from '@/Components/ProgressPill.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
+import OperationSettlementSection from '@/Components/OperationSettlementSection.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
 import { ref, reactive, computed, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
 import { canCreateOperation as userCanCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 
 const props = defineProps({
@@ -16,6 +19,18 @@ const props = defineProps({
   participantsBySlot: Object,
   unassignedParticipants: Array,
   currentParticipant: Object,
+  verifiedMembers: {
+    type: Array,
+    default: () => [],
+  },
+  operationSettlementLootOptions: {
+    type: Object,
+    default: () => ({
+      commodities: [],
+      items: [],
+      components: [],
+    }),
+  },
 })
 
 const page = usePage()
@@ -26,6 +41,7 @@ const currentParticipant = computed(() => props.currentParticipant ?? null)
 const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
 const participantsBySlotSafe = computed(() => props.participantsBySlot ?? {})
 const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassignedParticipants) ? props.unassignedParticipants : [])
+const attendanceDraftMembersByOperationId = ref({})
 const canViewSlots = computed(() => !!operation?.permissions?.can_view_slots)
 const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots)
 const participantCount = computed(() => Number(operation?.participants_count ?? participantsList.value.length ?? 0))
@@ -84,6 +100,9 @@ const canManageOperation = computed(() => {
   const role = membership.pivot?.role
 
   return role === 'leader' || role === 'lieutenant'
+})
+const canOpenRunTool = computed(() => {
+  return canManageOperation.value && ['published', 'in_progress'].includes(operation?.status ?? '')
 })
 const canStartOperation = computed(() => canManageOperation.value && operation?.status === 'published')
 const canCompleteOperation = computed(() => canManageOperation.value && operation?.status === 'in_progress')
@@ -435,6 +454,11 @@ const canJoinOperation = computed(() => {
 const canUpdateParticipation = computed(() => {
   return !!currentParticipant.value && !participationLockedByStatus.value
 })
+const canLeaveOperation = computed(() => {
+  return !!currentParticipant.value
+    && !participationLockedByStatus.value
+    && !signUpsClosedByStart.value
+})
 
 const currentParticipantSlotChanged = computed(() => {
   return String(joinForm.roleId ?? '') !== String(currentParticipant.value?.role?.id ?? '')
@@ -451,13 +475,13 @@ const participationStatusMessage = computed(() => {
 
   if (operation?.status === 'in_progress') {
     return currentParticipant.value
-      ? 'This operation is underway. New sign-ups are closed.'
+      ? 'This operation is underway. New sign-ups are closed and leaving is locked.'
       : 'This operation is underway. Sign-ups are closed.'
   }
 
   if (signUpsClosedByStart.value) {
     return currentParticipant.value
-      ? 'This operation has already started. New sign-ups are closed.'
+      ? 'This operation has already started. New sign-ups are closed and leaving is locked.'
       : 'This operation has already started. Sign-ups are closed.'
   }
 
@@ -623,12 +647,13 @@ const leaveConfirmDialog = ref(null)
 
 function askLeave() {
   if (joinProcessing.value) return
-  if (!canUpdateParticipation.value) return
+  if (!canLeaveOperation.value) return
 
   leaveConfirmDialog.value?.show()
 }
 
 function confirmLeave({ close }) {
+  if (!canLeaveOperation.value) return
   if (joinProcessing.value) return
 
   joinProcessing.value = true
@@ -877,6 +902,7 @@ function submitCompleteOperation(outcome) {
   if (!canCompleteOperation.value || !outcome || transitionProcessing.value) return
 
   transitionProcessing.value = true
+  const afterActionUrl = `${route('operations.show', operation.id)}#after-action-report`
 
   router.post(route('operations.complete', operation.id), {
     outcome,
@@ -884,6 +910,7 @@ function submitCompleteOperation(outcome) {
     preserveScroll: true,
     onSuccess: () => {
       completeDialogOpen.value = false
+      router.visit(afterActionUrl)
     },
     onError: () => {
       window.hzNotifyError?.({ message: 'Failed to complete operation.' })
@@ -893,11 +920,31 @@ function submitCompleteOperation(outcome) {
     },
   })
 }
+
+function updateAttendanceDraftMembers(operationId, members = []) {
+  const id = Number(operationId)
+  if (!Number.isFinite(id)) return
+
+  attendanceDraftMembersByOperationId.value = {
+    ...attendanceDraftMembersByOperationId.value,
+    [id]: members,
+  }
+}
+
+function attendanceDraftMembers(operationRecord) {
+  const id = Number(operationRecord?.id)
+
+  if (!Number.isFinite(id)) {
+    return []
+  }
+
+  return attendanceDraftMembersByOperationId.value[id] ?? operationRecord?.after_action_attendance ?? []
+}
 </script>
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-6">
+    <div class="mx-auto max-w-7xl space-y-6">
       <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055]">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -943,41 +990,18 @@ function submitCompleteOperation(outcome) {
               </div>
             </section>
 
-            <section v-if="canManageOperation || canAddToCalendar" class="space-y-3 border-t border-white/[0.055] pt-5">
-              <div v-if="canManageOperation" class="space-y-2">
+            <section v-if="canOpenRunTool || canAddToCalendar" class="space-y-3 border-t border-white/[0.055] pt-5">
+              <div v-if="canOpenRunTool" class="space-y-2">
                 <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
                   Officer Tools
                 </div>
 
-                <HorizonButton
-                  v-if="canStartOperation"
-                  variant="primary"
-                  class="w-full"
-                  :disabled="transitionProcessing"
-                  @click="askStartOperation"
-                >
-                  {{ transitionProcessing ? 'Running…' : 'Run Operation' }}
-                </HorizonButton>
+                <a :href="route('operations.run', operation.id)" class="block">
+                  <HorizonButton variant="outline" class="w-full">
+                    Open Run Tool
+                  </HorizonButton>
+                </a>
 
-                <HorizonButton
-                  v-if="canCompleteOperation"
-                  variant="primary"
-                  class="w-full"
-                  :disabled="transitionProcessing"
-                  @click="openCompleteDialog"
-                >
-                  {{ transitionProcessing ? 'Finishing…' : 'Finish Operation' }}
-                </HorizonButton>
-
-                <HorizonButton
-                  v-if="canCancelOperation"
-                  variant="danger"
-                  class="w-full"
-                  :disabled="transitionProcessing"
-                  @click="askCancelOperation"
-                >
-                  {{ transitionProcessing ? 'Canceling…' : 'Cancel Operation' }}
-                </HorizonButton>
               </div>
 
               <div v-if="canAddToCalendar" class="space-y-2">
@@ -1026,7 +1050,7 @@ function submitCompleteOperation(outcome) {
                     </HorizonButton>
                   </div>
 
-                  <div v-if="canUpdateParticipation">
+                  <div v-if="canLeaveOperation">
                     <HorizonButton variant="outline" class="w-full" :disabled="joinProcessing" @click="askLeave">
                       Leave Operation
                     </HorizonButton>
@@ -1413,6 +1437,27 @@ function submitCompleteOperation(outcome) {
           </main>
           </div>
         </div>
+      </section>
+
+      <section
+        v-if="operation.status === 'completed'"
+        id="after-action-report"
+        class="mt-8 space-y-4"
+      >
+        <AfterActionReportSection
+          :operation="operation"
+          :verified-members="verifiedMembers"
+          :can-manage="!!operation?.permissions?.can_manage_aar"
+          :reload-only="['operation', 'participants', 'participantsBySlot', 'unassignedParticipants', 'currentParticipant']"
+          @attendance-draft-change="updateAttendanceDraftMembers(operation.id, $event)"
+        />
+
+        <OperationSettlementSection
+          :operation="operation"
+          :shared-loot-options="operationSettlementLootOptions"
+          :attendance-draft-members="attendanceDraftMembers(operation)"
+          :reload-only="['operation', 'participants', 'participantsBySlot', 'unassignedParticipants', 'currentParticipant']"
+        />
       </section>
     </div>
   </HorizonContainer>

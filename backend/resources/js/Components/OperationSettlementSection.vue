@@ -4,9 +4,20 @@ import { router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../ziggy'
 
+import HorizonBadge from '@/Components/HorizonBadge.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonFormBlock from '@/Components/HorizonFormBlock.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
+import {
+  buildEvenSplitAmounts,
+  calculateDistributableAmount,
+  calculateHorizonReserve,
+  calculateReserveBaseAmount,
+  normalizeWholeNumberField,
+  parsePositiveWholeNumber,
+  wholeNumber,
+} from '@/operationPayoutMath'
 
 const settlementDraftStore = new Map()
 
@@ -46,26 +57,6 @@ const canManage = computed(() => !!settlement.value?.permissions?.can_manage)
 const isFinalized = computed(() => !!settlement.value?.is_finalized)
 const attendanceLocked = computed(() => !!settlement.value?.locked_attendance)
 const settlementActivity = computed(() => settlement.value?.activity ?? {})
-
-function wholeNumber(value) {
-  const amount = Number(value)
-
-  if (!Number.isFinite(amount)) {
-    return null
-  }
-
-  return Math.round(amount)
-}
-
-function normalizeWholeNumberField(value) {
-  if (value === '' || value === null || typeof value === 'undefined') {
-    return ''
-  }
-
-  const amount = wholeNumber(value)
-
-  return amount === null ? '' : String(amount)
-}
 
 function settlementDraftKey() {
   return `settlement:${props.operation?.id ?? 'unknown'}`
@@ -179,12 +170,20 @@ const presetAmountValue = computed(() => {
   return wholeNumber(presetAmount.value) ?? 0
 })
 
+const presetHorizonReserveValue = computed(() => {
+  return calculateHorizonReserve(presetAmountValue.value)
+})
+
+const presetDistributableValue = computed(() => {
+  return calculateDistributableAmount(presetAmountValue.value)
+})
+
 const attendeeSplitPreview = computed(() => {
-  if (!participantTargets.value.length || presetAmountValue.value <= 0) {
+  if (!participantTargets.value.length || presetDistributableValue.value <= 0) {
     return null
   }
 
-  return Math.floor(presetAmountValue.value / participantTargets.value.length)
+  return Math.floor(presetDistributableValue.value / participantTargets.value.length)
 })
 
 const horizonReservePreview = computed(() => {
@@ -192,7 +191,7 @@ const horizonReservePreview = computed(() => {
     return null
   }
 
-  return Math.round(presetAmountValue.value * 0.1)
+  return presetHorizonReserveValue.value
 })
 
 const presetCoverageDelta = computed(() => {
@@ -471,8 +470,7 @@ function formatDateLabel(value) {
 }
 
 function parsePresetAmount() {
-  const amount = wholeNumber(presetAmount.value)
-  return Number.isInteger(amount) && amount > 0 ? amount : null
+  return parsePositiveWholeNumber(presetAmount.value)
 }
 
 function createRecipientMoneyRow(recipientKey, amount = '', notes = '') {
@@ -523,16 +521,17 @@ function splitPresetAmountAcrossAttendance() {
     return
   }
 
-  const baseAmount = Math.floor(amount / recipients.length)
-  let remainderAmount = amount - (baseAmount * recipients.length)
+  const splitAmounts = buildEvenSplitAmounts(amount, recipients.length)
 
-  const newRows = recipients.map((recipient) => {
-    const payout = baseAmount + (remainderAmount > 0 ? 1 : 0)
-    remainderAmount = Math.max(0, remainderAmount - 1)
+  if (!splitAmounts.length) {
+    notifyError('The helper amount is too small to split after Horizon’s 10 percent reserve.')
+    return
+  }
 
+  const newRows = recipients.map((recipient, index) => {
     return createRecipientMoneyRow(
       recipient.key,
-      String(payout),
+      String(splitAmounts[index] ?? 0),
       'Even attendee split',
     )
   })
@@ -561,24 +560,14 @@ function addSquadronReserveRow() {
 }
 
 function reserveTenPercentForHorizon() {
-  const moneyBase = moneyRows.value.reduce((total, row) => {
-    const amount = wholeNumber(row?.amount ?? 0)
-
-    if (!Number.isFinite(amount) || amount <= 0 || row?.recipient_type === 'organization') {
-      return total
-    }
-
-    return total + amount
-  }, 0)
-
-  const baseAmount = moneyBase > 0 ? moneyBase : parsePresetAmount()
+  const baseAmount = calculateReserveBaseAmount(presetAmount.value, moneyRows.value)
 
   if (!baseAmount) {
     notifyError('Add payout amounts first, or enter an amount in the preset field before setting aside Horizon’s 10 percent share.')
     return
   }
 
-  const horizonAmount = String(Math.round(baseAmount * 0.10))
+  const horizonAmount = String(calculateHorizonReserve(baseAmount))
   const organizationIndex = moneyRows.value.findIndex(row => row?.recipient_type === 'organization')
 
   if (organizationIndex === -1) {
@@ -689,7 +678,7 @@ function showFirstError(errors) {
   <section
     v-if="operation?.status === 'completed'"
     :class="compact
-      ? 'hz-surface-deep rounded-[1.25rem] p-4'
+      ? 'hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4'
       : 'hz-surface-welcome rounded-[1.75rem] border border-white/[0.055] p-4 md:p-5'"
   >
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -718,50 +707,42 @@ function showFirstError(errors) {
           Export CSV
         </HorizonButton>
 
-        <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
+        <HorizonBadge variant="muted">
           {{ moneyRows.length }} payout rows
-        </div>
+        </HorizonBadge>
 
-        <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
+        <HorizonBadge variant="muted">
           {{ lootRows.length }} loot rows
-        </div>
+        </HorizonBadge>
 
-        <div
-          class="rounded-full border px-3 py-1 text-xs font-semibold"
-          :class="isFinalized
-            ? 'border-emerald-300/25 bg-emerald-300/10 text-horizon-white'
-            : 'border-white/[0.055] bg-white/[0.024] text-text-secondary'"
+        <HorizonBadge
+          :variant="isFinalized ? 'success' : 'muted'"
         >
           {{ isFinalized ? 'Finalized' : 'Draft' }}
-        </div>
+        </HorizonBadge>
       </div>
     </div>
 
     <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
-        <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Assigned Money</div>
-        <div class="mt-2 text-lg font-black text-horizon-white">{{ formatMoney(assignedMoneyTotal) }}</div>
-      </div>
+      <HorizonFormBlock label="Assigned Money" label-class="text-[10px] tracking-[0.16em]" panel-class="rounded-[1rem] px-4 py-3">
+        <div class="text-lg font-black text-horizon-white">{{ formatMoney(assignedMoneyTotal) }}</div>
+      </HorizonFormBlock>
 
-      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
-        <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Recipients</div>
-        <div class="mt-2 text-lg font-black text-horizon-white">{{ assignedRecipientCount }}</div>
-      </div>
+      <HorizonFormBlock label="Recipients" label-class="text-[10px] tracking-[0.16em]" panel-class="rounded-[1rem] px-4 py-3">
+        <div class="text-lg font-black text-horizon-white">{{ assignedRecipientCount }}</div>
+      </HorizonFormBlock>
 
-      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
-        <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Payout Rows</div>
-        <div class="mt-2 text-lg font-black text-horizon-white">{{ moneyRows.length }}</div>
-      </div>
+      <HorizonFormBlock label="Payout Rows" label-class="text-[10px] tracking-[0.16em]" panel-class="rounded-[1rem] px-4 py-3">
+        <div class="text-lg font-black text-horizon-white">{{ moneyRows.length }}</div>
+      </HorizonFormBlock>
 
-      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
-        <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Loot Rows</div>
-        <div class="mt-2 text-lg font-black text-horizon-white">{{ lootRows.length }}</div>
-      </div>
+      <HorizonFormBlock label="Loot Rows" label-class="text-[10px] tracking-[0.16em]" panel-class="rounded-[1rem] px-4 py-3">
+        <div class="text-lg font-black text-horizon-white">{{ lootRows.length }}</div>
+      </HorizonFormBlock>
 
-      <div class="hz-surface-deep rounded-[1rem] px-4 py-3">
-        <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Needs Attention</div>
-        <div class="mt-2 text-lg font-black text-horizon-white">{{ unassignedRowCount }}</div>
-      </div>
+      <HorizonFormBlock label="Needs Attention" label-class="text-[10px] tracking-[0.16em]" panel-class="rounded-[1rem] px-4 py-3">
+        <div class="text-lg font-black text-horizon-white">{{ unassignedRowCount }}</div>
+      </HorizonFormBlock>
     </div>
 
     <div
@@ -772,7 +753,7 @@ function showFirstError(errors) {
       <span v-if="finalizedAtLabel"> Finalized {{ finalizedAtLabel }}.</span>
     </div>
 
-    <div class="hz-surface-deep mt-4 rounded-[1.25rem] p-4">
+    <div class="hz-surface-welcome mt-4 rounded-[1.25rem] border border-white/[0.055] p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Settlement Activity</div>
@@ -780,18 +761,20 @@ function showFirstError(errors) {
             Latest settlement timestamps for this operation without leaving the AAR flow.
           </div>
         </div>
-        <div
-          class="hz-surface-soft rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary"
+        <HorizonBadge
+          variant="muted"
+          size="xs"
+          uppercase
         >
           {{ isFinalized ? 'Live in ledgers' : 'Still in draft' }}
-        </div>
+        </HorizonBadge>
       </div>
 
       <div class="mt-4 grid gap-3 md:grid-cols-3">
         <div
           v-for="row in settlementActivityRows"
           :key="row.label"
-          class="hz-surface-soft rounded-[1rem] px-4 py-3"
+          class="hz-surface-welcome rounded-[1rem] border border-white/[0.055] px-4 py-3"
         >
           <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{{ row.label }}</div>
           <div class="mt-2 text-sm font-semibold text-horizon-white">
@@ -803,22 +786,22 @@ function showFirstError(errors) {
     </div>
 
     <div v-if="canManage && !isFinalized" class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-      <div class="hz-surface-deep rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Attendance Quick Add</div>
             <div class="mt-1 text-sm text-text-secondary">Drop in payout or loot rows for the final attendee list without re-picking the same recipients.</div>
           </div>
-          <div class="hz-surface-soft rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary">
+          <HorizonBadge variant="muted" size="xs" uppercase>
             {{ participantTargets.length }} attendees
-          </div>
+          </HorizonBadge>
         </div>
 
         <div v-if="participantTargets.length" class="mt-4 grid gap-3 lg:grid-cols-2">
           <div
             v-for="participant in participantTargets"
             :key="participant.key"
-            class="hz-surface-soft rounded-[1rem] px-3 py-3"
+            class="hz-surface-welcome rounded-[1rem] border border-white/[0.055] px-3 py-3"
           >
             <div class="text-sm font-semibold text-horizon-white">{{ participant.label }}</div>
             <div class="mt-3 flex flex-wrap gap-2">
@@ -844,16 +827,16 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="hz-surface-soft hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-4 text-sm text-text-secondary"
+          class="hz-surface-welcome hz-divider-subtle mt-4 rounded-[1rem] border border-dashed border-white/15 px-4 py-4 text-sm text-text-secondary"
         >
           Final attendance will show up here once the AAR roster is filled in.
         </div>
       </div>
 
-      <div class="hz-surface-deep rounded-[1.25rem] p-4">
+      <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
         <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">Settlement Helpers</div>
         <div class="mt-1 text-sm text-text-secondary">
-          Use one amount field for quick attendee splits, reserve rows, and Horizon’s 10 percent share.
+          Treat the helper amount as the total pot. Horizon’s 10 percent comes off the top before attendee splits.
         </div>
 
         <div class="mt-4 space-y-3">
@@ -903,38 +886,35 @@ function showFirstError(errors) {
             </HorizonButton>
           </div>
 
-          <div class="hz-surface-soft rounded-[1rem] px-4 py-3">
+          <div class="hz-surface-welcome rounded-[1rem] border border-white/[0.055] px-4 py-3">
             <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Helper Math</div>
             <div class="mt-3 grid gap-3 sm:grid-cols-3">
-              <div>
-                <div class="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Attendance Split</div>
-                <div class="mt-1 text-sm font-semibold text-horizon-white">
+              <HorizonFormBlock label="Attendance Split" label-class="text-[10px] tracking-[0.14em]" panel-class="rounded-[0.9rem] bg-white/[0.02] px-3 py-3">
+                <div class="text-sm font-semibold text-horizon-white">
                   {{ attendeeSplitPreview !== null ? formatMoney(attendeeSplitPreview) : 'Add an amount' }}
                 </div>
                 <div class="mt-1 text-xs text-text-secondary">
-                  {{ participantTargets.length ? `${participantTargets.length} attendees in the current AAR roster.` : 'No final attendees available yet.' }}
+                  {{ participantTargets.length ? `${participantTargets.length} attendees in the current AAR roster after Horizon's reserve.` : 'No final attendees available yet.' }}
                 </div>
-              </div>
+              </HorizonFormBlock>
 
-              <div>
-                <div class="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Horizon Reserve</div>
-                <div class="mt-1 text-sm font-semibold text-horizon-white">
+              <HorizonFormBlock label="Horizon Reserve" label-class="text-[10px] tracking-[0.14em]" panel-class="rounded-[0.9rem] bg-white/[0.02] px-3 py-3">
+                <div class="text-sm font-semibold text-horizon-white">
                   {{ horizonReservePreview !== null ? formatMoney(horizonReservePreview) : 'Add an amount' }}
                 </div>
                 <div class="mt-1 text-xs text-text-secondary">
                   10 percent of the helper amount.
                 </div>
-              </div>
+              </HorizonFormBlock>
 
-              <div>
-                <div class="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Preset Coverage</div>
-                <div class="mt-1 text-sm font-semibold text-horizon-white">
+              <HorizonFormBlock label="Preset Coverage" label-class="text-[10px] tracking-[0.14em]" panel-class="rounded-[0.9rem] bg-white/[0.02] px-3 py-3">
+                <div class="text-sm font-semibold text-horizon-white">
                   {{ presetCoverageDelta !== null ? formatMoney(presetCoverageDelta) : 'Add an amount' }}
                 </div>
                 <div class="mt-1 text-xs text-text-secondary">
                   Remaining helper amount after current payout rows.
                 </div>
-              </div>
+              </HorizonFormBlock>
             </div>
           </div>
         </div>
@@ -963,7 +943,7 @@ function showFirstError(errors) {
           <div
             v-for="row in moneyRows"
             :key="row.row_key"
-            class="hz-surface-deep rounded-[1rem] p-4"
+            class="hz-surface-welcome rounded-[1rem] border border-white/[0.055] p-4"
           >
             <template v-if="canManage && !isFinalized">
               <div class="grid gap-3 md:grid-cols-2">
@@ -1028,7 +1008,7 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="hz-surface-deep hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
+          class="hz-surface-welcome hz-divider-subtle mt-4 rounded-[1rem] border border-dashed border-white/15 px-4 py-5 text-sm text-text-secondary"
         >
           No payout rows yet.
         </div>
@@ -1055,7 +1035,7 @@ function showFirstError(errors) {
           <div
             v-for="row in lootRows"
             :key="row.row_key"
-            class="hz-surface-deep rounded-[1rem] p-4"
+            class="hz-surface-welcome rounded-[1rem] border border-white/[0.055] p-4"
           >
             <template v-if="canManage && !isFinalized">
               <div class="grid gap-3 md:grid-cols-2">
@@ -1140,9 +1120,9 @@ function showFirstError(errors) {
                   </div>
                 </div>
 
-                <div class="hz-surface-soft rounded-full px-3 py-1 text-xs font-semibold text-text-secondary">
+                <HorizonBadge variant="muted">
                   {{ row.source_type ?? 'loot' }}
-                </div>
+                </HorizonBadge>
               </div>
             </template>
           </div>
@@ -1150,7 +1130,7 @@ function showFirstError(errors) {
 
         <div
           v-else
-          class="hz-surface-deep hz-divider-subtle mt-4 rounded-[1rem] border border-dashed px-4 py-5 text-sm text-text-secondary"
+          class="hz-surface-welcome hz-divider-subtle mt-4 rounded-[1rem] border border-dashed border-white/15 px-4 py-5 text-sm text-text-secondary"
         >
           No loot rows yet.
         </div>
@@ -1159,7 +1139,7 @@ function showFirstError(errors) {
 
     <div
       v-if="canManage"
-      class="hz-surface-deep mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[1rem] px-4 py-4"
+      class="hz-surface-welcome mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-white/[0.055] px-4 py-4"
     >
       <div class="text-sm text-text-secondary">
         Draft rows stay editable until you finalize them into the ledgers.

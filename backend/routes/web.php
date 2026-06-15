@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Web\OperationPageController;
 use App\Http\Controllers\Web\OperationCalendarController;
 use App\Http\Controllers\Web\OperationParticipantController;
+use App\Http\Controllers\Web\OperationRuntimeController;
 use App\Http\Controllers\Web\OperationTransitionController;
 use App\Http\Controllers\Web\ArchiveController;
 use App\Http\Controllers\Web\AdminController;
@@ -386,6 +387,27 @@ Route::middleware(['auth', 'rsi.verified'])->group(function () {
     Route::post('/operations/{operation}/start', 
         [OperationTransitionController::class, 'start'])
         ->name('operations.start');
+    Route::get('/operations/{operation}/run',
+        [OperationRuntimeController::class, 'show'])
+        ->name('operations.run');
+    Route::post('/operations/{operation}/run/sync',
+        [OperationRuntimeController::class, 'sync'])
+        ->name('operations.run.sync');
+    Route::post('/operations/{operation}/run/walk-ins',
+        [OperationRuntimeController::class, 'storeWalkIn'])
+        ->name('operations.run.walk-ins.store');
+    Route::put('/operations/{operation}/run/funds-prep',
+        [OperationRuntimeController::class, 'updateFundsPrep'])
+        ->name('operations.run.funds-prep.update');
+    Route::post('/operations/{operation}/run/participants/{participant}',
+        [OperationRuntimeController::class, 'updateParticipant'])
+        ->name('operations.run.participants.update');
+    Route::post('/operations/{operation}/run/layout',
+        [OperationRuntimeController::class, 'saveLayout'])
+        ->name('operations.run.layout');
+    Route::post('/operations/{operation}/run/channels/sync',
+        [OperationRuntimeController::class, 'syncChannels'])
+        ->name('operations.run.channels.sync');
     Route::post('/operations/{operation}/complete', 
         [OperationTransitionController::class, 'complete'])
         ->name('operations.complete');

@@ -655,13 +655,11 @@
 
 .hz-rte-content img.hz-rich-image-left {
   float: left;
-  max-width: min(45%, 22rem);
   margin: 0.35rem 1rem 0.75rem 0;
 }
 
 .hz-rte-content img.hz-rich-image-right {
   float: right;
-  max-width: min(45%, 22rem);
   margin: 0.35rem 0 0.75rem 1rem;
 }
 

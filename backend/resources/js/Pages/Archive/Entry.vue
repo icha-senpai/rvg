@@ -17,7 +17,7 @@ const entryBodyHtml = computed(() => normalizeRichTextHtml(props.entry?.body))
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <article class="mx-auto max-w-6xl space-y-8">
+    <article class="mx-auto max-w-7xl space-y-8">
       <nav class="flex flex-wrap items-center gap-2 text-sm font-semibold text-text-secondary">
         <Link :href="route('archive.index')" class="rounded-xl border border-white/[0.055] bg-white/[0.024] px-3 py-1.5 hover:border-[color:var(--horizon-sunset-blue)]/35 hover:text-horizon-white">
           Archive
@@ -103,8 +103,6 @@ const entryBodyHtml = computed(() => normalizeRichTextHtml(props.entry?.body))
 
         <div class="grid gap-4 md:grid-cols-2">
           <Link v-for="related in relatedEntries" :key="related.id" :href="related.href" class="hz-surface-welcome group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
-            <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
-
             <div v-if="related.categories?.length || related.tags?.length" class="relative mb-3 flex flex-wrap gap-2 text-xs font-semibold">
               <span v-for="category in related.categories" :key="`related-category-${related.id}-${category.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-2.5 py-1 text-[color:var(--horizon-sunset-blue)]">
                 {{ category.name }}
@@ -128,4 +126,3 @@ const entryBodyHtml = computed(() => normalizeRichTextHtml(props.entry?.body))
   border-radius: 0 !important;
 }
 </style>
-

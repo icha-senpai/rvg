@@ -5,6 +5,15 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import { canCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+import {
+  buildArchiveCategoryChildren,
+  itemChildListIsOpen as computeItemChildListIsOpen,
+  itemChildrenAreOpen as computeItemChildrenAreOpen,
+  itemHasOpenChildren as computeItemHasOpenChildren,
+  itemIsOpen as computeItemIsOpen,
+  itemRowTogglesChildren as computeItemRowTogglesChildren,
+  navBadgeLabel,
+} from '@/sideNavUtils'
 
 const page = usePage()
 
@@ -227,81 +236,12 @@ function handlePointerDown(event) {
   }
 }
 
-function normalizeArchiveHref(href) {
-  if (!href) return ''
-
-  try {
-    const resolved = new URL(href, window.location.origin)
-    return `${resolved.pathname}${resolved.search}`
-  } catch {
-    return String(href)
-  }
-}
-
 const archiveCategoryChildren = computed(() => {
-  const url = page.url ?? ''
-  return (archiveNavigation.value?.categories ?? []).map(category => {
-    const categoryHref = normalizeArchiveHref(category.href)
-    const directEntries = (category.entries ?? []).map(entry => {
-      const entryHref = normalizeArchiveHref(entry.href)
-
-      return {
-        key: `archive-category-entry-${entry.id}`,
-        label: entry.title,
-        href: entry.href,
-        isActive: url === entryHref || url.startsWith(`${entryHref}?`),
-      }
-    })
-
-    const topics = (category.topics ?? []).map(topic => {
-      const topicHref = normalizeArchiveHref(topic.href)
-      const topicEntries = (topic.entries ?? []).map(entry => {
-        const entryHref = normalizeArchiveHref(entry.href)
-
-        return {
-          key: `archive-entry-${entry.id}`,
-          label: entry.title,
-          href: entry.href,
-          isActive: url === entryHref || url.startsWith(`${entryHref}?`),
-        }
-      })
-
-      const topicIsActive = url === topicHref || url.startsWith(`${topicHref}/`) || url.startsWith(`${topicHref}?`) || topicEntries.some(entry => entry.isActive)
-
-      return {
-        key: `archive-topic-${topic.id}`,
-        label: topic.title,
-        href: topic.href,
-        isActive: topicIsActive,
-        meta: topic.visible_entries_count ? `${topic.visible_entries_count}` : null,
-        entries: topicEntries,
-      }
-    })
-
-    const isActive = url === categoryHref
-      || url.startsWith(`${categoryHref}/`)
-      || url.startsWith(`${categoryHref}?`)
-      || directEntries.some(entry => entry.isActive)
-      || topics.some(topic => topic.isActive)
-
-    return {
-      key: `archive-category-${category.id}`,
-      label: category.name,
-      href: category.href,
-      sortOrder: Number(category.sort_order ?? Number.MAX_SAFE_INTEGER),
-      topics,
-      entries: directEntries,
-      visibleEntriesCount: Number(category.visible_entries_count ?? 0),
-      isActive,
-      meta: category.visible_entries_count ? `${category.visible_entries_count}` : null,
-    }
-  }).sort((left, right) => {
-    if (left.sortOrder !== right.sortOrder) {
-      return left.sortOrder - right.sortOrder
-    }
-
-    return left.label.localeCompare(right.label)
-  })
+  return buildArchiveCategoryChildren(
+    archiveNavigation.value?.categories ?? [],
+    page.url ?? '',
+    window.location.origin,
+  )
 })
 
 const adminDashboardChildren = computed(() => {
@@ -475,16 +415,6 @@ const NAV_ICON_PATHS = Object.freeze({
 
 function navIconPaths(icon) {
   return NAV_ICON_PATHS[icon] ?? NAV_ICON_PATHS.home
-}
-
-function navBadgeLabel(count) {
-  const numericCount = Number(count ?? 0)
-
-  if (!Number.isFinite(numericCount) || numericCount <= 0) {
-    return null
-  }
-
-  return numericCount > 99 ? '99+' : String(numericCount)
 }
 
 function groupHasNotificationDot(group) {
@@ -813,29 +743,23 @@ function getItemHref(item) {
 }
 
 function itemHasOpenChildren(item) {
-  return Boolean(item.children?.length)
+  return computeItemHasOpenChildren(item)
+}
+
+function itemRowTogglesChildren(item) {
+  return computeItemRowTogglesChildren(item)
 }
 
 function itemIsOpen(item) {
-  const hasNestedContent = Boolean(item.children?.length || item.entries?.length || item.topics?.length)
-
-  if (!hasNestedContent) {
-    return false
-  }
-
-  if (manuallyCollapsedItems.value.has(item.key)) {
-    return false
-  }
-
-  return item.isActive || manuallyExpandedItems.value.has(item.key)
+  return computeItemIsOpen(item, manuallyExpandedItems.value, manuallyCollapsedItems.value)
 }
 
 function itemChildrenAreOpen(item) {
-  return Boolean((item.entries?.length || item.topics?.length) && itemIsOpen(item))
+  return computeItemChildrenAreOpen(item, manuallyExpandedItems.value, manuallyCollapsedItems.value)
 }
 
 function itemChildListIsOpen(item) {
-  return Boolean(item.children?.length && itemIsOpen(item))
+  return computeItemChildListIsOpen(item, manuallyExpandedItems.value, manuallyCollapsedItems.value)
 }
 
 function sidebarExpansionContext(url) {
@@ -1063,7 +987,44 @@ onBeforeUnmount(() => {
                   v-if="!item.href && itemHasOpenChildren(item)"
                   class="flex items-center gap-1"
                 >
+                  <button
+                    v-if="itemRowTogglesChildren(item)"
+                    type="button"
+                    class="group relative flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold transition"
+                    :class="itemRowClass(item)"
+                    :aria-expanded="itemChildListIsOpen(item) ? 'true' : 'false'"
+                    @click="toggleItem(item)"
+                  >
+                    <span
+                      v-if="item.isActive"
+                      class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
+                      :class="activeRailClass(item)"
+                    />
+
+                    <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-mobile-link-${index}`" :d="path.d" />
+                      </svg>
+                    </span>
+
+                    <span class="flex min-w-0 flex-1 items-center gap-2">
+                      <span class="truncate">{{ item.label }}</span>
+                      <span
+                        v-if="item.notificationDot"
+                        class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                      />
+                    </span>
+
+                    <span
+                      v-if="item.badge"
+                      class="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
+                    >
+                      {{ item.badge }}
+                    </span>
+                  </button>
+
                   <Link
+                    v-else
                     :href="getItemHref(item)"
                     class="group relative flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-base font-semibold transition"
                     :class="itemRowClass(item)"
@@ -1198,22 +1159,6 @@ onBeforeUnmount(() => {
                         </div>
                       </button>
 
-                      <Link
-                        v-if="child.showJump !== false"
-                        :href="child.href"
-                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                      >
-                        ↗
-                      </Link>
-
-                      <button
-                        v-if="child.topics?.length || child.entries?.length"
-                        type="button"
-                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                        @click.stop="toggleItem(child)"
-                      >
-                        <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
-                      </button>
                     </div>
 
                     <div
@@ -1248,21 +1193,6 @@ onBeforeUnmount(() => {
                             </div>
                           </button>
 
-                          <Link
-                            :href="topic.href"
-                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                          >
-                            ↗
-                          </Link>
-
-                          <button
-                            v-if="topic.entries?.length"
-                            type="button"
-                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                            @click.stop="toggleItem(topic)"
-                          >
-                            <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
-                          </button>
                         </div>
 
                         <div
@@ -1469,7 +1399,53 @@ onBeforeUnmount(() => {
                   v-if="!item.href && itemHasOpenChildren(item)"
                   class="flex items-center gap-1"
                 >
+                  <button
+                    v-if="itemRowTogglesChildren(item)"
+                    type="button"
+                    class="group relative flex min-w-0 flex-1 items-center rounded-xl text-base font-semibold transition"
+                    :class="[
+                      desktopExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5',
+                      itemRowClass(item)
+                    ]"
+                    :title="desktopExpanded ? undefined : item.label"
+                    :aria-expanded="itemChildListIsOpen(item) ? 'true' : 'false'"
+                    @click="toggleItem(item)"
+                  >
+                    <span
+                      v-if="item.isActive"
+                      class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full"
+                      :class="activeRailClass(item)"
+                    />
+
+                    <span class="hz-shell-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path v-for="(path, index) in navIconPaths(item.icon)" :key="`${item.key}-desktop-link-${index}`" :d="path.d" />
+                      </svg>
+                    </span>
+
+                    <span
+                      class="min-w-0 flex-1 transition-all duration-200"
+                      :class="desktopExpanded ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
+                    >
+                      <span class="flex min-w-0 items-center gap-2">
+                        <span class="truncate">{{ item.label }}</span>
+                        <span
+                          v-if="item.notificationDot"
+                          class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500"
+                        />
+                      </span>
+                    </span>
+
+                    <span
+                      v-if="desktopExpanded && item.badge"
+                      class="ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white"
+                    >
+                      {{ item.badge }}
+                    </span>
+                  </button>
+
                   <Link
+                    v-else
                     :href="getItemHref(item)"
                     class="group relative flex min-w-0 flex-1 items-center rounded-xl text-base font-semibold transition"
                     :class="[
@@ -1629,22 +1605,6 @@ onBeforeUnmount(() => {
                         </div>
                       </button>
 
-                      <Link
-                        v-if="child.showJump !== false"
-                        :href="child.href"
-                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                      >
-                        ↗
-                      </Link>
-
-                      <button
-                        v-if="child.topics?.length || child.entries?.length"
-                        type="button"
-                        class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                        @click.stop="toggleItem(child)"
-                      >
-                        <span class="block transition-transform" :class="itemChildrenAreOpen(child) ? 'rotate-90' : ''">›</span>
-                      </button>
                     </div>
 
                     <div
@@ -1679,21 +1639,6 @@ onBeforeUnmount(() => {
                             </div>
                           </button>
 
-                          <Link
-                            :href="topic.href"
-                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                          >
-                            ↗
-                          </Link>
-
-                          <button
-                            v-if="topic.entries?.length"
-                            type="button"
-                            class="hz-shell-hover shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted transition hover:text-text-secondary"
-                            @click.stop="toggleItem(topic)"
-                          >
-                            <span class="block transition-transform" :class="itemChildrenAreOpen(topic) ? 'rotate-90' : ''">›</span>
-                          </button>
                         </div>
 
                         <div

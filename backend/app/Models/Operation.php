@@ -46,6 +46,8 @@ class Operation extends Model
         'after_action_report',
         'after_action_attendance_user_ids',
         'after_action_no_show_user_ids',
+        'after_action_signed_off_early_user_ids',
+        'after_action_excused_user_ids',
         'after_action_report_updated_at',
         'cancellation_reason',
 
@@ -66,6 +68,8 @@ class Operation extends Model
         'completion_outcome' => 'string',
         'after_action_attendance_user_ids' => 'array',
         'after_action_no_show_user_ids' => 'array',
+        'after_action_signed_off_early_user_ids' => 'array',
+        'after_action_excused_user_ids' => 'array',
         'after_action_report_updated_at' => 'datetime',
         'discord_message_targets' => 'array',
     ];
@@ -95,11 +99,27 @@ class Operation extends Model
     }
 
     /**
+     * Return the recorded runtime sync passes for this operation.
+     */
+    public function syncRuns()
+    {
+        return $this->hasMany(OperationSyncRun::class)->orderByDesc('synced_at')->orderByDesc('id');
+    }
+
+    /**
      * Return the role/slot definitions attached to this operation.
      */
     public function roles()
     {
         return $this->hasMany(OperationRole::class);
+    }
+
+    /**
+     * Return the Discord voice channels configured for this operation runtime.
+     */
+    public function discordChannels()
+    {
+        return $this->hasMany(OperationDiscordChannel::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /**

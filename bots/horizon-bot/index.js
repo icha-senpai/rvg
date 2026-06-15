@@ -40,6 +40,7 @@ const webhookRoutes = require('./services/webhook');        // nickname sync web
 const webhookOpRoutes = require('./services/webhookOperations'); // operation published webhook
 const webhookPromotionRoutes = require('./services/webhookPromotions');
 const webhookSquadronRoutes = require('./services/webhookSquadrons');
+const webhookOperationRuntimeRoutes = require('./services/webhookOperationRuntime');
 
 log("Loaded webhookOpRoutes:", webhookOpRoutes);
 
@@ -48,6 +49,7 @@ app.use('/bot', webhookRoutes);
 app.use('/bot', webhookOpRoutes);
 app.use('/bot', webhookPromotionRoutes);
 app.use('/bot', webhookSquadronRoutes);
+app.use('/bot', webhookOperationRuntimeRoutes);
 
 // --------------------
 // DISCORD CLIENT
@@ -63,6 +65,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.DirectMessageReactions,
     ],

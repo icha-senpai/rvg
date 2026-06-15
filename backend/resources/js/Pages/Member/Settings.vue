@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import { normalizeSiteTheme, siteThemeGroups } from '@/siteThemes'
 
 const page = usePage()
@@ -485,10 +486,9 @@ function saveDiscordRoles() {
                   </div>
 
                   <div class="mt-4">
-                    <input
+                    <HorizonInput
                       v-model="timezoneSearch"
                       type="text"
-                      class="hz-input"
                       placeholder="Search timezone..."
                     />
                   </div>

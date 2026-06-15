@@ -1783,12 +1783,13 @@ function confirmDestroyOperation({ close, text }) {
                 Public Briefing
               </label>
 
-              <textarea
+              <HorizonInput
                 v-model="form.description"
+                type="textarea"
                 rows="9"
                 class="hz-input min-h-52 resize-y"
                 placeholder="Short public-facing operation briefing..."
-              ></textarea>
+              />
 
               <p class="mt-2 text-xs text-text-muted">
                 This appears on cards and the operation dossier.
@@ -1807,12 +1808,13 @@ function confirmDestroyOperation({ close, text }) {
                 Extended Briefing
               </label>
 
-              <textarea
+              <HorizonInput
                 v-model="form.extended_description"
+                type="textarea"
                 rows="9"
                 class="hz-input min-h-52 resize-y"
                 placeholder="Longer briefing, tactical notes, roleplay context, or extra instructions..."
-              ></textarea>
+              />
 
               <p class="mt-2 text-xs text-text-muted">
                 Optional deeper context for the full mission view.

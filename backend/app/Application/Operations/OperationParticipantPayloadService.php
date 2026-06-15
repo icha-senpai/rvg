@@ -26,6 +26,13 @@ class OperationParticipantPayloadService
                 'capacity' => $participant->role->capacity,
             ] : null,
             'attendance_status' => $includeAssignments ? $participant->attendance_status : null,
+            'runtime_status' => $participant->runtime_status,
+            'runtime_source' => $participant->runtime_source,
+            'signed_off_at' => $participant->signed_off_at?->toIso8601String(),
+            'synced_in_at' => $participant->synced_in_at?->toIso8601String(),
+            'starting_auec' => $participant->starting_auec,
+            'ending_auec' => $participant->ending_auec,
+            'runtime_notes' => $participant->runtime_notes,
             'notes' => $includeAssignments ? $participant->notes : null,
             'user' => [
                 'id' => $participant->user?->id,

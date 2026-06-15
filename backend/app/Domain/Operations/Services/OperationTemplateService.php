@@ -120,7 +120,7 @@ class OperationTemplateService
 
         if (array_key_exists('roles', $safe)) {
             $safe['roles'] = collect(is_array($safe['roles']) ? $safe['roles'] : [])
-                ->map(function ($role) {
+                ->map(function ($role, $index) {
                     if (! is_array($role)) {
                         return null;
                     }
@@ -136,6 +136,10 @@ class OperationTemplateService
                         'role_name' => trim((string) ($role['role_name'] ?? '')),
                         'role_display_name' => $displayName,
                         'capacity' => $capacity === '' || $capacity === null ? null : (int) $capacity,
+                        'sort_order' => isset($role['sort_order']) && $role['sort_order'] !== ''
+                            ? (int) $role['sort_order']
+                            : $index,
+                        'is_required' => (bool) ($role['is_required'] ?? false),
                     ];
                 })
                 ->filter()

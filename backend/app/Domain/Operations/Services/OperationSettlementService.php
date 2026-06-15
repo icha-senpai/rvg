@@ -37,6 +37,23 @@ class OperationSettlementService
         });
     }
 
+    public function upsertPrepDraft(User $actor, Operation $operation, array $data): OperationSettlement
+    {
+        $this->assertPrepEditable($operation);
+
+        return DB::transaction(function () use ($actor, $operation, $data) {
+            $settlement = $this->firstOrNewSettlement($operation);
+
+            $settlement->forceFill([
+                'prep_money_rows' => $this->normalizePrepMoneyRows($data),
+                'prep_money_rows_updated_by_user_id' => $actor->id,
+                'prep_money_rows_updated_at' => now(),
+            ])->save();
+
+            return $settlement->fresh();
+        });
+    }
+
     public function finalize(User $actor, Operation $operation, array $data = []): OperationSettlement
     {
         $this->assertEditable($operation);
@@ -64,6 +81,41 @@ class OperationSettlementService
         });
     }
 
+    public function seedDraftFromPrep(Operation $operation): Operation
+    {
+        if (! $operation->isCompleted()) {
+            return $operation;
+        }
+
+        $operation->loadMissing('settlement');
+        $settlement = $this->firstOrNewSettlement($operation);
+
+        if (! empty($settlement->money_rows ?? [])) {
+            return $operation->fresh(['settlement']);
+        }
+
+        $prepMoneyRows = collect($settlement->prep_money_rows ?? [])
+            ->filter(fn ($row) => is_array($row))
+            ->values()
+            ->all();
+
+        if ($prepMoneyRows === []) {
+            return $operation->fresh(['settlement']);
+        }
+
+        $seededMoneyRows = $this->buildSeededSettlementMoneyRowsFromPrep($operation, $prepMoneyRows);
+
+        if ($seededMoneyRows === []) {
+            return $operation->fresh(['settlement']);
+        }
+
+        $settlement->forceFill([
+            'money_rows' => $seededMoneyRows,
+        ])->save();
+
+        return $operation->fresh(['settlement']);
+    }
+
     public function reopen(User $actor, Operation $operation): OperationSettlement
     {
         if (! $operation->isCompleted()) {
@@ -79,6 +131,12 @@ class OperationSettlementService
         if (! $settlement) {
             throw ValidationException::withMessages([
                 'settlement' => 'There is no operation settlement to reopen yet.',
+            ]);
+        }
+
+        if (! $settlement->finalized_at) {
+            throw ValidationException::withMessages([
+                'settlement' => 'This settlement is not finalized yet.',
             ]);
         }
 
@@ -121,6 +179,15 @@ class OperationSettlementService
         }
     }
 
+    protected function assertPrepEditable(Operation $operation): void
+    {
+        if ($operation->isCompleted() || $operation->isCanceled()) {
+            throw ValidationException::withMessages([
+                'operation' => 'Funds prep is only available before the operation is completed or canceled.',
+            ]);
+        }
+    }
+
     protected function isFinalized(Operation $operation): bool
     {
         $settlement = $operation->relationLoaded('settlement')
@@ -128,6 +195,42 @@ class OperationSettlementService
             : $operation->settlement()->first();
 
         return (bool) $settlement?->finalized_at;
+    }
+
+    protected function normalizePrepMoneyRows(array $data): array
+    {
+        return collect($data['money_rows'] ?? [])
+            ->map(function ($row) {
+                if (! is_array($row)) {
+                    return null;
+                }
+
+                $recipientType = $this->normalizeSettlementRecipientType($row['recipient_type'] ?? null);
+                $recipientUserId = filled($row['recipient_user_id'] ?? null) ? (int) $row['recipient_user_id'] : null;
+                $recipientSquadronId = filled($row['recipient_squadron_id'] ?? null) ? (int) $row['recipient_squadron_id'] : null;
+                $amount = $this->nullableWholeNumber(
+                    $row['amount'] ?? null,
+                    'money_rows',
+                    'Payout amounts must be whole numbers.',
+                );
+                $notes = $this->nullableTrimmedString($row['notes'] ?? null);
+
+                if ($recipientType === null && $recipientUserId === null && $recipientSquadronId === null && $amount === null && $notes === null) {
+                    return null;
+                }
+
+                return [
+                    'row_key' => $this->normalizeSettlementRowKey($row['row_key'] ?? null),
+                    'recipient_type' => $recipientType,
+                    'recipient_user_id' => $recipientType === 'member' ? $recipientUserId : null,
+                    'recipient_squadron_id' => $recipientType === 'squadron' ? $recipientSquadronId : null,
+                    'amount' => $amount,
+                    'notes' => $notes,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     protected function normalizeSettlementPayload(Operation $operation, array $data, bool $strict): array
@@ -161,6 +264,69 @@ class OperationSettlementService
                 ->values()
                 ->all(),
         ];
+    }
+
+    protected function buildSeededSettlementMoneyRowsFromPrep(Operation $operation, array $prepMoneyRows): array
+    {
+        $eligibleMemberIds = $this->normalizeUserIds($operation->after_action_attendance_user_ids ?? []);
+        $eligibleSquadronIds = $this->settlementEligibleSquadronIds($operation);
+
+        $memberLabels = User::query()
+            ->whereIn('id', collect($prepMoneyRows)->pluck('recipient_user_id')->filter()->map(fn ($id) => (int) $id)->unique()->all())
+            ->get(['id', 'rsi_handle', 'discord_name', 'name'])
+            ->mapWithKeys(fn (User $user) => [
+                $user->id => $user->rsi_handle ?: ($user->discord_name ?: ($user->name ?: "Member #{$user->id}")),
+            ])
+            ->all();
+
+        $squadronLabels = Squadron::query()
+            ->whereIn('id', collect($prepMoneyRows)->pluck('recipient_squadron_id')->filter()->map(fn ($id) => (int) $id)->unique()->all())
+            ->pluck('name', 'id')
+            ->mapWithKeys(fn ($name, $id) => [(int) $id => $name ?: "Squadron #{$id}"])
+            ->all();
+
+        return collect($prepMoneyRows)
+            ->map(function ($row) use ($eligibleMemberIds, $eligibleSquadronIds, $memberLabels, $squadronLabels) {
+                $normalizedRow = $this->normalizeSettlementMoneyRow(
+                    $row,
+                    $eligibleMemberIds,
+                    $eligibleSquadronIds,
+                    false
+                );
+
+                if (! $normalizedRow) {
+                    return null;
+                }
+
+                if ($this->settlementRecipientEligible(
+                    $normalizedRow['recipient_type'] ?? null,
+                    $normalizedRow['recipient_user_id'] ?? null,
+                    $normalizedRow['recipient_squadron_id'] ?? null,
+                    $eligibleMemberIds,
+                    $eligibleSquadronIds
+                )) {
+                    return $normalizedRow;
+                }
+
+                $normalizedRow['notes'] = $this->prependPrepRecipientReviewNote(
+                    $normalizedRow['notes'] ?? null,
+                    $this->prepRecipientLabel(
+                        $normalizedRow['recipient_type'] ?? null,
+                        $normalizedRow['recipient_user_id'] ?? null,
+                        $normalizedRow['recipient_squadron_id'] ?? null,
+                        $memberLabels,
+                        $squadronLabels
+                    )
+                );
+                $normalizedRow['recipient_type'] = null;
+                $normalizedRow['recipient_user_id'] = null;
+                $normalizedRow['recipient_squadron_id'] = null;
+
+                return $normalizedRow;
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     protected function normalizeSettlementMoneyRow($row, array $eligibleMemberIds, array $eligibleSquadronIds, bool $strict): ?array
@@ -331,6 +497,50 @@ class OperationSettlementService
                 ]);
             }
         }
+    }
+
+    protected function settlementRecipientEligible(
+        ?string $recipientType,
+        ?int $recipientUserId,
+        ?int $recipientSquadronId,
+        array $eligibleMemberIds,
+        array $eligibleSquadronIds
+    ): bool {
+        return match ($recipientType) {
+            null => true,
+            'organization' => true,
+            'member' => $recipientUserId && in_array($recipientUserId, $eligibleMemberIds, true),
+            'squadron' => $recipientSquadronId && in_array($recipientSquadronId, $eligibleSquadronIds, true),
+            default => false,
+        };
+    }
+
+    protected function prependPrepRecipientReviewNote(?string $notes, ?string $recipientLabel): string
+    {
+        $prefix = 'Prep target requires review';
+
+        if (filled($recipientLabel)) {
+            $prefix .= ': ' . $recipientLabel;
+        }
+
+        return filled($notes)
+            ? $prefix . "\n" . trim((string) $notes)
+            : $prefix;
+    }
+
+    protected function prepRecipientLabel(
+        ?string $recipientType,
+        ?int $recipientUserId,
+        ?int $recipientSquadronId,
+        array $memberLabels,
+        array $squadronLabels
+    ): ?string {
+        return match ($recipientType) {
+            'organization' => 'Horizon Treasury',
+            'member' => $recipientUserId ? ($memberLabels[$recipientUserId] ?? "Member #{$recipientUserId}") : null,
+            'squadron' => $recipientSquadronId ? ($squadronLabels[$recipientSquadronId] ?? "Squadron #{$recipientSquadronId}") : null,
+            default => null,
+        };
     }
 
     protected function createSettlementReceipts(User $actor, Operation $operation, OperationSettlement $settlement): void

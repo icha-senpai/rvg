@@ -21,6 +21,9 @@ class OperationShowDataService
     {
         OperationPresenterRelations::loadForFull($operation);
         $operation->loadMissing(['participants.role']);
+        $visibleParticipants = $operation->participants
+            ->reject(fn ($participant) => $participant->isSignedOffBeforeStart())
+            ->values();
 
         if ($this->settlements->supportsStorage()) {
             $operation->loadMissing('settlement');
@@ -31,12 +34,14 @@ class OperationShowDataService
         $canManageAar = $viewer ? $this->access->canManageAfterActionReport($viewer, $operation) : false;
         $settlementLootOptions = $this->settlementLootOptions();
 
-        $participantCount = $operation->participants->count();
-        $participants = $this->participants->participants($operation, $canViewSlots);
+        $participantCount = $visibleParticipants->count();
+        $participants = $visibleParticipants
+            ->map(fn ($participant) => $this->participants->participant($participant, $canViewSlots))
+            ->values();
         $currentParticipant = null;
 
         if ($viewer) {
-            $currentParticipantModel = $operation->participants->firstWhere('user_id', $viewer->id);
+            $currentParticipantModel = $visibleParticipants->firstWhere('user_id', $viewer->id);
 
             if ($currentParticipantModel) {
                 $currentParticipant = $this->participants->participant($currentParticipantModel, true);
@@ -48,6 +53,8 @@ class OperationShowDataService
         $operationPayload['participants_count'] = $participantCount;
         $operationPayload['after_action_attendance'] = $this->members->payloadsForIds($operation->after_action_attendance_user_ids ?? []);
         $operationPayload['after_action_no_show'] = $this->members->payloadsForIds($operation->after_action_no_show_user_ids ?? []);
+        $operationPayload['after_action_signed_off_early'] = $this->members->payloadsForIds($operation->after_action_signed_off_early_user_ids ?? []);
+        $operationPayload['after_action_excused'] = $this->members->payloadsForIds($operation->after_action_excused_user_ids ?? []);
         $operationPayload['operation_settlement'] = $this->settlements->payload($operation, $viewer, $canManageAar, $settlementLootOptions);
         $operationPayload['permissions'] = [
             'can_view_slots' => $canViewSlots,
@@ -100,6 +107,8 @@ class OperationShowDataService
                 'after_action_report',
                 'after_action_attendance_user_ids',
                 'after_action_no_show_user_ids',
+                'after_action_signed_off_early_user_ids',
+                'after_action_excused_user_ids',
                 'after_action_report_updated_at'
             )
             ->with([
@@ -132,9 +141,13 @@ class OperationShowDataService
                     'after_action_report' => $operation->after_action_report,
                     'after_action_attendance_user_ids' => $operation->after_action_attendance_user_ids ?? [],
                     'after_action_no_show_user_ids' => $operation->after_action_no_show_user_ids ?? [],
+                    'after_action_signed_off_early_user_ids' => $operation->after_action_signed_off_early_user_ids ?? [],
+                    'after_action_excused_user_ids' => $operation->after_action_excused_user_ids ?? [],
                     'after_action_report_updated_at' => $operation->after_action_report_updated_at?->toIso8601String(),
                     'after_action_attendance' => $this->members->payloadsForIds($operation->after_action_attendance_user_ids ?? []),
                     'after_action_no_show' => $this->members->payloadsForIds($operation->after_action_no_show_user_ids ?? []),
+                    'after_action_signed_off_early' => $this->members->payloadsForIds($operation->after_action_signed_off_early_user_ids ?? []),
+                    'after_action_excused' => $this->members->payloadsForIds($operation->after_action_excused_user_ids ?? []),
                     'operation_settlement' => $this->settlements->payload($operation, $viewer, $canManage, $settlementLootOptions, false),
                     'creator' => $operation->creator ? $this->members->payload($operation->creator) : null,
                     'squadron' => $operation->squadron

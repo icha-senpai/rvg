@@ -5,6 +5,7 @@ import { route } from 'ziggy-js'
 
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 
 import { formatOrgRoleLabel, getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
 
@@ -265,7 +266,7 @@ function hasFavoriteData(user) {
             </div>
 
             <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-              <input
+              <HorizonInput
                 v-model="search"
                 type="text"
                 class="hz-input"

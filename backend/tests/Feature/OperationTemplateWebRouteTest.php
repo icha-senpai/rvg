@@ -48,7 +48,20 @@ class OperationTemplateWebRouteTest extends TestCase
                     'operation_strictness' => 'normal',
                     'start_location' => 'Everus Harbor',
                     'operation_location' => 'Hurston',
-                    'slots' => ['Pilot', 'Gunner'],
+                    'roles' => [
+                        [
+                            'role_display_name' => 'Pilot',
+                            'capacity' => 2,
+                            'sort_order' => 7,
+                            'is_required' => true,
+                        ],
+                        [
+                            'role_display_name' => 'Gunner',
+                            'capacity' => 1,
+                            'sort_order' => 11,
+                            'is_required' => false,
+                        ],
+                    ],
                 ],
             ]);
 
@@ -68,5 +81,85 @@ class OperationTemplateWebRouteTest extends TestCase
         $this->assertSame('escort', $template->payload['gameplay_type']);
         $this->assertSame('Detailed briefing text.', $template->payload['extended_description']);
         $this->assertSame(['Pilot', 'Gunner'], $template->payload['slots']);
+        $this->assertSame(7, $template->payload['roles'][0]['sort_order']);
+        $this->assertTrue($template->payload['roles'][0]['is_required']);
+        $this->assertSame(11, $template->payload['roles'][1]['sort_order']);
+        $this->assertFalse($template->payload['roles'][1]['is_required']);
+    }
+
+    public function test_non_lieutenant_cannot_create_operation_template_via_web_route(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+            'rank_level' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/operation-templates', [
+                'name' => 'Blocked Template',
+                'scope' => OperationTemplate::SCOPE_PERSONAL,
+                'payload' => [
+                    'title' => 'Blocked',
+                    'gameplay_type' => 'escort',
+                ],
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_non_owner_cannot_update_or_delete_personal_operation_template_via_web_routes(): void
+    {
+        $role = Role::create([
+            'name' => 'Lieutenant',
+            'slug' => 'lieutenant',
+            'description' => 'Test lieutenant role',
+            'is_system' => true,
+        ]);
+
+        /** @var User $owner */
+        $owner = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+            'rank_level' => 2,
+        ]);
+        $owner->roles()->attach($role->id);
+        $owner->load('roles');
+
+        /** @var User $otherOfficer */
+        $otherOfficer = User::factory()->create([
+            'global_status' => User::STATUS_ACTIVE,
+            'rsi_verified_at' => now(),
+            'rank_level' => 2,
+        ]);
+        $otherOfficer->roles()->attach($role->id);
+        $otherOfficer->load('roles');
+
+        $template = OperationTemplate::query()->create([
+            'name' => 'Owner Template',
+            'scope' => OperationTemplate::SCOPE_PERSONAL,
+            'owner_user_id' => $owner->id,
+            'created_by' => $owner->id,
+            'payload' => [
+                'title' => 'Owner Template',
+                'gameplay_type' => 'escort',
+                'roles' => [],
+            ],
+        ]);
+
+        $this->actingAs($otherOfficer)
+            ->put('/operation-templates/' . $template->id, [
+                'name' => 'Stolen Template',
+                'payload' => [
+                    'title' => 'Still Owner Template',
+                    'gameplay_type' => 'escort',
+                    'roles' => [],
+                ],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($otherOfficer)
+            ->delete('/operation-templates/' . $template->id)
+            ->assertForbidden();
     }
 }

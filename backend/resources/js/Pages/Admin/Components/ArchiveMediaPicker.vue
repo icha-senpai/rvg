@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonFileField from '@/Components/HorizonFileField.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
@@ -18,7 +19,7 @@ const isUploading = ref(false)
 const error = ref('')
 const uploadError = ref('')
 const uploadAltText = ref('')
-const uploadInput = ref(null)
+const uploadFile = ref(null)
 const search = ref('')
 const media = ref([])
 
@@ -76,7 +77,7 @@ async function loadMedia() {
 }
 
 async function uploadMedia() {
-  const file = uploadInput.value?.files?.[0]
+  const file = uploadFile.value
 
   if (!file) {
     uploadError.value = 'Choose an image file first.'
@@ -113,13 +114,17 @@ async function uploadMedia() {
     media.value = [uploaded, ...media.value.filter(item => item.id !== uploaded.id)]
     selectedUrl.value = mediaDisplayUrl(uploaded)
     uploadAltText.value = ''
-
-    if (uploadInput.value) uploadInput.value.value = ''
+    uploadFile.value = null
   } catch (err) {
     uploadError.value = err?.message || 'Unable to upload media.'
   } finally {
     isUploading.value = false
   }
+}
+
+function handleUploadSelection(event) {
+  uploadFile.value = event.target.files?.[0] ?? null
+  uploadError.value = ''
 }
 
 function openPicker() {
@@ -193,11 +198,14 @@ onMounted(() => {
                   Upload an image directly into the media library. It will be selected automatically after upload.
                 </p>
 
-                <input
-                  ref="uploadInput"
-                  type="file"
+                <HorizonFileField
+                  class="mt-4"
+                  label="File"
+                  description="JPEG, PNG, WEBP, or GIF."
+                  button-label="Choose Image"
+                  :selected-name="uploadFile?.name || ''"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  class="mt-4 block w-full cursor-pointer rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-[color:var(--horizon-sunset-blue)]/20 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-horizon-white hover:border-[color:var(--horizon-sunset-blue)]/35"
+                  @change="handleUploadSelection"
                 />
 
                 <HorizonInput v-model="uploadAltText" class="mt-3" placeholder="Alt text / description" />
@@ -251,8 +259,6 @@ onMounted(() => {
     </teleport>
   </div>
 </template>
-
-
 
 
 

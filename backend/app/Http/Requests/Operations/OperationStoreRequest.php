@@ -72,6 +72,8 @@ class OperationStoreRequest extends FormRequest
             'roles.*.role_name'    => 'nullable|string|max:255',
             'roles.*.role_display_name' => 'required|string|max:255|regex:/\S/',
             'roles.*.capacity'     => 'nullable|integer|min:0',
+            'roles.*.sort_order'   => 'nullable|integer|min:0',
+            'roles.*.is_required'  => 'nullable|boolean',
         ];
     }
 }

@@ -7,6 +7,8 @@ import SquadronOverviewSection from './SquadronOverviewSection.vue'
 import SquadronViewerStatus from './SquadronViewerStatus.vue'
 import SquadronRoster from './SquadronRoster.vue'
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonInput from '@/Components/HorizonInput.vue'
+import HorizonModal from '@/Components/HorizonModal.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import { canEditSquadronEmblem as userCanEditSquadronEmblem } from '@/auth'
@@ -693,7 +695,7 @@ watch(
           </div>
 
           <label class="hz-label">Motto</label>
-          <input
+          <HorizonInput
             v-model="editForm.motto"
             class="hz-input"
             placeholder="Optional motto"
@@ -961,7 +963,7 @@ watch(
             </div>
 
             <label class="hz-label">Motto</label>
-            <input
+            <HorizonInput
               v-model="editForm.motto"
               class="hz-input"
               placeholder="Optional motto"
@@ -1054,28 +1056,22 @@ watch(
     </section>
   </section>
 
-  <div
+  <HorizonModal
     v-else
-    class="fixed inset-0 z-40 flex items-center justify-center p-4"
+    :open="true"
+    :show-close-button="props.showCloseButton"
+    close-label="Close squadron panel"
+    max-width-class="max-w-5xl"
+    max-height-class="sm:max-h-[90vh]"
+    :panel-class="[
+      'bg-bg-surface border! border-(--horizon-sunset-blue)! shadow-2xl',
+      closing ? 'hz-animate-modal-out' : 'hz-animate-modal-in',
+    ]"
+    body-class="flex-1 overflow-y-auto px-6 py-6 hz-stack"
+    @close="requestClose"
   >
-    <div
-      class="absolute inset-0 backdrop-blur-sm"
-      @click.self="requestClose"
-    />
-
-    <section
-      :class="[
-        'relative z-50 w-full max-w-5xl max-h-[90vh]',
-        'bg-bg-surface',
-        'border! border-(--horizon-sunset-blue)!',
-        'rounded-2xl shadow-2xl',
-        'flex flex-col overflow-hidden',
-        closing ? 'hz-animate-modal-out' : 'hz-animate-modal-in'
-      ]"
-    >
-      <header
-        class="shrink-0 px-6 py-4 border-b border-white/10 flex items-start justify-between"
-      >
+    <template #header>
+      <div class="flex items-start justify-between gap-4">
         <SquadronPanelHeader :squadron="squadron" />
 
         <div class="hz-row gap-2">
@@ -1096,18 +1092,11 @@ watch(
           >
             Edit
           </HorizonButton>
-
-          <button
-            v-if="props.showCloseButton"
-            class="text-horizon-offwhite hover:text-horizon-white transition"
-            @click="requestClose"
-          >
-            ✕
-          </button>
         </div>
-      </header>
+      </div>
+    </template>
 
-      <section class="flex-1 overflow-y-auto px-6 py-6 hz-stack">
+      <div>
         <div v-if="isLoading" class="hz-soft">
           Loading squadron…
         </div>
@@ -1241,7 +1230,7 @@ watch(
               </div>
 
               <label class="hz-label">Motto</label>
-              <input
+              <HorizonInput
                 v-model="editForm.motto"
                 class="hz-input"
                 placeholder="Optional motto"
@@ -1333,9 +1322,8 @@ watch(
             />
           </div>
         </template>
-      </section>
-    </section>
-  </div>
+      </div>
+  </HorizonModal>
 
   <MediaPickerModal
     :open="emblemPickerOpen"
@@ -1403,9 +1391,5 @@ watch(
   border-radius: 0 !important;
 }
 </style>
-
-
-
-
 
 

@@ -9,6 +9,7 @@ use App\Http\Middleware\ApplyRolePreview;
 use App\Http\Middleware\ForceDiscordAuth;
 use App\Http\Middleware\EnforceMaxAuthAge;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -110,6 +111,18 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);
+        });
+
+        $exceptions->renderable(function (ValidationException $e, $request) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], $e->status);
         });
 
         /*

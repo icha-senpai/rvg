@@ -9,6 +9,7 @@ use App\Models\Squadron;
 use App\Models\SquadronMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -156,6 +157,98 @@ class OperationWebInertiaFlowTest extends TestCase
         $this->assertDatabaseHas('operations', [
             'id' => $operation->id,
             'status' => 'in_progress',
+        ]);
+    }
+
+    public function test_operation_start_redirects_back_with_warning_when_discord_sync_needs_attention(): void
+    {
+        config()->set('services.bot.url', 'http://bot.test/bot');
+        config()->set('services.bot.secret', 'test-secret');
+        config()->set('services.discord.operation_lobby_1_channel_id', '1454413000650788949');
+        config()->set('services.discord.operation_lobby_2_channel_id', '1454413003142332448');
+        config()->set('services.discord.operation_category_id', '1454412961828438092');
+        config()->set('services.discord.operation_member_role_id', '1454412917746438289');
+
+        Http::fake([
+            'http://bot.test/bot/operations/runtime/sync-channels' => Http::response([
+                'unexpected' => 'payload',
+            ], 503),
+        ]);
+
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'published',
+        ]);
+
+        $operation->discordChannels()->create([
+            'name' => 'Hammer Team',
+            'discord_channel_id' => '1999',
+            'sort_order' => 0,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/operations/dashboard?operation=' . $operation->id)
+            ->post('/operations/' . $operation->id . '/start');
+
+        $response
+            ->assertRedirect('/operations/dashboard?operation=' . $operation->id)
+            ->assertSessionHas('success', 'Operation started.')
+            ->assertSessionHas(
+                'warning',
+                'Operation started, but Discord channel sync needs attention: Discord bot rejected the request (503).'
+            );
+    }
+
+    public function test_operation_publish_redirects_to_show_route_by_default_with_success_message(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'draft',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post('/operations/' . $operation->id . '/publish');
+
+        $response
+            ->assertRedirect('/operations/' . $operation->id)
+            ->assertSessionHas('success', 'Operation published successfully.');
+
+        $this->assertDatabaseHas('operations', [
+            'id' => $operation->id,
+            'status' => 'published',
+        ]);
+    }
+
+    public function test_operation_publish_stays_on_page_when_requested_and_sets_flash_operation_event(): void
+    {
+        $user = $this->actingAsDirector();
+
+        $operation = $this->makeOperation($user, [
+            'status' => 'draft',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/operations/dashboard?edit=' . $operation->id)
+            ->post('/operations/' . $operation->id . '/publish', [
+                'stay_on_page' => true,
+            ]);
+
+        $response
+            ->assertRedirect('/operations/dashboard?edit=' . $operation->id)
+            ->assertSessionHas('success', 'Operation published successfully.')
+            ->assertSessionHas('operation', [
+                'event' => 'published',
+                'id' => $operation->id,
+            ]);
+
+        $this->assertDatabaseHas('operations', [
+            'id' => $operation->id,
+            'status' => 'published',
         ]);
     }
 
@@ -330,10 +423,14 @@ class OperationWebInertiaFlowTest extends TestCase
                     [
                         'role_display_name' => 'Pilot',
                         'capacity' => 2,
+                        'sort_order' => 4,
+                        'is_required' => true,
                     ],
                     [
                         'role_display_name' => 'Medic',
                         'capacity' => 1,
+                        'sort_order' => 9,
+                        'is_required' => false,
                     ],
                 ],
             ]);
@@ -348,12 +445,16 @@ class OperationWebInertiaFlowTest extends TestCase
             'operation_id' => $operation->id,
             'role_display_name' => 'Pilot',
             'capacity' => 2,
+            'sort_order' => 4,
+            'is_required' => true,
         ]);
 
         $this->assertDatabaseHas('operation_roles', [
             'operation_id' => $operation->id,
             'role_display_name' => 'Medic',
             'capacity' => 1,
+            'sort_order' => 9,
+            'is_required' => false,
         ]);
     }
 

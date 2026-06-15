@@ -76,6 +76,9 @@ const canAddToCalendar = computed(() => {
 
   return !['completed', 'canceled', 'in_progress'].includes(operation?.status ?? '')
 })
+const canOpenRunTool = computed(() => {
+  return canManageOperation.value && ['published', 'in_progress'].includes(operation?.status ?? '')
+})
 const canStartOperation = computed(() => canManageOperation.value && operation?.status === 'published')
 const canCompleteOperation = computed(() => canManageOperation.value && operation?.status === 'in_progress')
 const canCancelOperation = computed(() => {
@@ -462,6 +465,11 @@ const canJoinOperation = computed(() => {
 const canUpdateParticipation = computed(() => {
   return !!currentParticipant.value && !participationLockedByStatus.value
 })
+const canLeaveOperation = computed(() => {
+  return !!currentParticipant.value
+    && !participationLockedByStatus.value
+    && !signUpsClosedByStart.value
+})
 
 const currentParticipantSlotChanged = computed(() => {
   return String(joinForm.roleId ?? '') !== String(currentParticipant.value?.role?.id ?? '')
@@ -478,13 +486,13 @@ const participationStatusMessage = computed(() => {
 
   if (operation?.status === 'in_progress') {
     return currentParticipant.value
-      ? 'This operation is underway. New sign-ups are closed.'
+      ? 'This operation is underway. New sign-ups are closed and leaving is locked.'
       : 'This operation is underway. Sign-ups are closed.'
   }
 
   if (signUpsClosedByStart.value) {
     return currentParticipant.value
-      ? 'This operation has already started. New sign-ups are closed.'
+      ? 'This operation has already started. New sign-ups are closed and leaving is locked.'
       : 'This operation has already started. Sign-ups are closed.'
   }
 
@@ -650,11 +658,12 @@ const leaveConfirmDialog = ref(null)
 
 function askLeave() {
   if (joinProcessing.value) return
-  if (!canUpdateParticipation.value) return
+  if (!canLeaveOperation.value) return
   leaveConfirmDialog.value?.show()
 }
 
 function confirmLeave({ close }) {
+  if (!canLeaveOperation.value) return
   joinProcessing.value = true
 
   router.post(
@@ -874,45 +883,12 @@ function emitCancelOperation() {
                 Edit Operation
               </HorizonButton>
 
-              <HorizonButton
-                v-if="canStartOperation"
-                variant="primary"
-                class="w-full"
-                :disabled="transitionProcessing"
-                @click="emitStartOperation"
-              >
-                {{ transitionProcessing ? 'Running…' : 'Run Operation' }}
-              </HorizonButton>
+              <a v-if="canOpenRunTool" :href="route('operations.run', operation.id, Ziggy)" class="block">
+                <HorizonButton variant="outline" class="w-full">
+                  Open Run Tool
+                </HorizonButton>
+              </a>
 
-              <HorizonButton
-                v-if="canCompleteOperation"
-                variant="primary"
-                class="w-full"
-                :disabled="transitionProcessing"
-                @click="emitCompleteOperation('success')"
-              >
-                {{ transitionProcessing ? 'Saving…' : 'Finish Success' }}
-              </HorizonButton>
-
-              <HorizonButton
-                v-if="canCompleteOperation"
-                variant="danger"
-                class="w-full"
-                :disabled="transitionProcessing"
-                @click="emitCompleteOperation('failed')"
-              >
-                {{ transitionProcessing ? 'Saving…' : 'Finish Failed' }}
-              </HorizonButton>
-
-              <HorizonButton
-                v-if="canCancelOperation"
-                variant="danger"
-                class="w-full"
-                :disabled="transitionProcessing"
-                @click="emitCancelOperation"
-              >
-                {{ transitionProcessing ? 'Canceling…' : 'Cancel Operation' }}
-              </HorizonButton>
             </div>
 
             <div v-if="canAddToCalendar" class="space-y-2">
@@ -961,7 +937,7 @@ function emitCancelOperation() {
                   </HorizonButton>
                 </div>
 
-                <div v-if="canUpdateParticipation">
+                <div v-if="canLeaveOperation">
                   <HorizonButton variant="outline" class="w-full" :disabled="joinProcessing" @click="askLeave">
                     Leave Operation
                   </HorizonButton>

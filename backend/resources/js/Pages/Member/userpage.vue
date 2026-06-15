@@ -239,6 +239,28 @@ const displayNameColor = computed(() => {
   return getOrgRoleColor(slug)
 })
 
+function parseHexColor(hex) {
+  const normalized = String(hex ?? '').trim()
+  if (!/^#?[0-9a-f]{6}$/i.test(normalized)) return null
+
+  const value = normalized.startsWith('#') ? normalized.slice(1) : normalized
+
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16),
+  }
+}
+
+function getReadableButtonTextColor(hex) {
+  const rgb = parseHexColor(hex)
+  if (!rgb) return '#f8fafc'
+
+  const brightness = ((rgb.r * 299) + (rgb.g * 587) + (rgb.b * 114)) / 1000
+
+  return brightness >= 170 ? '#08111f' : '#f8fafc'
+}
+
 const canViewRestrictedOperationStats = computed(() => {
   return isAdmiralPlus(inertiaUser.value)
 })
@@ -384,12 +406,31 @@ const operationsStats = computed(() => {
     joined: u?.operations_joined_count ?? 0,
     completed: u?.operations_completed_count ?? 0,
     noShow: u?.operations_no_show_count ?? 0,
+    excused: u?.operations_excused_count ?? 0,
     leftEarly: u?.operations_left_early_count ?? 0,
   }
 })
 
 const promotionPanel = computed(() => me.value?.promotion ?? null)
 const activePromotionOffer = computed(() => promotionPanel.value?.active_offer ?? null)
+const nextPromotionRankSlug = computed(() => promotionPanel.value?.next_rank?.slug ?? null)
+const nextPromotionRankColor = computed(() => getOrgRoleColor(nextPromotionRankSlug.value))
+const promotionActionButtonStyle = computed(() => {
+  const color = nextPromotionRankColor.value
+  const rgb = parseHexColor(color)
+
+  if (!color || !rgb) {
+    return null
+  }
+
+  return {
+    backgroundColor: color,
+    borderColor: color,
+    color: getReadableButtonTextColor(color),
+    boxShadow: `0 10px 24px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`,
+  }
+})
+
 const selectedPromotionBranch = computed(() => {
   const options = promotionPanel.value?.allowed_branch_roles ?? []
   return options.find(option => option.id === selectedPromotionBranchRoleId.value) ?? null
@@ -522,11 +563,16 @@ function applyUpdatedProfile(pagePayload) {
 
 function togglePromotionWorkflow() {
   isPromotionWorkflowOpen.value = !isPromotionWorkflowOpen.value
+
+  if (!isPromotionWorkflowOpen.value) {
+    isPromotionConfirmOpen.value = false
+  }
 }
 
 function openPromotionConfirm() {
   if (!canOpenPromotionConfirm.value) return
   promotionErrorMessage.value = null
+  isPromotionWorkflowOpen.value = true
   isPromotionConfirmOpen.value = true
 }
 
@@ -619,6 +665,11 @@ watch(
   }
 )
 
+watch(selectedPromotionBranchRoleId, () => {
+  if (!isPromotionConfirmOpen.value) return
+  promotionErrorMessage.value = null
+})
+
 watch(
   () => page.url,
   () => {
@@ -629,7 +680,7 @@ watch(
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8">
+    <div class="mx-auto max-w-7xl space-y-8">
       <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-6 ">
         <div class="pointer-events-none absolute inset-0 opacity-20">
           <div class="absolute left-8 top-0 h-px w-48 bg-gradient-to-r from-transparent via-[color:var(--horizon-sunset-blue)] to-transparent"></div>
@@ -804,9 +855,10 @@ watch(
                       <HorizonButton
                         variant="primary"
                         size="sm"
+                        :style="promotionActionButtonStyle"
                         @click="togglePromotionWorkflow"
                       >
-                        Promote
+                        {{ promotionPanel?.next_rank?.label ? `Promote to ${promotionPanel.next_rank.label}` : 'Promote' }}
                       </HorizonButton>
 
                       <span
@@ -819,21 +871,11 @@ watch(
 
                     <div
                       v-if="isPromotionWorkflowOpen"
-                      class="mt-4 rounded-[1.5rem] border border-white/[0.055] bg-white/[0.03] p-4"
+                      class="mt-4"
                     >
-                      <div class="flex flex-wrap items-start justify-end gap-3">
-                        <HorizonButton
-                          variant="ghost"
-                          size="sm"
-                          @click="togglePromotionWorkflow"
-                        >
-                          Close
-                        </HorizonButton>
-                      </div>
-
                       <div
                         v-if="activePromotionOffer"
-                        class="mt-4 rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4"
+                        class="rounded-[1.5rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4"
                       >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                           <div>
@@ -880,76 +922,173 @@ watch(
 
                       <div
                         v-else
-                        class="mt-4 space-y-4"
+                        class="flex flex-col gap-4 xl:flex-row xl:items-start"
                       >
                         <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.03] p-4">
-                          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Next Eligible Rank
-                          </div>
+                          <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                                Promotion Step 1
+                              </div>
 
-                          <div class="mt-1 text-sm font-semibold text-horizon-white">
-                            {{ promotionPanel?.next_rank?.label || 'No controlled next rank' }}
+                              <div class="mt-1 text-sm font-semibold text-horizon-white">
+                                Choose branch or demote
+                              </div>
+                            </div>
+
+                            <HorizonButton
+                              variant="ghost"
+                              size="sm"
+                              @click="togglePromotionWorkflow"
+                            >
+                              Close
+                            </HorizonButton>
                           </div>
 
                           <div
                             v-if="promotionPanel?.gating_reason"
-                            class="mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100"
+                            class="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100"
                           >
                             {{ promotionPanel.gating_reason }}
                           </div>
-                        </div>
 
-                        <div
-                          v-if="promotionPanel?.can_create"
-                          class="space-y-3 rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4"
-                        >
-                          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Branch Selection
-                          </div>
-
-                          <HorizonInput
-                            v-model="selectedPromotionBranchRoleId"
-                            type="select"
-                            label=""
-                            :options="[
-                              { label: 'Select branch role', value: '' },
-                              ...(promotionPanel?.allowed_branch_roles ?? []).map(option => ({
-                                label: option.label,
-                                value: option.id,
-                              })),
-                            ]"
-                          />
-
-                          <HorizonButton
-                            variant="primary"
-                            size="sm"
-                            :disabled="!canOpenPromotionConfirm || isSubmittingPromotion"
-                            @click="openPromotionConfirm"
+                          <div
+                            v-if="promotionPanel?.can_create"
+                            class="mt-4 space-y-3 rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4"
                           >
-                            Review Offer
-                          </HorizonButton>
+                            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                              Select Branch
+                            </div>
+
+                            <HorizonInput
+                              v-model="selectedPromotionBranchRoleId"
+                              type="select"
+                              label=""
+                              :options="[
+                                { label: 'Select branch role', value: '' },
+                                ...(promotionPanel?.allowed_branch_roles ?? []).map(option => ({
+                                  label: option.label,
+                                  value: option.id,
+                                })),
+                              ]"
+                            />
+
+                            <HorizonButton
+                              variant="primary"
+                              size="sm"
+                              :style="promotionActionButtonStyle"
+                              :disabled="!canOpenPromotionConfirm || isSubmittingPromotion"
+                              @click="openPromotionConfirm"
+                            >
+                              Review Offer
+                            </HorizonButton>
+                          </div>
+
+                          <div
+                            v-if="promotionPanel?.can_demote"
+                            class="mt-4 rounded-[1.25rem] border border-red-300/20 bg-red-300/5 p-4"
+                          >
+                            <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                              Demotion
+                            </div>
+
+                            <p class="mt-2 text-sm text-text-secondary">
+                              Demotion is a direct action and always returns the member to Member.
+                            </p>
+
+                            <div class="mt-4">
+                              <HorizonButton
+                                variant="ghost"
+                                size="sm"
+                                :disabled="isDemotingMember"
+                                @click="demoteProfileMember"
+                              >
+                                {{ isDemotingMember ? 'Demoting…' : 'Demote to Member' }}
+                              </HorizonButton>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="hidden items-center justify-center self-stretch px-1 text-[color:var(--horizon-text-secondary)] xl:flex">
+                          <span class="rounded-full border border-white/[0.055] bg-white/[0.03] px-3 py-2 text-lg font-black">›</span>
                         </div>
 
                         <div
-                          v-if="promotionPanel?.can_demote"
-                          class="rounded-[1.25rem] border border-red-300/20 bg-red-300/5 p-4"
+                          v-if="isPromotionConfirmOpen && promotionPanel?.next_rank"
+                          class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.03] p-4 xl:min-w-[22rem] xl:max-w-md"
                         >
-                          <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Demotion
-                          </div>
+                          <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                                Promotion Step 2
+                              </div>
 
-                          <p class="mt-2 text-sm text-text-secondary">
-                            Demotion is a direct action and always returns the member to Member.
-                          </p>
+                              <div class="mt-1 text-sm font-semibold text-horizon-white">
+                                Review and send
+                              </div>
+                            </div>
 
-                          <div class="mt-4">
                             <HorizonButton
                               variant="ghost"
                               size="sm"
-                              :disabled="isDemotingMember"
-                              @click="demoteProfileMember"
+                              :disabled="isSubmittingPromotion"
+                              @click="closePromotionConfirm"
                             >
-                              {{ isDemotingMember ? 'Demoting…' : 'Demote to Member' }}
+                              Back
+                            </HorizonButton>
+                          </div>
+
+                          <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
+                              <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                Current Rank
+                              </div>
+                              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                                {{ promotionPanel?.current_rank?.label || rankName }}
+                              </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
+                              <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                New Rank
+                              </div>
+                              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                                {{ promotionPanel.next_rank.label }}
+                              </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
+                              <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                Branch
+                              </div>
+                              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                                {{ selectedPromotionBranch?.label || 'Not selected' }}
+                              </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
+                              <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                Promoter
+                              </div>
+                              <div class="mt-2 text-sm font-semibold text-horizon-white">
+                                {{ inertiaUser?.rsi_handle ?? inertiaUser?.discord_name ?? inertiaUser?.name ?? 'Unknown' }}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="mt-4 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4 text-sm text-text-secondary">
+                            This offer will remain active for {{ promotionPanel?.expiry_minutes || 240 }} minutes once sent.
+                          </div>
+
+                          <div class="mt-4 flex flex-wrap justify-end gap-2">
+                            <HorizonButton
+                              variant="primary"
+                              size="sm"
+                              :style="promotionActionButtonStyle"
+                              :disabled="!canOpenPromotionConfirm || isSubmittingPromotion"
+                              @click="submitPromotionOffer"
+                            >
+                              {{ isSubmittingPromotion ? 'Sending…' : 'Send Offer' }}
                             </HorizonButton>
                           </div>
                         </div>
@@ -1388,7 +1527,7 @@ watch(
                 </template>
 
                 <div v-else class="space-y-4">
-                  <input
+                  <HorizonInput
                     v-model="favoriteShipSearch"
                     type="text"
                     class="hz-input"
@@ -1496,7 +1635,7 @@ watch(
                 </template>
 
                 <div v-else class="space-y-4">
-                  <input
+                  <HorizonInput
                     v-model="favoriteItemSearch"
                     type="text"
                     class="hz-input"
@@ -1673,6 +1812,16 @@ watch(
 
                     <div class="mt-2 text-2xl font-black text-horizon-white">
                       {{ operationsStats.noShow }}
+                    </div>
+                  </div>
+
+                  <div class="rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4">
+                    <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Excused
+                    </div>
+
+                    <div class="mt-2 text-2xl font-black text-horizon-white">
+                      {{ operationsStats.excused }}
                     </div>
                   </div>
 
@@ -1925,7 +2074,7 @@ watch(
         </div>
 
         <div class="space-y-4">
-          <input
+          <HorizonInput
             v-model="favoriteShipSearch"
             type="text"
             class="hz-input"
@@ -1999,7 +2148,7 @@ watch(
         </div>
 
         <div class="space-y-4">
-          <input
+          <HorizonInput
             v-model="favoriteItemSearch"
             type="text"
             class="hz-input"
@@ -2089,81 +2238,4 @@ watch(
     </template>
   </HorizonDrawer>
 
-  <div
-    v-if="isPromotionConfirmOpen && promotionPanel?.next_rank"
-    class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-    @click.self="closePromotionConfirm"
-  >
-    <div class="hz-surface-welcome w-full max-w-xl rounded-[2rem] border border-white/[0.055] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-      <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
-        Review Promotion Offer
-      </div>
-
-      <h2 class="mt-2 text-2xl font-black text-horizon-white">
-        {{ displayName }}
-      </h2>
-
-      <div class="mt-5 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
-          <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-            Current Rank
-          </div>
-          <div class="mt-2 text-sm font-semibold text-horizon-white">
-            {{ promotionPanel?.current_rank?.label || rankName }}
-          </div>
-        </div>
-
-        <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
-          <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-            New Rank
-          </div>
-          <div class="mt-2 text-sm font-semibold text-horizon-white">
-            {{ promotionPanel.next_rank.label }}
-          </div>
-        </div>
-
-        <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
-          <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-            Branch
-          </div>
-          <div class="mt-2 text-sm font-semibold text-horizon-white">
-            {{ selectedPromotionBranch?.label || 'Not selected' }}
-          </div>
-        </div>
-
-        <div class="rounded-2xl border border-white/[0.055] bg-white/[0.03] p-4">
-          <div class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">
-            Promoter
-          </div>
-          <div class="mt-2 text-sm font-semibold text-horizon-white">
-            {{ inertiaUser?.rsi_handle ?? inertiaUser?.discord_name ?? inertiaUser?.name ?? 'Unknown' }}
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 rounded-2xl border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.03] p-4 text-sm text-text-secondary">
-        This offer will remain active for {{ promotionPanel?.expiry_minutes || 240 }} minutes once sent.
-      </div>
-
-      <div class="mt-6 flex flex-wrap justify-end gap-2">
-        <HorizonButton
-          variant="ghost"
-          size="sm"
-          :disabled="isSubmittingPromotion"
-          @click="closePromotionConfirm"
-        >
-          Back
-        </HorizonButton>
-
-        <HorizonButton
-          variant="primary"
-          size="sm"
-          :disabled="!canOpenPromotionConfirm || isSubmittingPromotion"
-          @click="submitPromotionOffer"
-        >
-          {{ isSubmittingPromotion ? 'Sending…' : 'Send Offer' }}
-        </HorizonButton>
-      </div>
-    </div>
-  </div>
 </template>

@@ -76,6 +76,7 @@ class User extends Authenticatable
             'operations_left_early_count' => 'integer',
             'operations_completed_count' => 'integer',
             'operations_no_show_count' => 'integer',
+            'operations_excused_count' => 'integer',
             'operations_created_count' => 'integer',
             'operations_canceled_count' => 'integer',
             'operations_success_count' => 'integer',

@@ -49,7 +49,7 @@ function squadronHref(squadron) {
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8">
+    <div class="mx-auto max-w-7xl space-y-8">
       <!-- Header -->
       <div class="border-b border-white/[0.055] pb-5">
         <div class="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--horizon-text-secondary)]">
@@ -162,7 +162,6 @@ function squadronHref(squadron) {
     </div>
   </HorizonContainer>
 </template>
-
 
 
 

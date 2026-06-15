@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\LedgerAccount;
+use App\Models\LedgerInventoryItem;
 use App\Models\LedgerTransaction;
+use App\Models\Operation;
+use App\Models\OperationSettlement;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\WipeCycle;
@@ -179,6 +182,127 @@ class OrganizationLedgerFeatureTest extends TestCase
         $this->assertDatabaseMissing('ledger_transactions', [
             'id' => $transaction->id,
         ]);
+    }
+
+    public function test_org_settlement_receipts_stay_locked_in_org_ledger_flows(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $director = $this->directorUser();
+        $wipe = WipeCycle::query()->create([
+            'name' => '4.1 Live',
+            'star_citizen_version' => '4.1',
+            'wipe_type' => 'inventory',
+            'started_at' => now()->subDays(4),
+            'is_current' => true,
+        ]);
+
+        $orgAccount = LedgerAccount::query()->create([
+            'user_id' => $director->id,
+            'squadron_id' => null,
+            'is_org_owned' => true,
+            'name' => 'Horizon Treasury',
+            'type' => 'organization',
+            'currency' => 'aUEC',
+            'is_default' => true,
+        ]);
+
+        $operation = Operation::query()->create([
+            'created_by' => $director->id,
+            'title' => 'Org Settlement Lock Test',
+            'description' => 'Completed operation for org ledger lock testing.',
+            'status' => 'completed',
+            'visibility' => 'open',
+            'starts_at' => now()->subHours(3),
+            'ends_at' => now()->subHour(),
+        ]);
+
+        $settlement = OperationSettlement::query()->create([
+            'operation_id' => $operation->id,
+            'money_rows' => [],
+            'loot_rows' => [],
+            'finalized_by_user_id' => $director->id,
+            'finalized_at' => now()->subHour(),
+        ]);
+
+        $transaction = LedgerTransaction::query()->create([
+            'user_id' => $director->id,
+            'squadron_id' => null,
+            'is_org_owned' => true,
+            'ledger_account_id' => $orgAccount->id,
+            'wipe_cycle_id' => $wipe->id,
+            'type' => 'income',
+            'amount' => 42000,
+            'currency' => 'aUEC',
+            'source_type' => 'operation_settlement',
+            'description' => 'Settlement org payout',
+            'transaction_date' => now()->subHour(),
+            'related_operation_id' => $operation->id,
+            'operation_settlement_id' => $settlement->id,
+            'provenance_locked' => true,
+        ]);
+
+        $inventoryItem = LedgerInventoryItem::query()->create([
+            'user_id' => $director->id,
+            'squadron_id' => null,
+            'is_org_owned' => true,
+            'wipe_cycle_id' => $wipe->id,
+            'related_operation_id' => $operation->id,
+            'operation_settlement_id' => $settlement->id,
+            'source_type' => 'component',
+            'uex_reference_type' => 'item',
+            'uex_reference_id' => 9101,
+            'category' => 'Component',
+            'quantity' => 2,
+            'unit_label' => 'units',
+            'currency' => 'aUEC',
+            'status' => 'stored',
+            'provenance_locked' => true,
+            'acquired_at' => now()->subHour(),
+        ]);
+
+        $this
+            ->actingAs($director)
+            ->from('/organization/ledger')
+            ->put(route('organization.ledger.transactions.update', $transaction), [
+                'ledger_account_id' => $transaction->ledger_account_id,
+                'wipe_cycle_id' => $wipe->id,
+                'type' => 'income',
+                'amount' => 45000,
+                'currency' => 'aUEC',
+                'source_type' => 'operation_settlement',
+                'description' => 'Should stay locked',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertSessionHasErrors('transaction');
+
+        $this
+            ->actingAs($director)
+            ->from('/organization/ledger')
+            ->delete(route('organization.ledger.transactions.destroy', $transaction))
+            ->assertSessionHasErrors('transaction');
+
+        $this
+            ->actingAs($director)
+            ->from('/organization/ledger')
+            ->put(route('organization.ledger.inventory.update', $inventoryItem), [
+                'wipe_cycle_id' => $wipe->id,
+                'source_type' => 'component',
+                'uex_reference_type' => 'item',
+                'uex_reference_id' => 9101,
+                'category' => 'Component',
+                'quantity' => 4,
+                'unit_label' => 'units',
+                'currency' => 'aUEC',
+                'status' => 'stored',
+            ])
+            ->assertSessionHasErrors('inventory');
+
+        $this
+            ->actingAs($director)
+            ->from('/organization/ledger')
+            ->delete(route('organization.ledger.inventory.destroy', $inventoryItem))
+            ->assertSessionHasErrors('inventory');
     }
 
     protected function memberUser(array $overrides = []): User

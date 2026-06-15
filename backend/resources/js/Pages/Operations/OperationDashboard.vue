@@ -799,7 +799,7 @@ function statusCardClass(status) {
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8">
+    <div class="mx-auto max-w-7xl space-y-8">
       <!-- Command header -->
       <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055]">
         <div class="pointer-events-none absolute inset-0 opacity-20">
@@ -1094,52 +1094,19 @@ function statusCardClass(status) {
                     View
                   </HorizonButton>
 
-                  <HorizonButton
-                    v-if="canManageOperation(op) && op.status === 'published'"
-                    size="sm"
-                    variant="primary"
-                    class="min-w-24 hover:bg-[color:var(--color-state-success)]! hover:border-[color:var(--color-state-success)]!"
-                    :disabled="isTransitionProcessing(op.id)"
-                    @click="askStartOperation(op)"
-                  >
-                    {{ isTransitionProcessing(op.id) ? 'Starting…' : 'Start' }}
-                  </HorizonButton>
-
-                  <HorizonButton
+                  <a
                     v-if="canManageOperation(op) && ['published', 'in_progress'].includes(op.status)"
-                    size="sm"
-                    variant="danger"
-                    class="min-w-24"
-                    :disabled="isTransitionProcessing(op.id)"
-                    @click="askCancelOperation(op)"
+                  :href="route('operations.run', op.id)"
+                    class="block"
                   >
-                    Cancel
-                  </HorizonButton>
-                </div>
-
-                <div
-                  v-if="canManageOperation(op) && op.status === 'in_progress'"
-                  class="grid gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-3 sm:grid-cols-2"
-                >
-                  <HorizonButton
-                    size="sm"
-                    variant="primary"
-                    class="w-full hover:bg-[color:var(--color-state-success)]! hover:border-[color:var(--color-state-success)]!"
-                    :disabled="isTransitionProcessing(op.id)"
-                    @click="askCompleteOperation(op, 'success')"
-                  >
-                    {{ isTransitionProcessing(op.id) ? 'Ending…' : 'End Success' }}
-                  </HorizonButton>
-
-                  <HorizonButton
-                    size="sm"
-                    variant="ghost"
-                    class="w-full border-red-300/25! bg-red-300/10! text-red-100! hover:bg-red-300/15!"
-                    :disabled="isTransitionProcessing(op.id)"
-                    @click="askCompleteOperation(op, 'failed')"
-                  >
-                    {{ isTransitionProcessing(op.id) ? 'Ending…' : 'End Failed' }}
-                  </HorizonButton>
+                    <HorizonButton
+                      size="sm"
+                      variant="primary"
+                      class="min-w-24 hover:bg-[color:var(--color-state-success)]! hover:border-[color:var(--color-state-success)]!"
+                    >
+                      Open Run Tool
+                    </HorizonButton>
+                  </a>
                 </div>
               </div>
             </div>

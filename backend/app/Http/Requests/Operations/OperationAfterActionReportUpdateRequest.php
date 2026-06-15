@@ -35,6 +35,24 @@ class OperationAfterActionReportUpdateRequest extends FormRequest
                         ->where('global_status', User::STATUS_ACTIVE)
                         ->whereNotNull('rsi_verified_at')),
             ],
+            'signed_off_early_user_ids' => ['nullable', 'array'],
+            'signed_off_early_user_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('users', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('global_status', User::STATUS_ACTIVE)
+                        ->whereNotNull('rsi_verified_at')),
+            ],
+            'excused_user_ids' => ['nullable', 'array'],
+            'excused_user_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('users', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('global_status', User::STATUS_ACTIVE)
+                        ->whereNotNull('rsi_verified_at')),
+            ],
         ];
     }
 }

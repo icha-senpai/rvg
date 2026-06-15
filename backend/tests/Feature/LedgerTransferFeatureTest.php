@@ -327,6 +327,39 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_completed_fund_transfer_cannot_be_approved_twice(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('TreasuryDonor', 'treasury-donor-repeat-approve');
+        $approver = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)
+            ->post(route('ledger.transactions.transfer'), [
+                'wipe_cycle_id' => $wipe->id,
+                'destination_type' => 'organization',
+                'amount' => 9100,
+                'description' => 'Treasury donation',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($approver)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
+
+        $this->actingAs($approver)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('completed', $request->status);
+    }
+
     public function test_personal_transfer_to_outside_horizon_completes_without_recipient(): void
     {
         config()->set('services.ledger.enabled', true);
@@ -464,6 +497,52 @@ class LedgerTransferFeatureTest extends TestCase
             'quantity' => '4.0000',
             'transfer_request_id' => $request->id,
         ]);
+    }
+
+    public function test_regular_member_cannot_approve_pending_inventory_transfer_into_horizon_treasury(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('CargoPilot', 'cargo-pilot-org-denied');
+        $outsider = $this->verifiedUser('CargoVisitor', 'cargo-visitor');
+        $wipe = $this->currentWipe();
+
+        $item = LedgerInventoryItem::query()->create([
+            'user_id' => $actor->id,
+            'wipe_cycle_id' => $wipe->id,
+            'source_type' => 'commodity',
+            'uex_reference_type' => 'commodity',
+            'uex_reference_id' => 818,
+            'custom_name' => 'Hull Panels',
+            'quantity' => 6,
+            'unit_label' => 'SCU',
+            'purchase_price' => 6000,
+            'estimated_value' => 7200,
+            'currency' => 'aUEC',
+            'status' => 'owned',
+            'acquired_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($actor)
+            ->post(route('ledger.inventory.transfer'), [
+                'inventory_item_id' => $item->id,
+                'destination_type' => 'organization',
+                'quantity' => 2,
+                'notes' => 'Treasury stock top-up',
+            ])
+            ->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'inventory')->firstOrFail();
+
+        $this->actingAs($outsider)
+            ->post(route('organization.ledger.inventory.transfer.approve', $request->id))
+            ->assertForbidden();
+
+        $request->refresh();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertNull($request->completed_at);
+        $this->assertNull($request->destination_inventory_item_id);
     }
 
     public function test_partial_inventory_transfer_to_outside_horizon_reduces_source_without_creating_destination_item(): void
@@ -609,6 +688,37 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_unrelated_verified_member_cannot_approve_pending_personal_transfer_request(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('SenderHandle', 'sender-discord');
+        $recipient = $this->verifiedUser('ReceiverHandle', 'receiver-discord');
+        $stranger = $this->verifiedUser('ThirdPilot', 'third-pilot-discord');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'personal',
+            'destination_user_id' => $recipient->id,
+            'amount' => 6400,
+            'description' => 'Reimbursement',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($stranger)
+            ->post(route('ledger.transactions.transfer.approve', $request->id))
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertNull($request->approved_at);
+        $this->assertNull($request->incoming_transaction_id);
+    }
+
     public function test_squadron_manager_can_approve_pending_cross_squadron_transfer_request(): void
     {
         config()->set('services.ledger.enabled', true);
@@ -659,6 +769,38 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_squadron_manager_cannot_approve_transfer_through_the_wrong_squadron_ledger(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->directorUser();
+        $sourceSquadron = $this->managedSquadronFor($actor, 'Atlas Finance');
+        $recipientSquadron = $this->managedSquadronFor($actor, 'Prospectors Union');
+        $wrongSquadron = $this->managedSquadronFor($actor, 'Wrong Inbox');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('squadrons.ledger.transactions.transfer', ['squadron' => $sourceSquadron->id]), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'squadron',
+            'destination_squadron_id' => $recipientSquadron->id,
+            'amount' => 9400,
+            'description' => 'Cross-squadron reserve',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('squadrons.ledger.transactions.transfer.approve', ['squadron' => $wrongSquadron->id, 'transferRequest' => $request->id]))
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertNull($request->approved_at);
+        $this->assertNull($request->incoming_transaction_id);
+    }
+
     public function test_pending_transfer_request_can_be_rejected(): void
     {
         config()->set('services.ledger.enabled', true);
@@ -692,6 +834,79 @@ class LedgerTransferFeatureTest extends TestCase
         $this->assertDatabaseMissing('ledger_transactions', [
             'transfer_request_id' => $request->id,
         ]);
+    }
+
+    public function test_rejected_transfer_request_cannot_be_rejected_twice(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('SenderHandle', 'sender-discord-repeat-reject');
+        $recipient = $this->verifiedUser('ReceiverHandle', 'receiver-discord-repeat-reject');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'personal',
+            'destination_user_id' => $recipient->id,
+            'amount' => 6400,
+            'description' => 'Reimbursement',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($recipient)
+            ->post(route('ledger.transactions.transfer.reject', $request->id), [
+                'rejection_reason' => 'Wrong member',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($recipient)
+            ->post(route('ledger.transactions.transfer.reject', $request->id), [
+                'rejection_reason' => 'Still wrong member',
+            ])
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('rejected', $request->status);
+        $this->assertSame('Wrong member', $request->rejection_reason);
+    }
+
+    public function test_squadron_manager_cannot_reject_transfer_through_the_wrong_squadron_ledger(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->directorUser();
+        $sourceSquadron = $this->managedSquadronFor($actor, 'Atlas Finance');
+        $recipientSquadron = $this->managedSquadronFor($actor, 'Prospectors Union');
+        $wrongSquadron = $this->managedSquadronFor($actor, 'Wrong Inbox');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('squadrons.ledger.transactions.transfer', ['squadron' => $sourceSquadron->id]), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'squadron',
+            'destination_squadron_id' => $recipientSquadron->id,
+            'amount' => 9400,
+            'description' => 'Cross-squadron reserve',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('squadrons.ledger.transactions.transfer.reject', [
+                'squadron' => $wrongSquadron->id,
+                'transferRequest' => $request->id,
+            ]), [
+                'rejection_reason' => 'Wrong inbox',
+            ])
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('pending', $request->status);
+        $this->assertNull($request->rejected_at);
     }
 
     public function test_transfer_records_cannot_be_edited_or_deleted_like_manual_transactions(): void
@@ -793,6 +1008,82 @@ class LedgerTransferFeatureTest extends TestCase
         ]);
     }
 
+    public function test_reversed_transfer_cannot_be_reversed_twice(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'organization',
+            'amount' => 9000,
+            'description' => 'Treasury top-up',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
+
+        $this->actingAs($actor)
+            ->post(route('ledger.transactions.transfer.reverse', $request->id), [
+                'reversal_notes' => 'Sent in error',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($actor)
+            ->post(route('ledger.transactions.transfer.reverse', $request->id), [
+                'reversal_notes' => 'Trying it again',
+            ])
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('reversed', $request->status);
+    }
+
+    public function test_archived_cycle_completed_transfer_cannot_be_reversed(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->directorUser();
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'organization',
+            'amount' => 9000,
+            'description' => 'Treasury top-up',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($actor)
+            ->post(route('organization.ledger.transactions.transfer.approve', $request->id))
+            ->assertRedirect();
+
+        $wipe->forceFill([
+            'is_current' => false,
+            'ended_at' => now(),
+        ])->save();
+
+        $this->actingAs($actor)
+            ->post(route('ledger.transactions.transfer.reverse', $request->id), [
+                'reversal_notes' => 'Too late to reverse',
+            ])
+            ->assertSessionHasErrors('wipe_cycle_id');
+
+        $request->refresh();
+
+        $this->assertSame('completed', $request->status);
+        $this->assertNull($request->reversed_at);
+    }
+
     public function test_completed_external_fund_transfer_can_be_reversed_without_destination_reversal(): void
     {
         config()->set('services.ledger.enabled', true);
@@ -826,6 +1117,37 @@ class LedgerTransferFeatureTest extends TestCase
             'type' => 'income',
             'source_type' => 'transfer_reversal',
         ]);
+    }
+
+    public function test_unrelated_verified_member_cannot_reverse_completed_transfer_that_does_not_touch_their_ledger(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $actor = $this->verifiedUser('ReverseOutbound', 'reverse-outbound');
+        $stranger = $this->verifiedUser('NotMyTransfer', 'not-my-transfer');
+        $wipe = $this->currentWipe();
+
+        $this->actingAs($actor)->post(route('ledger.transactions.transfer'), [
+            'wipe_cycle_id' => $wipe->id,
+            'destination_type' => 'external',
+            'amount' => 4700,
+            'description' => 'Sent outside Horizon',
+            'transaction_date' => now()->toDateTimeString(),
+        ])->assertRedirect();
+
+        $request = LedgerTransferRequest::query()->where('transfer_kind', 'funds')->firstOrFail();
+
+        $this->actingAs($stranger)
+            ->post(route('ledger.transactions.transfer.reverse', $request->id), [
+                'reversal_notes' => 'Trying to reverse someone else',
+            ])
+            ->assertSessionHasErrors('transfer');
+
+        $request->refresh();
+
+        $this->assertSame('completed', $request->status);
+        $this->assertNull($request->reversed_at);
+        $this->assertNull($request->reversal_outgoing_transaction_id);
     }
 
     public function test_partial_inventory_transfer_to_squadron_splits_the_record(): void

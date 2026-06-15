@@ -444,11 +444,9 @@ class LedgerWriteService
                 'notes' => $data['notes'] ?? null,
             ];
 
-            if (! $isOrg) {
-                $attributes['related_operation_id'] = $data['related_operation_id'] ?? null;
-                $attributes['operation_settlement_id'] = $data['operation_settlement_id'] ?? null;
-                $attributes['provenance_locked'] = (bool) ($data['provenance_locked'] ?? false);
-            }
+            $attributes['related_operation_id'] = $data['related_operation_id'] ?? null;
+            $attributes['operation_settlement_id'] = $data['operation_settlement_id'] ?? null;
+            $attributes['provenance_locked'] = (bool) ($data['provenance_locked'] ?? false);
 
             $item = LedgerInventoryItem::query()->create($owner->applyOwnership($attributes));
 
@@ -506,10 +504,9 @@ class LedgerWriteService
                 'notes' => $data['notes'] ?? null,
             ];
 
-            if (! $isOrg) {
-                $attributes['related_operation_id'] = $data['related_operation_id'] ?? null;
-                $attributes['operation_settlement_id'] = $data['operation_settlement_id'] ?? null;
-            }
+            $attributes['related_operation_id'] = $data['related_operation_id'] ?? null;
+            $attributes['operation_settlement_id'] = $data['operation_settlement_id'] ?? null;
+            $attributes['provenance_locked'] = (bool) ($data['provenance_locked'] ?? $item->provenance_locked);
 
             $item->forceFill($attributes)->save();
 

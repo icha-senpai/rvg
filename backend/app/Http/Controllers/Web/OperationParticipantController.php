@@ -53,10 +53,12 @@ class OperationParticipantController extends Controller
     {
         $this->authorize('view', $operation);
 
-        $this->participants->leave($operation, $request->user());
+        $result = $this->participants->leave($operation, $request->user());
 
         return back()
-            ->with('success', 'Left operation.');
+            ->with('success', $result === 'signed_off_before_start'
+                ? 'Signed off before start.'
+                : 'Left operation.');
     }
 
     /**

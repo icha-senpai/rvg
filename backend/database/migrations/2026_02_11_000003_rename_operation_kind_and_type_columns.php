@@ -1,22 +1,23 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
     {
-        $driver = DB::connection()->getDriverName();
+        if (Schema::hasColumn('operations', 'operation_kind') && ! Schema::hasColumn('operations', 'operation_type')) {
+            Schema::table('operations', function (Blueprint $table) {
+                $table->renameColumn('operation_kind', 'operation_type');
+            });
+        }
 
-        if ($driver === 'pgsql') {
-            if (Schema::hasColumn('operations', 'operation_kind') && ! Schema::hasColumn('operations', 'operation_type')) {
-                DB::statement('ALTER TABLE operations RENAME COLUMN operation_kind TO operation_type');
-            }
-
-            if (Schema::hasColumn('operations', 'type') && ! Schema::hasColumn('operations', 'gameplay_type')) {
-                DB::statement('ALTER TABLE operations RENAME COLUMN type TO gameplay_type');
-            }
+        if (Schema::hasColumn('operations', 'type') && ! Schema::hasColumn('operations', 'gameplay_type')) {
+            Schema::table('operations', function (Blueprint $table) {
+                $table->renameColumn('type', 'gameplay_type');
+            });
         }
 
         if (Schema::hasTable('operation_templates') && Schema::hasColumn('operation_templates', 'payload')) {
@@ -94,16 +95,16 @@ return new class extends Migration {
                 });
         }
 
-        $driver = DB::connection()->getDriverName();
+        if (Schema::hasColumn('operations', 'operation_type') && ! Schema::hasColumn('operations', 'operation_kind')) {
+            Schema::table('operations', function (Blueprint $table) {
+                $table->renameColumn('operation_type', 'operation_kind');
+            });
+        }
 
-        if ($driver === 'pgsql') {
-            if (Schema::hasColumn('operations', 'operation_type') && ! Schema::hasColumn('operations', 'operation_kind')) {
-                DB::statement('ALTER TABLE operations RENAME COLUMN operation_type TO operation_kind');
-            }
-
-            if (Schema::hasColumn('operations', 'gameplay_type') && ! Schema::hasColumn('operations', 'type')) {
-                DB::statement('ALTER TABLE operations RENAME COLUMN gameplay_type TO type');
-            }
+        if (Schema::hasColumn('operations', 'gameplay_type') && ! Schema::hasColumn('operations', 'type')) {
+            Schema::table('operations', function (Blueprint $table) {
+                $table->renameColumn('gameplay_type', 'type');
+            });
         }
     }
 };

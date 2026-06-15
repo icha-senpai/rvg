@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
+import HorizonBadge from '@/Components/HorizonBadge.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
@@ -124,10 +125,10 @@ function clearFilters() {
 
         <div class="relative p-6 md:p-8">
           <div class="flex flex-wrap gap-2">
-            <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
+            <HorizonBadge variant="neutral" uppercase>
               {{ topic.category_label || 'Archive Topic' }}
-            </span>
-            <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
+            </HorizonBadge>
+            <HorizonBadge variant="muted">{{ topic.minimum_rank_label }}</HorizonBadge>
           </div>
 
           <h1 class="mt-4 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
@@ -139,8 +140,8 @@ function clearFilters() {
           </p>
 
           <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
-            <span class="rounded-full border border-white/10 bg-black/10 px-3 py-1">{{ entries.length }} visible entries</span>
-            <span v-if="hasActiveFilters" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-[color:var(--horizon-text-primary)]">Filtered</span>
+            <HorizonBadge variant="muted">{{ entries.length }} visible entries</HorizonBadge>
+            <HorizonBadge v-if="hasActiveFilters" variant="neutral">Filtered</HorizonBadge>
           </div>
         </div>
       </section>
@@ -174,11 +175,9 @@ function clearFilters() {
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45">
-            <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
-
             <div class="relative flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
-              <span v-for="tagItem in entry.tags" :key="`tag-${entry.id}-${tagItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tagItem.name }}</span>
+              <HorizonBadge variant="info" uppercase>{{ entry.minimum_rank_label }}</HorizonBadge>
+              <HorizonBadge v-for="tagItem in entry.tags" :key="`tag-${entry.id}-${tagItem.id}`" variant="accent">#{{ tagItem.name }}</HorizonBadge>
             </div>
 
             <h3 class="relative mt-3 text-xl font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
@@ -194,8 +193,6 @@ function clearFilters() {
     </div>
   </HorizonContainer>
 </template>
-
-
 
 
 

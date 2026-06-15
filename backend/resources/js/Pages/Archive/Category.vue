@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
+import HorizonBadge from '@/Components/HorizonBadge.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 
 const props = defineProps({
@@ -25,15 +26,15 @@ const props = defineProps({
 
         <div class="relative">
           <div class="flex flex-wrap gap-2">
-            <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--horizon-text-primary)]">
+            <HorizonBadge variant="neutral" uppercase>
               Archive Category
-            </span>
-            <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+            </HorizonBadge>
+            <HorizonBadge variant="muted">
               {{ topics.length }} topic{{ topics.length === 1 ? '' : 's' }}
-            </span>
-            <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">
+            </HorizonBadge>
+            <HorizonBadge variant="muted">
               {{ entries.length }} direct entr{{ entries.length === 1 ? 'y' : 'ies' }}
-            </span>
+            </HorizonBadge>
           </div>
 
           <h1 class="mt-4 text-3xl font-black tracking-tight text-horizon-white md:text-5xl">
@@ -54,11 +55,9 @@ const props = defineProps({
 
         <div v-if="entries.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Link v-for="entry in entries" :key="entry.id" :href="entry.href" class="hz-surface-welcome group relative rounded-2xl border border-white/[0.055] p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--horizon-sunset-blue)]/45 hover:bg-white/[0.055]">
-            <div class="pointer-events-none absolute -right-12 -top-16 h-32 w-32 rounded-full bg-white/[0.042] blur-3xl"></div>
-
             <div class="relative flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[color:var(--horizon-sunset-blue)]">{{ entry.minimum_rank_label }}</span>
-              <span v-for="tagItem in entry.tags" :key="`category-entry-tag-${entry.id}-${tagItem.id}`" class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-sunset-magenta)]">#{{ tagItem.name }}</span>
+              <HorizonBadge variant="info" uppercase>{{ entry.minimum_rank_label }}</HorizonBadge>
+              <HorizonBadge v-for="tagItem in entry.tags" :key="`category-entry-tag-${entry.id}-${tagItem.id}`" variant="accent">#{{ tagItem.name }}</HorizonBadge>
             </div>
 
             <h3 class="relative mt-3 text-xl font-black text-horizon-white group-hover:text-[color:var(--horizon-sunset-blue)]">{{ entry.title }}</h3>
@@ -80,11 +79,6 @@ const props = defineProps({
 
         <div v-if="topics.length" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <Link v-for="topic in topics" :key="topic.id" :href="topic.href" class="hz-surface-welcome group relative rounded-[1.75rem] border border-white/10 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-white/[0.055]">
-            <div class="pointer-events-none absolute inset-0 opacity-70">
-              <div class="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
-              <div class="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-white/[0.042] blur-3xl"></div>
-            </div>
-
             <div class="relative space-y-4">
               <div class="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3">
                 <img v-if="topic.card_image_path" :src="topic.card_image_path" :alt="topic.title" class="h-full w-full rounded-xl object-contain" />
@@ -93,7 +87,7 @@ const props = defineProps({
 
               <div>
                 <div class="flex flex-wrap gap-2">
-                  <span class="rounded-full border border-white/[0.055] bg-white/[0.024] px-3 py-1 text-xs font-semibold text-text-secondary">{{ topic.minimum_rank_label }}</span>
+                  <HorizonBadge variant="muted">{{ topic.minimum_rank_label }}</HorizonBadge>
                 </div>
 
                 <h3 class="mt-3 text-xl font-black text-horizon-white group-hover:text-white">{{ topic.title }}</h3>

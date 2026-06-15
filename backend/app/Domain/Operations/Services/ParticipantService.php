@@ -35,10 +35,11 @@ class ParticipantService
     /**
      * Leave an operation.
      */
-    public function leave(Operation $operation, User $user): void
+    public function leave(Operation $operation, User $user): string
     {
-        $this->assertOperationParticipationMutable($operation);
-        (new LeaveOperation)->execute($operation, $user);
+        $this->assertOperationCanLeave($operation);
+
+        return (new LeaveOperation)->execute($operation, $user);
     }
 
     /**
@@ -155,6 +156,23 @@ class ParticipantService
         if ($operation->isCompleted() || $operation->isCanceled()) {
             throw ValidationException::withMessages([
                 'participant' => 'Participation is locked for completed or canceled operations.',
+            ]);
+        }
+    }
+
+    protected function assertOperationCanLeave(Operation $operation): void
+    {
+        $this->assertOperationParticipationMutable($operation);
+
+        if ($operation->isInProgress()) {
+            throw ValidationException::withMessages([
+                'participant' => 'This operation is already underway. Leaving is locked.',
+            ]);
+        }
+
+        if ($operation->starts_at && now()->greaterThanOrEqualTo($operation->starts_at)) {
+            throw ValidationException::withMessages([
+                'participant' => 'This operation has already started. Leaving is locked.',
             ]);
         }
     }

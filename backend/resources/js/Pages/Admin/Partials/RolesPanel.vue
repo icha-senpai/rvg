@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-6xl space-y-6">
+  <div class="mx-auto max-w-7xl space-y-6">
     <!-- Roles admin header -->
     <section class="hz-surface-welcome relative overflow-hidden rounded-[2rem] border border-white/[0.055] p-5 ">
       <div class="pointer-events-none absolute inset-0 opacity-40">
@@ -183,9 +183,9 @@
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Role Name
             </label>
-            <input
+            <HorizonInput
               v-model="form.name"
-              class="hz-input w-full"
+              class="w-full"
             />
           </div>
 
@@ -193,9 +193,9 @@
             <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
               Slug
             </label>
-            <input
+            <HorizonInput
               v-model="form.slug"
-              class="hz-input w-full"
+              class="w-full"
             />
           </div>
         </div>
@@ -248,6 +248,7 @@ import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDrawer from '@/Components/HorizonDrawer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 
 const props = defineProps({
   roles: {
@@ -337,4 +338,3 @@ function confirmDeleteRole({ close }) {
 }
 
 </script>
-

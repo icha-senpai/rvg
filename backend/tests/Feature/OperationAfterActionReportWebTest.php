@@ -23,6 +23,7 @@ class OperationAfterActionReportWebTest extends TestCase
 
         $signedUpUser = $this->verifiedUser();
         $noShowUser = $this->verifiedUser();
+        $excusedUser = $this->verifiedUser();
         $walkInUser = $this->verifiedUser();
 
         $operation = $this->completedOperation($creator, [
@@ -48,6 +49,7 @@ class OperationAfterActionReportWebTest extends TestCase
                 'after_action_report' => 'Updated AAR summary',
                 'attendance_user_ids' => [$signedUpUser->id, $walkInUser->id],
                 'no_show_user_ids' => [$noShowUser->id],
+                'excused_user_ids' => [$excusedUser->id],
             ]);
 
         $response
@@ -59,6 +61,7 @@ class OperationAfterActionReportWebTest extends TestCase
         $this->assertSame('Updated AAR summary', $operation->after_action_report);
         $this->assertSame([$signedUpUser->id, $walkInUser->id], $operation->after_action_attendance_user_ids);
         $this->assertSame([$noShowUser->id], $operation->after_action_no_show_user_ids);
+        $this->assertSame([$excusedUser->id], $operation->after_action_excused_user_ids);
         $this->assertNotNull($operation->after_action_report_updated_at);
 
         $this->assertDatabaseHas('users', [
@@ -77,6 +80,13 @@ class OperationAfterActionReportWebTest extends TestCase
             'id' => $noShowUser->id,
             'operations_completed_count' => 0,
             'operations_no_show_count' => 1,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $excusedUser->id,
+            'operations_completed_count' => 0,
+            'operations_no_show_count' => 0,
+            'operations_excused_count' => 1,
         ]);
 
         $this
@@ -116,12 +126,14 @@ class OperationAfterActionReportWebTest extends TestCase
         $director = $this->directorUser();
         $creator = $this->verifiedUser();
         $participant = $this->verifiedUser();
+        $excusedUser = $this->verifiedUser();
 
         $operation = $this->completedOperation($creator, [
             'title' => 'Pyro Debrief',
             'after_action_report' => 'Admin-visible report',
             'after_action_attendance_user_ids' => [$participant->id],
             'after_action_no_show_user_ids' => [$creator->id],
+            'after_action_excused_user_ids' => [$excusedUser->id],
         ]);
 
         OperationParticipant::create([
@@ -138,6 +150,7 @@ class OperationAfterActionReportWebTest extends TestCase
                 ->where('operations.0.after_action_report', 'Admin-visible report')
                 ->where('operations.0.after_action_attendance.0.id', $participant->id)
                 ->where('operations.0.after_action_no_show.0.id', $creator->id)
+                ->where('operations.0.after_action_excused.0.id', $excusedUser->id)
             );
     }
 
@@ -179,8 +192,9 @@ class OperationAfterActionReportWebTest extends TestCase
 
         $operation = $this->completedOperation($creator, [
             'after_action_report' => 'Roster report',
-            'after_action_attendance_user_ids' => [$participant->id, $walkInUser->id],
+            'after_action_attendance_user_ids' => [$participant->id],
             'after_action_no_show_user_ids' => [$creator->id],
+            'after_action_excused_user_ids' => [$walkInUser->id],
         ]);
 
         OperationParticipant::create([
@@ -197,6 +211,7 @@ class OperationAfterActionReportWebTest extends TestCase
                 ->where('activeOperation.operation.after_action_report', 'Roster report')
                 ->where('activeOperation.operation.after_action_attendance.0.id', $participant->id)
                 ->where('activeOperation.operation.after_action_no_show.0.id', $creator->id)
+                ->where('activeOperation.operation.after_action_excused.0.id', $walkInUser->id)
                 ->has('activeOperation.verifiedMembers', 3)
             );
     }
@@ -242,6 +257,7 @@ class OperationAfterActionReportWebTest extends TestCase
             'completion_outcome' => 'success',
             'after_action_attendance_user_ids' => [],
             'after_action_no_show_user_ids' => [],
+            'after_action_excused_user_ids' => [],
         ], $attributes));
         $operation->save();
 

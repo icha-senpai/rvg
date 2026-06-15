@@ -14,6 +14,9 @@ class OperationSettlement extends Model
         'operation_id',
         'money_rows',
         'loot_rows',
+        'prep_money_rows',
+        'prep_money_rows_updated_by_user_id',
+        'prep_money_rows_updated_at',
         'finalized_by_user_id',
         'finalized_at',
         'reopened_by_user_id',
@@ -25,6 +28,8 @@ class OperationSettlement extends Model
         return [
             'money_rows' => 'array',
             'loot_rows' => 'array',
+            'prep_money_rows' => 'array',
+            'prep_money_rows_updated_at' => 'datetime',
             'finalized_at' => 'datetime',
             'reopened_at' => 'datetime',
         ];
@@ -38,6 +43,11 @@ class OperationSettlement extends Model
     public function finalizedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'finalized_by_user_id');
+    }
+
+    public function prepUpdatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prep_money_rows_updated_by_user_id');
     }
 
     public function reopenedBy(): BelongsTo

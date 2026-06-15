@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\LedgerAccount;
+use App\Models\LedgerInventoryItem;
 use App\Models\LedgerTrade;
 use App\Models\LedgerTransaction;
+use App\Models\Operation;
+use App\Models\OperationSettlement;
 use App\Models\Role;
 use App\Models\Squadron;
 use App\Models\SquadronMember;
@@ -440,6 +443,151 @@ class SquadronLedgerFeatureTest extends TestCase
             ->actingAs($outsider)
             ->get(route('squadrons.ledger', ['squadron' => $squadron->slug]))
             ->assertForbidden();
+    }
+
+    public function test_squadron_settlement_receipts_stay_locked_in_shared_ledger_flows(): void
+    {
+        config()->set('services.ledger.enabled', true);
+
+        $leader = $this->memberUser([
+            'discord_id' => 'squadron-settlement-lock-leader',
+            'discord_name' => 'Squadron Settlement Lock Leader',
+            'rsi_handle' => 'SquadronSettlementLockLeader',
+        ]);
+
+        $squadron = Squadron::query()->create([
+            'name' => 'Signal Foxes',
+            'slug' => 'signal-foxes-settlement-lock',
+            'status' => 'active',
+            'branch' => 'intel',
+            'division' => 'gamma',
+            'leader_id' => $leader->id,
+            'recruiting' => true,
+        ]);
+
+        SquadronMember::query()->create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'membership_status' => SquadronMember::STATUS_ACTIVE,
+            'role' => SquadronMember::ROLE_LEADER,
+            'joined_at' => now()->subDays(6),
+        ]);
+
+        $wipe = WipeCycle::query()->create([
+            'name' => '4.1 Live',
+            'star_citizen_version' => '4.1',
+            'wipe_type' => 'inventory',
+            'started_at' => now()->subDays(4),
+            'is_current' => true,
+        ]);
+
+        $squadronAccount = LedgerAccount::query()->create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'name' => 'Squadron Treasury',
+            'type' => 'squadron',
+            'currency' => 'aUEC',
+            'is_default' => true,
+        ]);
+
+        $operation = Operation::query()->create([
+            'created_by' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'squadron_name' => $squadron->name,
+            'title' => 'Squadron Settlement Lock Test',
+            'description' => 'Completed operation for shared ledger lock testing.',
+            'status' => 'completed',
+            'visibility' => 'open',
+            'starts_at' => now()->subHours(3),
+            'ends_at' => now()->subHour(),
+        ]);
+
+        $settlement = OperationSettlement::query()->create([
+            'operation_id' => $operation->id,
+            'money_rows' => [],
+            'loot_rows' => [],
+            'finalized_by_user_id' => $leader->id,
+            'finalized_at' => now()->subHour(),
+        ]);
+
+        $transaction = LedgerTransaction::query()->create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'is_org_owned' => false,
+            'ledger_account_id' => $squadronAccount->id,
+            'wipe_cycle_id' => $wipe->id,
+            'type' => 'income',
+            'amount' => 18000,
+            'currency' => 'aUEC',
+            'source_type' => 'operation_settlement',
+            'description' => 'Settlement squadron payout',
+            'transaction_date' => now()->subHour(),
+            'related_operation_id' => $operation->id,
+            'operation_settlement_id' => $settlement->id,
+            'provenance_locked' => true,
+        ]);
+
+        $inventoryItem = LedgerInventoryItem::query()->create([
+            'user_id' => $leader->id,
+            'squadron_id' => $squadron->id,
+            'is_org_owned' => false,
+            'wipe_cycle_id' => $wipe->id,
+            'related_operation_id' => $operation->id,
+            'operation_settlement_id' => $settlement->id,
+            'source_type' => 'item',
+            'uex_reference_type' => 'item',
+            'uex_reference_id' => 9101,
+            'category' => 'Item',
+            'quantity' => 1,
+            'unit_label' => 'units',
+            'currency' => 'aUEC',
+            'status' => 'stored',
+            'provenance_locked' => true,
+            'acquired_at' => now()->subHour(),
+        ]);
+
+        $this
+            ->actingAs($leader)
+            ->from('/squadrons/' . $squadron->slug . '/ledger')
+            ->put(route('squadrons.ledger.transactions.update', ['squadron' => $squadron->id, 'transaction' => $transaction->id]), [
+                'ledger_account_id' => $transaction->ledger_account_id,
+                'wipe_cycle_id' => $wipe->id,
+                'type' => 'income',
+                'amount' => 21000,
+                'currency' => 'aUEC',
+                'source_type' => 'operation_settlement',
+                'description' => 'Should stay locked',
+                'transaction_date' => now()->toDateTimeString(),
+            ])
+            ->assertSessionHasErrors('transaction');
+
+        $this
+            ->actingAs($leader)
+            ->from('/squadrons/' . $squadron->slug . '/ledger')
+            ->delete(route('squadrons.ledger.transactions.destroy', ['squadron' => $squadron->id, 'transaction' => $transaction->id]))
+            ->assertSessionHasErrors('transaction');
+
+        $this
+            ->actingAs($leader)
+            ->from('/squadrons/' . $squadron->slug . '/ledger')
+            ->put(route('squadrons.ledger.inventory.update', ['squadron' => $squadron->id, 'inventoryItem' => $inventoryItem->id]), [
+                'wipe_cycle_id' => $wipe->id,
+                'source_type' => 'item',
+                'uex_reference_type' => 'item',
+                'uex_reference_id' => 9101,
+                'category' => 'Item',
+                'quantity' => 2,
+                'unit_label' => 'units',
+                'currency' => 'aUEC',
+                'status' => 'stored',
+            ])
+            ->assertSessionHasErrors('inventory');
+
+        $this
+            ->actingAs($leader)
+            ->from('/squadrons/' . $squadron->slug . '/ledger')
+            ->delete(route('squadrons.ledger.inventory.destroy', ['squadron' => $squadron->id, 'inventoryItem' => $inventoryItem->id]))
+            ->assertSessionHasErrors('inventory');
     }
 
     protected function memberUser(array $overrides = []): User

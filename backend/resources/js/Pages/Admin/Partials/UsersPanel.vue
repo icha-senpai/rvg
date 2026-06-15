@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-6xl space-y-6">
+  <div class="mx-auto max-w-7xl space-y-6">
     <!-- Search command panel -->
     <section class="hz-surface-welcome relative z-30 overflow-visible rounded-[2rem] border border-white/[0.055] p-5 ">
       <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -29,7 +29,7 @@
       </div>
 
       <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <input
+        <HorizonInput
           v-model="search"
           type="text"
           class="hz-input"
@@ -139,18 +139,13 @@
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <span class="rounded-full border border-white/[0.055] bg-white/[0.042] px-3 py-1 text-xs font-semibold text-[color:var(--horizon-text-primary)]">
+                <HorizonBadge variant="neutral">
                   Rank {{ formatRankLabel(u.rank) }}
-                </span>
+                </HorizonBadge>
 
-                <span
-                  class="rounded-full border px-3 py-1 text-xs font-semibold"
-                  :class="u.global_status === 'active'
-                    ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
-                    : 'border-amber-300/25 bg-amber-300/10 text-amber-100'"
-                >
+                <HorizonBadge :variant="u.global_status === 'active' ? 'success' : 'warning'">
                   {{ formatGlobalStatusLabel(u.global_status) }}
-                </span>
+                </HorizonBadge>
               </div>
 
               <div class="hz-surface-welcome rounded-2xl border border-white/[0.055] p-3">
@@ -322,72 +317,47 @@
               </div>
 
               <div class="grid gap-4 md:grid-cols-2">
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    RSI Handle
-                  </label>
-
-                  <input
+                <HorizonFormBlock label="RSI Handle">
+                  <HorizonInput
                     v-model="form.rsi_handle"
                     class="hz-input"
                     placeholder="RSI handle..."
                   />
-                </div>
+                </HorizonFormBlock>
 
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Global Status
-                  </label>
-
-                  <select
+                <HorizonFormBlock label="Global Status">
+                  <HorizonInput
                     v-model="form.global_status"
+                    type="select"
                     class="hz-input"
-                  >
-                    <option
-                      v-for="opt in globalStatusOptions"
-                      :key="opt.value"
-                      :value="opt.value"
-                    >
-                      {{ opt.label }}
-                    </option>
-                  </select>
-                </div>
+                    :options="globalStatusOptions"
+                  />
+                </HorizonFormBlock>
 
-                <div class="rounded-[1.25rem] border border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Rank
-                  </label>
-
-                  <select
+                <HorizonFormBlock
+                  label="Rank"
+                  panel-class="border-[color:var(--horizon-sunset-blue)]/20 bg-white/[0.042]"
+                >
+                  <HorizonInput
                     v-model="form.rank"
+                    type="select"
                     class="hz-input"
-                  >
-                    <option
-                      v-for="opt in rankOptions"
-                      :key="opt.value"
-                      :value="opt.value"
-                    >
-                      {{ opt.label }}
-                    </option>
-                  </select>
-                </div>
+                    :options="rankOptions"
+                  />
+                </HorizonFormBlock>
 
-                <div class="rounded-[1.25rem] border border-white/[0.055] bg-white/[0.042] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Rank Level
-                  </label>
-
-                  <input
+                <HorizonFormBlock
+                  label="Rank Level"
+                  panel-class="bg-white/[0.042]"
+                  helper="Rank level is calculated from the selected rank."
+                >
+                  <HorizonInput
                     v-model.number="form.rank_level"
                     type="number"
                     class="hz-input"
                     disabled
                   />
-
-                  <p class="mt-2 text-xs text-text-muted">
-                    Rank level is calculated from the selected rank.
-                  </p>
-                </div>
+                </HorizonFormBlock>
               </div>
             </section>
 
@@ -614,11 +584,7 @@
               </div>
 
               <div class="grid gap-4 lg:grid-cols-3">
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Region
-                  </label>
-
+                <HorizonFormBlock label="Region">
                   <HorizonInput
                     v-model="form.region"
                     type="select"
@@ -628,13 +594,9 @@
                       ...regionOptions,
                     ]"
                   />
-                </div>
+                </HorizonFormBlock>
 
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Timezone
-                  </label>
-
+                <HorizonFormBlock label="Timezone">
                   <HorizonInput
                     v-model="form.timezone"
                     type="select"
@@ -644,43 +606,33 @@
                       ...timezoneOptions,
                     ]"
                   />
-                </div>
+                </HorizonFormBlock>
 
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Availability Status
-                  </label>
-
-                  <input
+                <HorizonFormBlock label="Availability Status">
+                  <HorizonInput
                     v-model="form.availability_status"
                     class="hz-input"
                     placeholder="Available, limited, LOA..."
                   />
-                </div>
+                </HorizonFormBlock>
 
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4 md:col-span-2">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    LOA Note
-                  </label>
-
-                  <textarea
+                <HorizonFormBlock label="LOA Note" panel-class="md:col-span-2">
+                  <HorizonInput
                     v-model="form.loa_note"
+                    type="textarea"
                     class="hz-textarea min-h-28"
                     placeholder="Leave of absence note..."
-                  ></textarea>
-                </div>
+                  />
+                </HorizonFormBlock>
 
-                <div class="hz-surface-welcome rounded-[1.25rem] border border-white/[0.055] p-4 md:col-span-2">
-                  <label class="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                    Bio
-                  </label>
-
-                  <textarea
+                <HorizonFormBlock label="Bio" panel-class="md:col-span-2">
+                  <HorizonInput
                     v-model="form.bio"
+                    type="textarea"
                     class="hz-textarea min-h-36"
                     placeholder="Member biography..."
-                  ></textarea>
-                </div>
+                  />
+                </HorizonFormBlock>
               </div>
             </section>
 
@@ -703,22 +655,15 @@
               </div>
 
               <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <label
+                <HorizonCheckbox
                   v-for="role in sortedRoles"
                   :key="role.id"
-                  class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-3 transition hover:border-white/[0.055] hover:bg-white/[0.045]"
-                >
-                  <input
-                    v-model="form.role_ids"
-                    type="checkbox"
-                    :value="role.id"
-                    class="h-4 w-4 accent-[color:var(--horizon-sunset-blue)]"
-                  />
-
-                  <span class="text-sm font-semibold text-text-secondary">
-                    {{ role.name }}
-                  </span>
-                </label>
+                  v-model="form.role_ids"
+                  :value="role.id"
+                  :label="role.name"
+                  panel-class="p-3"
+                  label-class="text-text-secondary"
+                />
               </div>
             </section>
       </div>
@@ -792,9 +737,12 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
+import HorizonBadge from '@/Components/HorizonBadge.vue';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonCheckbox from '@/Components/HorizonCheckbox.vue';
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue';
 import HorizonDrawer from '@/Components/HorizonDrawer.vue';
+import HorizonFormBlock from '@/Components/HorizonFormBlock.vue';
 import HorizonInput from '@/Components/HorizonInput.vue';
 
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'

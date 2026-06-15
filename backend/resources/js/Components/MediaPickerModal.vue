@@ -1,175 +1,218 @@
 <template>
-  <div
-    v-if="open"
-    class="hz-overlay flex items-center justify-center"
-    @click.self="close"
+  <HorizonModal
+    :open="open"
+    close-label="Close media picker"
+    max-width-class="max-w-4xl"
+    @close="close"
   >
-    <div class="hz-modal hz-stack hz-animate-pop" style="max-width: 48rem; max-height: 85vh; overflow-y: auto;">
+    <template #header>
+      <div>
+        <div class="text-xs font-bold uppercase tracking-[0.24em] text-[color:var(--horizon-text-secondary)]">
+          Media Library
+        </div>
 
-      <!-- HEADER -->
-      <div class="hz-row-between">
-        <div class="hz-title-lg">{{ title }}</div>
-        <HorizonButton variant="primary" size="sm" @click="close">✕</HorizonButton>
+        <div class="mt-1 text-2xl font-black text-horizon-white">
+          {{ title }}
+        </div>
+
+        <p class="mt-1 text-sm text-text-secondary">
+          Browse existing assets or upload a new image into the Horizon media library.
+        </p>
       </div>
+    </template>
 
-      <!-- TABS: Browse / Upload -->
-      <div class="hz-row" style="border-bottom: 1px solid var(--color-bg-hover); padding-bottom: var(--space-sm);">
-        <HorizonButton
-          size="sm"
-          :variant="activeTab === 'browse' ? 'primary' : 'ghost'"
-          @click="activeTab = 'browse'"
-        >
-          Browse
-        </HorizonButton>
-        <HorizonButton
-          v-if="allowUpload"
-          size="sm"
-          :variant="activeTab === 'upload' ? 'primary' : 'ghost'"
-          @click="activeTab = 'upload'"
-        >
-          Upload New
-        </HorizonButton>
-      </div>
-
-      <!-- BROWSE TAB -->
-      <div v-if="activeTab === 'browse'" class="hz-stack">
-
-        <!-- SEARCH -->
-        <div class="hz-row">
-          <input
-            v-model="search"
-            @keyup.enter="loadMedia(1)"
-            type="text"
-            class="hz-input"
-            style="max-width: 260px;"
-            placeholder="Search..."
-          />
-          <HorizonButton variant="primary" size="sm" @click="loadMedia(1)">Search</HorizonButton>
+    <div class="relative flex-1 overflow-y-auto p-5">
+        <div class="hz-surface-welcome mb-5 flex flex-wrap gap-2 rounded-[1.5rem] border border-white/[0.055] p-3">
+          <HorizonButton
+            size="sm"
+            :variant="activeTab === 'browse' ? 'primary' : 'ghost'"
+            @click="activeTab = 'browse'"
+          >
+            Browse
+          </HorizonButton>
+          <HorizonButton
+            v-if="allowUpload"
+            size="sm"
+            :variant="activeTab === 'upload' ? 'primary' : 'ghost'"
+            @click="activeTab = 'upload'"
+          >
+            Upload New
+          </HorizonButton>
         </div>
 
-        <div v-if="pickerError" class="hz-text-soft" style="color: var(--color-state-danger);">
-          {{ pickerError }}
+        <!-- BROWSE TAB -->
+        <div v-if="activeTab === 'browse'" class="space-y-5">
+          <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+            <div class="mb-4">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                Search Library
+              </div>
+              <p class="mt-1 text-sm text-text-secondary">
+                Filter this media collection before picking an image.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div class="w-full sm:max-w-xs">
+                <HorizonInput
+                  v-model="search"
+                  type="text"
+                  class="w-full"
+                  placeholder="Search..."
+                  @keyup.enter="loadMedia(1)"
+                />
+              </div>
+              <HorizonButton variant="primary" size="sm" @click="loadMedia(1)">Search</HorizonButton>
+            </div>
+
+            <div
+              v-if="pickerError"
+              class="mt-4 rounded-[1rem] border border-red-300/25 bg-red-300/10 px-4 py-3 text-sm font-semibold text-red-100"
+            >
+              {{ pickerError }}
+            </div>
+          </section>
+
+          <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+            <div v-if="loading" class="rounded-[1rem] border border-dashed border-white/15 px-4 py-10 text-center text-sm text-text-secondary">
+              Loading...
+            </div>
+
+            <div v-else-if="!items.length" class="rounded-[1rem] border border-dashed border-white/15 px-4 py-10 text-center text-sm text-text-secondary">
+              No media found in this collection.
+            </div>
+
+            <div v-else class="space-y-4">
+              <div class="hz-picker-grid">
+                <div
+                  v-for="item in items"
+                  :key="item.id"
+                  class="hz-picker-thumb"
+                  :class="{ 'hz-picker-thumb-selected': selectedId === item.id }"
+                  @click="selectItem(item)"
+                >
+                  <img
+                    :src="item.thumbnail_url || item.medium_url || item.url"
+                    :alt="item.alt_text || item.original_filename"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+
+              <div v-if="lastPage > 1" class="flex flex-wrap items-center justify-center gap-3 border-t border-white/[0.055] pt-4">
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="currentPage <= 1"
+                  @click="loadMedia(currentPage - 1)"
+                >
+                  Previous
+                </HorizonButton>
+
+                <div class="text-sm text-text-secondary">{{ currentPage }} / {{ lastPage }}</div>
+
+                <HorizonButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="currentPage >= lastPage"
+                  @click="loadMedia(currentPage + 1)"
+                >
+                  Next
+                </HorizonButton>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <!-- LOADING -->
-        <div v-if="loading" class="hz-text-muted" style="text-align: center; padding: var(--space-lg);">
-          Loading...
-        </div>
+        <!-- UPLOAD TAB -->
+        <div v-if="allowUpload && activeTab === 'upload'" class="space-y-5">
+          <section class="hz-surface-welcome rounded-[1.5rem] border border-white/[0.055] p-4">
+            <div class="mb-4">
+              <div class="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                File Metadata
+              </div>
+              <p class="mt-1 text-sm text-text-secondary">
+                Add optional alt text, select an image, then upload it directly into this collection.
+              </p>
+            </div>
 
-        <!-- EMPTY -->
-        <div v-else-if="!items.length" class="hz-text-muted" style="text-align: center; padding: var(--space-lg);">
-          No media found in this collection.
-        </div>
+            <div class="space-y-4">
+              <div>
+                <label class="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Alt Text</label>
+                <HorizonInput v-model="uploadAltText" class="w-full" placeholder="Describe the image..." />
+              </div>
 
-        <!-- GRID -->
-        <div v-else class="hz-picker-grid">
+              <HorizonFileField
+                label="File"
+                description="JPEG, PNG, WEBP, or GIF."
+                button-label="Choose Image"
+                :selected-name="uploadFile?.name || ''"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                @change="handleFileSelect"
+              />
+            </div>
+          </section>
+
+          <section
+            v-if="uploadPreview"
+            class="hz-surface-welcome overflow-hidden rounded-[1.5rem] border border-white/[0.055]"
+          >
+            <img :src="uploadPreview" class="max-h-72 w-full bg-[color:var(--color-bg-elevated)] object-contain" />
+            <div class="border-t border-white/[0.055] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Preview
+            </div>
+          </section>
+
           <div
-            v-for="item in items"
-            :key="item.id"
-            class="hz-picker-thumb"
-            :class="{ 'hz-picker-thumb-selected': selectedId === item.id }"
-            @click="selectItem(item)"
+            v-if="uploadError"
+            class="rounded-[1.25rem] border border-red-300/25 bg-red-300/10 p-4 text-sm font-semibold text-red-100"
           >
-            <img
-              :src="item.thumbnail_url || item.medium_url || item.url"
-              :alt="item.alt_text || item.original_filename"
-              loading="lazy"
-            />
+            {{ uploadError }}
           </div>
-        </div>
 
-        <!-- PAGINATION -->
-        <div v-if="lastPage > 1" class="flex items-center justify-center flex-wrap gap-3">
-          <HorizonButton
-            variant="ghost"
-            size="sm"
-            :disabled="currentPage <= 1"
-            @click="loadMedia(currentPage - 1)"
-          >
-            Previous
-          </HorizonButton>
-
-          <div class="hz-text-muted">{{ currentPage }} / {{ lastPage }}</div>
-
-          <HorizonButton
-            variant="ghost"
-            size="sm"
-            :disabled="currentPage >= lastPage"
-            @click="loadMedia(currentPage + 1)"
-          >
-            Next
-          </HorizonButton>
+          <div class="flex justify-end">
+            <HorizonButton
+              variant="primary"
+              size="sm"
+              :disabled="uploading || !uploadFile"
+              @click="submitUpload"
+            >
+              {{ uploading ? 'Uploading...' : 'Upload & Select' }}
+            </HorizonButton>
+          </div>
         </div>
       </div>
 
-      <!-- UPLOAD TAB -->
-      <div v-if="allowUpload && activeTab === 'upload'" class="hz-stack">
-
-        <div>
-          <label class="hz-text-soft">Alt Text (optional)</label>
-          <input v-model="uploadAltText" class="hz-input" placeholder="Describe the image..." />
-        </div>
-
-        <div>
-          <label class="hz-text-soft">File</label>
-          <input
-            ref="fileInput"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            class="hz-input"
-            style="padding: 0.5rem;"
-            @change="handleFileSelect"
+    <template v-if="selectedItem" #footer>
+        <div class="hz-surface-welcome flex items-center gap-3 rounded-[1.25rem] border border-white/[0.055] bg-white/[0.02] p-3">
+          <img
+            :src="selectedItem.thumbnail_url || selectedItem.url"
+            :alt="selectedItem.alt_text"
+            class="h-12 w-12 rounded-lg object-cover"
           />
-        </div>
 
-        <!-- PREVIEW -->
-        <div v-if="uploadPreview" style="border-radius: var(--radius-sm); overflow: hidden; max-height: 180px;">
-          <img :src="uploadPreview" style="width: 100%; height: 180px; object-fit: contain; background: var(--color-bg-elevated);" />
-        </div>
-
-        <!-- ERROR -->
-        <div v-if="uploadError" class="hz-text-soft" style="color: var(--color-state-danger);">
-          {{ uploadError }}
-        </div>
-
-        <HorizonButton
-          variant="primary"
-          size="sm"
-          :disabled="uploading || !uploadFile"
-          @click="submitUpload"
-          style="align-self: flex-end;"
-        >
-          {{ uploading ? 'Uploading...' : 'Upload & Select' }}
-        </HorizonButton>
-      </div>
-
-      <!-- SELECTED PREVIEW + CONFIRM -->
-      <div v-if="selectedItem" class="hz-panel hz-row" style="background: var(--color-bg-elevated);">
-        <img
-          :src="selectedItem.thumbnail_url || selectedItem.url"
-          :alt="selectedItem.alt_text"
-          style="width: 48px; height: 48px; object-fit: cover; border-radius: var(--radius-xs);"
-        />
-
-        <div class="hz-stack-2xs" style="flex: 1; min-width: 0;">
-          <div class="hz-text-soft" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            {{ selectedItem.original_filename }}
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-semibold text-horizon-white">
+              {{ selectedItem.original_filename }}
+            </div>
+            <div class="text-xs text-text-secondary">{{ selectedItem.human_size }}</div>
           </div>
-          <div class="hz-tiny">{{ selectedItem.human_size }}</div>
-        </div>
 
-        <HorizonButton variant="primary" size="sm" @click="confirmSelection">
-          Select
-        </HorizonButton>
-      </div>
-    </div>
-  </div>
+          <HorizonButton variant="primary" size="sm" @click="confirmSelection">
+            Select
+          </HorizonButton>
+        </div>
+    </template>
+  </HorizonModal>
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import HorizonButton from '@/Components/HorizonButton.vue';
+import HorizonFileField from '@/Components/HorizonFileField.vue';
+import HorizonInput from '@/Components/HorizonInput.vue';
+import HorizonModal from '@/Components/HorizonModal.vue';
 
 const props = defineProps({
   /** Whether the modal is open */
@@ -306,8 +349,6 @@ const uploadAltText = ref('');
 const uploadPreview = ref(null);
 const uploadError = ref('');
 const uploading = ref(false);
-const fileInput = ref(null);
-
 function handleFileSelect(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -423,13 +464,6 @@ watch(() => props.allowUpload, (allowed) => {
     activeTab.value = 'browse';
   }
 });
-
-function handleKeydown(e) {
-  if (e.key === 'Escape' && props.open) close();
-}
-
-onMounted(() => window.addEventListener('keydown', handleKeydown));
-onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
 </script>
 
 <style scoped>
@@ -465,10 +499,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
   background: var(--color-bg-base);
 }
 </style>
-
-
-
-
 
 
 

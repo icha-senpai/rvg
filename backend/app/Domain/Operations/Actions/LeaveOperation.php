@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveOperation
 {
-    public function execute(Operation $operation, User $user): void
+    public function execute(Operation $operation, User $user): string
     {
         $participant = $operation->participants()->where('user_id', $user->id)->first();
 
@@ -19,13 +19,26 @@ class LeaveOperation
         }
 
         if (
-            in_array($operation->status, ['draft', 'published'], true)
+            $operation->rsvp_deadline
+            && now()->greaterThanOrEqualTo($operation->rsvp_deadline)
             && $operation->starts_at
             && now()->lt($operation->starts_at)
         ) {
             $user->increment('operations_left_early_count');
+
+            $participant->forceFill([
+                'attendance_status' => 'signed_up',
+                'runtime_status' => \App\Models\OperationParticipant::RUNTIME_STATUS_SIGNED_OFF_BEFORE_START,
+                'runtime_source' => $participant->runtime_source ?: \App\Models\OperationParticipant::RUNTIME_SOURCE_SIGNED_UP,
+                'signed_off_at' => now(),
+                'synced_in_at' => null,
+            ])->save();
+
+            return 'signed_off_before_start';
         }
 
         $participant->delete();
+
+        return 'left';
     }
 }

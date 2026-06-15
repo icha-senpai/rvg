@@ -6,6 +6,7 @@ import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonDrawer from '@/Components/HorizonDrawer.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonRichTextEditor from '@/Components/HorizonRichTextEditor.vue'
 import MediaPickerModal from '@/Components/MediaPickerModal.vue'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
@@ -672,7 +673,7 @@ watch(
 
 <template>
   <HorizonContainer class="py-8 md:py-10">
-    <div class="mx-auto max-w-6xl space-y-8" :style="squadronAccentStyle">
+    <div class="mx-auto max-w-7xl space-y-8" :style="squadronAccentStyle">
       <div
         v-if="!squadron"
         class="hz-surface-welcome rounded-[2rem] border border-white/[0.055] p-6 text-text-secondary"
@@ -1167,9 +1168,9 @@ watch(
                 <label class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
                   Motto
                 </label>
-                <input
+                <HorizonInput
                   v-model="editForm.motto"
-                  class="hz-input mt-2"
+                  class="mt-2"
                   placeholder="Optional squadron motto"
                 />
               </div>

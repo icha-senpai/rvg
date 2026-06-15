@@ -4,6 +4,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonCheckbox from '@/Components/HorizonCheckbox.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonDrawer from '@/Components/HorizonDrawer.vue'
@@ -313,9 +314,11 @@ watch(() => page.url, handleEntryIntent, { immediate: true })
             <HorizonSelect v-model="entryForm.minimum_rank_level" label="Minimum Rank" :options="rankOptions" />
           </div>
 
-          <label class="flex items-center gap-2 rounded-2xl border border-white/[0.055] bg-white/[0.024] p-4 text-sm font-semibold text-text-secondary">
-            <input v-model="entryForm.is_published" type="checkbox" /> Published
-          </label>
+          <HorizonCheckbox
+            v-model="entryForm.is_published"
+            variant="toggle"
+            label="Published"
+          />
         </form>
 
         <template #footer>

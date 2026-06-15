@@ -62,8 +62,13 @@ class OperationService
     {
         try {
             $updated = (new TransitionOperation)->execute($operation, $status, $reason, $outcome);
+            $updated = $this->afterAction->ensureDefaults($updated, $status);
 
-            return $this->afterAction->ensureDefaults($updated, $status);
+            if ($status === \App\Domain\Operations\Enums\OperationStatus::Completed->value) {
+                $updated = $this->settlements->seedDraftFromPrep($updated);
+            }
+
+            return $updated;
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
@@ -84,14 +89,33 @@ class OperationService
         ]);
     }
 
-    public function updateAfterActionReport(Operation $operation, ?string $report, array $attendanceUserIds = [], array $noShowUserIds = []): Operation
+    public function updateAfterActionReport(
+        Operation $operation,
+        ?string $report,
+        array $attendanceUserIds = [],
+        array $noShowUserIds = [],
+        array $signedOffEarlyUserIds = [],
+        array $excusedUserIds = []
+    ): Operation
     {
-        return $this->afterAction->updateReport($operation, $report, $attendanceUserIds, $noShowUserIds);
+        return $this->afterAction->updateReport(
+            $operation,
+            $report,
+            $attendanceUserIds,
+            $noShowUserIds,
+            $signedOffEarlyUserIds,
+            $excusedUserIds
+        );
     }
 
     public function upsertSettlementDraft(User $actor, Operation $operation, array $data): OperationSettlement
     {
         return $this->settlements->upsertDraft($actor, $operation, $data);
+    }
+
+    public function upsertRuntimeFundsPrep(User $actor, Operation $operation, array $data): OperationSettlement
+    {
+        return $this->settlements->upsertPrepDraft($actor, $operation, $data);
     }
 
     public function finalizeSettlement(User $actor, Operation $operation, array $data = []): OperationSettlement

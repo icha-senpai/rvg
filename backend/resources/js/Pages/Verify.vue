@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import { extractFirstErrorMessage, notifyError } from '@/errors'
 
 // --- URL params from Discord OAuth callback ---
@@ -216,12 +217,12 @@ const copyVerificationCode = async () => {
                     <label class="mb-1 block text-xs uppercase tracking-wide text-text-muted">
                         RSI Handle
                     </label>
-                    <input
+                    <HorizonInput
                         v-model="rsiForm.rsi_handle"
                         type="text"
                         placeholder=""
                         :class="[
-                            'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2',
+                            'w-full text-sm focus:outline-none focus:ring-2',
                             rsiHandleFieldError
                                 ? 'border border-red-500 bg-red-500/10 text-red-100 focus:ring-red-500'
                                 : 'hz-input focus:ring-indigo-500'
@@ -246,7 +247,6 @@ const copyVerificationCode = async () => {
         </div>
     </HorizonContainer>
 </template>
-
 
 
 

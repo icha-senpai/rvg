@@ -102,6 +102,7 @@ class OperationPageController extends Controller
         return Inertia::render('Operations/MissionShow', [
             ...$data,
             'authUser' => $user,
+            'operationSettlementLootOptions' => $this->showData->settlementLootOptions(),
         ]);
     }
 
@@ -315,7 +316,9 @@ class OperationPageController extends Controller
             $operation,
             $request->validated('after_action_report'),
             $request->validated('attendance_user_ids', []),
-            $request->validated('no_show_user_ids', [])
+            $request->validated('no_show_user_ids', []),
+            $request->validated('signed_off_early_user_ids', []),
+            $request->validated('excused_user_ids', [])
         );
 
         if ($request->expectsJson()) {
@@ -340,6 +343,15 @@ class OperationPageController extends Controller
             $request->validated()
         );
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => $this->showData->build($operation->fresh(), $request->user())['operation'],
+                ],
+            ]);
+        }
+
         return back()->with('success', 'Operation settlement draft saved.');
     }
 
@@ -353,6 +365,15 @@ class OperationPageController extends Controller
             $request->validated()
         );
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => $this->showData->build($operation->fresh(), $request->user())['operation'],
+                ],
+            ]);
+        }
+
         return back()->with('success', 'Operation settlement finalized.');
     }
 
@@ -361,6 +382,15 @@ class OperationPageController extends Controller
         $this->authorize('manageAfterActionReport', $operation);
 
         $this->service->reopenSettlement($request->user(), $operation);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'payload' => [
+                    'operation' => $this->showData->build($operation->fresh(), $request->user())['operation'],
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Operation settlement reopened.');
     }
@@ -372,6 +402,13 @@ class OperationPageController extends Controller
         $settlement = $this->showData->settlementPayload($operation, $request->user(), true, null, false);
 
         if (! ($settlement['is_finalized'] ?? false)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Finalize the operation settlement before exporting it.',
+                ], 409);
+            }
+
             abort(409, 'Finalize the operation settlement before exporting it.');
         }
 

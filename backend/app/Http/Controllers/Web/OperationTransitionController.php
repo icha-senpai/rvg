@@ -7,6 +7,7 @@ use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Domain\Operations\Enums\CompletionOutcome;
 use App\Domain\Operations\Enums\OperationStatus;
 use App\Domain\Operations\Services\OperationService;
+use App\Domain\Operations\Services\OperationRuntimeService;
 use App\Http\Controllers\Controller;
 use App\Models\Operation;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -22,7 +23,8 @@ class OperationTransitionController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        protected OperationService $service
+        protected OperationService $service,
+        protected OperationRuntimeService $runtime
     ) {}
 
     /**
@@ -70,18 +72,41 @@ class OperationTransitionController extends Controller
         $this->authorize('update', $operation);
 
         $updated = $this->service->transition($operation, OperationStatus::InProgress->value);
+        $channelSyncWarning = null;
+
+        if ($updated->discordChannels()->exists()) {
+            try {
+                $this->runtime->syncDiscordChannels($updated);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $channelSyncWarning = collect($e->errors())
+                    ->flatten()
+                    ->filter(fn ($value) => is_string($value) && trim($value) !== '')
+                    ->first() ?? 'Discord channel sync failed after the operation started.';
+            }
+        }
 
         if ($request->expectsJson()) {
-            return response()->json([
+            $response = [
                 'status' => 'ok',
                 'payload' => [
                     'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
-            ]);
+            ];
+
+            if ($channelSyncWarning) {
+                $response['warning'] = $channelSyncWarning;
+            }
+
+            return response()->json($response);
         }
 
-        return back()
-            ->with('success', 'Operation started.');
+        $response = back()->with('success', 'Operation started.');
+
+        if ($channelSyncWarning) {
+            $response->with('warning', 'Operation started, but Discord channel sync needs attention: ' . $channelSyncWarning);
+        }
+
+        return $response;
     }
 
     /**
@@ -96,18 +121,39 @@ class OperationTransitionController extends Controller
         ]);
 
         $updated = $this->service->transition($operation, OperationStatus::Completed->value, null, $data['outcome']);
+        $channelCleanupWarning = null;
+
+        if ($updated->discordChannels()->exists()) {
+            $cleanup = $this->runtime->cleanupDiscordChannels($updated);
+
+            if (! ($cleanup['ok'] ?? false)) {
+                $channelCleanupWarning = $cleanup['message'] ?? 'Discord channel cleanup failed after the operation was completed.';
+            }
+        }
 
         if ($request->expectsJson()) {
-            return response()->json([
+            $response = [
                 'status' => 'ok',
                 'payload' => [
                     'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
-            ]);
+            ];
+
+            if ($channelCleanupWarning) {
+                $response['warning'] = $channelCleanupWarning;
+            }
+
+            return response()->json($response);
         }
 
-        return back()
+        $response = back()
             ->with('success', 'Operation completed.');
+
+        if ($channelCleanupWarning) {
+            $response->with('warning', 'Operation completed, but Discord channel cleanup needs attention: ' . $channelCleanupWarning);
+        }
+
+        return $response;
     }
 
     /**
@@ -122,17 +168,38 @@ class OperationTransitionController extends Controller
         ]);
 
         $updated = $this->service->transition($operation, OperationStatus::Canceled->value, $data['reason']);
+        $channelCleanupWarning = null;
+
+        if ($updated->discordChannels()->exists()) {
+            $cleanup = $this->runtime->cleanupDiscordChannels($updated);
+
+            if (! ($cleanup['ok'] ?? false)) {
+                $channelCleanupWarning = $cleanup['message'] ?? 'Discord channel cleanup failed after the operation was canceled.';
+            }
+        }
 
         if ($request->expectsJson()) {
-            return response()->json([
+            $response = [
                 'status' => 'ok',
                 'payload' => [
                     'operation' => OperationPresenter::make(OperationPresenterRelations::loadForFull($updated))->full(),
                 ],
-            ]);
+            ];
+
+            if ($channelCleanupWarning) {
+                $response['warning'] = $channelCleanupWarning;
+            }
+
+            return response()->json($response);
         }
 
-        return back()
+        $response = back()
             ->with('success', 'Operation canceled.');
+
+        if ($channelCleanupWarning) {
+            $response->with('warning', 'Operation canceled, but Discord channel cleanup needs attention: ' . $channelCleanupWarning);
+        }
+
+        return $response;
     }
 }

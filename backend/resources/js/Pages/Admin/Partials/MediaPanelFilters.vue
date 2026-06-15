@@ -35,10 +35,10 @@
           Search
         </label>
 
-        <input
+        <HorizonInput
           :value="search"
           type="text"
-          class="hz-input w-full"
+          class="w-full"
           placeholder="Search filename or alt text..."
           @input="$emit('update:search', $event.target.value)"
           @keyup.enter="$emit('search')"
@@ -80,6 +80,7 @@
 import { computed } from 'vue'
 
 import HorizonButton from '@/Components/HorizonButton.vue'
+import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
 
 const props = defineProps({
@@ -94,7 +95,6 @@ const activeCollectionLabel = computed(() => {
   return props.collectionOptions.find(option => option.value === props.collection)?.label ?? props.collection
 })
 </script>
-
 
 
 

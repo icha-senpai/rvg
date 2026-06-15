@@ -85,6 +85,7 @@ class MeResource extends JsonResource
 
             'operations_completed_count' => $canViewRestrictedOperationStats ? $this->operations_completed_count : null,
             'operations_no_show_count' => $canViewRestrictedOperationStats ? $this->operations_no_show_count : null,
+            'operations_excused_count' => $canViewRestrictedOperationStats ? $this->operations_excused_count : null,
             'operations_created_count' => $canViewRestrictedOperationStats ? $this->operations_created_count : null,
             'operations_canceled_count' => $canViewRestrictedOperationStats ? $this->operations_canceled_count : null,
             'operations_success_count' => $canViewRestrictedOperationStats ? $this->operations_success_count : null,

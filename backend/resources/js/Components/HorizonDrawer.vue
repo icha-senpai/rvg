@@ -48,8 +48,7 @@ onUnmounted(() => {
     <aside
       :class="[
         'relative z-50 flex h-full w-full flex-col overflow-hidden',
-        'hz-shell-surface border-l',
-        '',
+        'hz-surface-welcome border-l border-white/[0.055] shadow-[0_24px_80px_rgba(0,0,0,0.38)]',
         'md:w-[78%] xl:w-[68%] 2xl:w-[58%]',
         closing ? 'hz-animate-drawer-out' : 'hz-animate-drawer-in',
       ]"
@@ -63,7 +62,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Header -->
-      <header class="hz-shell-header relative shrink-0 border-b px-5 py-4 md:px-6">
+      <header class="hz-surface-welcome relative shrink-0 border-b border-[color:var(--horizon-sunset-blue)]/20 px-5 py-4 md:px-6">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <slot name="header" />
@@ -71,7 +70,7 @@ onUnmounted(() => {
 
           <button
             type="button"
-            class="hz-surface-soft hz-shell-hover flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-text-secondary transition hover:text-horizon-white"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.024] text-lg font-bold text-text-secondary transition hover:border-white/[0.09] hover:bg-white/[0.05] hover:text-horizon-white"
             :aria-label="props.closeLabel"
             @click="requestClose"
           >
@@ -88,14 +87,13 @@ onUnmounted(() => {
       <!-- Footer -->
       <footer
         v-if="$slots.footer"
-        class="hz-shell-header relative shrink-0 border-t px-5 py-4 md:px-6"
+        class="hz-surface-welcome relative shrink-0 border-t border-[color:var(--horizon-sunset-blue)]/20 px-5 py-4 md:px-6"
       >
         <slot name="footer" />
       </footer>
     </aside>
   </div>
 </template>
-
 
 
 

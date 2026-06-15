@@ -1,9 +1,10 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { route } from 'ziggy-js'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Editor, EditorContent } from '@tiptap/vue-3'
+import { BubbleMenu } from '@tiptap/vue-3/menus'
 import { NodeSelection } from '@tiptap/pm/state'
 import StarterKit from '@tiptap/starter-kit'
 import Color from '@tiptap/extension-color'
@@ -17,6 +18,8 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TextStyle } from '@tiptap/extension-text-style'
+
+const MediaPickerModal = defineAsyncComponent(() => import('@/Components/MediaPickerModal.vue'))
 
 const ExtendedTextStyle = TextStyle.extend({
   parseHTML() {
@@ -220,6 +223,7 @@ const toolbarTick = ref(0)
 const uploadInput = ref(null)
 const pendingImageAlign = ref('center')
 const isUploadingImage = ref(false)
+const isMediaPickerOpen = ref(false)
 const uploadError = ref('')
 const isMobileViewport = ref(false)
 const isCompactToolbarExpanded = ref(false)
@@ -233,6 +237,7 @@ const selectedImageFrame = ref(null)
 const isResizingImage = ref(false)
 const isColorPickerOpen = ref(false)
 const isColorPickerAdvancedOpen = ref(false)
+const isBubbleBlockMenuOpen = ref(false)
 const colorPickerTarget = ref('')
 const colorPickerHexValue = ref('')
 const colorPickerInitialHex = ref('')
@@ -328,6 +333,20 @@ const currentHeadingLevel = computed(() => {
 })
 
 const blockTypeValue = computed(() => currentHeadingLevel.value ? `h${currentHeadingLevel.value}` : 'p')
+const currentBubbleBlockLabel = computed(() => {
+  if (isBulletListActive.value) return 'Bulleted List'
+  if (isOrderedListActive.value) return 'Numbered List'
+  if (isBlockquoteActive.value) return 'Quote'
+  if (currentHeadingLevel.value) return `Heading ${currentHeadingLevel.value}`
+  return 'Normal Text'
+})
+
+const textAlignOptions = [
+  { value: 'left', label: 'Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'right', label: 'Right' },
+  { value: 'justify', label: 'Justify' },
+]
 
 const currentTextAlign = computed(() => {
   toolbarTick.value
@@ -400,24 +419,24 @@ const currentImageWidthSelectValue = computed(() => {
 })
 
 const fontFamilyOptions = [
-  { value: '', label: 'Font: Default', preview: '' },
-  { value: 'hz-rte-font-system', label: 'Font: System', preview: 'system-ui' },
-  { value: 'hz-rte-font-sans', label: 'Font: Sans', preview: 'sans-serif' },
-  { value: 'hz-rte-font-arial', label: 'Font: Arial', preview: 'Arial, sans-serif' },
-  { value: 'hz-rte-font-verdana', label: 'Font: Verdana', preview: 'Verdana, sans-serif' },
-  { value: 'hz-rte-font-georgia', label: 'Font: Georgia', preview: 'Georgia, serif' },
-  { value: 'hz-rte-font-mono', label: 'Font: Mono', preview: 'monospace' },
+  { value: '', label: 'Font: Default', shortLabel: 'Default', preview: '' },
+  { value: 'hz-rte-font-system', label: 'Font: System', shortLabel: 'System', preview: 'system-ui' },
+  { value: 'hz-rte-font-sans', label: 'Font: Sans', shortLabel: 'Sans', preview: 'sans-serif' },
+  { value: 'hz-rte-font-arial', label: 'Font: Arial', shortLabel: 'Arial', preview: 'Arial, sans-serif' },
+  { value: 'hz-rte-font-verdana', label: 'Font: Verdana', shortLabel: 'Verdana', preview: 'Verdana, sans-serif' },
+  { value: 'hz-rte-font-georgia', label: 'Font: Georgia', shortLabel: 'Georgia', preview: 'Georgia, serif' },
+  { value: 'hz-rte-font-mono', label: 'Font: Mono', shortLabel: 'Mono', preview: 'monospace' },
 ]
 
 const fontSizeOptions = [
-  { value: '', label: 'Size: Default' },
-  { value: 'hz-rte-size-12', label: '12px' },
-  { value: 'hz-rte-size-14', label: '14px' },
-  { value: 'hz-rte-size-16', label: '16px' },
-  { value: 'hz-rte-size-18', label: '18px' },
-  { value: 'hz-rte-size-20', label: '20px' },
-  { value: 'hz-rte-size-24', label: '24px' },
-  { value: 'hz-rte-size-32', label: '32px' },
+  { value: '', label: 'Size: Default', shortLabel: 'Default' },
+  { value: 'hz-rte-size-12', label: '12px', shortLabel: '12px' },
+  { value: 'hz-rte-size-14', label: '14px', shortLabel: '14px' },
+  { value: 'hz-rte-size-16', label: '16px', shortLabel: '16px' },
+  { value: 'hz-rte-size-18', label: '18px', shortLabel: '18px' },
+  { value: 'hz-rte-size-20', label: '20px', shortLabel: '20px' },
+  { value: 'hz-rte-size-24', label: '24px', shortLabel: '24px' },
+  { value: 'hz-rte-size-32', label: '32px', shortLabel: '32px' },
 ]
 
 const textColorOptions = [
@@ -487,7 +506,14 @@ const currentTextColorHex = computed(() => currentInlineTextColor.value || textC
 const currentHighlightHex = computed(() => currentHighlightColor.value || defaultHighlightHex)
 
 const currentCalloutHex = computed(() => currentCalloutCustomColor.value || calloutToneHexLookup.get(currentCalloutTone.value) || defaultCalloutHex)
-const showAdvancedToolbar = computed(() => !isMobileViewport.value || isCompactToolbarExpanded.value)
+const showAdvancedToolbar = computed(() => isCompactToolbarExpanded.value)
+const isMacPlatform = computed(() => {
+  if (typeof navigator === 'undefined') return false
+
+  const platform = navigator.userAgentData?.platform || navigator.platform || ''
+
+  return /Mac|iPhone|iPad|iPod/i.test(platform)
+})
 const colorPickerDraftHex = computed(() => {
   const rgb = hsvToRgb(colorPickerHue.value, colorPickerSaturation.value, colorPickerValue.value)
   return rgbToHex(rgb.r, rgb.g, rgb.b)
@@ -511,6 +537,88 @@ const colorPickerFieldCursorStyle = computed(() => ({
 const colorPickerSliderCursorStyle = computed(() => ({
   top: `${(colorPickerHue.value / 360) * 100}%`,
 }))
+
+const bubbleSurfaceStyle = {
+  border: '1px solid color-mix(in srgb, var(--horizon-sunset-blue) 24%, rgb(255 255 255 / 0.055))',
+  backgroundColor: 'var(--color-surface-accent)',
+  backgroundImage: 'none',
+  boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.04), 0 14px 30px rgb(2 6 23 / 0.22)',
+  backdropFilter: 'blur(18px)',
+}
+
+const bubblePanelSurfaceStyle = {
+  border: '1px solid color-mix(in srgb, var(--horizon-sunset-blue) 24%, rgb(255 255 255 / 0.055))',
+  backgroundColor: 'var(--color-surface-accent)',
+  backgroundImage: 'none',
+  boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.04), 0 14px 30px rgb(2 6 23 / 0.24)',
+  backdropFilter: 'blur(18px)',
+}
+
+const toolbarSurfaceStyle = {
+  border: '1px solid color-mix(in srgb, var(--horizon-sunset-blue) 24%, rgb(255 255 255 / 0.055))',
+  backgroundColor: 'var(--color-surface-accent)',
+  backgroundImage: 'none',
+  boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.04), 0 18px 42px rgb(2 6 23 / 0.28)',
+  backdropFilter: 'blur(16px)',
+}
+
+function normalizeShortcutKey(part) {
+  if (!part) return ''
+
+  if (part.length === 1) {
+    return part.toUpperCase()
+  }
+
+  return part
+}
+
+function formatShortcutLabel(shortcut) {
+  if (!shortcut) return ''
+
+  const macLabels = {
+    Mod: '⌘',
+    Shift: '⇧',
+    Alt: '⌥',
+    Ctrl: '⌃',
+  }
+
+  const defaultLabels = {
+    Mod: 'Ctrl',
+    Shift: 'Shift',
+    Alt: 'Alt',
+    Ctrl: 'Ctrl',
+  }
+
+  const tokens = String(shortcut)
+    .split('-')
+    .map(token => token.trim())
+    .filter(Boolean)
+
+  const labels = tokens.map(token => {
+    if (isMacPlatform.value) {
+      return macLabels[token] || normalizeShortcutKey(token)
+    }
+
+    return defaultLabels[token] || normalizeShortcutKey(token)
+  })
+
+  return isMacPlatform.value ? labels.join('') : labels.join('+')
+}
+
+function bubbleTooltipText(label, shortcut = '') {
+  const formattedShortcut = formatShortcutLabel(shortcut)
+
+  return formattedShortcut ? `${label} • ${formattedShortcut}` : label
+}
+
+function bubbleTooltipTextList(label, shortcuts = []) {
+  const formattedShortcuts = shortcuts
+    .map(formatShortcutLabel)
+    .filter(Boolean)
+    .join(' / ')
+
+  return formattedShortcuts ? `${label} • ${formattedShortcuts}` : label
+}
 
 function normalizeHexColor(value) {
   const raw = String(value || '').trim()
@@ -714,7 +822,7 @@ function positionColorPicker(triggerElement = null) {
     width: `${panelWidth}px`,
     maxHeight: `${Math.max(220, window.innerHeight - 24)}px`,
     overflowY: 'auto',
-    zIndex: '60',
+    zIndex: '120',
   }
 }
 
@@ -939,10 +1047,14 @@ function persistCustomColors(colors) {
 }
 
 function handleDocumentMouseDown(event) {
-  if (!isColorPickerOpen.value) return
-
   const target = event.target
   if (!(target instanceof HTMLElement)) return
+
+  if (isBubbleBlockMenuOpen.value && !target.closest('.rich-editor-bubble')) {
+    isBubbleBlockMenuOpen.value = false
+  }
+
+  if (!isColorPickerOpen.value) return
 
   if (colorPickerPanel.value?.contains(target) || target.closest('.rich-editor-color-picker-trigger')) {
     return
@@ -956,20 +1068,47 @@ function refreshColorPickerPosition() {
   positionColorPicker()
 }
 
+function closeBubbleBlockMenu() {
+  isBubbleBlockMenuOpen.value = false
+}
+
+function toggleBubbleBlockMenu() {
+  if (props.disabled) return
+  rememberSelection()
+  isBubbleBlockMenuOpen.value = !isBubbleBlockMenuOpen.value
+}
+
+function bubbleMenuAppendTarget() {
+  if (typeof document === 'undefined') {
+    return undefined
+  }
+
+  return document.body
+}
+
+function shouldShowTextBubbleMenu({ editor, state, from, to }) {
+  if (props.disabled || isColorPickerOpen.value) return false
+  if (!editor?.isFocused || editor.isActive('image')) return false
+  if (state.selection.empty || state.selection instanceof NodeSelection) return false
+
+  return state.doc.textBetween(from, to, ' ').trim().length > 0
+}
+
 function syncViewportState() {
   if (typeof window === 'undefined') return
 
+  const wasMobile = isMobileViewport.value
   const nextIsMobile = window.innerWidth < 768
   isMobileViewport.value = nextIsMobile
 
-  if (!nextIsMobile) {
+  if (nextIsMobile && !wasMobile) {
+    isCompactToolbarExpanded.value = false
+  } else if (!nextIsMobile && wasMobile) {
     isCompactToolbarExpanded.value = false
   }
 }
 
 function toggleCompactToolbar() {
-  if (!isMobileViewport.value) return
-
   isCompactToolbarExpanded.value = !isCompactToolbarExpanded.value
 }
 
@@ -1211,6 +1350,7 @@ const editor = new Editor({
   },
   onSelectionUpdate: () => {
     rememberSelection()
+    closeBubbleBlockMenu()
     bumpToolbar()
     queueSelectedImageFrameUpdate()
   },
@@ -1224,6 +1364,7 @@ const editor = new Editor({
     isFocused.value = false
     isEditorEmpty.value = editor.isEmpty
     rememberSelection()
+    closeBubbleBlockMenu()
     bumpToolbar()
     queueSelectedImageFrameUpdate()
   },
@@ -1259,6 +1400,112 @@ function applyBlockType(value) {
   const match = String(value).match(/^h([1-6])$/)
   if (!match) return
   editor.chain().setHeading({ level: Number(match[1]) }).run()
+}
+
+function applyBubbleBlockType(value) {
+  applyBlockType(value)
+  closeBubbleBlockMenu()
+}
+
+function applyBubbleListType(type) {
+  if (type === 'bullet') {
+    toggleUnorderedList()
+  } else if (type === 'ordered') {
+    toggleOrderedList()
+  }
+
+  closeBubbleBlockMenu()
+}
+
+function applyBubbleQuoteType() {
+  toggleBlockquote()
+  closeBubbleBlockMenu()
+}
+
+function openBubbleColorPicker(target, event) {
+  closeBubbleBlockMenu()
+  openColorPicker(target, event)
+}
+
+function clearBubbleTextColor() {
+  applyCustomTextColor('')
+}
+
+function clearBubbleHighlightColor() {
+  applyHighlightColor('')
+}
+
+function clearBubbleFieldColor() {
+  applyCustomCalloutColor('')
+}
+
+function bubbleClearTypography() {
+  clearTypography()
+}
+
+function bubbleInsertDivider() {
+  closeBubbleBlockMenu()
+  insertDivider()
+}
+
+function bubbleInsertImageUrl() {
+  closeBubbleBlockMenu()
+  insertImage('center')
+}
+
+function bubbleTriggerImageUpload() {
+  closeBubbleBlockMenu()
+  triggerImageUpload('center')
+}
+
+function bubbleOpenMediaPicker() {
+  closeBubbleBlockMenu()
+  openMediaPicker('center')
+}
+
+function bubbleUndo() {
+  closeBubbleBlockMenu()
+  undo()
+}
+
+function bubbleRedo() {
+  closeBubbleBlockMenu()
+  redo()
+}
+
+function bubbleInsertTable() {
+  closeBubbleBlockMenu()
+  insertTable()
+}
+
+function bubbleAddTableRow() {
+  closeBubbleBlockMenu()
+  addTableRow()
+}
+
+function bubbleAddTableColumn() {
+  closeBubbleBlockMenu()
+  addTableColumn()
+}
+
+function bubbleDeleteTable() {
+  closeBubbleBlockMenu()
+  deleteTable()
+}
+
+function setBubbleTextAlign(value) {
+  closeBubbleBlockMenu()
+  setTextAlign(value)
+}
+
+function applyBubbleFontFamily(value) {
+  closeBubbleBlockMenu()
+  applyFontFamily(value)
+}
+
+function applyBubbleFontSize(value) {
+  closeBubbleBlockMenu()
+  applyFontSize(value)
 }
 
 function setTextAlign(value) {
@@ -1388,6 +1635,34 @@ function triggerImageUpload(align = 'center') {
   uploadInput.value?.click()
 }
 
+function openMediaPicker(align = 'center') {
+  if (props.disabled) return
+
+  rememberSelection()
+  pendingImageAlign.value = align
+  uploadError.value = ''
+  closeBubbleBlockMenu()
+  closeColorPicker()
+  isMediaPickerOpen.value = true
+}
+
+function handleMediaPickerSelection(media) {
+  const url = mediaDisplayUrl(media)
+
+  if (!url) {
+    uploadError.value = 'Selected media does not have a usable image URL.'
+    return
+  }
+
+  uploadError.value = ''
+  isMediaPickerOpen.value = false
+  insertImageWithAttributes(
+    url,
+    media?.alt_text || media?.original_filename || 'Selected image',
+    pendingImageAlign.value
+  )
+}
+
 async function uploadImage(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
@@ -1501,312 +1776,667 @@ onBeforeUnmount(() => editor?.destroy())
   <div class="hz-stack gap-2 rich-editor-shell">
     <input ref="uploadInput" type="file" accept="image/*" class="hidden" @change="uploadImage" />
 
-    <div class="rich-editor-toolbar" :class="{ 'rich-editor-toolbar--compact-open': isCompactToolbarExpanded }">
+    <div class="hz-surface-welcome rich-editor-toolbar" :class="{ 'rich-editor-toolbar--compact-open': isCompactToolbarExpanded }" :style="toolbarSurfaceStyle">
       <div class="rich-editor-toolbar-group rich-editor-toolbar-primary">
         <div class="rich-editor-toolbar-scroller">
-          <div class="rich-editor-tooltip" data-tooltip="Block style">
-            <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
-              <option value="p">Paragraph</option>
-              <option value="h1">Heading 1</option>
-              <option value="h2">Heading 2</option>
-              <option value="h3">Heading 3</option>
-              <option value="h4">Heading 4</option>
-              <option value="h5">Heading 5</option>
-              <option value="h6">Heading 6</option>
-            </select>
+          <div class="rich-editor-toolbar-section rich-editor-toolbar-section--select">
+            <div class="rich-editor-tooltip" data-tooltip="Block style">
+              <select class="hz-input rich-editor-toolbar-select rich-editor-toolbar-select--block" :disabled="disabled" :value="blockTypeValue" @mousedown.stop @change="applyBlockType($event.target.value)">
+                <option value="p">Paragraph</option>
+                <option value="h1">Heading 1</option>
+                <option value="h2">Heading 2</option>
+                <option value="h3">Heading 3</option>
+                <option value="h4">Heading 4</option>
+                <option value="h5">Heading 5</option>
+                <option value="h6">Heading 6</option>
+              </select>
+            </div>
           </div>
 
-          <div class="rich-editor-tooltip" data-tooltip="Bold">
-            <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
+          <div class="rich-editor-toolbar-section">
+            <div class="rich-editor-tooltip" data-tooltip="Bold">
+              <HorizonButton type="button" size="xs" :variant="isBoldActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBold">B</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Italic">
+              <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Underline">
+              <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
+            </div>
           </div>
-          <div class="rich-editor-tooltip" data-tooltip="Italic">
-            <HorizonButton type="button" size="xs" :variant="isItalicActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleItalic">I</HorizonButton>
+
+          <div class="rich-editor-toolbar-section">
+            <div class="rich-editor-tooltip" data-tooltip="Bulleted list">
+              <HorizonButton type="button" size="xs" :variant="isBulletListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnorderedList">• List</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Numbered list">
+              <HorizonButton type="button" size="xs" :variant="isOrderedListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleOrderedList">1. List</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Insert or edit link">
+              <HorizonButton type="button" size="xs" :variant="isLinkActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="insertLink">Link</HorizonButton>
+            </div>
           </div>
-          <div class="rich-editor-tooltip" data-tooltip="Underline">
-            <HorizonButton type="button" size="xs" :variant="isUnderlineActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnderline">U</HorizonButton>
+
+          <div class="rich-editor-toolbar-section rich-editor-toolbar-section--media">
+            <div class="rich-editor-tooltip" data-tooltip="Upload image">
+              <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload' }}</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Choose an existing image from media">
+              <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="openMediaPicker('center')">Choose Media</HorizonButton>
+            </div>
           </div>
-          <div class="rich-editor-tooltip" data-tooltip="Bulleted list">
-            <HorizonButton type="button" size="xs" :variant="isBulletListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleUnorderedList">• List</HorizonButton>
-          </div>
-          <div class="rich-editor-tooltip" data-tooltip="Numbered list">
-            <HorizonButton type="button" size="xs" :variant="isOrderedListActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleOrderedList">1. List</HorizonButton>
-          </div>
-          <div class="rich-editor-tooltip" data-tooltip="Insert or edit link">
-            <HorizonButton type="button" size="xs" :variant="isLinkActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="insertLink">Link</HorizonButton>
-          </div>
-          <div class="rich-editor-tooltip" data-tooltip="Upload image">
-            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Image' }}</HorizonButton>
-          </div>
-          <div class="rich-editor-tooltip" data-tooltip="Undo">
-            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canUndo" @mousedown.prevent @click="undo">Undo</HorizonButton>
-          </div>
-          <div class="rich-editor-tooltip" data-tooltip="Redo">
-            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canRedo" @mousedown.prevent @click="redo">Redo</HorizonButton>
+
+          <div class="rich-editor-toolbar-section">
+            <div class="rich-editor-tooltip" data-tooltip="Undo">
+              <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canUndo" @mousedown.prevent @click="undo">Undo</HorizonButton>
+            </div>
+            <div class="rich-editor-tooltip" data-tooltip="Redo">
+              <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || !canRedo" @mousedown.prevent @click="redo">Redo</HorizonButton>
+            </div>
           </div>
         </div>
 
-        <div class="rich-editor-tooltip rich-editor-toolbar-mobile-toggle" :data-tooltip="isCompactToolbarExpanded ? 'Hide advanced tools' : 'Show advanced tools'">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="toggleCompactToolbar">
-            {{ isCompactToolbarExpanded ? 'Less' : 'More' }}
-          </HorizonButton>
+        <div class="rich-editor-toolbar-section rich-editor-toolbar-mobile-toggle">
+          <div class="rich-editor-tooltip" :data-tooltip="isCompactToolbarExpanded ? 'Hide advanced tools' : 'Show advanced tools'">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="toggleCompactToolbar">
+              {{ isCompactToolbarExpanded ? 'Less' : 'More' }}
+            </HorizonButton>
+          </div>
         </div>
       </div>
 
       <div v-if="showAdvancedToolbar" class="rich-editor-toolbar-group rich-editor-toolbar-secondary">
-        <div class="rich-editor-tooltip" data-tooltip="Text alignment">
-          <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentTextAlign" @mousedown.stop @change="setTextAlign($event.target.value)">
-            <option value="left">Align Left</option>
-            <option value="center">Align Center</option>
-            <option value="right">Align Right</option>
-            <option value="justify">Justify</option>
-          </select>
+        <div class="rich-editor-toolbar-section rich-editor-toolbar-section--select">
+          <div class="rich-editor-tooltip" data-tooltip="Text alignment">
+            <select class="hz-input rich-editor-toolbar-select rich-editor-toolbar-select--align" :disabled="disabled" :value="currentTextAlign" @mousedown.stop @change="setTextAlign($event.target.value)">
+              <option value="left">Align Left</option>
+              <option value="center">Align Center</option>
+              <option value="right">Align Right</option>
+              <option value="justify">Justify</option>
+            </select>
+          </div>
+
+          <div class="rich-editor-tooltip" data-tooltip="Font family">
+            <select class="hz-input rich-editor-toolbar-select rich-editor-toolbar-select--font" :disabled="disabled" :value="currentFontFamily" :style="{ fontFamily: currentFontFamilyPreview }" @mousedown.stop @change="applyFontFamily($event.target.value)">
+              <option v-for="opt in fontFamilyOptions" :key="opt.value || '__default'" :value="opt.value" :style="{ fontFamily: opt.preview }">{{ opt.label }}</option>
+            </select>
+          </div>
+
+          <div class="rich-editor-tooltip" data-tooltip="Font size">
+            <select class="hz-input rich-editor-toolbar-select rich-editor-toolbar-select--size" :disabled="disabled" :value="currentFontSize" @mousedown.stop @change="applyFontSize($event.target.value)">
+              <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Font family">
-          <select class="hz-input" style="max-width: 140px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentFontFamily" :style="{ fontFamily: currentFontFamilyPreview }" @mousedown.stop @change="applyFontFamily($event.target.value)">
-            <option v-for="opt in fontFamilyOptions" :key="opt.value || '__default'" :value="opt.value" :style="{ fontFamily: opt.preview }">{{ opt.label }}</option>
-          </select>
+        <div class="rich-editor-toolbar-section">
+          <div class="rich-editor-tooltip" data-tooltip="Custom text color">
+            <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('text', $event)">
+              <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentTextColorHex }"></span>
+              <span>Text Color</span>
+            </button>
+          </div>
+
+          <div class="rich-editor-tooltip" data-tooltip="Custom highlight color">
+            <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('highlight', $event)">
+              <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentHighlightHex }"></span>
+              <span>Highlight Color</span>
+            </button>
+          </div>
+
+          <div class="rich-editor-tooltip" data-tooltip="Custom field color">
+            <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('callout', $event)">
+              <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentCalloutHex }"></span>
+              <span>Field Color</span>
+            </button>
+          </div>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Font size">
-          <select class="hz-input" style="max-width: 130px; padding: 0.3rem 0.55rem;" :disabled="disabled" :value="currentFontSize" @mousedown.stop @change="applyFontSize($event.target.value)">
-            <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.label }}</option>
-          </select>
+        <div class="rich-editor-toolbar-section">
+          <div class="rich-editor-tooltip" data-tooltip="Clear custom text styling">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Remove highlight">
+            <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Remove field">
+            <HorizonButton type="button" size="xs" :variant="isCalloutActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyCustomCalloutColor('')">Clear Field</HorizonButton>
+          </div>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Custom text color">
-          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('text', $event)">
-            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentTextColorHex }"></span>
-            <span>Text Color</span>
-          </button>
+        <div class="rich-editor-toolbar-section">
+          <div class="rich-editor-tooltip" data-tooltip="Strikethrough">
+            <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Block quote">
+            <HorizonButton type="button" size="xs" :variant="isBlockquoteActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBlockquote">Quote</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Horizontal divider">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertDivider">Divider</HorizonButton>
+          </div>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Custom highlight color">
-          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('highlight', $event)">
-            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentHighlightHex }"></span>
-            <span>Highlight Color</span>
-          </button>
+        <div class="rich-editor-toolbar-section rich-editor-toolbar-section--media">
+          <div class="rich-editor-tooltip" data-tooltip="Insert image from URL">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertImage('center')">Image URL</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Upload image">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload Image' }}</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Float image left">
+            <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'left' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('left')">Img Left</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Center image">
+            <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'center' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('center')">Img Center</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Float image right">
+            <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Image size preset">
+            <select class="hz-input rich-editor-toolbar-select rich-editor-toolbar-select--image" :disabled="disabled || !isImageActive" :value="currentImageWidthSelectValue" @mousedown.stop @change="applyImageWidthPreset($event.target.value)">
+              <option value="" disabled>Image Size</option>
+              <option v-if="currentImageWidthSelectValue === '__custom'" value="__custom" disabled>Image: Custom ({{ currentImageWidthPercent }}%)</option>
+              <option v-for="option in imageWidthPresetOptions" :key="option.value" :value="String(option.value)">{{ option.label }}</option>
+            </select>
+          </div>
         </div>
 
-        <div class="rich-editor-tooltip" data-tooltip="Custom field color">
-          <button type="button" class="rich-editor-color-picker-trigger" :disabled="disabled" @mousedown.prevent @click="openColorPicker('callout', $event)">
-            <span class="rich-editor-color-trigger-swatch" :style="{ backgroundColor: currentCalloutHex }"></span>
-            <span>Field Color</span>
-          </button>
-        </div>
-
-        <div class="rich-editor-tooltip" data-tooltip="Clear custom text styling">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="clearTypography">Clear Type</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Remove highlight">
-          <HorizonButton type="button" size="xs" :variant="isHighlightActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyHighlightColor('')">Clear Highlight</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Remove field">
-          <HorizonButton type="button" size="xs" :variant="isCalloutActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="applyCustomCalloutColor('')">Clear Field</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Strikethrough">
-          <HorizonButton type="button" size="xs" :variant="isStrikeActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleStrike">S</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Block quote">
-          <HorizonButton type="button" size="xs" :variant="isBlockquoteActive ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="toggleBlockquote">Quote</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Horizontal divider">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertDivider">Divider</HorizonButton>
-        </div>
-
-        <div class="rich-editor-tooltip" data-tooltip="Insert image from URL">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertImage('center')">Image URL</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Upload image">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled || isUploadingImage" @mousedown.prevent @click="triggerImageUpload('center')">{{ isUploadingImage ? 'Uploading…' : 'Upload Image' }}</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Float image left">
-          <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'left' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('left')">Img Left</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Center image">
-          <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'center' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('center')">Img Center</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Float image right">
-          <HorizonButton type="button" size="xs" :variant="isImageActive && currentImageAlign === 'right' ? 'primary' : 'ghost'" :disabled="disabled" @mousedown.prevent @click="setImageAlign('right')">Img Right</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Image size preset">
-          <select class="hz-input" style="max-width: 170px; padding: 0.3rem 0.55rem;" :disabled="disabled || !isImageActive" :value="currentImageWidthSelectValue" @mousedown.stop @change="applyImageWidthPreset($event.target.value)">
-            <option value="" disabled>Image Size</option>
-            <option v-if="currentImageWidthSelectValue === '__custom'" value="__custom" disabled>Image: Custom ({{ currentImageWidthPercent }}%)</option>
-            <option v-for="option in imageWidthPresetOptions" :key="option.value" :value="String(option.value)">{{ option.label }}</option>
-          </select>
-        </div>
-
-        <div class="rich-editor-tooltip" data-tooltip="Insert table">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Add table row">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableRow">+Row</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Add table column">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableColumn">+Col</HorizonButton>
-        </div>
-        <div class="rich-editor-tooltip" data-tooltip="Delete table">
-          <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
+        <div class="rich-editor-toolbar-section">
+          <div class="rich-editor-tooltip" data-tooltip="Insert table">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="insertTable">Table</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Add table row">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableRow">+Row</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Add table column">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="addTableColumn">+Col</HorizonButton>
+          </div>
+          <div class="rich-editor-tooltip" data-tooltip="Delete table">
+            <HorizonButton type="button" size="xs" variant="ghost" :disabled="disabled" @mousedown.prevent @click="deleteTable">Del Tbl</HorizonButton>
+          </div>
         </div>
       </div>
     </div>
 
-    <div
-      v-if="isColorPickerOpen"
-      ref="colorPickerPanel"
-      class="hz-popover-surface rich-editor-color-panel overflow-hidden rounded-xl"
-      :style="colorPickerPanelStyle"
-      @mousedown.stop
-    >
-      <div class="space-y-3 px-3 py-3">
-        <div class="flex items-center gap-2">
-          <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerInitialHex }"></div>
-          <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerDraftHex }"></div>
-          <input
-            type="text"
-            class="hz-input rich-editor-color-hex-input"
-            :value="colorPickerHexValue"
-            spellcheck="false"
-            @mousedown.stop
-            @input="applyColorPickerHexInput($event.target.value)"
-            @blur="applyColorPickerHexInput($event.target.value)"
-            @keydown.enter.prevent="confirmColorPickerHexInput"
-          />
-          <div class="min-w-0">
-            <div class="text-[11px] font-semibold text-[var(--color-text-primary)]">{{ colorPickerPreviewLabel }} Color</div>
-            <div class="truncate text-[11px] font-mono uppercase text-[var(--color-text-secondary)]">{{ colorPickerDraftHex }}</div>
-          </div>
-          <div class="ml-auto flex items-center gap-1">
-            <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="closeColorPicker">Close</HorizonButton>
-            <HorizonButton type="button" size="xs" variant="primary" @mousedown.prevent @click="confirmColorPicker">Done</HorizonButton>
-          </div>
-        </div>
+    <MediaPickerModal
+      :open="isMediaPickerOpen"
+      :collection="uploadCollection"
+      title="Choose Image from Media"
+      :allow-upload="false"
+      @close="isMediaPickerOpen = false"
+      @selected="handleMediaPickerSelection"
+    />
 
-        <div class="grid grid-cols-[minmax(0,1fr)_1rem] gap-2">
-          <div
-            ref="colorPickerField"
-            class="rich-editor-color-field"
-            :style="colorPickerFieldStyle"
-            @mousedown="startColorPickerDrag($event, 'field')"
-          >
-            <div class="rich-editor-color-field-cursor" :style="colorPickerFieldCursorStyle"></div>
-          </div>
-
-          <div
-            ref="colorPickerSlider"
-            class="rich-editor-color-slider"
-            @mousedown="startColorPickerDrag($event, 'slider')"
-          >
-            <div class="rich-editor-color-slider-cursor" :style="colorPickerSliderCursorStyle"></div>
-          </div>
-        </div>
-
-        <div class="hz-stack-xs">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Preset Colors</div>
-          <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--compact">
-            <button
-              v-for="hex in classicColorSwatches"
-              :key="hex"
-              type="button"
-              class="rich-editor-color-swatch"
-              :class="colorPickerDraftHex === hex ? 'rich-editor-color-swatch--active' : ''"
-              :style="{ backgroundColor: hex }"
-              @mousedown.prevent
-              @click="selectClassicColor(hex)"
-            ></button>
-          </div>
-        </div>
-
-        <div class="border-t border-[color:var(--color-surface-border)] pt-2">
-          <button
-            type="button"
-            class="rich-editor-color-advanced-toggle"
-            @mousedown.prevent
-            @click="isColorPickerAdvancedOpen = !isColorPickerAdvancedOpen"
-          >
-            <span>Advanced</span>
-            <span class="text-[10px] text-[var(--color-text-secondary)]">{{ isColorPickerAdvancedOpen ? 'Hide' : 'Show' }}</span>
-          </button>
-        </div>
-
-        <div v-if="isColorPickerAdvancedOpen" class="space-y-3">
-          <div class="hz-stack-xs">
-            <div class="flex items-center justify-between gap-2">
-              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Saved Colors</div>
-              <div class="flex items-center gap-1">
-                <HorizonButton
-                  type="button"
-                  size="xs"
-                  variant="ghost"
-                  :disabled="activeCustomColorIndex < 0 || !colorPickerCustomColors[activeCustomColorIndex]"
-                  @mousedown.prevent
-                  @click="clearSelectedCustomColor"
-                >
-                  Clear
-                </HorizonButton>
-                <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="addCurrentColorToCustomColors">Save</HorizonButton>
-              </div>
+    <Teleport to="body">
+      <div
+        v-if="isColorPickerOpen"
+        ref="colorPickerPanel"
+        class="hz-popover-surface rich-editor-color-panel overflow-hidden rounded-xl"
+        :style="colorPickerPanelStyle"
+        @mousedown.stop
+      >
+        <div class="space-y-3 px-3 py-3">
+          <div class="flex items-center gap-2">
+            <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerInitialHex }"></div>
+            <div class="rich-editor-color-preview-chip rich-editor-color-preview-chip--small" :style="{ backgroundColor: colorPickerDraftHex }"></div>
+            <input
+              type="text"
+              class="hz-input rich-editor-color-hex-input"
+              :value="colorPickerHexValue"
+              spellcheck="false"
+              @mousedown.stop
+              @input="applyColorPickerHexInput($event.target.value)"
+              @blur="applyColorPickerHexInput($event.target.value)"
+              @keydown.enter.prevent="confirmColorPickerHexInput"
+            />
+            <div class="min-w-0">
+              <div class="text-[11px] font-semibold text-[var(--color-text-primary)]">{{ colorPickerPreviewLabel }} Color</div>
+              <div class="truncate text-[11px] font-mono uppercase text-[var(--color-text-secondary)]">{{ colorPickerDraftHex }}</div>
             </div>
-            <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--custom">
+            <div class="ml-auto flex items-center gap-1">
+              <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="closeColorPicker">Close</HorizonButton>
+              <HorizonButton type="button" size="xs" variant="primary" @mousedown.prevent @click="confirmColorPicker">Done</HorizonButton>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-[minmax(0,1fr)_1rem] gap-2">
+            <div
+              ref="colorPickerField"
+              class="rich-editor-color-field"
+              :style="colorPickerFieldStyle"
+              @mousedown="startColorPickerDrag($event, 'field')"
+            >
+              <div class="rich-editor-color-field-cursor" :style="colorPickerFieldCursorStyle"></div>
+            </div>
+
+            <div
+              ref="colorPickerSlider"
+              class="rich-editor-color-slider"
+              @mousedown="startColorPickerDrag($event, 'slider')"
+            >
+              <div class="rich-editor-color-slider-cursor" :style="colorPickerSliderCursorStyle"></div>
+            </div>
+          </div>
+
+          <div class="hz-stack-xs">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Preset Colors</div>
+            <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--compact">
               <button
-                v-for="(hex, index) in colorPickerCustomColors"
-                :key="`custom-${index}`"
+                v-for="hex in classicColorSwatches"
+                :key="hex"
                 type="button"
                 class="rich-editor-color-swatch"
-                :class="activeCustomColorIndex === index ? 'rich-editor-color-swatch--active' : ''"
-                :style="{ backgroundColor: hex || 'transparent' }"
+                :class="colorPickerDraftHex === hex ? 'rich-editor-color-swatch--active' : ''"
+                :style="{ backgroundColor: hex }"
                 @mousedown.prevent
-                @click="selectCustomColor(index)"
-              >
-                <span v-if="!hex" class="rich-editor-color-swatch-empty"></span>
-              </button>
-            </div>
-            <div v-if="activeCustomColorIndex !== -1" class="text-[11px] font-medium text-[var(--color-text-secondary)]">
-              Save will update slot {{ activeCustomColorIndex + 1 }}.
+                @click="selectClassicColor(hex)"
+              ></button>
             </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-2">
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Hue</span>
-              <input type="number" class="hz-input" min="0" max="359" :value="colorPickerHueInput" @mousedown.stop @input="applyColorPickerHueInput($event.target.value)" />
-            </label>
-
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Sat</span>
-              <input type="number" class="hz-input" min="0" max="240" :value="colorPickerSatInput" @mousedown.stop @input="applyColorPickerSatInput($event.target.value)" />
-            </label>
-
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Lum</span>
-              <input type="number" class="hz-input" min="0" max="240" :value="colorPickerLumInput" @mousedown.stop @input="applyColorPickerLumInput($event.target.value)" />
-            </label>
+          <div class="border-t border-[color:var(--color-surface-border)] pt-2">
+            <button
+              type="button"
+              class="rich-editor-color-advanced-toggle"
+              @mousedown.prevent
+              @click="isColorPickerAdvancedOpen = !isColorPickerAdvancedOpen"
+            >
+              <span>Advanced</span>
+              <span class="text-[10px] text-[var(--color-text-secondary)]">{{ isColorPickerAdvancedOpen ? 'Hide' : 'Show' }}</span>
+            </button>
           </div>
 
-          <div class="grid grid-cols-3 gap-2">
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Red</span>
-              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.r" @mousedown.stop @input="applyColorPickerRgbChannel('r', $event.target.value)" />
-            </label>
+          <div v-if="isColorPickerAdvancedOpen" class="space-y-3">
+            <div class="hz-stack-xs">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Saved Colors</div>
+                <div class="flex items-center gap-1">
+                  <HorizonButton
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    :disabled="activeCustomColorIndex < 0 || !colorPickerCustomColors[activeCustomColorIndex]"
+                    @mousedown.prevent
+                    @click="clearSelectedCustomColor"
+                  >
+                    Clear
+                  </HorizonButton>
+                  <HorizonButton type="button" size="xs" variant="ghost" @mousedown.prevent @click="addCurrentColorToCustomColors">Save</HorizonButton>
+                </div>
+              </div>
+              <div class="rich-editor-color-swatch-grid rich-editor-color-swatch-grid--custom">
+                <button
+                  v-for="(hex, index) in colorPickerCustomColors"
+                  :key="`custom-${index}`"
+                  type="button"
+                  class="rich-editor-color-swatch"
+                  :class="activeCustomColorIndex === index ? 'rich-editor-color-swatch--active' : ''"
+                  :style="{ backgroundColor: hex || 'transparent' }"
+                  @mousedown.prevent
+                  @click="selectCustomColor(index)"
+                >
+                  <span v-if="!hex" class="rich-editor-color-swatch-empty"></span>
+                </button>
+              </div>
+              <div v-if="activeCustomColorIndex !== -1" class="text-[11px] font-medium text-[var(--color-text-secondary)]">
+                Save will update slot {{ activeCustomColorIndex + 1 }}.
+              </div>
+            </div>
 
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Green</span>
-              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.g" @mousedown.stop @input="applyColorPickerRgbChannel('g', $event.target.value)" />
-            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Hue</span>
+                <input type="number" class="hz-input" min="0" max="359" :value="colorPickerHueInput" @mousedown.stop @input="applyColorPickerHueInput($event.target.value)" />
+              </label>
 
-            <label class="hz-stack-xs">
-              <span class="text-[11px] text-[var(--color-text-secondary)]">Blue</span>
-              <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.b" @mousedown.stop @input="applyColorPickerRgbChannel('b', $event.target.value)" />
-            </label>
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Sat</span>
+                <input type="number" class="hz-input" min="0" max="240" :value="colorPickerSatInput" @mousedown.stop @input="applyColorPickerSatInput($event.target.value)" />
+              </label>
+
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Lum</span>
+                <input type="number" class="hz-input" min="0" max="240" :value="colorPickerLumInput" @mousedown.stop @input="applyColorPickerLumInput($event.target.value)" />
+              </label>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Red</span>
+                <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.r" @mousedown.stop @input="applyColorPickerRgbChannel('r', $event.target.value)" />
+              </label>
+
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Green</span>
+                <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.g" @mousedown.stop @input="applyColorPickerRgbChannel('g', $event.target.value)" />
+              </label>
+
+              <label class="hz-stack-xs">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">Blue</span>
+                <input type="number" class="hz-input" min="0" max="255" :value="colorPickerDraftRgb.b" @mousedown.stop @input="applyColorPickerRgbChannel('b', $event.target.value)" />
+              </label>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <p v-if="uploadError" class="text-xs text-red-300">{{ uploadError }}</p>
 
     <div ref="editorViewport" class="relative">
+      <BubbleMenu
+        v-if="editor"
+        class="rich-editor-bubble-root"
+        :editor="editor"
+        :appendTo="bubbleMenuAppendTarget"
+        :should-show="shouldShowTextBubbleMenu"
+        :options="{ strategy: 'fixed', placement: 'top', offset: 12 }"
+      >
+        <div class="hz-surface-welcome rich-editor-bubble" :style="bubbleSurfaceStyle" @mousedown.stop>
+          <div class="rich-editor-bubble-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-type-trigger rich-editor-bubble-tooltip"
+              :aria-expanded="isBubbleBlockMenuOpen ? 'true' : 'false'"
+              :data-tooltip="bubbleTooltipText('Block style')"
+              @mousedown.prevent
+              @click="toggleBubbleBlockMenu"
+            >
+              <span class="rich-editor-bubble-type-prefix">Aa</span>
+              <span class="truncate">{{ currentBubbleBlockLabel }}</span>
+              <span class="rich-editor-bubble-chevron" :class="isBubbleBlockMenuOpen ? 'is-open' : ''">›</span>
+            </button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-actions">
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-tooltip" :class="{ 'is-active': isBoldActive }" :data-tooltip="bubbleTooltipText('Bold', 'Mod-b')" aria-label="Bold" @mousedown.prevent @click="toggleBold">B</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-action-italic rich-editor-bubble-tooltip" :class="{ 'is-active': isItalicActive }" :data-tooltip="bubbleTooltipText('Italic', 'Mod-i')" aria-label="Italic" @mousedown.prevent @click="toggleItalic">I</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-action-underline rich-editor-bubble-tooltip" :class="{ 'is-active': isUnderlineActive }" :data-tooltip="bubbleTooltipText('Underline', 'Mod-u')" aria-label="Underline" @mousedown.prevent @click="toggleUnderline">U</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-action-strike rich-editor-bubble-tooltip" :class="{ 'is-active': isStrikeActive }" :data-tooltip="bubbleTooltipText('Strikethrough', 'Mod-Shift-s')" aria-label="Strikethrough" @mousedown.prevent @click="toggleStrike">S</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-tooltip" :class="{ 'is-active': isLinkActive }" :data-tooltip="bubbleTooltipText('Link')" aria-label="Link" @mousedown.prevent @click="insertLink">↗</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-tooltip" :class="{ 'is-active': isBulletListActive }" :data-tooltip="bubbleTooltipText('Bulleted list', 'Mod-Shift-8')" aria-label="Bulleted list" @mousedown.prevent @click="toggleUnorderedList">•</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-tooltip" :class="{ 'is-active': isOrderedListActive }" :data-tooltip="bubbleTooltipText('Numbered list', 'Mod-Shift-7')" aria-label="Numbered list" @mousedown.prevent @click="toggleOrderedList">1.</button>
+            <button type="button" class="rich-editor-bubble-action rich-editor-bubble-tooltip" :class="{ 'is-active': isBlockquoteActive }" :data-tooltip="bubbleTooltipText('Quote', 'Mod-Shift-b')" aria-label="Quote" @mousedown.prevent @click="toggleBlockquote">"</button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-select-row">
+            <div class="rich-editor-bubble-select-wrap rich-editor-bubble-tooltip" :data-tooltip="bubbleTooltipTextList('Text alignment', ['Mod-Shift-l', 'Mod-Shift-e', 'Mod-Shift-r', 'Mod-Shift-j'])">
+              <select
+                class="rich-editor-bubble-select"
+                :disabled="disabled"
+                :value="currentTextAlign"
+                @mousedown.stop="closeBubbleBlockMenu"
+                @change="setBubbleTextAlign($event.target.value)"
+              >
+                <option v-for="opt in textAlignOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
+
+            <div class="rich-editor-bubble-select-wrap rich-editor-bubble-select-wrap-font rich-editor-bubble-tooltip" :data-tooltip="bubbleTooltipText('Font family')">
+              <select
+                class="rich-editor-bubble-select"
+                :disabled="disabled"
+                :value="currentFontFamily"
+                :style="{ fontFamily: currentFontFamilyPreview }"
+                @mousedown.stop="closeBubbleBlockMenu"
+                @change="applyBubbleFontFamily($event.target.value)"
+              >
+                <option
+                  v-for="opt in fontFamilyOptions"
+                  :key="opt.value || '__default'"
+                  :value="opt.value"
+                  :style="{ fontFamily: opt.preview }"
+                >
+                  {{ opt.shortLabel }}
+                </option>
+              </select>
+            </div>
+
+            <div class="rich-editor-bubble-select-wrap rich-editor-bubble-tooltip" :data-tooltip="bubbleTooltipText('Font size')">
+              <select
+                class="rich-editor-bubble-select"
+                :disabled="disabled"
+                :value="currentFontSize"
+                @mousedown.stop="closeBubbleBlockMenu"
+                @change="applyBubbleFontSize($event.target.value)"
+              >
+                <option v-for="opt in fontSizeOptions" :key="opt.value || '__default'" :value="opt.value">{{ opt.shortLabel }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-color-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-color-trigger rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Text color')"
+              @mousedown.prevent
+              @click="openBubbleColorPicker('text', $event)"
+            >
+              <span class="rich-editor-bubble-color-swatch" :style="{ backgroundColor: currentTextColorHex }"></span>
+              <span class="rich-editor-bubble-color-label">Text</span>
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-color-trigger rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Highlight color')"
+              @mousedown.prevent
+              @click="openBubbleColorPicker('highlight', $event)"
+            >
+              <span class="rich-editor-bubble-color-swatch" :style="{ backgroundColor: currentHighlightHex }"></span>
+              <span class="rich-editor-bubble-color-label">Highlight</span>
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-color-trigger rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Field color')"
+              @mousedown.prevent
+              @click="openBubbleColorPicker('callout', $event)"
+            >
+              <span class="rich-editor-bubble-color-swatch" :style="{ backgroundColor: currentCalloutHex }"></span>
+              <span class="rich-editor-bubble-color-label">Field</span>
+            </button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-color-clear-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-color-clear rich-editor-bubble-tooltip"
+              :class="{ 'is-active': Boolean(currentTextColor || currentInlineTextColor) }"
+              :data-tooltip="bubbleTooltipText('Clear text color')"
+              @mousedown.prevent
+              @click="clearBubbleTextColor"
+            >
+              Clear Text
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-color-clear rich-editor-bubble-tooltip"
+              :class="{ 'is-active': isHighlightActive }"
+              :data-tooltip="bubbleTooltipText('Clear highlight color')"
+              @mousedown.prevent
+              @click="clearBubbleHighlightColor"
+            >
+              Clear Highlight
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-color-clear rich-editor-bubble-tooltip"
+              :class="{ 'is-active': isCalloutActive }"
+              :data-tooltip="bubbleTooltipText('Clear field color')"
+              @mousedown.prevent
+              @click="clearBubbleFieldColor"
+            >
+              Clear Field
+            </button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-utility-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Clear typography')"
+              @mousedown.prevent
+              @click="bubbleClearTypography"
+            >
+              Clear Type
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Horizontal divider')"
+              @mousedown.prevent
+              @click="bubbleInsertDivider"
+            >
+              Divider
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :disabled="disabled || !canUndo"
+              :data-tooltip="bubbleTooltipText('Undo', 'Mod-z')"
+              @mousedown.prevent
+              @click="bubbleUndo"
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :disabled="disabled || !canRedo"
+              :data-tooltip="bubbleTooltipTextList('Redo', ['Shift-Mod-z', 'Mod-y'])"
+              @mousedown.prevent
+              @click="bubbleRedo"
+            >
+              Redo
+            </button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-utility-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Insert image from URL')"
+              @mousedown.prevent
+              @click="bubbleInsertImageUrl"
+            >
+              Image URL
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :disabled="disabled || isUploadingImage"
+              :data-tooltip="bubbleTooltipText('Upload image')"
+              @mousedown.prevent
+              @click="bubbleTriggerImageUpload"
+            >
+              {{ isUploadingImage ? 'Uploading…' : 'Upload' }}
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Choose image from media')"
+              @mousedown.prevent
+              @click="bubbleOpenMediaPicker"
+            >
+              Choose Media
+            </button>
+          </div>
+
+          <div class="rich-editor-bubble-row rich-editor-bubble-utility-row">
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Insert table')"
+              @mousedown.prevent
+              @click="bubbleInsertTable"
+            >
+              Table
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Add table row')"
+              @mousedown.prevent
+              @click="bubbleAddTableRow"
+            >
+              +Row
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Add table column')"
+              @mousedown.prevent
+              @click="bubbleAddTableColumn"
+            >
+              +Col
+            </button>
+            <button
+              type="button"
+              class="rich-editor-bubble-pill rich-editor-bubble-tooltip"
+              :data-tooltip="bubbleTooltipText('Delete table')"
+              @mousedown.prevent
+              @click="bubbleDeleteTable"
+            >
+              Del Tbl
+            </button>
+          </div>
+
+          <div v-if="isBubbleBlockMenuOpen" class="hz-surface-welcome rich-editor-bubble-panel" :style="bubblePanelSurfaceStyle">
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'p' && !isBulletListActive && !isOrderedListActive && !isBlockquoteActive }" :data-tooltip="bubbleTooltipText('Normal text', 'Mod-Alt-0')" @mousedown.prevent @click="applyBubbleBlockType('p')">
+              <span class="rich-editor-bubble-panel-icon">T</span>
+              <span class="rich-editor-bubble-panel-label">Normal Text</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h1' }" :data-tooltip="bubbleTooltipText('Heading 1', 'Mod-Alt-1')" @mousedown.prevent @click="applyBubbleBlockType('h1')">
+              <span class="rich-editor-bubble-panel-icon">H1</span>
+              <span class="rich-editor-bubble-panel-label">Heading 1</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h2' }" :data-tooltip="bubbleTooltipText('Heading 2', 'Mod-Alt-2')" @mousedown.prevent @click="applyBubbleBlockType('h2')">
+              <span class="rich-editor-bubble-panel-icon">H2</span>
+              <span class="rich-editor-bubble-panel-label">Heading 2</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h3' }" :data-tooltip="bubbleTooltipText('Heading 3', 'Mod-Alt-3')" @mousedown.prevent @click="applyBubbleBlockType('h3')">
+              <span class="rich-editor-bubble-panel-icon">H3</span>
+              <span class="rich-editor-bubble-panel-label">Heading 3</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h4' }" :data-tooltip="bubbleTooltipText('Heading 4', 'Mod-Alt-4')" @mousedown.prevent @click="applyBubbleBlockType('h4')">
+              <span class="rich-editor-bubble-panel-icon">H4</span>
+              <span class="rich-editor-bubble-panel-label">Heading 4</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h5' }" :data-tooltip="bubbleTooltipText('Heading 5', 'Mod-Alt-5')" @mousedown.prevent @click="applyBubbleBlockType('h5')">
+              <span class="rich-editor-bubble-panel-icon">H5</span>
+              <span class="rich-editor-bubble-panel-label">Heading 5</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': blockTypeValue === 'h6' }" :data-tooltip="bubbleTooltipText('Heading 6', 'Mod-Alt-6')" @mousedown.prevent @click="applyBubbleBlockType('h6')">
+              <span class="rich-editor-bubble-panel-icon">H6</span>
+              <span class="rich-editor-bubble-panel-label">Heading 6</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': isBulletListActive }" :data-tooltip="bubbleTooltipText('Bulleted list', 'Mod-Shift-8')" @mousedown.prevent @click="applyBubbleListType('bullet')">
+              <span class="rich-editor-bubble-panel-icon">•</span>
+              <span class="rich-editor-bubble-panel-label">Bulleted List</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': isOrderedListActive }" :data-tooltip="bubbleTooltipText('Numbered list', 'Mod-Shift-7')" @mousedown.prevent @click="applyBubbleListType('ordered')">
+              <span class="rich-editor-bubble-panel-icon">1.</span>
+              <span class="rich-editor-bubble-panel-label">Numbered List</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+            <button type="button" class="rich-editor-bubble-panel-item rich-editor-bubble-tooltip" :class="{ 'is-active': isBlockquoteActive }" :data-tooltip="bubbleTooltipText('Quote', 'Mod-Shift-b')" @mousedown.prevent @click="applyBubbleQuoteType">
+              <span class="rich-editor-bubble-panel-icon">"</span>
+              <span class="rich-editor-bubble-panel-label">Quote</span>
+              <span class="rich-editor-bubble-panel-check">✓</span>
+            </button>
+          </div>
+        </div>
+      </BubbleMenu>
+
       <div v-if="showPlaceholder" class="pointer-events-none absolute left-3 top-3 text-horizon-muted">{{ placeholder }}</div>
       <EditorContent
         :editor="editor"
@@ -1887,30 +2517,465 @@ onBeforeUnmount(() => editor?.destroy())
 <style scoped>
 .rich-editor-shell {
   position: relative;
+  --rich-editor-surface-base: rgb(10 18 34 / 0.97);
+  --rich-editor-surface-base-strong: rgb(8 14 28 / 0.985);
+  --rich-editor-surface: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-accent) 58%, var(--rich-editor-surface-base) 42%), color-mix(in srgb, var(--color-surface-accent) 42%, var(--rich-editor-surface-base-strong) 58%));
+  --rich-editor-surface-strong: linear-gradient(180deg, color-mix(in srgb, var(--color-surface-accent) 48%, var(--rich-editor-surface-base) 52%), color-mix(in srgb, var(--color-surface-accent) 34%, var(--rich-editor-surface-base-strong) 66%));
+  --rich-editor-surface-soft: color-mix(in srgb, var(--color-surface-soft) 55%, rgb(10 18 34 / 0.95) 45%);
+  --rich-editor-surface-active: color-mix(in srgb, var(--horizon-sunset-blue) 18%, var(--color-surface-accent));
+  --rich-editor-border: color-mix(in srgb, var(--horizon-sunset-blue) 24%, rgb(255 255 255 / 0.055));
+  --rich-editor-border-soft: color-mix(in srgb, var(--color-surface-border) 80%, transparent);
+  --rich-editor-hover: rgb(255 255 255 / 0.055);
+  --rich-editor-hover-strong: rgb(255 255 255 / 0.085);
+  --rich-editor-text: var(--color-text-primary);
+  --rich-editor-text-soft: color-mix(in srgb, var(--color-text-secondary) 92%, transparent);
+  --rich-editor-text-muted: color-mix(in srgb, var(--color-text-secondary) 72%, transparent);
+  --rich-editor-accent: var(--horizon-sunset-blue);
+  --rich-editor-shadow: 0 18px 42px rgb(2 6 23 / 0.28);
+  --rich-editor-shadow-soft: 0 14px 30px rgb(2 6 23 / 0.22);
+}
+
+.rich-editor-bubble-root {
+  z-index: 80;
+}
+
+.rich-editor-bubble {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 18rem;
+  padding: 0.35rem;
+  border: 1px solid var(--rich-editor-border);
+  border-radius: 0.95rem;
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    var(--rich-editor-shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.rich-editor-bubble-row {
+  display: flex;
+  align-items: center;
+  padding: 0.12rem;
+}
+
+.rich-editor-bubble-row + .rich-editor-bubble-row {
+  border-top: 1px solid var(--rich-editor-border-soft);
+}
+
+.rich-editor-bubble-type-trigger {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.55rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--rich-editor-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-type-trigger:hover {
+  background: var(--rich-editor-hover);
+}
+
+.rich-editor-bubble-type-prefix {
+  display: inline-flex;
+  width: 1.35rem;
+  justify-content: center;
+  color: var(--rich-editor-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.rich-editor-bubble-chevron {
+  margin-left: auto;
+  color: var(--rich-editor-text-muted);
+  transition: transform 140ms ease;
+}
+
+.rich-editor-bubble-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.rich-editor-bubble-actions {
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.rich-editor-bubble-select-row {
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.rich-editor-bubble-select-wrap {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 4.8rem;
+}
+
+.rich-editor-bubble-select-wrap-font {
+  flex-basis: 6.25rem;
+}
+
+.rich-editor-bubble-select-wrap::after {
+  content: '▾';
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  color: var(--rich-editor-text-muted);
+  font-size: 0.66rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.rich-editor-bubble-select {
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  padding: 0.48rem 1.45rem 0.48rem 0.55rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--rich-editor-surface-soft);
+  color: var(--rich-editor-text);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-select:hover:not(:disabled),
+.rich-editor-bubble-select:focus {
+  background: var(--rich-editor-hover);
+  outline: none;
+}
+
+.rich-editor-bubble-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rich-editor-bubble-color-row {
+  gap: 0.2rem;
+}
+
+.rich-editor-bubble-color-clear-row {
+  gap: 0.2rem;
+}
+
+.rich-editor-bubble-utility-row {
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.rich-editor-bubble-action {
+  display: inline-flex;
+  min-width: 2.1rem;
+  height: 2.1rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.45rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--rich-editor-text-soft);
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-action:hover {
+  background: var(--rich-editor-hover);
+}
+
+.rich-editor-bubble-action.is-active {
+  background: var(--rich-editor-surface-active);
+  color: var(--rich-editor-accent);
+}
+
+.rich-editor-bubble-action-italic {
+  font-style: italic;
+}
+
+.rich-editor-bubble-action-underline {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.rich-editor-bubble-action-strike {
+  text-decoration: line-through;
+}
+
+.rich-editor-bubble-color-trigger {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.55rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--rich-editor-text-soft);
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-color-trigger:hover {
+  background: var(--rich-editor-hover);
+}
+
+.rich-editor-bubble-color-swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+.rich-editor-bubble-color-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rich-editor-bubble-color-clear {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.36rem 0.45rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: var(--rich-editor-surface-soft);
+  color: var(--rich-editor-text-soft);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.1;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-color-clear.is-active {
+  background: var(--rich-editor-surface-active);
+  color: var(--rich-editor-text);
+}
+
+.rich-editor-bubble-color-clear:hover {
+  background: var(--rich-editor-hover);
+  color: var(--rich-editor-text);
+}
+
+.rich-editor-bubble-pill {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.42rem 0.52rem;
+  border: 0;
+  border-radius: 0.58rem;
+  background: var(--rich-editor-surface-soft);
+  color: var(--rich-editor-text-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-pill:hover:not(:disabled) {
+  background: var(--rich-editor-hover);
+  color: var(--rich-editor-text);
+}
+
+.rich-editor-bubble-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rich-editor-bubble-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 0.45rem);
+  display: flex;
+  min-width: 13rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.35rem;
+  border: 1px solid var(--rich-editor-border);
+  border-radius: 0.95rem;
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    var(--rich-editor-shadow-soft);
+}
+
+.rich-editor-bubble-panel-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  justify-content: flex-start;
+  padding: 0.5rem 0.62rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--rich-editor-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.rich-editor-bubble-panel-item:hover {
+  background: var(--rich-editor-hover);
+}
+
+.rich-editor-bubble-panel-item.is-active {
+  background: var(--rich-editor-surface-active);
+  color: var(--rich-editor-text);
+}
+
+.rich-editor-bubble-panel-icon {
+  display: inline-flex;
+  width: 1.5rem;
+  flex: 0 0 1.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--rich-editor-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rich-editor-bubble-panel-label {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rich-editor-bubble-panel-check {
+  opacity: 0;
+  color: var(--rich-editor-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rich-editor-bubble-panel-item.is-active .rich-editor-bubble-panel-check {
+  opacity: 1;
+}
+
+.rich-editor-bubble-panel-item.is-active .rich-editor-bubble-panel-icon {
+  color: var(--rich-editor-accent);
 }
 
 .rich-editor-toolbar {
-  position: sticky;
-  top: 0.75rem;
-  z-index: 20;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid var(--rich-editor-border);
+  border-radius: 1.05rem;
+  background-color: var(--rich-editor-surface-base);
+  background-image: var(--rich-editor-surface);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    var(--rich-editor-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.rich-editor-toolbar-group {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.rich-editor-toolbar-primary {
+  justify-content: space-between;
+}
+
+.rich-editor-toolbar-scroller {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.rich-editor-toolbar-section.rich-editor-toolbar-mobile-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.rich-editor-toolbar-section {
+  display: inline-flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: 1rem;
-  background: rgb(16 19 28 / 0.88);
-  backdrop-filter: blur(14px);
+  gap: 0.35rem;
+  padding: 0.34rem;
+  border: 1px solid var(--rich-editor-border-soft);
+  border-radius: 0.95rem;
+  background: var(--rich-editor-surface-soft);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
 }
 
-.rich-editor-toolbar-group,
-.rich-editor-toolbar-scroller {
-  display: contents;
+.rich-editor-toolbar-section--select {
+  gap: 0.45rem;
 }
 
-.rich-editor-toolbar-mobile-toggle {
-  display: none;
+.rich-editor-toolbar-section--media {
+  background: color-mix(in srgb, var(--horizon-sunset-blue) 12%, var(--color-surface-accent));
+  border-color: var(--rich-editor-border);
+}
+
+.rich-editor-toolbar-select {
+  min-height: 2.2rem;
+  padding: 0.35rem 0.62rem;
+  border-color: var(--rich-editor-border-soft);
+  border-radius: 0.8rem;
+  background: var(--rich-editor-surface-soft);
+  color: var(--rich-editor-text);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.rich-editor-toolbar-select--block {
+  min-width: 8.75rem;
+}
+
+.rich-editor-toolbar-select--align {
+  min-width: 8.2rem;
+}
+
+.rich-editor-toolbar-select--font {
+  min-width: 8.2rem;
+}
+
+.rich-editor-toolbar-select--size {
+  min-width: 7rem;
+}
+
+.rich-editor-toolbar-select--image {
+  min-width: 10rem;
 }
 
 .rich-editor-tooltip {
@@ -1919,8 +2984,19 @@ onBeforeUnmount(() => editor?.destroy())
   align-items: center;
 }
 
+.rich-editor-bubble-tooltip {
+  position: relative;
+}
+
+.rich-editor-toolbar :deep(.hz-btn) {
+  min-height: 2.2rem;
+  border-radius: 0.8rem;
+}
+
 .rich-editor-tooltip::before,
-.rich-editor-tooltip::after {
+.rich-editor-tooltip::after,
+.rich-editor-bubble-tooltip::before,
+.rich-editor-bubble-tooltip::after {
   position: absolute;
   left: 50%;
   opacity: 0;
@@ -1935,7 +3011,16 @@ onBeforeUnmount(() => editor?.destroy())
   transform: translateX(-50%) translateY(0.35rem);
   border-width: 0.35rem 0.35rem 0;
   border-style: solid;
-  border-color: rgb(9 12 18 / 0.96) transparent transparent;
+  border-color: var(--rich-editor-surface-strong) transparent transparent;
+}
+
+.rich-editor-bubble-tooltip::before {
+  content: '';
+  bottom: calc(100% + 0.15rem);
+  transform: translateX(-50%) translateY(0.35rem);
+  border-width: 0.35rem 0.35rem 0;
+  border-style: solid;
+  border-color: var(--rich-editor-surface-strong) transparent transparent;
 }
 
 .rich-editor-tooltip::after {
@@ -1945,22 +3030,50 @@ onBeforeUnmount(() => editor?.destroy())
   width: max-content;
   max-width: 13rem;
   padding: 0.45rem 0.6rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid var(--rich-editor-border);
   border-radius: 0.75rem;
-  background: rgb(9 12 18 / 0.96);
-  color: rgb(238 242 255 / 1);
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  color: var(--rich-editor-text);
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.25;
   text-align: center;
   white-space: normal;
-  box-shadow: 0 14px 28px rgb(0 0 0 / 0.32);
+  box-shadow: var(--rich-editor-shadow-soft);
+}
+
+.rich-editor-bubble-tooltip::after {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 0.45rem);
+  transform: translateX(-50%) translateY(0.35rem);
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rich-editor-border);
+  border-radius: 0.75rem;
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  color: var(--rich-editor-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  box-shadow: var(--rich-editor-shadow-soft);
+  z-index: 120;
 }
 
 .rich-editor-tooltip:hover::before,
 .rich-editor-tooltip:hover::after,
 .rich-editor-tooltip:focus-within::before,
-.rich-editor-tooltip:focus-within::after {
+.rich-editor-tooltip:focus-within::after,
+.rich-editor-bubble-tooltip:hover::before,
+.rich-editor-bubble-tooltip:hover::after,
+.rich-editor-bubble-tooltip:focus-within::before,
+.rich-editor-bubble-tooltip:focus-within::after,
+.rich-editor-bubble-tooltip:focus-visible::before,
+.rich-editor-bubble-tooltip:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
@@ -2000,7 +3113,11 @@ onBeforeUnmount(() => editor?.destroy())
 }
 
 .rich-editor-color-panel {
-  box-shadow: 0 18px 36px rgb(2 6 23 / 0.26);
+  border: 1px solid var(--rich-editor-border);
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  box-shadow: var(--rich-editor-shadow);
+  backdrop-filter: blur(18px);
 }
 
 .rich-editor-color-swatch-grid {
@@ -2154,38 +3271,44 @@ onBeforeUnmount(() => editor?.destroy())
 }
 
 @media (max-width: 767px) {
+  .rich-editor-bubble {
+    width: min(calc(100vw - 1rem), 21rem);
+    min-width: min(calc(100vw - 1rem), 17rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .rich-editor-bubble-panel {
+    top: calc(100% + 0.45rem);
+    left: 0;
+    right: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .rich-editor-toolbar {
     top: 0.5rem;
-    flex-direction: column;
-    align-items: stretch;
     gap: 0.55rem;
     padding: 0.55rem;
     border-radius: 0.9rem;
   }
 
-  .rich-editor-toolbar-group {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-  }
-
   .rich-editor-toolbar-primary {
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.45rem;
   }
 
   .rich-editor-toolbar-scroller {
     display: flex;
     min-width: 0;
-    flex: 1 1 auto;
-    align-items: center;
+    width: 100%;
+    flex: 1 1 100%;
+    align-items: stretch;
     gap: 0.45rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
-    padding-bottom: 0.1rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible;
+    flex-wrap: wrap;
+    padding-bottom: 0;
   }
 
   .rich-editor-toolbar-scroller::-webkit-scrollbar,
@@ -2197,37 +3320,121 @@ onBeforeUnmount(() => editor?.destroy())
     display: flex;
     width: 100%;
     gap: 0.45rem;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: visible;
+    flex-wrap: wrap;
     padding-top: 0.55rem;
     border-top: 1px solid rgb(255 255 255 / 0.08);
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
   }
 
-  .rich-editor-toolbar-mobile-toggle {
-    display: inline-flex;
+  .rich-editor-toolbar-section {
+    width: 100%;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.3rem;
+    padding: 0.3rem;
+  }
+
+  .rich-editor-toolbar-section.rich-editor-toolbar-mobile-toggle {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
     flex: 0 0 auto;
   }
 
+  .rich-editor-toolbar-section--select {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rich-editor-toolbar-select,
+  .rich-editor-toolbar-select--block,
+  .rich-editor-toolbar-select--align,
+  .rich-editor-toolbar-select--font,
+  .rich-editor-toolbar-select--size,
+  .rich-editor-toolbar-select--image {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rich-editor-toolbar :deep(.hz-btn) {
+    min-height: 2.05rem;
+    padding-inline: 0.62rem;
+    font-size: 0.72rem;
+  }
+
+  .rich-editor-color-picker-trigger {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .rich-editor-bubble-row {
+    flex-wrap: wrap;
+  }
+
+  .rich-editor-bubble-actions {
+    gap: 0.18rem;
+  }
+
+  .rich-editor-bubble-action {
+    min-width: 0;
+    flex: 1 1 calc(25% - 0.18rem);
+  }
+
+  .rich-editor-bubble-select-row {
+    gap: 0.25rem;
+  }
+
+  .rich-editor-bubble-select-wrap,
+  .rich-editor-bubble-select-wrap-font {
+    flex: 1 1 100%;
+  }
+
+  .rich-editor-bubble-color-trigger,
+  .rich-editor-bubble-color-clear,
+  .rich-editor-bubble-pill {
+    flex: 1 1 calc(50% - 0.2rem);
+  }
+
+  .rich-editor-bubble-color-row,
+  .rich-editor-bubble-color-clear-row,
+  .rich-editor-bubble-utility-row {
+    gap: 0.18rem;
+  }
+
   .rich-editor-tooltip::before,
-  .rich-editor-tooltip::after {
+  .rich-editor-tooltip::after,
+  .rich-editor-bubble-tooltip::before,
+  .rich-editor-bubble-tooltip::after {
     display: none;
   }
 
   .rich-editor-color-panel {
     max-width: calc(100vw - 24px);
+    width: min(22rem, calc(100vw - 24px));
   }
 
   .rich-editor-color-picker-trigger {
-    min-width: 7.75rem;
+    min-width: 0;
+  }
+
+  .rich-editor-color-panel .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .rich-editor-color-panel .ml-auto.flex.items-center.gap-1 {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .rich-editor-color-hex-input {
-    width: 6.1rem;
-    min-width: 6.1rem;
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 8rem;
   }
 
   .rich-editor-color-swatch-grid {
@@ -2262,10 +3469,11 @@ onBeforeUnmount(() => editor?.destroy())
   top: -0.85rem;
   left: 0.65rem;
   padding: 0.22rem 0.45rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid var(--rich-editor-border);
   border-radius: 999px;
-  background: rgb(9 12 18 / 0.96);
-  color: rgb(238 242 255 / 1);
+  background-color: var(--rich-editor-surface-base-strong);
+  background-image: var(--rich-editor-surface-strong);
+  color: var(--rich-editor-text);
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
