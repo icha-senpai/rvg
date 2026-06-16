@@ -1,8 +1,8 @@
 # Horizon Platform — Project Status Document
 
-**Last Updated:** June 14, 2026  
+**Last Updated:** June 15, 2026  
 **Stack:** Laravel 12 (PHP 8.4) · Vue 3 · Inertia.js · Tailwind CSS v4 · PostgreSQL · Discord.js Bot  
-**Snapshot Scope:** This status reflects both committed repo state and the current worktree changes present on June 14, 2026.
+**Snapshot Scope:** This status reflects the current repo plus active worktree changes present on June 15, 2026.
 
 ---
 
@@ -12,13 +12,33 @@ Horizon is now a large hybrid Laravel/Inertia platform with the core systems in 
 - Discord auth plus RSI verification
 - Role and permission-driven access control
 - Member profiles, preferences, themes, and directory surfaces
-- Operations planning, attendance, AAR, templates, and settlement flows
+- Operations planning, attendance, runtime, AAR, templates, and settlement flows
 - Personal, squadron, and organization ledger systems
 - Squadron management plus Discord-linked sync tooling
 - UEX market sync and admin reference browsing
 - Archive, media, and admin tooling
 
-The biggest active work in the current worktree is the new **operation runtime** flow: a live run console for syncing lobby attendance, handling walk-ins, tracking no-shows/signed-off members, and orchestrating operation-specific Discord voice channels.
+Compared with the previous snapshot, the biggest change is that the **operation runtime subsystem is now materially present in the current worktree**, not just conceptual. The repo now includes:
+- a live `/operations/{operation}/run` surface
+- runtime roster status handling
+- signed-off-early and excused attendance handling
+- funds prep wiring into settlement
+- per-operation Discord voice layout/sync/cleanup
+- broader controller, service, schema, and regression coverage around those flows
+
+The other notable current-worktree theme is a **Horizon UI standardization pass**: shared native controls, drawer/modal cleanup, archive/admin surface alignment, and wider `7xl` page-shell normalization across more member-facing pages.
+
+---
+
+## Validation Snapshot
+
+Current verification run on June 15, 2026:
+- `npm run build` passing
+- `php artisan test` passing
+- test result: **358 passed**
+- assertion count: **2633**
+
+This is a significantly stronger snapshot than the prior status document implied. The repo is no longer just broad in surface area; it now has deeper coverage around operations, settlement safety, promotion/ledger schema assumptions, runtime Discord failure paths, and a few targeted frontend logic seams.
 
 ---
 
@@ -30,43 +50,56 @@ The biggest active work in the current worktree is the new **operation runtime**
 | Frontend UI | Vue 3 + Inertia.js | `backend/resources/js/` |
 | Styling | Tailwind CSS v4 | `backend/resources/css/app.css` |
 | Discord Bot | Node.js + Discord.js | `bots/horizon-bot/` |
-| Database | PostgreSQL | 72 migrations in repo |
+| Database | PostgreSQL | 77 migrations in repo |
 | Auth | Discord OAuth + session auth + Sanctum tokens | Hybrid web/API |
 
 The project uses a **hybrid Inertia + API architecture**:
 - **Inertia routes** in `backend/routes/web.php` render first-party Vue pages and pass props directly.
 - **API routes** in `backend/routes/api_v1.php` return JSON for external/programmatic consumers.
-- The app root is the nested `backend/` Laravel app, not the repo root.
+- The actual Laravel app root is the nested `backend/` directory, not the repo root.
 
 ---
 
 ## Current Worktree Focus
 
-### Active WIP — Operation Runtime + Discord Orchestration
+### 1. Operation Runtime Hardening + Reporting Pipeline
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Live operation run console | 🟡 Active WIP | New `/operations/{operation}/run` surface exists in the current worktree |
-| Lobby attendance sync | 🟡 Active WIP | Syncs Discord lobby presence into Horizon runtime participant state |
-| Walk-in participant capture | 🟡 Active WIP | Managers can add live attendees who were not signed up ahead of time |
-| Runtime status management | 🟡 Active WIP | Supports signed up, signed off before start, no-show, finished, and technical issue states |
-| Operation Discord channel layout | 🟡 Active WIP | Stores per-operation voice channel layout plus participant assignments |
-| Discord channel sync + cleanup | 🟡 Active WIP | Current worktree includes bot/webhook support and cleanup tests for complete/cancel flows |
-| Supporting UI pass | 🟡 Active WIP | Mission show/dashboard, AAR, settlement, and admin panels are being adjusted alongside runtime work |
+| Live operation run console | ✅ Current worktree | `/operations/{operation}/run` exists and renders through `OperationRuntimeController` |
+| Lobby attendance sync | ✅ Current worktree | Sync history and participant runtime state are persisted |
+| Walk-in participant capture | ✅ Current worktree | Managers can add live attendees who were not pre-signed |
+| Runtime status management | ✅ Current worktree | Present, no-show, excused, signed off early, and related runtime states are supported |
+| Funds prep inside runtime | ✅ Current worktree | Prep rows feed the settlement draft/finalization flow |
+| Runtime Discord channel layout | ✅ Current worktree | Per-operation channel layout and assignments are stored |
+| Discord channel sync + cleanup | ✅ Current worktree | Bot sync/cleanup flows exist with failure-path coverage |
+| AAR/runtime/settlement linkage | ✅ Current worktree | Runtime statuses now drive AAR buckets and profile stats more explicitly |
 
-This work is already substantial enough to track in status, but it should still be treated as **active implementation**, not a fully settled shipped subsystem yet.
+This area is still the newest load-bearing subsystem in the repo, but it is no longer “light WIP.” It now has real route/controller/service/model coverage plus strong feature and unit tests behind it.
+
+### 2. Horizon UI Standardization
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Shared Horizon badge/pill component | ✅ Current worktree | `HorizonBadge.vue` is now reused across archive, settlement, AAR, and admin surfaces |
+| Shared Horizon checkbox/toggle | ✅ Current worktree | `HorizonCheckbox.vue` is now replacing plainer checkbox patterns |
+| Shared Horizon file input | ✅ Current worktree | `HorizonFileField.vue` is wired into media/archive upload flows |
+| Shared Horizon form block shell | ✅ Current worktree | `HorizonFormBlock.vue` is used to normalize compact panel blocks |
+| Editor/modal/drawer visual alignment | ✅ Current worktree | More editor and overlay surfaces now follow the Horizon shell language |
+| Wider page-shell normalization | ✅ Current worktree | More full pages now use `max-w-7xl` instead of mixed widths |
 
 ---
 
-## Recently Shipped Since The Previous Status Snapshot
+## Recently Shipped Since The Previous Snapshot
 
-- Operation visibility now supports **`open`**, **`squadron`**, and **`private`** access modes with visibility-aware querying and access control.
-- Discord operation announcements now track **targeted message addresses** in `discord_message_targets`, which supports update/edit behavior across multiple target channels.
-- Member settings now persist **`site_theme`** and include Discord self-role sync/update flows.
-- Ledger transfer flows now include **organization fund/inventory approval and rejection** endpoints across the shared surfaces.
-- Ledger transfers now support **external destinations** and stricter **whole-number validation** for money and quantity inputs.
-- The admin UEX surface now handles **stale/interrupted sync runs** more clearly instead of only showing clean success/failure cases.
-- Shared Inertia data now includes more badge/count context, including pending transfer/application style surfaces.
+- The **operation runtime subsystem** now exists in the current worktree with live run, lobby sync, walk-ins, manual participant status changes, and Discord channel orchestration.
+- Attendance flows now distinguish **present**, **no-show**, **excused**, and **signed off early**, and those states propagate through AAR, settlement behavior, and profile stats.
+- Operation settlement now supports **funds prep rows** and stronger draft/finalize/reopen safeguards for mixed money + loot states.
+- Operation role records now track **`sort_order`** and **`is_required`**, and the presenter/upsert flows know about both.
+- New schema and assumption tests now protect newer operation and promotion/ledger seams from silent migration drift.
+- Targeted frontend regression coverage now exists for **payout math**, **side nav expansion helpers**, **role color logic**, and **rich text helper seams**.
+- Archive/admin/media/member surfaces have received another **Horizon-native UI pass**, including shared checkbox/file field/form block adoption.
+- The authenticated `Welcome.vue` surface has been replaced with a more intentional Horizon landing layout instead of the old placeholder block.
 
 ---
 
@@ -113,6 +146,8 @@ This work is already substantial enough to track in status, but it should still 
 | Stats on profile | ✅ Done | Command record/member activity stats are surfaced |
 | Site theme preference | ✅ Done | `site_theme` is stored on the user and reapplied in the shell |
 | Discord self-role settings | ✅ Done | Member settings include Discord role sync/update flows |
+| Promotion offer workflow | ✅ Done | Profile-driven promotion offer/cancel/accept flow exists |
+| Demotion flow | ✅ Done | Profile demotion and pending-offer cancellation are wired |
 
 ### 4. Operations System
 
@@ -123,31 +158,32 @@ This work is already substantial enough to track in status, but it should still 
 | Operation visibility | ✅ Done | `open`, `squadron`, and `private` modes are supported |
 | Operation types/branches/strictness | ✅ Done | Scheduling and classification fields are established |
 | RSVP deadline + status lockouts | ✅ Done | Join/leave is gated by lifecycle state and scheduling rules |
-| Slot and role system | ✅ Done | Roles, capacities, slot assignment, and synchronization exist |
+| Slot and role system | ✅ Done | Roles, capacities, slot assignment, required flags, and sort order exist |
 | Participant system | ✅ Done | Join/leave plus participant assignment flows exist |
 | Simplified participant roster for limited viewers | ✅ Done | Non-managers can see names/counts without privileged assignment detail |
+| Live operation runtime tooling | ✅ Done in current worktree | Run console, sync history, walk-ins, layout saves, and Discord sync exist |
+| Runtime participant status pipeline | ✅ Done in current worktree | Present/no-show/excused/signed-off flows are wired through completion |
 | After Action Reports | ✅ Done | AAR editing, attendance capture, and no-show tracking exist |
-| Operation settlement | ✅ Done | Completed operations can be settled with payouts and loot |
+| Settlement draft, finalize, reopen | ✅ Done | Completed operations can be settled with strong downstream safety checks |
+| Funds prep -> settlement integration | ✅ Done in current worktree | Prep rows can seed settlement draft behavior |
 | UEX-backed settlement references | ✅ Done | Loot settlement pulls from synced UEX data |
-| Settlement finalize/reopen safeguards | ✅ Done | Reopen is blocked when downstream ledger activity exists |
 | Settlement CSV export | ✅ Done | Finalized settlements can export |
 | Operation templates | ✅ Done | Personal, squadron, and global templates are supported |
 | Calendar export | ✅ Done | `.ics` export is available |
 | Discord publish/update announcements | ✅ Done | Operation events post to Discord |
 | Discord announcement target tracking | ✅ Done | `discord_message_targets` stores per-target routing metadata |
 | Member operations index | ✅ Done | Grid/list browsing exists for members |
-| Management/dashboard surfaces | ✅ Done | Dashboard and detail/editor surfaces are established |
-| Live operation runtime tooling | 🟡 Active WIP | Run console, runtime sync, walk-ins, and Discord channel orchestration are in the current worktree |
+| Management/dashboard surfaces | ✅ Done | Dashboard, detail, editor, and runtime surfaces are established |
 
 **Operations Domain Structure**
-```
+```text
 Domain/Operations/
 ├── Actions/
 ├── Events/
 ├── Listeners/
-├── Services/
 ├── Presenters/
 ├── Queries/
+├── Services/
 └── States/
 ```
 
@@ -205,6 +241,8 @@ Domain/Operations/
 | Media picker | ✅ Done | Shared picker modal exists for web surfaces |
 | Archive module | ✅ Done | Categories, topics, entries, taxonomy, trash, and audit logging exist |
 | Archive visibility rules | ✅ Done | Rank/visibility-aware archive surfaces are implemented |
+| Archive audit UI | ✅ Done | Admin audit surface exists alongside underlying logging |
+| Shared Horizon upload controls | ✅ Done in current worktree | Media/archive upload flows now use more native Horizon controls |
 
 ### 9. Admin Panel
 
@@ -229,7 +267,7 @@ Domain/Operations/
 | Welcome + member lifecycle handling | ✅ Done | Join/update handling and welcome services exist |
 | Nickname sync cron | ✅ Done | Background nickname sync tooling exists |
 | Operation announcement webhook support | ✅ Done | Bot receives operation publish/update traffic |
-| Operation runtime webhook support | 🟡 Active WIP | Current worktree includes `/operations/runtime/sync-lobby` and `/operations/runtime/sync-channels` bot endpoints |
+| Operation runtime webhook support | ✅ Done in current worktree | Runtime sync and per-operation channel orchestration endpoints now exist |
 | Logging/watcher utilities | ✅ Done | Runtime monitoring/logging helpers exist |
 
 ### 11. Shared UI Components and Shell
@@ -238,15 +276,17 @@ Domain/Operations/
 |---------|--------|-------|
 | App shell + side navigation | ✅ Done | Shared shell/navigation framework exists |
 | Horizon form/control library | ✅ Done | Buttons, inputs, selects, date/time, sections, panels, modals, alerts |
+| Expanded native Horizon control set | ✅ Done in current worktree | Badge, checkbox, file field, and form block components now exist |
 | Rich text editor | ✅ Done | Shared editor exists and is used by operation/admin flows |
 | Global error handling | ✅ Done | Error dialog and shared notification/error plumbing exists |
 | Theming support | ✅ Done | Shell applies persisted user theme selection |
+| Targeted frontend regression tests | ✅ Done in current worktree | JS tests now cover payout math, side nav state, role colors, and rich text helpers |
 
 ---
 
 ## Database Schema Summary
 
-**72 migrations** currently exist in the repo.
+**77 migrations** currently exist in the repo.
 
 Key tables and groups:
 
@@ -256,11 +296,11 @@ Key tables and groups:
 | `personal_access_tokens` | Sanctum token storage |
 | `roles`, `permissions`, pivots | Role/permission model |
 | `squadrons`, `squadron_members` | Squadron identity and roster state |
-| `operations` | Scheduled operations, lifecycle state, visibility, AAR fields, settlement linkage, Discord message target tracking |
-| `operation_participants` | Participant roster, assignment, attendance, and runtime fields |
-| `operation_roles` | Role definitions per operation |
+| `operations` | Scheduled operations, lifecycle state, visibility, AAR fields, settlement linkage, runtime/AAR attendance buckets, and Discord message target tracking |
+| `operation_participants` | Participant roster, assignment, runtime status, sign-off, sync, prep, and attendance fields |
+| `operation_roles` | Role definitions per operation, including sort order and required flags |
 | `operation_templates` | Saved mission templates |
-| `operation_settlements` | Settlement workspace for completed operations |
+| `operation_settlements` | Settlement workspace for completed operations, including prep money rows/history |
 | `operation_sync_runs` | Runtime sync history for live attendance snapshots |
 | `operation_discord_channels` | Per-operation Discord voice channel layout/state |
 | ledger tables + `wipe_cycles` | Personal, squadron, and organization bookkeeping |
@@ -279,22 +319,20 @@ Key tables and groups:
 
 ### High Priority
 
-- **Operation runtime hardening** — The live run tooling is actively being built in the current worktree and still needs its final integration/polish pass before it should be treated as fully settled.
-- **Testing depth** — The suite now covers far more of the app than before, but breadth still outpaces test coverage.
-- **Notifications system** — Discord posting exists, but there is still no true in-app notification center.
+- **In-app notifications** — Discord posting exists, but there is still no real notification center for Horizon itself.
+- **Post-release runtime observation** — The new operation runtime and Discord voice orchestration flows are now broad enough that they will benefit from real user feedback after rollout, especially around manager ergonomics and edge-case cleanup behavior.
+- **Deployment / CI discipline** — The repo still does not advertise a visible CI/CD pipeline or a checked-in release/deploy workflow.
 
 ### Medium Priority
 
-- **Authorization migration cleanup** — Some legacy gates still lean on rank-level style assumptions where role/permission-first thresholds would be cleaner.
-- **Runtime/settlement UX refinement** — The newer operation runtime and settlement surfaces will likely want one more round of UX tightening after behavior settles.
-- **Activity/audit browsing UI** — Auth/archive logging exists, but the browsing experience for some admin audit trails is still thin.
+- **Authorization cleanup** — Some older seams still carry more legacy rank-level assumptions than the newer role/permission-first paths.
+- **Audit/activity browsing UX** — The archive audit surface exists, but broader admin-facing activity browsing is still thinner than the underlying logging.
+- **Advanced operations filtering** — Operations browsing can still grow stronger branch/type/date filters and better saved views.
 
 ### Low Priority / Nice-to-Have
 
-- **Advanced operation filtering** — The operations dashboard can still grow better branch/type/date filtering.
-- **Bulk admin actions** — Users, squadrons, and operations do not yet have richer bulk tooling.
-- **API documentation** — No checked-in OpenAPI/Postman style documentation set exists.
-- **CI/CD pipeline** — There is still no visible deployment or CI pipeline configuration in the repo.
+- **Bulk admin actions** — Users, squadrons, and operations do not yet have richer batch tooling.
+- **API documentation** — There is still no checked-in OpenAPI/Postman style documentation set.
 - **Deployment docs** — Setup/onboarding exists, but production deployment guidance remains thin.
 
 ---
@@ -314,14 +352,14 @@ Key tables and groups:
 | Domain Service Classes | 10 |
 | App/Legacy Service Classes | 31 |
 | Application Service Classes | 4 |
-| Presenters | 9 |
+| Presenters | 8 |
 | Vue Pages | 51 |
-| Shared Vue Components | 37 |
-| Database Migrations | 72 |
+| Shared Vue Components | 43 |
+| Database Migrations | 77 |
 | Bot Commands | 2 |
 | Bot Services | 13 |
 | Bot Events | 5 |
 
 ---
 
-*This document is now aligned with the June 14, 2026 repo snapshot and explicitly calls out active worktree runtime/Discord work so it does not get lost between status updates.*
+*This document is aligned with the June 15, 2026 repo snapshot and the current active worktree. The major shift from the previous snapshot is that operation runtime, attendance-state hardening, settlement integration, and Horizon-native UI standardization are now concretely represented in both code and tests.*
