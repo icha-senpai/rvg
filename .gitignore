@@ -101,3 +101,5 @@ extensions/*/vendor/
 .devin/
 .devin/**
 CLAUDE.MD
+codex-test.md
+AGENTS.md
