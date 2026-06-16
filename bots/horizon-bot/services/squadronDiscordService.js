@@ -227,9 +227,24 @@ async function syncSquadronChannelAccess(client, payload) {
     { reason: `Shared squadron role should not grant channel access for ${payload?.squadron_name || payload?.squadron_id || channelId}` }
   );
 
+  const missingMemberIds = [];
+
   for (const discordId of activeMemberIds) {
+    const member = await fetchGuildMember(guild, discordId);
+
+    if (!member) {
+      missingMemberIds.push(discordId);
+      log('[SquadronWebhook] skipping missing guild member during channel sync', {
+        squadronId: payload?.squadron_id,
+        squadronName: payload?.squadron_name,
+        channelId,
+        discordId,
+      });
+      continue;
+    }
+
     await channel.permissionOverwrites.edit(
-      discordId,
+      member,
       {
         ViewChannel: true,
         SendMessages: true,
@@ -243,7 +258,10 @@ async function syncSquadronChannelAccess(client, payload) {
         UseExternalEmojis: true,
         UseExternalStickers: true,
       },
-      { reason: `Sync squadron access for ${payload?.squadron_name || payload?.squadron_id || channelId}` }
+      {
+        type: OverwriteType.Member,
+        reason: `Sync squadron access for ${payload?.squadron_name || payload?.squadron_id || channelId}`,
+      }
     );
   }
 
@@ -260,7 +278,8 @@ async function syncSquadronChannelAccess(client, payload) {
   }
 
   return {
-    syncedMemberCount: activeMemberIds.size,
+    syncedMemberCount: activeMemberIds.size - missingMemberIds.length,
+    missingMemberIds,
     removedOverwriteCount: staleMemberOverwriteIds.length,
   };
 }
