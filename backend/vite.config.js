@@ -50,23 +50,13 @@ export default defineConfig({
                         return undefined;
                     }
 
-                    if (id.includes('/@tiptap/extension-table')
-                        || id.includes('\\@tiptap\\extension-table')
-                        || id.includes('/@tiptap/extension-table-row')
-                        || id.includes('\\@tiptap\\extension-table-row')
-                        || id.includes('/@tiptap/extension-table-header')
-                        || id.includes('\\@tiptap\\extension-table-header')
-                        || id.includes('/@tiptap/extension-table-cell')
-                        || id.includes('\\@tiptap\\extension-table-cell')) {
-                        return 'editor-tables';
-                    }
-
-                    if (isProseMirrorPackage(id) || id.includes('/@tiptap/vue-3') || id.includes('\\@tiptap\\vue-3')) {
-                        return 'editor-runtime';
-                    }
-
-                    if (isTiptapPackage(id)) {
-                        return 'editor-extensions';
+                    if (
+                        isTiptapPackage(id)
+                        || isProseMirrorPackage(id)
+                        || id.includes('/@tiptap/vue-3')
+                        || id.includes('\\@tiptap\\vue-3')
+                    ) {
+                        return 'editor';
                     }
 
                     return undefined;
