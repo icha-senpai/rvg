@@ -137,9 +137,9 @@
   --layer-above: 5;
   --layer-dropdown: 20;
   --layer-sticky: 30;
-  --layer-modal: 40;
-  --layer-overlay: 45;
-  --layer-toast: 50;
+  --layer-modal: 12010;
+  --layer-overlay: 12000;
+  --layer-toast: 12100;
 
   /* Motion */
   --motion-fast: 120ms;

@@ -37,11 +37,11 @@ onBeforeUnmount(() => {
 <template>
   <div
     v-if="open"
-    class="hz-overlay flex items-center justify-center"
+    class="hz-overlay z-[12100] flex items-center justify-center"
     @click.self="close"
   >
     <div
-      class="hz-modal hz-shadow-deep hz-stack hz-animate-pop"
+      class="hz-modal hz-shadow-deep hz-stack hz-animate-pop relative z-[12101]"
       style="max-width: 42rem; max-height: 85vh; overflow-y: auto;"
     >
       <div class="hz-row-between">
@@ -57,8 +57,6 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
-
-
 
 
 

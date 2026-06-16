@@ -1074,7 +1074,6 @@ watch(
   <div
     v-if="completeDialogOpen"
     class="hz-overlay flex items-center justify-center p-4"
-    style="z-index: 110;"
     @click.self="closeCompleteDialog"
   >
     <div class="w-full max-w-xl rounded-[2rem] border border-white/[0.08] bg-[color:var(--horizon-void-900)] p-6 shadow-[0_24px_90px_rgb(0_0_0/0.45)]">

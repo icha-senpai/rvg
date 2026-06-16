@@ -615,7 +615,6 @@ function submitCompleteOperation(outcome) {
   <div
     v-if="completeDialogOpen"
     class="hz-overlay flex items-center justify-center p-4"
-    style="z-index: 110;"
     @click.self="closeCompleteDialog"
   >
     <div

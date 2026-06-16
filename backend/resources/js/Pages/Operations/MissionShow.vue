@@ -37,19 +37,80 @@ const page = usePage()
 const operation = props.operation ?? {}
 const user = computed(() => page.props.auth?.user ?? page.props.authUser ?? null)
 
-const currentParticipant = computed(() => props.currentParticipant ?? null)
+function cloneParticipant(participant) {
+  return {
+    ...participant,
+    user: participant?.user ? { ...participant.user } : participant?.user ?? null,
+    role: participant?.role ? { ...participant.role } : participant?.role ?? null,
+  }
+}
+
+function hasAssignedSlot(slot) {
+  return typeof slot === 'string' && slot.trim() !== ''
+}
+
 const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
-const participantsBySlotSafe = computed(() => props.participantsBySlot ?? {})
-const unassignedParticipantsSafe = computed(() => Array.isArray(props.unassignedParticipants) ? props.unassignedParticipants : [])
+const localParticipants = ref([])
+const currentParticipant = computed(() => {
+  const participantId = props.currentParticipant?.id
+  if (!participantId) {
+    return props.currentParticipant ?? null
+  }
+
+  return localParticipants.value.find((participant) => Number(participant?.id) === Number(participantId))
+    ?? props.currentParticipant
+    ?? null
+})
+const participantsBySlotSafe = computed(() => {
+  return localParticipants.value.reduce((groups, participant) => {
+    const slotName = participant?.slot
+    if (!hasAssignedSlot(slotName)) {
+      return groups
+    }
+
+    if (!groups[slotName]) {
+      groups[slotName] = []
+    }
+
+    groups[slotName].push(participant)
+    return groups
+  }, {})
+})
+const unassignedParticipantsSafe = computed(() => {
+  return localParticipants.value.filter((participant) => !hasAssignedSlot(participant?.slot))
+})
 const attendanceDraftMembersByOperationId = ref({})
 const canViewSlots = computed(() => !!operation?.permissions?.can_view_slots)
 const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots)
-const participantCount = computed(() => Number(operation?.participants_count ?? participantsList.value.length ?? 0))
+const participantCount = computed(() => Number(operation?.participants_count ?? localParticipants.value.length ?? 0))
 const isDirectorLike = computed(() => userIsDirectorLike(user.value))
 const hasSlotOptions = computed(() => Array.isArray(operation?.slots) && operation.slots.length > 0)
+const roleAssignmentCounts = computed(() => {
+  return localParticipants.value.reduce((counts, participant) => {
+    const roleId = participant?.role?.id ?? participant?.operation_role_id ?? null
+    if (roleId === null || roleId === undefined || roleId === '') {
+      return counts
+    }
+
+    const key = String(roleId)
+    counts[key] = (counts[key] ?? 0) + 1
+    return counts
+  }, {})
+})
 const operationRoles = computed(() => {
   if (Array.isArray(operation?.roles) && operation.roles.length) {
-    return operation.roles
+    return operation.roles.map((role) => {
+      const filledCount = roleAssignmentCounts.value[String(role.id)] ?? 0
+      const capacity = typeof role.capacity === 'number' ? role.capacity : null
+      const remainingSpots = capacity === null ? null : Math.max(capacity - filledCount, 0)
+
+      return {
+        ...role,
+        filled_count: filledCount,
+        remaining_spots: remainingSpots,
+        is_full: capacity !== null ? remainingSpots <= 0 : Boolean(role.is_full),
+      }
+    })
   }
 
   return Array.isArray(operation?.slots)
@@ -548,12 +609,31 @@ function payloadForSelectedRole(roleId) {
   }
 }
 
+function applyParticipantRoleChange(participantId, selectedRoleId) {
+  const role = findRoleById(selectedRoleId)
+  const usesPersistedRole = role && !String(role.id).startsWith('slot:')
+
+  localParticipants.value = localParticipants.value.map((participant) => {
+    if (Number(participant?.id) !== Number(participantId)) {
+      return participant
+    }
+
+    return {
+      ...participant,
+      slot: role?.role_display_name ?? null,
+      operation_role_id: usesPersistedRole ? role.id : null,
+      role: usesPersistedRole ? { ...role } : null,
+    }
+  })
+}
+
 watch(
   participantsList,
   (participants) => {
+    localParticipants.value = participants.map((participant) => cloneParticipant(participant))
     const activeParticipantIds = new Set()
 
-    participants.forEach((participant) => {
+    localParticipants.value.forEach((participant) => {
       activeParticipantIds.add(String(participant.id))
       managedSlotAssignments[participant.id] = roleIdForParticipant(participant)
     })
@@ -630,6 +710,9 @@ async function updateOwnSlot() {
     },
     {
       preserveScroll: true,
+      onSuccess: () => {
+        applyParticipantRoleChange(currentParticipant.value.id, joinForm.roleId)
+      },
       onError: (errors) => {
         window.hzNotifyError?.({
           message: firstErrorMessage(errors, 'Failed to update role request.'),
@@ -705,6 +788,9 @@ async function updateParticipantSlot(participant) {
     },
     {
       preserveScroll: true,
+      onSuccess: () => {
+        applyParticipantRoleChange(participant.id, selectedSlotForParticipant(participant))
+      },
       onError: (errors) => {
         window.hzNotifyError?.({
           message: firstErrorMessage(errors, 'Failed to update role.'),
@@ -1490,7 +1576,6 @@ function attendanceDraftMembers(operationRecord) {
   <div
     v-if="completeDialogOpen"
     class="hz-overlay flex items-center justify-center p-4"
-    style="z-index: 110;"
     @click.self="closeCompleteDialog"
   >
     <div class="w-full max-w-xl rounded-[2rem] border border-white/[0.08] bg-[color:var(--horizon-void-900)] p-6 shadow-[0_24px_90px_rgb(0_0_0/0.45)]">
