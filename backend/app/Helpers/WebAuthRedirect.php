@@ -145,6 +145,8 @@ class WebAuthRedirect
             'verify/*',
             'auth/discord',
             'auth/discord/*',
+            'dev/auth',
+            'dev/auth/*',
             'api/*',
         ], $normalizedPath);
     }

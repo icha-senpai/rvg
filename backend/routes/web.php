@@ -29,6 +29,7 @@ use App\Http\Controllers\Web\MemberLedgerController;
 use App\Http\Controllers\Web\MemberPromotionController;
 use App\Http\Controllers\Web\MemberSettingsController;
 use App\Http\Controllers\Web\DiscordAuthController;
+use App\Http\Controllers\Web\DevAuthController;
 use App\Http\Controllers\Web\LedgerInventoryController;
 use App\Http\Controllers\Web\LedgerShipAssetController;
 use App\Http\Controllers\Web\LedgerTradeController;
@@ -78,6 +79,15 @@ Route::get('/login', function () {
 
     return redirect()->to('/auth/discord');
 })->name('login');
+
+Route::prefix('dev/auth')->group(function () {
+    Route::get('/', [DevAuthController::class, 'index'])
+        ->name('dev.auth.index');
+    Route::get('/login/{persona}', [DevAuthController::class, 'login'])
+        ->name('dev.auth.login');
+    Route::get('/logout', [DevAuthController::class, 'logout'])
+        ->name('dev.auth.logout');
+});
 
 Route::get('/user/{user}', function (string $user, LedgerReferenceService $ledgerReferences) {
     $profileUser = User::query()
