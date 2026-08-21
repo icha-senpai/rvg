@@ -125,19 +125,17 @@ class OperationSettlementViewService
 
     public function lootOptions(): array
     {
-        $references = $this->ledgerReferences->referenceOptions();
-
-        $itemOptions = collect($references['items'] ?? [])
+        $itemOptions = collect($this->ledgerReferences->itemReferenceOptions())
             ->map(fn (array $item) => [
                 'value' => (string) ($item['uex_id'] ?? ''),
-                'label' => trim(($item['name'] ?? 'Unknown item') . (! empty($item['type']) ? " · {$item['type']}" : '')),
+                'label' => trim(($item['name'] ?? 'Unknown item').(! empty($item['type']) ? " · {$item['type']}" : '')),
             ])
             ->filter(fn (array $item) => $item['value'] !== '')
             ->values()
             ->all();
 
         return [
-            'commodities' => collect($references['commodities'] ?? [])
+            'commodities' => collect($this->ledgerReferences->commodityReferenceOptions())
                 ->map(fn (array $commodity) => [
                     'value' => (string) ($commodity['uex_id'] ?? ''),
                     'label' => $commodity['name'] ?? 'Unknown commodity',
@@ -146,7 +144,7 @@ class OperationSettlementViewService
                 ->values()
                 ->all(),
             'items' => $itemOptions,
-            'components' => $itemOptions,
+            'components' => [],
         ];
     }
 
@@ -315,8 +313,8 @@ class OperationSettlementViewService
     protected function recipientKey(?string $recipientType, $recipientUserId, $recipientSquadronId = null): ?string
     {
         return match ($recipientType) {
-            'member' => filled($recipientUserId) ? 'member:' . (int) $recipientUserId : null,
-            'squadron' => filled($recipientSquadronId) ? 'squadron:' . (int) $recipientSquadronId : null,
+            'member' => filled($recipientUserId) ? 'member:'.(int) $recipientUserId : null,
+            'squadron' => filled($recipientSquadronId) ? 'squadron:'.(int) $recipientSquadronId : null,
             'organization' => 'organization',
             default => null,
         };

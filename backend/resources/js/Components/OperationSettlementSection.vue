@@ -429,7 +429,9 @@ function lootOptionsFor(sourceType) {
     case 'item':
       return lootOptionGroups.value.items ?? []
     case 'component':
-      return lootOptionGroups.value.components ?? []
+      return lootOptionGroups.value.components?.length
+        ? lootOptionGroups.value.components
+        : (lootOptionGroups.value.items ?? [])
     default:
       return lootOptionGroups.value.commodities ?? []
   }

@@ -17,19 +17,24 @@ class LedgerReferenceService
         return [
             'ships' => $this->shipReferenceOptions(),
             'items' => $this->itemReferenceOptions(),
-            'commodities' => DB::table('uex_commodities')
-                ->select('uex_id', 'name', 'code')
-                ->orderByRaw("LOWER(COALESCE(name, code, ''))")
-                ->get()
-                ->map(fn ($row) => [
-                    'uex_id' => (int) $row->uex_id,
-                    'name' => $row->name ?: $row->code ?: 'Unknown commodity',
-                ])
-                ->all(),
+            'commodities' => $this->commodityReferenceOptions(),
             'tradePricing' => $this->tradePricingSuggestions(),
             'inventoryValuations' => $this->inventoryValuationSuggestions(),
             'shipPricing' => $this->shipPricingSuggestions(),
         ];
+    }
+
+    public function commodityReferenceOptions(): array
+    {
+        return DB::table('uex_commodities')
+            ->select('uex_id', 'name', 'code')
+            ->orderByRaw("LOWER(COALESCE(name, code, ''))")
+            ->get()
+            ->map(fn ($row) => [
+                'uex_id' => (int) $row->uex_id,
+                'name' => $row->name ?: $row->code ?: 'Unknown commodity',
+            ])
+            ->all();
     }
 
     public function shipReferenceOptions(): array
@@ -128,7 +133,7 @@ class LedgerReferenceService
                     $buyRow = $lowestCommodityBuyRows->get($uexId);
                     $sellRow = $highestCommoditySellRows->get($uexId);
 
-                    return [
+                    return $this->compactSuggestion([
                         'uex_id' => (int) $uexId,
                         'category' => 'Commodity',
                         'unit_label' => 'SCU',
@@ -136,7 +141,7 @@ class LedgerReferenceService
                         'purchase_terminal_name' => $buyRow?->terminal_name,
                         'unit_estimated_value' => $sellRow ? (float) $sellRow->price_sell : null,
                         'estimated_terminal_name' => $sellRow?->terminal_name,
-                    ];
+                    ]);
                 })
                 ->all(),
             'items' => $lowestItemBuyRows->keys()
@@ -149,7 +154,7 @@ class LedgerReferenceService
                     $buyRow = $lowestItemBuyRows->get($uexId);
                     $sellRow = $highestItemSellRows->get($uexId);
 
-                    return [
+                    return $this->compactSuggestion([
                         'uex_id' => (int) $uexId,
                         'category' => $itemTypes->get((int) $uexId) ?: 'Item',
                         'unit_label' => 'units',
@@ -157,7 +162,7 @@ class LedgerReferenceService
                         'purchase_terminal_name' => $buyRow?->terminal_name,
                         'unit_estimated_value' => $sellRow ? (float) $sellRow->price_sell : null,
                         'estimated_terminal_name' => $sellRow?->terminal_name,
-                    ];
+                    ]);
                 })
                 ->all(),
         ];
@@ -195,11 +200,24 @@ class LedgerReferenceService
         string $direction = 'asc'
     ): Collection {
         $query = DB::table($table)
-            ->select($groupColumn, $priceColumn, 'terminal_name')
             ->whereNotNull($groupColumn)
             ->whereNotNull($priceColumn)
             ->where($priceColumn, '>', 0)
             ->orderBy($groupColumn);
+
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $grammar = DB::connection()->getQueryGrammar();
+
+            $query->selectRaw(sprintf(
+                'DISTINCT ON (%s) %s, %s, %s',
+                $grammar->wrap($groupColumn),
+                $grammar->wrap($groupColumn),
+                $grammar->wrap($priceColumn),
+                $grammar->wrap('terminal_name'),
+            ));
+        } else {
+            $query->select($groupColumn, $priceColumn, 'terminal_name');
+        }
 
         if ($direction === 'desc') {
             $query->orderByDesc($priceColumn);
@@ -207,9 +225,13 @@ class LedgerReferenceService
             $query->orderBy($priceColumn);
         }
 
-        return $query
-            ->get()
-            ->unique(fn ($row) => (int) $row->{$groupColumn})
+        $rows = $query->get();
+
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $rows = $rows->unique(fn ($row) => (int) $row->{$groupColumn});
+        }
+
+        return $rows
             ->mapWithKeys(fn ($row) => [
                 (int) $row->{$groupColumn} => $row,
             ]);
@@ -499,13 +521,13 @@ class LedgerReferenceService
                 ? "{$metadata['from_label']} -> {$metadata['to_label']}"
                 : ($metadata['description'] ?? null),
             'inventory.transfer_requested', 'inventory.transfer_out', 'inventory.transfer_in', 'inventory.transfer_rejected' => isset($metadata['item_label'], $metadata['quantity'])
-                ? $metadata['item_label'] . ' • ' . number_format($this->wholeNumber($metadata['quantity']))
+                ? $metadata['item_label'].' • '.number_format($this->wholeNumber($metadata['quantity']))
                 : null,
             'trade.created', 'trade.updated', 'trade.deleted' => isset($metadata['profit'])
-                ? 'Trade profit: ' . number_format($this->wholeNumber($metadata['profit'])) . ' aUEC'
+                ? 'Trade profit: '.number_format($this->wholeNumber($metadata['profit'])).' aUEC'
                 : null,
             'inventory.created', 'inventory.updated', 'inventory.deleted' => isset($metadata['quantity'])
-                ? 'Quantity: ' . number_format($this->wholeNumber($metadata['quantity']))
+                ? 'Quantity: '.number_format($this->wholeNumber($metadata['quantity']))
                 : null,
             'ship_asset.created', 'ship_asset.updated', 'ship_asset.deleted' => $metadata['status'] ?? null,
             'wipe_cycle.created', 'wipe_cycle.current_set', 'wipe_cycle.closed', 'wipe_cycle.updated' => $metadata['name'] ?? null,
@@ -523,6 +545,14 @@ class LedgerReferenceService
     protected function wholeNumber(mixed $value): int
     {
         return (int) round((float) $value);
+    }
+
+    protected function compactSuggestion(array $payload): array
+    {
+        return array_filter(
+            $payload,
+            fn ($value) => $value !== null && $value !== '',
+        );
     }
 
     public function resolveReferenceLabel(?string $type, $id, array $referenceMaps): ?string
