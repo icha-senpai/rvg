@@ -1,0 +1,22 @@
+[workspace]
+members = ["services/spacetime", "services/discord", "apps/desktop/src-tauri"]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+spacetimedb = "=2.10.2"
+spacetimedb-sdk = "=2.10.2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+twilight-gateway = "0.17.1"
+twilight-http = "0.17.1"
+twilight-model = "0.17.1"
+
+[profile.release]
+lto = true
+codegen-units = 1

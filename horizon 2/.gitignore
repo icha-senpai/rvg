@@ -1,0 +1,20 @@
+node_modules/
+.svelte-kit/
+build/
+target/
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+output/
+.playwright-cli/
+.runtime/
+*.log
+
+# The parent repository ignores agent instructions globally.
+!AGENTS.md
+
+# The parent Icon? rule also matches Tauri's icons directory on Windows.
+!apps/desktop/src-tauri/icons/
+!apps/desktop/src-tauri/icons/**
