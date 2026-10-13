@@ -6,5 +6,7 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import SyncCitizenIdentityReducer from "../sync_citizen_identity_reducer";
 
+export type SyncCitizenIdentityParams = __Infer<typeof SyncCitizenIdentityReducer>;
 

@@ -3,6 +3,10 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		allowedHosts: ['horizon.test'],
+		proxy: { '^/auth/token$': { target: 'http://127.0.0.1:3102', changeOrigin: false } }
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {

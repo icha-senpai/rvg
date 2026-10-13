@@ -10,3 +10,71 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const CitizenIdentity = __t.object("CitizenIdentity", {
+  authIdentity: __t.identity(),
+  horizonUserId: __t.u64(),
+  issuer: __t.string(),
+  subject: __t.string(),
+  displayName: __t.option(__t.string()),
+  preferredUsername: __t.option(__t.string()),
+  rsiHandle: __t.option(__t.string()),
+  rsiCitizenId: __t.option(__t.string()),
+  rsiSpectrumId: __t.option(__t.string()),
+  discordAccountId: __t.option(__t.string()),
+  rsiVerified: __t.bool(),
+  lastSeenAt: __t.timestamp(),
+  rsiPrimaryOrg: __t.option(__t.string()),
+  rsiPublicOrgs: __t.option(__t.array(__t.string())),
+});
+export type CitizenIdentity = __Infer<typeof CitizenIdentity>;
+
+export const CurrentUser = __t.object("CurrentUser", {
+  id: __t.u64(),
+  get status() {
+    return HorizonUserStatus;
+  },
+  displayName: __t.option(__t.string()),
+  preferredUsername: __t.option(__t.string()),
+  rsiHandle: __t.option(__t.string()),
+  rsiCitizenId: __t.option(__t.string()),
+  rsiSpectrumId: __t.option(__t.string()),
+  discordAccountId: __t.option(__t.string()),
+  rsiVerified: __t.bool(),
+  lastSeenAt: __t.timestamp(),
+  rsiPrimaryOrg: __t.option(__t.string()),
+  rsiPublicOrgs: __t.array(__t.string()),
+});
+export type CurrentUser = __Infer<typeof CurrentUser>;
+
+export const HorizonUser = __t.object("HorizonUser", {
+  id: __t.u64(),
+  get status() {
+    return HorizonUserStatus;
+  },
+  createdAt: __t.timestamp(),
+});
+export type HorizonUser = __Infer<typeof HorizonUser>;
+
+// The tagged union or sum type for the algebraic type `HorizonUserStatus`.
+export const HorizonUserStatus = __t.enum("HorizonUserStatus", {
+  Pending: __t.unit(),
+});
+export type HorizonUserStatus = __Infer<typeof HorizonUserStatus>;
+
+export const IdentityAudit = __t.object("IdentityAudit", {
+  id: __t.u64(),
+  userId: __t.u64(),
+  get kind() {
+    return IdentityAuditKind;
+  },
+  at: __t.timestamp(),
+});
+export type IdentityAudit = __Infer<typeof IdentityAudit>;
+
+// The tagged union or sum type for the algebraic type `IdentityAuditKind`.
+export const IdentityAuditKind = __t.enum("IdentityAuditKind", {
+  IdentityCreated: __t.unit(),
+  ProfileUpdated: __t.unit(),
+});
+export type IdentityAuditKind = __Infer<typeof IdentityAuditKind>;
+

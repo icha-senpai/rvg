@@ -15,3 +15,9 @@ This folder is the separately authorized Horizon 2 rebuild. The Laravel/Vue/Tail
 - Run relevant formatting, linting, checks, tests, and builds before finishing.
 
 See `README.md` for setup, verification, and deferred integrations.
+
+## Citizen iD staging identity proof (verification notes)
+
+- `services/edge` (`horizon-edge`) is the same-origin token-exchange bridge for the staging SPA; it binds `127.0.0.1:3102` and only accepts `POST /auth/token` from `Origin: https://horizon.ichaa.dev`, forwarding the five authorization-code fields to the fixed Citizen iD token endpoint. Dev routing goes through the Vite `server.proxy` entry (`^/auth/token$`); a production static deploy needs an equivalent reverse-proxy route to the edge service.
+- Verify with `cargo test -p horizon-edge`, `cargo clippy -p horizon-edge --all-targets -- -D warnings`, `npm run check`, `npm run build`, and `npx playwright test apps/web/tests/citizen-id-auth.spec.ts --workers=1`.
+- `services/spacetime` cannot link natively on Windows; run the pure claims tests via `cargo test` inside `.runtime/claims-harness` (includes `users/claims.rs` by path, serde_json `=1.0.151`).

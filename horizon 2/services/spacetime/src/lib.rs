@@ -1,3 +1,5 @@
+mod users;
+
 use spacetimedb::{ReducerContext, reducer};
 
 // Domain tables and reducers will be added after the identity boundary is proven.
