@@ -81,6 +81,11 @@ From `backend/`:
 composer run test
 ```
 
+### Deploying Horizon 1
+
+See [the Horizon updater](deploy/README.md) to preview and deploy committed
+Laravel and Discord bot changes from Windows.
+
 ---
 
 ## Key environment variables
