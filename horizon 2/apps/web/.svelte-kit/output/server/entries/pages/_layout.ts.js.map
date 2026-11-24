@@ -1,0 +1,1 @@
+{"version":3,"file":"_layout.ts.js","names":[],"sources":["../../../../../src/routes/+layout.ts"],"sourcesContent":["// The web and desktop clients share a static shell; domain state comes from SpaceTimeDB.\r\nexport const ssr = false;\r\n"],"mappings":";AACA,IAAa,MAAM"}

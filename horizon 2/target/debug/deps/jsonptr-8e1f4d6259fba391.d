@@ -1,0 +1,17 @@
+c:\laragon\www\dev2\horizon 2\target\debug\deps\jsonptr-8e1f4d6259fba391.d: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md
+
+c:\laragon\www\dev2\horizon 2\target\debug\deps\libjsonptr-8e1f4d6259fba391.rmeta: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md
+
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md:
+
+# env-dep:CARGO_PKG_VERSION=0.7.1

@@ -1,0 +1,12 @@
+C:\laragon\www\dev2\horizon 2\target\debug\deps\writeable-adccb0b03b68c5bc.d: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\cmp.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\concat.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\impls.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\ops.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\parts_write_adapter.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\replace.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\try_writeable.rs
+
+C:\laragon\www\dev2\horizon 2\target\debug\deps\libwriteable-adccb0b03b68c5bc.rmeta: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\cmp.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\concat.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\impls.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\ops.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\parts_write_adapter.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\replace.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\try_writeable.rs
+
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\lib.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\cmp.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\concat.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\impls.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\ops.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\parts_write_adapter.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\replace.rs:
+C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.4\src\try_writeable.rs:
