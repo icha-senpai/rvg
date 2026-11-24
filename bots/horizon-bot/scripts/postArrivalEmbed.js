@@ -4,6 +4,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require('discord.js');
+const { verificationUrl } = require('../utils/siteLinks');
 
 module.exports = async function postArrivalEmbed(client) {
   const channelId = '1454412970300936204';
@@ -26,7 +27,7 @@ If verification does not complete successfully, or if you are joining us in a **
     new ButtonBuilder()
       .setLabel('Verify')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://horizoninterstellar.com/'),
+      .setURL(verificationUrl),
 
     new ButtonBuilder()
       .setLabel('Need Help?')

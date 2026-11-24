@@ -16,7 +16,8 @@ class OperationCalendarService
 
         $endsAt = $operation->ends_at?->copy()->utc() ?? $startsAt->copy()->addHour();
 
-        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        $publicUrl = config('app.public_url');
+        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: parse_url($publicUrl, PHP_URL_HOST);
         $uid = "operation-{$operation->id}@{$host}";
 
         $summary = $this->escapeIcsText($operation->title ?: "Operation #{$operation->id}");
@@ -24,7 +25,7 @@ class OperationCalendarService
         $descriptionParts = array_values(array_filter([
             $operation->description,
             $operation->extended_description ?? $operation->notes,
-            route('operations.show', $operation->id),
+            $publicUrl . route('operations.show', $operation->id, absolute: false),
         ]));
 
         $description = $this->escapeIcsText(implode("\n\n", $descriptionParts));

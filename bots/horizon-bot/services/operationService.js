@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const { operationUrl } = require('../utils/siteLinks');
 
 const LOGS_ENABLED = process.env.BOT_LOGS === 'true';
 const log = (...args) => {
@@ -57,16 +58,7 @@ module.exports = {
         const announceToDefaultChannel = op?.announce_to_default_channel !== false;
         const customTargets = normalizeAnnouncementTargets(op?.discord_targets);
 
-        let operationUrl = null;
-        if (process.env.API_BASE_URL && op?.id) {
-            try {
-                const apiBaseUrl = new URL(process.env.API_BASE_URL);
-                const baseUrl = apiBaseUrl.origin;
-                operationUrl = `${baseUrl}/operations/${op.id}`;
-            } catch (e) {
-                operationUrl = null;
-            }
-        }
+        const publicOperationUrl = op?.id ? operationUrl(op.id) : null;
 
         const announcementTargets = [];
 
@@ -217,7 +209,7 @@ module.exports = {
             .setColor(0x00a3ff)
             .setTitle(null)
             .setDescription(
-                `${operationUrl ? `# [${displayTitle}](${operationUrl})\n` : `# ${displayTitle}\n`}` +
+                `${publicOperationUrl ? `# [${displayTitle}](${publicOperationUrl})\n` : `# ${displayTitle}\n`}` +
                 `\n` +
                 `${desc}`
             )

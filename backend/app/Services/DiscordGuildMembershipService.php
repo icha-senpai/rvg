@@ -76,7 +76,7 @@ class DiscordGuildMembershipService
                 'headers' => [
                     'Authorization' => "Bot {$botToken}",
                     'Accept' => 'application/json',
-                    'User-Agent' => 'Horizon Interstellar Guild Check (https://horizoninterstellar)',
+                    'User-Agent' => 'Horizon Interstellar Guild Check (' . config('app.public_url') . ')',
                 ],
             ]);
 

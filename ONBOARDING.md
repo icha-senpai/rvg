@@ -254,9 +254,12 @@ You’ll need a `.env` (the repo includes `test.env` but it’s not enough). Com
 - `DISCORD_TOKEN`
 - `DISCORD_CLIENT_ID`
 - `DISCORD_GUILD_ID`
-- `API_BASE_URL=http://localhost:8000/api/v1`
+- `API_BASE_URL` points to the Laravel API for the same environment and ends in `/api/v1`.
 - `API_SECRET=...` (must match Laravel `DISCORD_BOT_SECRET`)
 - `PORT=3001` (optional)
+
+The bot links to `https://horizoninterstellar.com` in Discord messages. Its
+private API address can use a loopback listener independently.
 
 ---
 

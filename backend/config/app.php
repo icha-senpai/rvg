@@ -1,5 +1,7 @@
 <?php
 
+$publicUrl = 'https://horizoninterstellar.com';
+
 return [
 
     /*
@@ -52,7 +54,8 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://backend.test'),
+    'url' => env('APP_URL', $publicUrl),
+    'public_url' => $publicUrl,
 
     /*
     |--------------------------------------------------------------------------
