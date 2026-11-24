@@ -3,17 +3,18 @@ set -euo pipefail
 
 home=/srv/rvg
 repo=$home/repo
+branch=release
 pending=$home/.horizon-update.pending
 queue=horizon-rvg-queue.service
 timer=horizon-rvg-schedule.timer
 schedule=horizon-rvg-schedule.service
 bot_unit=horizon-rvg-bot.service
 export PATH="/opt/rvg-node-v24.22.3/bin:$PATH"
+export GIT_TERMINAL_PROMPT=0
 
 fail() { printf '%s\n' "$*" >&2; exit 1; }
 as_app() { runuser -u horizon_rvg -- "$@"; }
 git_app() { as_app git -C "$repo" "$@" </dev/null; }
-transfer_path() { [[ $1 =~ ^/srv/rvg/\.horizon-transfer\.[a-zA-Z0-9]{8}$ && ! -L $1 ]]; }
 sha() { [[ $1 =~ ^[a-f0-9]{40}$ ]]; }
 active() { if systemctl is-active --quiet "$1"; then printf 1; else printf 0; fi; }
 read_pending() {
@@ -22,65 +23,46 @@ read_pending() {
         fail 'Invalid unfinished deployment marker.'
 }
 
-case ${1:-} in
-    status)
-        [[ -z $(git_app status --porcelain) ]] || fail 'Horizon checkout is dirty; no files changed.'
-        git_app rev-parse HEAD
-        if [[ -f $pending ]]; then
-            read_pending
-            printf '%s\n' "$from" "$next"
-        else
-            printf '%s\n' - -
-        fi
-        exit
-        ;;
-    allocate) mktemp -d "$home/.horizon-transfer.XXXXXXXX"; exit ;;
-    discard)
-        transfer_path "$2" || fail 'Invalid transfer directory.'
-        [[ ! -e $2/update.bundle ]] || rm -- "$2/update.bundle"
-        rmdir -- "$2"
-        exit
-        ;;
-    apply) ;;
-    *) fail 'Expected status, allocate, discard or apply.' ;;
+[[ $# -le 1 ]] || fail 'Usage: horizon-update [--plan|--apply]'
+case ${1:---apply} in
+    --plan) mode=plan ;;
+    --apply) mode=apply ;;
+    *) fail 'Usage: horizon-update [--plan|--apply]' ;;
 esac
-
-[[ $# == 6 ]] || fail 'Invalid apply arguments.'
-expected_head=$2
-base=$3
-target=$4
-transfer=$5
-checksum=$6
-sha "$expected_head" && sha "$base" && sha "$target" || fail 'Invalid commit ID.'
+[[ $EUID == 0 ]] || fail 'Run horizon-update as root.'
 
 exec 9>"$home/.horizon-update.lock"
 flock -n 9 || fail 'Another Horizon deployment is in progress.'
 [[ -z $(git_app status --porcelain) ]] || fail 'Horizon checkout is dirty; no files changed.'
-[[ $(git_app rev-parse HEAD) == "$expected_head" ]] || fail 'Horizon HEAD changed; run the plan again.'
+current_branch=$(git_app symbolic-ref --short HEAD)
+[[ $current_branch == release || $current_branch == dev ]] ||
+    fail 'Horizon must be on release (or dev for the initial transition).'
+expected_head=$(git_app rev-parse HEAD)
+git_app -c credential.interactive=false fetch --no-tags origin \
+    "+refs/heads/$branch:refs/remotes/origin/$branch"
+release_head=$(git_app rev-parse "refs/remotes/origin/$branch")
+base=$expected_head
+target=$release_head
 
 if [[ -f $pending ]]; then
     read_pending
-    [[ $from == "$base" && $next == "$target" ]] || fail 'Retry the unfinished deployment first.'
+    base=$from
+    target=$next
+    git_app merge-base --is-ancestor "$target" "$release_head" ||
+        fail 'The unfinished deployment is no longer on origin/release; inspect it before retrying.'
     [[ $expected_head == "$base" || $expected_head == "$target" ]] || fail 'Unexpected HEAD during retry.'
 else
-    [[ $base == "$expected_head" ]] || fail 'Deployment base does not match Horizon HEAD.'
     queue_on=$(active "$queue")
     timer_on=$(active "$timer")
     bot_on=$(active "$bot_unit")
 fi
 
-if [[ $expected_head != "$target" ]]; then
-    transfer_path "$transfer" && [[ $checksum =~ ^[a-f0-9]{64}$ ]] || fail 'Invalid Git bundle location or checksum.'
-    bundle=$transfer/update.bundle
-    [[ -f $bundle && ! -L $bundle ]] || fail 'Git bundle is missing.'
-    printf '%s  %s\n' "$checksum" "$bundle" | sha256sum -c -
-    chown horizon_rvg:horizon_rvg "$transfer" "$bundle"
-    chmod 0600 "$bundle"
-    git_app bundle verify "$bundle"
-    git_app fetch --no-tags "$bundle" HEAD
-    [[ $(git_app rev-parse FETCH_HEAD) == "$target" ]] || fail 'Uploaded bundle contains a different commit.'
-fi
 git_app merge-base --is-ancestor "$expected_head" "$target" || fail 'Not a fast-forward.'
+if [[ $current_branch != "$branch" ]] && git_app show-ref --verify --quiet "refs/heads/$branch"; then
+    [[ $(git_app rev-parse "refs/heads/$branch") == "$expected_head" ]] ||
+        fail 'The existing local release branch differs from the active checkout.'
+fi
+
 git_app diff --quiet "$base" "$target" -- backend/database/migrations backend/database/schema ||
     fail 'Schema changes require a separately reviewed migration; nothing was activated.'
 git_app diff --quiet "$base" "$target" -- backend/storage ||
@@ -93,6 +75,30 @@ backend=0
 bot=0
 git_app diff --quiet "$base" "$target" -- backend || backend=1
 git_app diff --quiet "$base" "$target" -- bots/horizon-bot || bot=1
+printf 'Horizon release: %.8s -> %.8s\n' "$expected_head" "$target"
+printf 'Rebuild Laravel: %s; rebuild Discord bot: %s\n' "$backend" "$bot"
+git_app diff --stat "$base" "$target"
+[[ ! -f $pending ]] || printf 'Retrying unfinished deployment %.8s before the latest release.\n' "$target"
+[[ $mode != plan ]] || exit 0
+
+switch_release() {
+    git_app config remote.origin.fetch "+refs/heads/$branch:refs/remotes/origin/$branch"
+    if [[ $current_branch != "$branch" ]]; then
+        if git_app show-ref --verify --quiet "refs/heads/$branch"; then
+            git_app switch "$branch"
+        else
+            git_app switch -c "$branch"
+        fi
+    fi
+    git_app branch --set-upstream-to="origin/$branch" "$branch"
+}
+
+if [[ $expected_head == "$target" && ! -f $pending ]]; then
+    switch_release
+    printf 'Horizon is already on the current release.\n'
+    exit 0
+fi
+
 stage=$(mktemp -d "$home/.horizon-build.XXXXXXXX")
 trap 'find -P "$stage" -depth -delete' EXIT
 chown horizon_rvg:horizon_rvg "$stage"
@@ -150,6 +156,7 @@ if (( backend )); then
 fi
 if (( bot )); then systemctl stop "$bot_unit"; fi
 
+switch_release
 git_app merge --ff-only --no-overwrite-ignore "$target"
 sync_generated() { as_app rsync -a --checksum --delay-updates --delete-delay -- "$1/" "$2/"; }
 if (( backend )); then

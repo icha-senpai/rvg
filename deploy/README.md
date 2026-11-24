@@ -1,34 +1,60 @@
 # Update Horizon
 
-From a Windows PowerShell 7 terminal in the repository, run:
+Horizon deploys the GitHub repository's `release` branch. Commit, test, and
+push the intended changes to `origin/release` before running the updater.
+
+From Windows PowerShell 7 in the repository, run:
 
 ```powershell
 .\deploy\horizon-update.ps1 -Plan
 .\deploy\horizon-update.ps1 -Apply
 ```
 
-The first command only inspects the local and server commits. The second
-deploys tested, committed changes using the existing `ssh horizon` alias. It
-does not push to GitHub or include uncommitted work. The server must be on an
-ancestor of local `HEAD`, with a clean checkout. `-Apply` refuses uncommitted
-Laravel or bot changes; unrelated Horizon 2 work is never built or started.
+Or run the installed command over SSH:
 
-The updater locks the server against concurrent deploys. It stages and audits
-only the affected Laravel or Discord bot components before switching them.
-Laravel updates use brief maintenance mode while refreshing the generated
-dependencies and frontend assets. The queue and scheduler resume only if they
-were running beforehand. Bot updates restart an already running bot, which
-runs its normal Discord command registration and nickname sync.
+```powershell
+ssh horizon "horizon-update --plan"
+ssh horizon "horizon-update"
+```
 
-Server environment files, uploads, PostgreSQL and Redis data, certificates,
-and system service settings are not replaced. Changes under
-`backend/database/migrations` or `backend/database/schema` are blocked: schema
-work needs a separately planned release. Temporary build and transfer files
-are cleaned up; there are no retained release copies.
+The server command defaults to applying the release. The Windows wrapper
+defaults to a plan. Both use the installed server command, which fetches
+`origin/release` directly and fast-forwards the server's `release` checkout.
+A plan fetches and reports the candidate commit and changed components.
+It leaves the running release and services intact.
 
-If a preflight or staging check fails, the active release is not switched.
-If activation fails, inspect the reported error before rerunning `-Apply`
-with the same local commit. The updater records the unfinished commit and the
-original service states so a retry does not treat the partially updated
-checkout as a completed release. If Laravel health fails, it stays in
-maintenance rather than continuing with an unhealthy site.
+The updater refuses a dirty checkout, divergent history, and concurrent
+deployments. Laravel and bot dependencies and frontend assets are staged
+and audited before activation. Laravel updates use brief maintenance mode.
+The queue and scheduler resume if they were running beforehand. Bot updates
+restart an already running bot, including its normal Discord command
+registration and nickname sync.
+
+The deployment preserves server environment files, uploads, PostgreSQL and
+Redis data, certificates, and system service settings. Schema changes under
+`backend/database/migrations` or `backend/database/schema` require a separately
+planned release. Horizon 2 source follows the release checkout, while its
+separate services are outside this updater's build and activation scope.
+Temporary build files are removed after the run.
+
+If activation fails, the updater keeps an unfinished deployment marker with
+the original service states. The next run retries that commit, provided it
+is still in `origin/release` history. Run the command again after recovery to
+deploy any newer release commit. A failed Laravel health check leaves the
+application in maintenance mode for diagnosis.
+
+## Server installation
+
+The command runs as root and performs Git and build operations as
+`horizon_rvg`. That account needs read access to the GitHub repository.
+
+Install the tracked launcher once after the updated deployment files have
+been checked out on the server:
+
+```bash
+install -o root -g root -m 0755 /srv/rvg/repo/deploy/horizon-update /usr/local/bin/horizon-update
+```
+
+The launcher runs a temporary copy of the checked-out updater so a release
+can safely change its own deployment script. Subsequent runs use the
+updater version delivered by the preceding successful release.

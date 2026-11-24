@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script=/srv/rvg/repo/deploy/horizon-update.sh
+[[ -f $script ]] || { printf 'Horizon updater is missing.\n' >&2; exit 1; }
+
+# Run a private copy so a release can safely update its own deployment script.
+temporary_script=$(mktemp /tmp/horizon-update.XXXXXXXX)
+trap 'rm -f -- "$temporary_script"' EXIT
+cat -- "$script" > "$temporary_script"
+bash "$temporary_script" "$@"
