@@ -1,1 +1,0 @@
-export const env={PUBLIC_SPACETIME_URI:"ws://127.0.0.1:3000",PUBLIC_SPACETIME_DATABASE:"horizon-2-owned"}

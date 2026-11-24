@@ -1,8 +1,0 @@
-c:\laragon\www\dev2\horizon 2\target\debug\deps\rustls_platform_verifier-ab1c5989091f0994.d: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\mod.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\windows.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\../README.md
-
-c:\laragon\www\dev2\horizon 2\target\debug\deps\librustls_platform_verifier-ab1c5989091f0994.rmeta: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\mod.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\windows.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\../README.md
-
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\lib.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\mod.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\verification\windows.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rustls-platform-verifier-0.7.1\src\../README.md:

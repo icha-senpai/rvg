@@ -1,0 +1,20 @@
+# Local runtime state and environment
+/.runtime/
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Node dependencies and build output
+node_modules/
+.svelte-kit/
+/apps/web/build/
+
+# Rust build output and generated Tauri schemas
+target/
+/apps/desktop/src-tauri/gen/schemas/
+
+# Local test output
+coverage/
+playwright-report/
+test-results/

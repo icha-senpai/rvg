@@ -1,9 +1,0 @@
-C:\laragon\www\dev2\horizon 2\target\debug\deps\spacetimedb_primitives-12e087b3f5c4f8a5.d: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\attr.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\col_list.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\errno.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\ids.rs
-
-C:\laragon\www\dev2\horizon 2\target\debug\deps\libspacetimedb_primitives-12e087b3f5c4f8a5.rmeta: C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\lib.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\attr.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\col_list.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\errno.rs C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\ids.rs
-
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\lib.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\attr.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\col_list.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\errno.rs:
-C:\Users\footb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.10.2\src\ids.rs:
