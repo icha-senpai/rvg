@@ -25,11 +25,18 @@ Run these commands from this folder:
 ```powershell
 npm ci
 spacetime version install 2.10.2
+spacetime version install 2.12.0
 npm run bindings
 npm exec -- playwright install chromium
 ```
 
-On Windows, the CLI wrapper uses the installed 2.10.2 executable directly without changing other projects' global SpaceTimeDB version. On other systems, the `spacetime` on PATH must be 2.10.2.
+The database runtime, module and native Rust SDK stay on 2.10.2. The web SDK and TypeScript binding generator use 2.12.0 for automatic reconnect. On Windows, the CLI wrapper selects the installed version directly without changing other projects' global SpaceTimeDB version. Elsewhere, set `HORIZON_SPACETIME_CLI` and `HORIZON_TYPESCRIPT_CLI` to the respective executables; otherwise the wrapper checks `spacetime` on PATH against the requested version.
+
+## Connection recovery
+
+After an established database connection drops, the browser SDK retries using the current valid Citizen iD credential and replays its existing subscriptions. The account card remains visible with a reconnecting notice; live actions stay unavailable until the account subscription finishes resynchronizing. Resume events do not create a competing connection, and requests are not automatically repeated by the application. Failed first connections and terminal failures retain the explicit Retry connection control.
+
+Cached account data does not extend a sign-in: token expiry, sign-out, an identity change, or terminal authentication failure clears it. Sign-out also cancels pending reconnects. This behavior applies to the shared web client used by Tauri; it does not prevent browser or development-server reloads.
 
 Windows desktop builds require Visual Studio C++ build tools and the WebView2 runtime. Both were present during initial setup.
 
@@ -74,6 +81,12 @@ cargo test -p horizon-discord -p horizon-desktop --all-targets
 ```
 
 `npm run format` formats the web source. Regenerate bindings whenever the module schema or reducer signatures change. The SpaceTimeDB module is verified by its WASM build: its runtime imports cannot link into a native Windows test executable. Reducer integration tests must execute in a SpaceTimeDB host; native unit tests can cover pure domain functions when those exist. Domain tests and E2E workflows will be added with their implementation; the initial native test harnesses contain zero tests.
+
+## Local artifact cleanup
+
+Automatic deployment backups and retained rollback copies are disabled by Boss's policy. Use Git for source history. Keep temporary verification files only until their checks finish, and retain transfer data only while an interrupted restoration still needs it.
+
+From the parent `dev2` folder, run `powershell -NoProfile -ExecutionPolicy Bypass -File cleanup-local-artifacts.ps1` to preview known disposable files. Add `-Apply` to remove them without saving a cleanup report. The helper protects live `.runtime/citizenid-auth` data, credentials, current builds/bindings, dependencies, uploads, service logs and claims-harness source. It rejects linked or active paths. Only generated claims-test build output, duplicate old bindings, probes and browser reports are removed.
 
 ## Next Integration Steps
 

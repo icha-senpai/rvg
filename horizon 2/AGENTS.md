@@ -16,6 +16,14 @@ This folder is the separately authorized Horizon 2 rebuild. The Laravel/Vue/Tail
 
 See `README.md` for setup, verification, and deferred integrations.
 
+## Local backups and development artifacts
+
+- Boss opts out of automatic deployment backups. Use Git for source history; keep no rollback sets, source copies, previous builds or dated audit/recovery archives unless explicitly requested.
+- Remove one-off probes, browser output and temporary verification files after the check. Preserve requested design/research outputs and required test source.
+- `.runtime/citizenid-auth` is live SpaceTimeDB data, not disposable auth-test output. Preserve the entire directory, credentials, current builds/bindings and active service logs. Never prune individual database logs or snapshots.
+- Keep `.runtime/claims-harness` source and its Cargo files for the native claims tests; its generated `target` directory and saved test output are disposable when no build/test uses them.
+- The parent `cleanup-local-artifacts.ps1` previews known disposable artifacts in both Horizons and saves no cleanup report. Only an explicitly requested backup may be retained; failed restoration must keep the temporary data needed to finish recovery.
+
 ## Citizen iD staging identity proof (verification notes)
 
 - `services/edge` (`horizon-edge`) is the same-origin token-exchange bridge for the staging SPA; it binds `127.0.0.1:3102` and only accepts `POST /auth/token` from `Origin: https://horizon.ichaa.dev`, forwarding the five authorization-code fields to the fixed Citizen iD token endpoint. Dev routing goes through the Vite `server.proxy` entry (`^/auth/token$`); a production static deploy needs an equivalent reverse-proxy route to the edge service.

@@ -29,12 +29,17 @@
 			<p role="status">Redirecting to Citizen iD…</p>
 		{:else if $authState.status === 'connecting'}
 			<p role="status">Connecting to Horizon…</p>
+		{:else if $authState.status === 'reconnecting'}
+			<p role="status">
+				Reconnecting… Showing your last synced account. Actions are paused until live data returns.
+			</p>
 		{:else if $authState.status === 'disconnected'}
 			{#if $authState.canRetry}
 				<button type="button" onclick={() => void retryConnection()}>Retry connection</button>
 			{/if}
 			<button type="button" onclick={() => void signIn()}>Sign in with Citizen iD</button>
-		{:else if $authState.status === 'ready' && $authState.account}
+		{/if}
+		{#if ($authState.status === 'ready' || $authState.status === 'reconnecting') && $authState.account}
 			{@const account = $authState.account}
 			<dl class="account">
 				<dt>Horizon ID</dt>

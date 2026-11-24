@@ -12,7 +12,8 @@ const CITIZEN_ID_SCOPE =
 	'openid profile roles discord.profile rsi.profile rsi.orgs.primary rsi.orgs.public';
 const IDENTITY_SYNC_TIMEOUT_MS = 8000;
 
-export type AuthStatus = 'signed_out' | 'signing_in' | 'connecting' | 'ready' | 'disconnected';
+export type AuthStatus =
+	'signed_out' | 'signing_in' | 'connecting' | 'reconnecting' | 'ready' | 'disconnected';
 
 export interface AuthState {
 	status: AuthStatus;
@@ -194,36 +195,68 @@ function connect(user: User): void {
 	clearReadyTimer();
 	dropConnection();
 	patchState({ status: 'connecting', error: null, notice: null, canRetry: true, account: null });
+	const view = { applied: false };
+	const recovering = () => {
+		view.applied = false;
+		clearReadyTimer();
+		// Keep the last account snapshot visible; only `ready` permits live actions.
+		patchState({ status: 'reconnecting', error: null, notice: null, canRetry: false });
+	};
 	const builder = DbConnection.builder()
 		.withUri(spacetimeUri())
 		.withDatabaseName(spacetimeDatabase())
 		.withToken(idToken)
+		.withAutomaticReconnect()
+		.withTokenProvider(async () => {
+			const latest = await manager().getUser();
+			if (gen !== generation) throw new SafeAuthError('This connection was cancelled.');
+			if (!sessionUsable(latest)) {
+				void expireSession();
+				throw new SafeAuthError('Your Citizen iD sign-in expired. Please sign in again.');
+			}
+			return latest.id_token!;
+		})
 		.onConnect((conn) => {
 			if (gen !== generation) return;
-			watchCurrentUser(conn, gen);
+			watchCurrentUser(conn, gen, view);
 		})
-		.onConnectError(() => {
+		.onAutomaticReconnect(() => {
 			if (gen !== generation) return;
+			// Existing subscriptions are replayed once by the SDK. Their onApplied
+			// callback confirms the new authoritative snapshot before marking ready.
+			recovering();
+		})
+		.onConnectError((_ctx, _error, nextAttempt) => {
+			if (gen !== generation) return;
+			if (nextAttempt !== undefined) {
+				recovering();
+				return;
+			}
 			backendDown('Horizon could not authenticate this sign-in or the database is unreachable.');
 		})
-		.onDisconnect(() => {
+		.onDisconnect((_ctx, _error, nextAttempt) => {
 			if (gen !== generation) return;
+			view.applied = false;
+			if (nextAttempt !== undefined) {
+				recovering();
+				return;
+			}
 			backendDown('The connection to Horizon was lost.');
 		});
 	connection = builder.build();
 }
 
-function watchCurrentUser(conn: DbConnection, gen: number): void {
+function watchCurrentUser(conn: DbConnection, gen: number, view: { applied: boolean }): void {
 	conn.db.currentUser.onInsert((_ctx, row) => {
-		if (gen !== generation) return;
+		if (gen !== generation || !view.applied) return;
 		markReady(row);
 	});
 	conn.db.currentUser.onUpdate((_ctx, _oldRow, row) => {
-		if (gen !== generation) return;
+		if (gen !== generation || !view.applied) return;
 		markReady(row);
 	});
 	conn.db.currentUser.onDelete(() => {
-		if (gen !== generation) return;
+		if (gen !== generation || !view.applied) return;
 		const remaining = conn.db.currentUser.iter().next().value as CurrentUser | undefined;
 		if (remaining) {
 			markReady(remaining);
@@ -235,13 +268,15 @@ function watchCurrentUser(conn: DbConnection, gen: number): void {
 		.subscriptionBuilder()
 		.onApplied((ctx) => {
 			if (gen !== generation) return;
+			view.applied = true;
 			const row = ctx.db.currentUser.iter().next().value as CurrentUser | undefined;
 			if (row) {
 				markReady(row);
 				return;
 			}
+			patchState({ status: 'connecting', error: null, account: null, canRetry: true });
 			conn.reducers.syncCitizenIdentity({}).catch(() => {
-				if (gen !== generation) return;
+				if (gen !== generation || !view.applied) return;
 				backendDown('Horizon could not confirm your identity yet. Try again shortly.');
 			});
 			clearReadyTimer();
@@ -254,6 +289,9 @@ function watchCurrentUser(conn: DbConnection, gen: number): void {
 		})
 		.onError(() => {
 			if (gen !== generation) return;
+			// A failed account subscription cannot safely become ready on recovery.
+			view.applied = false;
+			conn.disconnect();
 			backendDown('Horizon could not load your account view. Try again shortly.');
 		})
 		.subscribe(tables.currentUser.build());
@@ -386,10 +424,10 @@ async function runSigninCallback(callbackUrl: string): Promise<void> {
 }
 
 export async function retryConnection(): Promise<void> {
-	if (!browser) return;
+	if (!browser || connection?.isReconnecting) return;
 	const gen = generation;
 	const user = await manager().getUser();
-	if (gen !== generation) return;
+	if (gen !== generation || connection?.isReconnecting) return;
 	if (sessionUsable(user)) {
 		connect(user);
 		return;

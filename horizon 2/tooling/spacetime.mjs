@@ -4,16 +4,19 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export const spacetimeVersion = '2.10.2';
+export const typescriptVersion = '2.12.0';
 
-export function runSpacetime(args) {
+export function runSpacetime(args, versionNumber = spacetimeVersion) {
+  const override = versionNumber === typescriptVersion
+    ? process.env.HORIZON_TYPESCRIPT_CLI : process.env.HORIZON_SPACETIME_CLI;
   const installedCli = process.platform === 'win32' && process.env.LOCALAPPDATA
-    ? join(process.env.LOCALAPPDATA, 'SpacetimeDB', 'bin', spacetimeVersion, 'spacetimedb-cli.exe')
+    ? join(process.env.LOCALAPPDATA, 'SpacetimeDB', 'bin', versionNumber, 'spacetimedb-cli.exe')
     : undefined;
-  const cli = installedCli && existsSync(installedCli) ? installedCli : 'spacetime';
+  const cli = override || (installedCli && existsSync(installedCli) ? installedCli : 'spacetime');
   const version = spawnSync(cli, ['--version'], { encoding: 'utf8' });
 
-  if (version.error || version.status !== 0 || !version.stdout.includes(`tool version ${spacetimeVersion};`)) {
-    throw new Error(`Install SpaceTimeDB ${spacetimeVersion} with: spacetime version install ${spacetimeVersion}`);
+  if (version.error || version.status !== 0 || !version.stdout.includes(`tool version ${versionNumber};`)) {
+    throw new Error(`Install SpaceTimeDB ${versionNumber} with: spacetime version install ${versionNumber}`);
   }
 
   const result = spawnSync(cli, args, { stdio: 'inherit' });
