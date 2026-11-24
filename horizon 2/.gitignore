@@ -1,16 +1,25 @@
-node_modules/
-.svelte-kit/
-build/
-target/
+# Local runtime state and environment
+.runtime/
 .env
 .env.*
 !.env.example
-test-results/
+!.env.*.example
+*.log
+
+# Node dependencies and build output
+node_modules/
+.svelte-kit/
+build/
+
+# Rust build output
+target/
+
+# Local test output
+coverage/
 playwright-report/
+test-results/
 output/
 .playwright-cli/
-.runtime/
-*.log
 
 # The parent repository ignores agent instructions globally.
 !AGENTS.md
