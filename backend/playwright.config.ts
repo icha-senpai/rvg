@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://backend.test';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://dev.horizoninterstellar.com';
 
 export default defineConfig({
   testDir: './tests/e2e',

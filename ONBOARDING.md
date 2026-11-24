@@ -67,6 +67,12 @@ That runs, in parallel:
 - `php artisan pail --timeout=0` (logs)
 - `npm run dev` (Vite)
 
+For the ServBay setup, point `dev.horizoninterstellar.com` at
+`backend/public` and set `APP_URL=https://dev.horizoninterstellar.com`.
+Development browser tests use this address by default. Discord OAuth in
+development requires `https://dev.horizoninterstellar.com/auth/discord/callback`
+to be registered in the Discord application.
+
 Optional one-shot bootstrap:
 
 ```bash
