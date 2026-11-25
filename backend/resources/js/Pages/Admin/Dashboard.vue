@@ -20,11 +20,7 @@ const props = defineProps({
   },
   operationSettlementLootOptions: {
     type: Object,
-    default: () => ({
-      commodities: [],
-      items: [],
-      components: [],
-    }),
+    default: null,
   },
   canceledOperations: {
     type: Array,

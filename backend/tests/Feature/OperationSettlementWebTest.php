@@ -83,13 +83,18 @@ class OperationSettlementWebTest extends TestCase
             );
 
         $this->actingAs($creator)
-            ->get('/admin/dashboard')
+            ->get(route('admin.dashboard', ['tab' => 'operations']))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/Dashboard')
                 ->where('operations.0.id', $operation->id)
                 ->where('operations.0.operation_settlement.loot_rows.0.reference_label', 'Agricium')
                 ->where('operations.0.operation_settlement.permissions.can_manage', true)
-                ->where('operationSettlementLootOptions.commodities.0.label', 'Agricium')
+                ->missing('operationSettlementLootOptions')
+                ->reloadOnly('operationSettlementLootOptions', fn (Assert $catalog) => $catalog
+                    ->missingAll(['users', 'operations', 'ledger'])
+                    ->where('operationSettlementLootOptions.commodities.0.label', 'Agricium')
+                    ->where('operationSettlementLootOptions.items.0.label', 'Atlas Drive · Quantum Drive')
+                )
             );
     }
 

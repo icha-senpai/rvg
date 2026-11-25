@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { computed, ref, watch } from 'vue'
+import { Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
@@ -22,11 +22,7 @@ const props = defineProps({
   },
   operationSettlementLootOptions: {
     type: Object,
-    default: () => ({
-      commodities: [],
-      items: [],
-      components: [],
-    }),
+    default: null,
   },
 })
 
@@ -34,6 +30,31 @@ const search = ref('')
 const openOperationId = ref(null)
 const activeOperationsSection = ref('aar')
 const attendanceDraftMembersByOperationId = ref({})
+const lootOptionsLoading = ref(false)
+
+function needsLootOptions(operation) {
+  const settlement = operation?.operation_settlement
+
+  return props.operationSettlementLootOptions === null
+    && !!settlement?.permissions?.can_manage
+    && !settlement.is_finalized
+}
+
+function loadLootOptions() {
+  if (lootOptionsLoading.value) return
+
+  lootOptionsLoading.value = true
+  router.reload({
+    only: ['operationSettlementLootOptions'],
+    showProgress: false,
+    onFinish: () => { lootOptionsLoading.value = false },
+  })
+}
+
+watch(
+  () => needsLootOptions(props.operations.find(operation => operation.id === openOperationId.value)),
+  (needed) => { if (needed) loadLootOptions() },
+)
 
 const currentSection = computed(() => {
   if (activeOperationsSection.value === 'cancellations') {
@@ -307,13 +328,20 @@ function selectOperationsSection(section) {
             @attendance-draft-change="updateAttendanceDraftMembers(operation.id, $event)"
           />
 
-              <OperationSettlementSection
-                :operation="operation"
-                :shared-loot-options="operationSettlementLootOptions"
-                :attendance-draft-members="attendanceDraftMembers(operation)"
-                :reload-only="['operations']"
-                :compact="true"
-              />
+          <div v-if="needsLootOptions(operation)" class="rounded-xl border border-white/10 p-4 text-sm text-text-secondary">
+            <p v-if="lootOptionsLoading" role="status">Loading settlement catalog...</p>
+            <button v-else type="button" class="font-semibold text-horizon-white underline" @click="loadLootOptions">
+              Retry loading settlement catalog
+            </button>
+          </div>
+          <OperationSettlementSection
+            v-else
+            :operation="operation"
+            :shared-loot-options="operationSettlementLootOptions"
+            :attendance-draft-members="attendanceDraftMembers(operation)"
+            :reload-only="['operations']"
+            :compact="true"
+          />
         </div>
       </article>
     </template>

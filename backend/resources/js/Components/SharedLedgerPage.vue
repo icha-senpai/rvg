@@ -55,7 +55,14 @@ const wipeFilterOptions = computed(() => ([
     value: String(wipe.id),
   })),
 ]))
-const references = computed(() => props.ledger?.references ?? {})
+const references = computed(() => ({
+  ships: props.ledger?.references?.ships,
+  items: page.props.ledgerItemOptions,
+  commodities: page.props.ledgerCommodityOptions,
+  tradePricing: page.props.ledgerTradePricing,
+  inventoryValuations: page.props.ledgerInventoryValuations,
+  shipPricing: page.props.ledgerShipPricing,
+}))
 const cycleSummaries = computed(() => props.ledger?.overview?.cycleSummaries ?? [])
 const cycleComparison = computed(() => props.ledger?.overview?.cycleComparison ?? null)
 const isSquadronLedger = computed(() => props.context?.mode === 'squadron')
@@ -318,6 +325,51 @@ const shipForm = useForm({
   acquired_at: '',
   notes: '',
 })
+
+const editorReferencesLoading = ref(false)
+const requiredEditorReferences = computed(() => {
+  if (!canEditCurrentView.value) return []
+
+  if (activeTab.value === 'trades' && tradeDrawerOpen.value) return ['ledgerCommodityOptions', 'ledgerTradePricing']
+  if (activeTab.value === 'inventory' && inventoryDrawerOpen.value) return ['ledgerItemOptions', 'ledgerCommodityOptions', 'ledgerInventoryValuations']
+  if (activeTab.value === 'ships' && shipDrawerOpen.value) return ['ledgerShipPricing']
+
+  if (activeTab.value === 'transactions' && transactionDrawerOpen.value) {
+    if (transactionForm.related_uex_type === 'commodity') return ['ledgerCommodityOptions']
+    if (['item', 'component'].includes(transactionForm.related_uex_type)) return ['ledgerItemOptions']
+  }
+
+  return []
+})
+const missingEditorReferences = computed(() => requiredEditorReferences.value.filter(key => page.props[key] == null))
+const waitingEditor = computed(() => {
+  if (!missingEditorReferences.value.length) return null
+
+  if (activeTab.value === 'trades') return closeTradeDrawer
+  if (activeTab.value === 'inventory') return closeInventoryDrawer
+  if (activeTab.value === 'ships') return closeShipDrawer
+
+  return null
+})
+
+function loadEditorReferences() {
+  if (editorReferencesLoading.value || !missingEditorReferences.value.length) return
+
+  const only = missingEditorReferences.value
+  editorReferencesLoading.value = true
+  router.reload({
+    only,
+    preserveUrl: true,
+    showProgress: false,
+    onFinish: () => {
+      editorReferencesLoading.value = false
+      // The transaction reference type can change while its lookup is in flight.
+      if (missingEditorReferences.value.some(key => !only.includes(key))) loadEditorReferences()
+    },
+  })
+}
+
+watch(requiredEditorReferences, loadEditorReferences)
 
 const transactionRelatedOptions = computed(() => {
   switch (transactionForm.related_uex_type) {
@@ -907,9 +959,9 @@ function shipDestroyHref(id) {
 }
 
 watch(
-  () => tradeForm.commodity_uex_id,
+  [() => tradeForm.commodity_uex_id, () => references.value.tradePricing],
   () => {
-    applyTradeSuggestions()
+    if (references.value.tradePricing) applyTradeSuggestions()
   }
 )
 
@@ -1072,16 +1124,17 @@ watch(
     () => inventoryForm.source_type,
     () => inventoryForm.uex_reference_id,
     () => inventoryForm.quantity,
+    () => references.value.inventoryValuations,
   ],
   () => {
-    applyInventorySuggestions()
+    if (references.value.inventoryValuations) applyInventorySuggestions()
   }
 )
 
 watch(
-  () => shipForm.vehicle_uex_id,
+  [() => shipForm.vehicle_uex_id, () => references.value.shipPricing],
   () => {
-    applyShipSuggestions()
+    if (references.value.shipPricing) applyShipSuggestions()
   }
 )
 
@@ -2374,6 +2427,18 @@ function closeTransferHelpDialog() {
         </div>
       </section>
 
+      <HorizonDrawer v-if="waitingEditor" close-label="Close ledger editor drawer" @close="waitingEditor?.()">
+        <template #header>
+          <h3 class="text-xl font-black text-horizon-white">Ledger Editor</h3>
+        </template>
+        <p v-if="editorReferencesLoading" class="text-sm text-text-secondary" role="status">
+          Loading catalog and price suggestions...
+        </p>
+        <HorizonButton v-else type="button" @click="loadEditorReferences">
+          Retry loading catalog
+        </HorizonButton>
+      </HorizonDrawer>
+
       <section v-if="activeTab === 'overview'" class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="space-y-5">
           <div class="hz-ledger-panel rounded-[1.75rem] p-5">
@@ -2704,8 +2769,12 @@ function closeTransferHelpDialog() {
               :options="transactionRelatedTypeOptions"
             />
 
+            <div v-if="missingEditorReferences.length" class="text-sm text-text-secondary">
+              <p v-if="editorReferencesLoading" role="status">Loading related references...</p>
+              <HorizonButton v-else type="button" @click="loadEditorReferences">Retry loading related references</HorizonButton>
+            </div>
             <HorizonSelect
-              v-if="transactionForm.related_uex_type"
+              v-else-if="transactionForm.related_uex_type"
               v-model="transactionForm.related_uex_id"
               :options="transactionRelatedSelectOptions"
               label="Related Reference"
@@ -3330,7 +3399,7 @@ function closeTransferHelpDialog() {
       </section>
 
       <section v-else-if="activeTab === 'trades'" class="space-y-4">
-        <HorizonDrawer v-if="canEditCurrentView && tradeDrawerOpen" close-label="Close trade editor drawer" @close="closeTradeDrawer">
+        <HorizonDrawer v-if="canEditCurrentView && tradeDrawerOpen && !waitingEditor" close-label="Close trade editor drawer" @close="closeTradeDrawer">
           <template #header>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ tradeModeLabel }}</div>
             <h3 class="mt-1 text-xl font-black text-horizon-white">Commodity Run</h3>
@@ -3491,7 +3560,7 @@ function closeTransferHelpDialog() {
       </section>
 
       <section v-else-if="activeTab === 'inventory'" class="space-y-4">
-        <HorizonDrawer v-if="canEditCurrentView && inventoryDrawerOpen" close-label="Close inventory editor drawer" @close="closeInventoryDrawer">
+        <HorizonDrawer v-if="canEditCurrentView && inventoryDrawerOpen && !waitingEditor" close-label="Close inventory editor drawer" @close="closeInventoryDrawer">
           <template #header>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ inventoryModeLabel }}</div>
             <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Items</h3>
@@ -3728,7 +3797,7 @@ function closeTransferHelpDialog() {
       </section>
 
       <section v-else-if="activeTab === 'ships'" class="space-y-4">
-        <HorizonDrawer v-if="canEditCurrentView && shipDrawerOpen" close-label="Close ship editor drawer" @close="closeShipDrawer">
+        <HorizonDrawer v-if="canEditCurrentView && shipDrawerOpen && !waitingEditor" close-label="Close ship editor drawer" @close="closeShipDrawer">
           <template #header>
             <div class="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{{ shipModeLabel }}</div>
             <h3 class="mt-1 text-xl font-black text-horizon-white">Tracked Ships</h3>

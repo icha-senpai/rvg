@@ -10,6 +10,7 @@ use App\Models\Operation;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class AdminDashboardService
 {
@@ -24,18 +25,19 @@ class AdminDashboardService
 
     public function build(string $search): array
     {
+        // Inertia resolves only the props requested by search and pagination.
         return [
-            'users' => $this->users($search),
-            'squadrons' => $this->dashboardSquadrons(),
-            'roles' => $this->roles(),
-            'operations' => $this->completedOperations(),
-            'canceledOperations' => $this->canceledOperations(),
-            'operationSettlementLootOptions' => $this->operationShowData->settlementLootOptions(),
-            'verifiedMembers' => $this->operationShowData->verifiedMembers(),
-            'archiveStats' => $this->archiveStats->build(),
-            'uex' => $this->uexStatus->build(),
-            'ledger' => $this->ledger->buildAdminData(),
-            'eligibleLeaders' => $this->squadrons->eligibleLeaders(),
+            'users' => fn () => $this->users($search),
+            'squadrons' => fn () => $this->dashboardSquadrons(),
+            'roles' => fn () => $this->roles(),
+            'operations' => fn () => $this->completedOperations(),
+            'canceledOperations' => fn () => $this->canceledOperations(),
+            'operationSettlementLootOptions' => Inertia::optional(fn () => $this->operationShowData->settlementLootOptions()),
+            'verifiedMembers' => fn () => $this->operationShowData->verifiedMembers(),
+            'archiveStats' => fn () => $this->archiveStats->build(),
+            'uex' => fn () => $this->uexStatus->build(),
+            'ledger' => fn () => $this->ledger->buildAdminData(),
+            'eligibleLeaders' => fn () => $this->squadrons->eligibleLeaders(),
             'filters' => [
                 'search' => $search,
             ],

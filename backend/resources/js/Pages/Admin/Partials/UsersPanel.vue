@@ -822,7 +822,7 @@ function runSearch(value) {
   const trimmed = String(value ?? '').trim();
 
   router.visit(route('admin.dashboard'), {
-    data: trimmed ? { search: trimmed } : {},
+    data: trimmed ? { tab: 'users', search: trimmed } : { tab: 'users' },
     preserveState: true,
     preserveScroll: true,
     replace: true,
@@ -974,13 +974,8 @@ function applySearch() {
 }
 
 function clearSearch() {
-  if (searchDebounceId) {
-    clearTimeout(searchDebounceId);
-    searchDebounceId = null;
-  }
-
   search.value = '';
-  runSearch('');
+  applySearch();
 }
 
 watch(search, (value) => {
@@ -991,14 +986,18 @@ watch(search, (value) => {
   searchDebounceId = setTimeout(() => {
     runSearch(value);
   }, 250);
-});
+}, { flush: 'sync' });
 
 /* ============================================================
    PAGINATION
 ============================================================ */
 function goTo(url) {
   if (url) {
-    router.visit(url, { preserveScroll: true });
+    router.visit(url, {
+      data: { tab: 'users' },
+      only: ['users', 'filters'],
+      preserveScroll: true,
+    });
   }
 }
 
@@ -1379,7 +1378,7 @@ function clearRememberedSessions() {
 }
 
 function buildUsersPageQuery() {
-  const query = {};
+  const query = { tab: 'users' };
   const activeSearch = String(search.value ?? '').trim();
 
   if (currentPage.value > 1) {

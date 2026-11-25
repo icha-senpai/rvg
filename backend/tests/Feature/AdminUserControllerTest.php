@@ -4,13 +4,34 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\LedgerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class AdminUserControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_users_search_does_not_build_the_other_dashboard_panels(): void
+    {
+        $this->actingAsDirector();
+        $match = User::factory()->create(['rsi_handle' => 'ChartedPilot']);
+
+        $this->get(route('admin.dashboard', ['tab' => 'users', 'search' => 'charted']))
+            ->assertInertia(function (Assert $page) use ($match) {
+                $page->component('Admin/Dashboard')->has('ledger')->missing('operationSettlementLootOptions');
+                $this->partialMock(LedgerService::class)->shouldReceive('buildAdminData')->never();
+
+                $page->reloadOnly(['users', 'filters'], fn (Assert $results) => $results
+                    ->has('users.data', 1)
+                    ->where('users.data.0.id', $match->id)
+                    ->where('filters.search', 'charted')
+                    ->missingAll(['ledger', 'operations', 'operationSettlementLootOptions', 'uex'])
+                );
+            });
+    }
 
     public function test_unverify_clears_all_rows_for_the_same_discord_account(): void
     {

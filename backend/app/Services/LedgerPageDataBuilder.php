@@ -32,6 +32,7 @@ class LedgerPageDataBuilder
             'mode' => 'all',
             'wipe' => null,
         ]);
+        $state += $this->valuationMaps($allUserInventoryItems, $allUserShipAssets);
 
         $overviewCards = $this->summaries->summarizeLedgerCollections(
             $allTransactions,
@@ -104,6 +105,7 @@ class LedgerPageDataBuilder
 
         [$transactions, $trades, $inventoryItems, $shipAssets] = $this->recentCollectionsForOwner($owner, $state['resolvedFilter'], true);
         [$allTransactions, $allTrades, $allInventoryItems, $allShipAssets] = $this->allCollectionsForOwner($owner, $state['resolvedFilter']);
+        $state += $this->valuationMaps($allInventoryItems, $allShipAssets);
         $overviewCards = $this->summaries->summarizeLedgerCollections(
             $allTransactions,
             $allTrades,
@@ -220,6 +222,7 @@ class LedgerPageDataBuilder
 
         [$transactions, $trades, $inventoryItems, $shipAssets] = $this->recentCollectionsForOwner($owner, $state['resolvedFilter'], true);
         [$allTransactions, $allTrades, $allInventoryItems, $allShipAssets] = $this->allCollectionsForOwner($owner, $state['resolvedFilter']);
+        $state += $this->valuationMaps($allInventoryItems, $allShipAssets);
         $overviewCards = $this->summaries->summarizeLedgerCollections(
             $allTransactions,
             $allTrades,
@@ -286,16 +289,24 @@ class LedgerPageDataBuilder
     {
         $currentWipe = $this->cycles->currentWipeCycle();
         $resolvedFilter = $this->cycles->resolveWipeFilter($wipeFilter, $currentWipe);
-        $references = $this->references->referenceOptions();
 
         return [
             'currentWipe' => $currentWipe,
             'resolvedFilter' => $resolvedFilter,
-            'references' => $references,
             'referenceMaps' => $this->references->referenceMaps(),
-            'inventorySuggestionMaps' => $this->references->inventorySuggestionMaps($references),
-            'shipPricingMap' => $this->references->suggestionMap($references['shipPricing'] ?? []),
             'account' => $owner->primaryAccount(),
+        ];
+    }
+
+    protected function valuationMaps(Collection $inventoryItems, Collection $shipAssets): array
+    {
+        return [
+            'inventorySuggestionMaps' => $this->references->inventorySuggestionMaps([
+                'inventoryValuations' => $inventoryItems->isEmpty() ? [] : $this->references->inventoryValuationSuggestions(),
+            ]),
+            'shipPricingMap' => $this->references->suggestionMap(
+                $shipAssets->isEmpty() ? [] : $this->references->shipPricingSuggestions()
+            ),
         ];
     }
 
@@ -312,7 +323,8 @@ class LedgerPageDataBuilder
             'activeWipeFilter' => $state['resolvedFilter']['key'],
             'currentWipe' => $this->wipePayload($state['currentWipe']),
             'selectedWipe' => $state['resolvedFilter']['wipe'] ? $this->selectedWipePayload($state['resolvedFilter']['wipe']) : null,
-            'references' => $state['references'],
+            // The ship cards render artwork even when no editor is open.
+            'references' => ['ships' => $this->references->shipReferenceOptions()],
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Application\Squadrons\Presenters\SquadronPresenter;
 use App\Http\Controllers\Controller;
 use App\Models\Squadron;
+use App\Services\LedgerReferenceService;
 use App\Services\LedgerService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class SquadronLedgerController extends Controller
 
     public function __construct(
         protected LedgerService $ledger,
+        protected LedgerReferenceService $references,
     ) {}
 
     public function showById(Request $request, Squadron $squadron)
@@ -39,14 +41,15 @@ class SquadronLedgerController extends Controller
 
         $viewer = $request->user();
         $wipe = (string) $request->query('wipe', 'current');
-        $squadron->loadMissing(['leader.roles', 'emblem']);
+        $canManageLedger = $viewer?->can('manageLedger', $squadron) ?? false;
 
         return Inertia::render('Squadrons/Ledger', [
-            'squadron' => SquadronPresenter::make($squadron),
-            'ledger' => $this->ledger->buildSquadronPageData($squadron, $wipe, $viewer),
+            'squadron' => fn () => SquadronPresenter::make($squadron->loadMissing(['leader.roles', 'emblem'])),
+            'ledger' => fn () => $this->ledger->buildSquadronPageData($squadron, $wipe, $viewer),
+            ...($canManageLedger ? array_map(Inertia::optional(...), $this->references->editorReferenceLoaders()) : []),
             'permissions' => [
-                'can_edit_ledger' => $viewer ? $viewer->can('manageLedger', $squadron) : false,
-                'can_manage_ledger' => $viewer ? $viewer->can('manageLedger', $squadron) : false,
+                'can_edit_ledger' => $canManageLedger,
+                'can_manage_ledger' => $canManageLedger,
             ],
             'context' => [
                 'mode' => 'squadron',

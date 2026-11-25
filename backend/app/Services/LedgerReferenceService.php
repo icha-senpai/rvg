@@ -24,6 +24,17 @@ class LedgerReferenceService
         ];
     }
 
+    public function editorReferenceLoaders(): array
+    {
+        return [
+            'ledgerItemOptions' => $this->itemReferenceOptions(...),
+            'ledgerCommodityOptions' => $this->commodityReferenceOptions(...),
+            'ledgerTradePricing' => $this->tradePricingSuggestions(...),
+            'ledgerInventoryValuations' => $this->inventoryValuationSuggestions(...),
+            'ledgerShipPricing' => $this->shipPricingSuggestions(...),
+        ];
+    }
+
     public function commodityReferenceOptions(): array
     {
         return DB::table('uex_commodities')
