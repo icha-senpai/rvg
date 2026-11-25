@@ -23,7 +23,7 @@ class OperationRuntimeService
             'participants.role',
             'participants.discordChannel',
             'discordChannels',
-            'syncRuns.syncedBy:id,name,rsi_handle,discord_name',
+            'syncRuns' => fn ($query) => $query->limit(10)->with('syncedBy:id,name,rsi_handle,discord_name'),
         ]);
 
         $participants = $operation->participants->values();

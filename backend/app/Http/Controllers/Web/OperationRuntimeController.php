@@ -31,11 +31,9 @@ class OperationRuntimeController extends Controller
         $this->authorize('manage', $operation);
 
         return Inertia::render('Operations/OperationRun', [
-            ...$this->showData->build($operation, $request->user()),
+            ...$this->showData->run($operation, $request->user()),
             'runtime' => $this->runtime->build($operation),
             'fundsPrep' => $this->settlementViews->prepPayload($operation),
-            'authUser' => $request->user(),
-            'verifiedMembers' => $this->showData->verifiedMembers(),
         ]);
     }
 

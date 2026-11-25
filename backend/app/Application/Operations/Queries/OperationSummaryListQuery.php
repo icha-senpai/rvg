@@ -3,7 +3,6 @@
 namespace App\Application\Operations\Queries;
 
 use App\Application\Operations\Presenters\OperationPresenter;
-use App\Application\Operations\Presenters\OperationPresenterRelations;
 use App\Domain\Operations\Enums\OperationStatus;
 use App\Models\Operation;
 
@@ -24,13 +23,14 @@ class OperationSummaryListQuery
             ->paginate($perPage)
             ->withQueryString();
 
-        $operations->setCollection(
-            $operations->getCollection()->map(
-                fn (Operation $operation) => OperationPresenter::make(
-                    OperationPresenterRelations::loadForSummary($operation)
-                )->summary()
-            )
+        $page = $operations->getCollection();
+        // Legacy selected squadron names are not an Eloquent relation; resolve them once per page.
+        $selectedSquadrons = OperationPresenter::selectedSquadronsByName(
+            $page->flatMap(fn (Operation $operation) => OperationPresenter::selectedSquadronNames($operation)->all())
         );
+        $operations->setCollection($page->map(
+            fn (Operation $operation) => OperationPresenter::make($operation)->summary($selectedSquadrons)
+        ));
 
         return [
             $operations,
@@ -58,7 +58,7 @@ class OperationSummaryListQuery
     protected function buildQuery(string $status, string $search)
     {
         $query = Operation::query()
-            ->with(['squadron.leader', 'creator.roles']);
+            ->with(['squadron.leader', 'squadron.emblem', 'creator.roles']);
 
         if ($status === 'active') {
             $query->whereIn('status', [

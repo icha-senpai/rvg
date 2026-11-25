@@ -178,8 +178,11 @@ class OperationAfterActionReportWebTest extends TestCase
 
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Operations/OperationDashboard')
-            ->where('afterActionOperations.0.id', $operation->id)
-            ->where('afterActionOperations.0.after_action_no_show.0.id', $participant->id)
+            ->missingAll(['afterActionOperations', 'operationSettlementLootOptions', 'verifiedMembers'])
+            ->reloadOnly(['afterActionOperations', 'operationSettlementLootOptions', 'verifiedMembers'], fn (Assert $aar) => $aar
+                ->where('afterActionOperations.0.id', $operation->id)
+                ->where('afterActionOperations.0.after_action_no_show.0.id', $participant->id)
+            )
         );
     }
 

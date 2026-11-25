@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../ziggy'
@@ -7,12 +7,13 @@ import { Ziggy } from '../../ziggy'
 import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonContainer from '@/Components/HorizonContainer.vue'
-import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
-import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 import OperationAccordion from '@/Pages/Operations/Components/OperationAccordion.vue'
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
 import { canCreateOperation as userCanCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
+
+const MissionEditorForm = defineAsyncComponent(() => import('@/Pages/Operations/Components/MissionEditorForm.vue'))
+const MissionShowPanel = defineAsyncComponent(() => import('@/Pages/Operations/Components/MissionShowPanel.vue'))
 
 const props = defineProps({
   operations: {
@@ -176,6 +177,7 @@ function goToUrl(url) {
   if (!url) return
 
   router.get(url, {}, {
+    only: ['operations', 'activeOperation', 'editingOperation'],
     preserveScroll: true,
     preserveState: true,
   })

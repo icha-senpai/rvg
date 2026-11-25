@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onUnmounted, ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { Ziggy } from '../../ziggy'
@@ -9,14 +9,15 @@ import HorizonButton from '@/Components/HorizonButton.vue'
 import HorizonConfirmDialog from '@/Components/HorizonConfirmDialog.vue'
 import HorizonInput from '@/Components/HorizonInput.vue'
 import HorizonSelect from '@/Components/HorizonSelect.vue'
-import AfterActionReportSection from '@/Components/AfterActionReportSection.vue'
-import OperationSettlementSection from '@/Components/OperationSettlementSection.vue'
 import OperationDrawer from '@/Pages/Operations/Components/OperationDrawer.vue'
-import MissionEditorForm from '@/Pages/Operations/Components/MissionEditorForm.vue'
 import OperationModal from '@/Pages/Operations/Components/OperationModal.vue'
-import MissionShowPanel from '@/Pages/Operations/Components/MissionShowPanel.vue'
 import { canCreateOperation as userCanCreateOperation, isDirectorLike as userIsDirectorLike } from '@/auth'
 import { getHighestOrgRoleSlug, getOrgRoleColor } from '@/roleColors'
+
+const AfterActionReportSection = defineAsyncComponent(() => import('@/Components/AfterActionReportSection.vue'))
+const OperationSettlementSection = defineAsyncComponent(() => import('@/Components/OperationSettlementSection.vue'))
+const MissionEditorForm = defineAsyncComponent(() => import('@/Pages/Operations/Components/MissionEditorForm.vue'))
+const MissionShowPanel = defineAsyncComponent(() => import('@/Pages/Operations/Components/MissionShowPanel.vue'))
 
 const page = usePage()
 
@@ -27,15 +28,11 @@ const props = defineProps({
   },
   afterActionOperations: {
     type: Array,
-    default: () => [],
+    default: null,
   },
   operationSettlementLootOptions: {
     type: Object,
-    default: () => ({
-      commodities: [],
-      items: [],
-      components: [],
-    }),
+    default: null,
   },
   verifiedMembers: {
     type: Array,
@@ -100,6 +97,8 @@ const editorSquadronId = computed(() =>
 const createTemplateId = ref('')
 const transitionProcessingIds = ref(new Set())
 const activeDashboardSection = ref('board')
+const afterActionLoading = ref(false)
+let refreshAfterAction = false
 const openAfterActionOperationId = ref(null)
 const attendanceDraftMembersByOperationId = ref({})
 
@@ -264,10 +263,25 @@ function refreshOperations({ resetPage = false } = {}) {
   if (!query.search) delete query.search
   if (!query.status) delete query.status
 
+  const loadAfterAction = activeDashboardSection.value === 'aar'
+    && (refreshAfterAction || props.afterActionOperations === null)
+  const only = ['operations']
+  if (loadAfterAction) {
+    only.push('afterActionOperations')
+    if (props.operationSettlementLootOptions === null) {
+      only.push('operationSettlementLootOptions', 'verifiedMembers')
+    }
+  }
+
   router.get(route('operations.index', {}, Ziggy), query, {
-    only: ['operations'],
+    only,
     preserveScroll: true,
     preserveState: true,
+    onStart: () => { afterActionLoading.value = loadAfterAction },
+    onSuccess: () => {
+      if (loadAfterAction) refreshAfterAction = false
+    },
+    onFinish: () => { afterActionLoading.value = false },
   })
 }
 
@@ -275,6 +289,7 @@ function goToUrl(url) {
   if (!url) return
 
   router.get(url, {}, {
+    only: ['operations', 'activeOperation', 'editingOperation'],
     preserveScroll: true,
     preserveState: true,
   })
@@ -656,6 +671,8 @@ const filteredOperations = computed(() => {
 
 let filterRefreshTimeout = null
 
+onUnmounted(() => clearTimeout(filterRefreshTimeout))
+
 function queueRefreshOperations() {
   if (filterRefreshTimeout) {
     clearTimeout(filterRefreshTimeout)
@@ -667,15 +684,23 @@ function queueRefreshOperations() {
 }
 
 function selectDashboardSection(section) {
-  activeDashboardSection.value = section
-
-  if (section === 'aar' && statusFilter.value !== 'completed') {
-    statusFilter.value = 'completed'
+  const nextStatus = section === 'aar' ? 'completed' : 'active'
+  if (activeDashboardSection.value === section) {
+    statusFilter.value = nextStatus
     return
   }
 
-  if (section === 'board' && statusFilter.value !== 'active') {
-    statusFilter.value = 'active'
+  activeDashboardSection.value = section
+  afterActionLoading.value = section === 'aar'
+  if (afterActionLoading.value) {
+    refreshAfterAction = true
+  }
+
+  if (statusFilter.value === nextStatus) {
+    clearTimeout(filterRefreshTimeout)
+    refreshOperations({ resetPage: true })
+  } else {
+    statusFilter.value = nextStatus
   }
 }
 
@@ -706,7 +731,8 @@ function attendanceDraftMembers(operation) {
 }
 
 watch(statusFilter, () => {
-  queueRefreshOperations()
+  clearTimeout(filterRefreshTimeout)
+  refreshOperations({ resetPage: true })
 })
 
 watch(search, () => {
@@ -1165,7 +1191,7 @@ function statusCardClass(status) {
               </div>
 
               <h2 class="mt-1 text-xl font-black text-horizon-white">
-                {{ filteredAfterActionOperations.length }} Completed Operations
+                {{ afterActionOperations === null ? 'Completed Operations' : `${filteredAfterActionOperations.length} Completed Operations` }}
               </h2>
 
               <p class="mt-1 text-sm text-text-secondary">
@@ -1178,7 +1204,14 @@ function statusCardClass(status) {
             </div>
           </div>
 
-          <div v-if="filteredAfterActionOperations.length" class="space-y-4">
+          <div v-if="afterActionOperations === null" class="py-6 text-sm text-text-secondary" role="status">
+            <span v-if="afterActionLoading">Loading completed operations...</span>
+            <HorizonButton v-else type="button" @click="refreshOperations()">
+              Retry loading completed operations
+            </HorizonButton>
+          </div>
+
+          <div v-else-if="filteredAfterActionOperations.length" class="space-y-4">
             <article
               v-for="operation in filteredAfterActionOperations"
               :key="`${operation.id}-${operation.after_action_report_updated_at ?? 'na'}`"

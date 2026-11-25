@@ -63,6 +63,7 @@ class OperationWebInertiaFlowTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Operations/OperationsIndex')
             ->where('activeOperation.operation.id', $operation->id)
+            ->where('activeOperation.operation.operation_settlement.loot_options', null)
         );
     }
 

@@ -70,22 +70,27 @@ class OperationPageController extends Controller
             abort(403);
         }
 
-        [$operations, $filters] = $this->query->dashboardList(
+        // Both props share one query when requested together; drawer and AAR visits can skip it.
+        $dashboard = null;
+        $loadDashboard = fn () => $this->query->dashboardList(
             (string) $request->query('status', 'active'),
             (string) $request->query('search', ''),
             12
         );
+        $dashboardData = function () use (&$dashboard, $loadDashboard) {
+            return $dashboard ??= $loadDashboard();
+        };
 
         return Inertia::render('Operations/OperationDashboard', [
-            'operations' => $operations,
-            'filters' => $filters,
-            'squadrons' => SquadronPresenter::collection($this->squadrons->listAll()),
-            'operationTemplates' => $this->operationTemplatesFor($user),
-            'afterActionOperations' => $this->showData->dashboardAfterActionOperations($user),
-            'operationSettlementLootOptions' => $this->showData->settlementLootOptions(),
-            'verifiedMembers' => $this->showData->verifiedMembers(),
-            'activeOperation' => $this->resolveActiveOperation($request),
-            'editingOperation' => $this->resolveEditingOperation($request),
+            'operations' => fn () => $dashboardData()[0],
+            'filters' => fn () => $dashboardData()[1],
+            'squadrons' => fn () => SquadronPresenter::collection($this->squadrons->listAll()),
+            'operationTemplates' => fn () => $this->operationTemplatesFor($user),
+            'afterActionOperations' => Inertia::optional(fn () => $this->showData->dashboardAfterActionOperations($user)),
+            'operationSettlementLootOptions' => Inertia::optional(fn () => $this->showData->settlementLootOptions()),
+            'verifiedMembers' => Inertia::optional(fn () => $this->showData->verifiedMembers()),
+            'activeOperation' => fn () => $this->resolveActiveOperation($request),
+            'editingOperation' => fn () => $this->resolveEditingOperation($request),
         ]);
     }
 
@@ -97,12 +102,13 @@ class OperationPageController extends Controller
         $this->authorize('view', $operation);
 
         $user = $request->user();
-        $data = $this->showData->build($operation, $user);
+        $lootOptions = $operation->isCompleted() ? $this->showData->settlementLootOptions() : null;
+        $data = $this->showData->build($operation, $user, $lootOptions);
 
         return Inertia::render('Operations/MissionShow', [
             ...$data,
             'authUser' => $user,
-            'operationSettlementLootOptions' => $this->showData->settlementLootOptions(),
+            'operationSettlementLootOptions' => $lootOptions,
         ]);
     }
 
@@ -481,19 +487,14 @@ class OperationPageController extends Controller
             return redirect()->route('operations.index');
         }
 
-        $canCreateOperation = $user->can('create', Operation::class);
-
-        $operations = $this->query->forUser($user)
-            ->withQueryString();
-
         return Inertia::render('Operations/OperationsIndex', [
-            'operations' => $operations,
-            'activeOperation' => $this->resolveActiveOperation($request),
-            'editingOperation' => $this->resolveEditingOperation($request),
-            'squadrons' => $canCreateOperation
+            'operations' => fn () => $this->query->forUser($user)->withQueryString(),
+            'activeOperation' => fn () => $this->resolveActiveOperation($request),
+            'editingOperation' => fn () => $this->resolveEditingOperation($request),
+            'squadrons' => fn () => $user->can('create', Operation::class)
                 ? SquadronPresenter::collection($this->squadrons->listAll())
                 : [],
-            'operationTemplates' => $canCreateOperation
+            'operationTemplates' => fn () => $user->can('create', Operation::class)
                 ? $this->operationTemplatesFor($user)
                 : [],
         ]);

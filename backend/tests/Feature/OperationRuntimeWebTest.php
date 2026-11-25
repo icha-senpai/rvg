@@ -211,6 +211,9 @@ class OperationRuntimeWebTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Operations/OperationRun')
                 ->where('operation.participants_count', 1)
+                ->missing('operation.operation_settlement')
+                ->missing('operation.after_action_report')
+                ->has('verifiedMembers')
                 ->where('runtime.summary.present_count', 1)
                 ->where('runtime.summary.signed_off_count', 1)
             );

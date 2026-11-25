@@ -56,10 +56,13 @@ class OperationSettlementViewService
         }
 
         $canManage ??= $viewer ? $this->access->canManageAfterActionReport($viewer, $operation) : false;
-        $lootOptions ??= $this->lootOptions();
         $settlement = $operation->relationLoaded('settlement')
             ? $operation->getRelation('settlement')
             : $operation->settlement()->first();
+        // A preview only needs the catalog if existing loot rows need labels.
+        $lootOptions ??= $includeLootOptions || ! empty($settlement?->loot_rows)
+            ? $this->lootOptions()
+            : [];
         $settlement?->loadMissing([
             'finalizedBy:id,rsi_handle,discord_name,name',
             'reopenedBy:id,rsi_handle,discord_name,name',

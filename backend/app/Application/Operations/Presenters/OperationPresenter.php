@@ -6,6 +6,7 @@ use App\Domain\Media\Presenters\MediaPresenter;
 use App\Models\Operation;
 use App\Models\Squadron;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * Shapes operation models into the payloads used by operation list pages,
@@ -28,7 +29,7 @@ class OperationPresenter
         return new self($operation, $viewer);
     }
 
-    public function summary(): array
+    public function summary(?Collection $selectedSquadrons = null): array
     {
         return [
             'id' => $this->operation->id,
@@ -53,7 +54,7 @@ class OperationPresenter
             'created_by' => $this->operation->created_by,
             'creator' => $this->creatorPayload(),
             'squadron' => $this->squadronPayload(true),
-            'selected_squadrons' => $this->selectedSquadronsPayload(),
+            'selected_squadrons' => $this->selectedSquadronsPayload($selectedSquadrons),
         ];
     }
 
@@ -123,26 +124,31 @@ class OperationPresenter
                     ],
                 ];
             })->values(),
-            'roles' => $this->operation->roles->sortBy('sort_order')->values()->map(function ($role) {
-                $filledCount = $role->participants->count();
-                $remainingSpots = $role->capacity !== null
-                    ? max(0, $role->capacity - $filledCount)
-                    : null;
-
-                return [
-                    'id' => $role->id,
-                    'role_name' => $role->role_name,
-                    'role_display_name' => $role->role_display_name,
-                    'capacity' => $role->capacity,
-                    'filled_count' => $filledCount,
-                    'remaining_spots' => $remainingSpots,
-                    'is_full' => $role->capacity !== null && $filledCount >= $role->capacity,
-                    'min_required' => $role->min_required,
-                    'description' => $role->description,
-                    'requirements' => $role->requirements,
-                ];
-            })->values(),
+            'roles' => $this->rolesPayload(),
         ];
+    }
+
+    public function rolesPayload(): Collection
+    {
+        return $this->operation->roles->sortBy('sort_order')->values()->map(function ($role) {
+            $filledCount = $role->participants->count();
+            $remainingSpots = $role->capacity !== null
+                ? max(0, $role->capacity - $filledCount)
+                : null;
+
+            return [
+                'id' => $role->id,
+                'role_name' => $role->role_name,
+                'role_display_name' => $role->role_display_name,
+                'capacity' => $role->capacity,
+                'filled_count' => $filledCount,
+                'remaining_spots' => $remainingSpots,
+                'is_full' => $role->capacity !== null && $filledCount >= $role->capacity,
+                'min_required' => $role->min_required,
+                'description' => $role->description,
+                'requirements' => $role->requirements,
+            ];
+        })->values();
     }
 
     public function form(): array
@@ -213,22 +219,31 @@ class OperationPresenter
         return strlen($text) > $limit ? substr($text, 0, $limit) . '…' : $text;
     }
 
-    protected function selectedSquadronsPayload(): array
+    public static function selectedSquadronNames(Operation $operation): Collection
     {
-        $names = collect(explode(',', (string) ($this->operation->squadron_name ?? '')))
+        return collect(explode(',', (string) ($operation->squadron_name ?? '')))
             ->map(fn (string $name) => trim($name))
             ->filter()
             ->values();
+    }
 
+    public static function selectedSquadronsByName(Collection $names): Collection
+    {
         if ($names->isEmpty()) {
-            return [];
+            return collect();
         }
 
-        $squadrons = Squadron::query()
+        return Squadron::query()
             ->with('emblem')
-            ->whereIn('name', $names->all())
+            ->whereIn('name', $names->unique()->values()->all())
             ->get()
             ->keyBy('name');
+    }
+
+    protected function selectedSquadronsPayload(?Collection $squadrons = null): array
+    {
+        $names = self::selectedSquadronNames($this->operation);
+        $squadrons ??= self::selectedSquadronsByName($names);
 
         return $names
             ->map(function (string $name) use ($squadrons) {

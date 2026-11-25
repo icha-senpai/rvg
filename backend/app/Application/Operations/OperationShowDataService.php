@@ -17,7 +17,7 @@ class OperationShowDataService
         protected OperationSettlementViewService $settlements,
     ) {}
 
-    public function build(Operation $operation, ?User $viewer = null): array
+    public function build(Operation $operation, ?User $viewer = null, ?array $lootOptions = null): array
     {
         OperationPresenterRelations::loadForFull($operation);
         $operation->loadMissing(['participants.role']);
@@ -32,8 +32,6 @@ class OperationShowDataService
         $canViewSlots = $viewer ? $this->access->canViewOperationSlots($viewer, $operation) : false;
         $canAssignSlots = $viewer ? $this->access->canAssignOperationSlots($viewer, $operation) : false;
         $canManageAar = $viewer ? $this->access->canManageAfterActionReport($viewer, $operation) : false;
-        $settlementLootOptions = $this->settlementLootOptions();
-
         $participantCount = $visibleParticipants->count();
         $participants = $visibleParticipants
             ->map(fn ($participant) => $this->participants->participant($participant, $canViewSlots))
@@ -55,7 +53,13 @@ class OperationShowDataService
         $operationPayload['after_action_no_show'] = $this->members->payloadsForIds($operation->after_action_no_show_user_ids ?? []);
         $operationPayload['after_action_signed_off_early'] = $this->members->payloadsForIds($operation->after_action_signed_off_early_user_ids ?? []);
         $operationPayload['after_action_excused'] = $this->members->payloadsForIds($operation->after_action_excused_user_ids ?? []);
-        $operationPayload['operation_settlement'] = $this->settlements->payload($operation, $viewer, $canManageAar, $settlementLootOptions);
+        $operationPayload['operation_settlement'] = $this->settlements->payload(
+            $operation,
+            $viewer,
+            $canManageAar,
+            $lootOptions,
+            includeLootOptions: false
+        );
         $operationPayload['permissions'] = [
             'can_view_slots' => $canViewSlots,
             'can_assign_slots' => $canAssignSlots,
@@ -87,6 +91,35 @@ class OperationShowDataService
         return [
             'mission' => OperationPresenter::make($operation)->form(),
             'squadronId' => $operation->squadron_id,
+        ];
+    }
+
+    public function run(Operation $operation, User $viewer): array
+    {
+        $operation->loadMissing(['participants.user', 'participants.role', 'roles.participants']);
+        $canViewSlots = $this->access->canViewOperationSlots($viewer, $operation);
+        $participants = $operation->participants
+            ->reject(fn ($participant) => $participant->isSignedOffBeforeStart())
+            ->map(fn ($participant) => $this->participants->participant($participant, $canViewSlots))
+            ->values()
+            ->all();
+
+        // The run tool does not render mission details, AARs, or the loot catalog.
+        return [
+            'operation' => [
+                'id' => $operation->id,
+                'title' => $operation->title,
+                'status' => $operation->status,
+                'slots' => $operation->slots,
+                'roles' => OperationPresenter::make($operation)->rolesPayload(),
+                'participants_count' => count($participants),
+                'permissions' => [
+                    'can_view_slots' => $canViewSlots,
+                    'can_assign_slots' => $this->access->canAssignOperationSlots($viewer, $operation),
+                ],
+            ],
+            'participants' => $participants,
+            'verifiedMembers' => $this->members->verifiedMembers(),
         ];
     }
 

@@ -68,16 +68,18 @@ class OperationSettlementWebTest extends TestCase
             ->get('/operations/dashboard')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Operations/OperationDashboard')
-                ->where('afterActionOperations.0.id', $operation->id)
-                ->where('afterActionOperations.0.operation_settlement.money_rows.0.notes', 'Lead payout')
-                ->where('afterActionOperations.0.operation_settlement.activity.finalized_at', null)
-                ->where('afterActionOperations.0.operation_settlement.eligible_recipients.0.recipient_squadron_id', $squadron->id)
-                ->where('afterActionOperations.0.operation_settlement.eligible_recipients.1.recipient_squadron_id', $supportSquadron->id)
-                ->where('afterActionOperations.0.operation_settlement.eligible_recipients.2.recipient_type', 'organization')
-                ->where('afterActionOperations.0.operation_settlement.eligible_recipients.3.recipient_user_id', $participant->id)
-                ->where('afterActionOperations.0.operation_settlement.loot_options', null)
-                ->where('operationSettlementLootOptions.commodities.0.label', 'Agricium')
-                ->where('operationSettlementLootOptions.items.0.label', 'Atlas Drive · Quantum Drive')
+                ->reloadOnly(['afterActionOperations', 'operationSettlementLootOptions'], fn (Assert $aar) => $aar
+                    ->where('afterActionOperations.0.id', $operation->id)
+                    ->where('afterActionOperations.0.operation_settlement.money_rows.0.notes', 'Lead payout')
+                    ->where('afterActionOperations.0.operation_settlement.activity.finalized_at', null)
+                    ->where('afterActionOperations.0.operation_settlement.eligible_recipients.0.recipient_squadron_id', $squadron->id)
+                    ->where('afterActionOperations.0.operation_settlement.eligible_recipients.1.recipient_squadron_id', $supportSquadron->id)
+                    ->where('afterActionOperations.0.operation_settlement.eligible_recipients.2.recipient_type', 'organization')
+                    ->where('afterActionOperations.0.operation_settlement.eligible_recipients.3.recipient_user_id', $participant->id)
+                    ->where('afterActionOperations.0.operation_settlement.loot_options', null)
+                    ->where('operationSettlementLootOptions.commodities.0.label', 'Agricium')
+                    ->where('operationSettlementLootOptions.items.0.label', 'Atlas Drive · Quantum Drive')
+                )
             );
 
         $this->actingAs($creator)
@@ -455,8 +457,10 @@ class OperationSettlementWebTest extends TestCase
             ->get('/operations/dashboard')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Operations/OperationDashboard')
-                ->where('afterActionOperations.0.operation_settlement.is_finalized', true)
-                ->where('afterActionOperations.0.operation_settlement.activity.finalized_by', $creator->rsi_handle ?? $creator->discord_name ?? $creator->name)
+                ->reloadOnly('afterActionOperations', fn (Assert $aar) => $aar
+                    ->where('afterActionOperations.0.operation_settlement.is_finalized', true)
+                    ->where('afterActionOperations.0.operation_settlement.activity.finalized_by', $creator->rsi_handle ?? $creator->discord_name ?? $creator->name)
+                )
             );
 
         $this->assertDatabaseHas('ledger_transactions', [
@@ -678,7 +682,9 @@ class OperationSettlementWebTest extends TestCase
             ->get('/operations/dashboard')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Operations/OperationDashboard')
-                ->where('afterActionOperations.0.operation_settlement.activity.reopened_by', $creator->rsi_handle ?? $creator->discord_name ?? $creator->name)
+                ->reloadOnly('afterActionOperations', fn (Assert $aar) => $aar
+                    ->where('afterActionOperations.0.operation_settlement.activity.reopened_by', $creator->rsi_handle ?? $creator->discord_name ?? $creator->name)
+                )
             );
     }
 
