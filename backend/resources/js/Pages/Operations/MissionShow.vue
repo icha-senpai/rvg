@@ -51,16 +51,8 @@ function hasAssignedSlot(slot) {
 
 const participantsList = computed(() => Array.isArray(props.participants) ? props.participants : [])
 const localParticipants = ref([])
-const currentParticipant = computed(() => {
-  const participantId = props.currentParticipant?.id
-  if (!participantId) {
-    return props.currentParticipant ?? null
-  }
-
-  return localParticipants.value.find((participant) => Number(participant?.id) === Number(participantId))
-    ?? props.currentParticipant
-    ?? null
-})
+// The roster can hide assignments, while this prop includes the viewer's own signup.
+const currentParticipant = computed(() => props.currentParticipant ?? null)
 const participantsBySlotSafe = computed(() => {
   return localParticipants.value.reduce((groups, participant) => {
     const slotName = participant?.slot
@@ -85,36 +77,16 @@ const canAssignSlots = computed(() => !!operation?.permissions?.can_assign_slots
 const participantCount = computed(() => Number(operation?.participants_count ?? localParticipants.value.length ?? 0))
 const isDirectorLike = computed(() => userIsDirectorLike(user.value))
 const hasSlotOptions = computed(() => Array.isArray(operation?.slots) && operation.slots.length > 0)
-const roleAssignmentCounts = computed(() => {
-  return localParticipants.value.reduce((counts, participant) => {
-    const roleId = participant?.role?.id ?? participant?.operation_role_id ?? null
-    if (roleId === null || roleId === undefined || roleId === '') {
-      return counts
-    }
-
-    const key = String(roleId)
-    counts[key] = (counts[key] ?? 0) + 1
-    return counts
-  }, {})
-})
 const operationRoles = computed(() => {
-  if (Array.isArray(operation?.roles) && operation.roles.length) {
-    return operation.roles.map((role) => {
-      const filledCount = roleAssignmentCounts.value[String(role.id)] ?? 0
-      const capacity = typeof role.capacity === 'number' ? role.capacity : null
-      const remainingSpots = capacity === null ? null : Math.max(capacity - filledCount, 0)
+  const { roles, slots } = props.operation ?? {}
 
-      return {
-        ...role,
-        filled_count: filledCount,
-        remaining_spots: remainingSpots,
-        is_full: capacity !== null ? remainingSpots <= 0 : Boolean(role.is_full),
-      }
-    })
+  // Roster permissions can hide assignments, so use the server's role totals.
+  if (Array.isArray(roles) && roles.length) {
+    return roles
   }
 
-  return Array.isArray(operation?.slots)
-    ? operation.slots.map((slot) => ({
+  return Array.isArray(slots)
+    ? slots.map((slot) => ({
         id: `slot:${slot}`,
         role_name: slot,
         role_display_name: slot,
@@ -522,7 +494,7 @@ const canLeaveOperation = computed(() => {
 })
 
 const currentParticipantSlotChanged = computed(() => {
-  return String(joinForm.roleId ?? '') !== String(currentParticipant.value?.role?.id ?? '')
+  return String(joinForm.roleId ?? '') !== roleIdForParticipant(currentParticipant.value)
 })
 
 const participationStatusMessage = computed(() => {
@@ -590,7 +562,16 @@ function findRoleById(roleId) {
 }
 
 function roleIdForParticipant(participant) {
-  return participant?.role?.id ? String(participant.role.id) : ''
+  if (participant?.role?.id) {
+    return String(participant.role.id)
+  }
+
+  if (!hasAssignedSlot(participant?.slot)) {
+    return ''
+  }
+
+  const role = operationRoles.value.find(role => role.role_display_name === participant.slot)
+  return role ? String(role.id) : ''
 }
 
 function payloadForSelectedRole(roleId) {
@@ -710,9 +691,6 @@ async function updateOwnSlot() {
     },
     {
       preserveScroll: true,
-      onSuccess: () => {
-        applyParticipantRoleChange(currentParticipant.value.id, joinForm.roleId)
-      },
       onError: (errors) => {
         window.hzNotifyError?.({
           message: firstErrorMessage(errors, 'Failed to update role request.'),
@@ -1125,7 +1103,7 @@ function attendanceDraftMembers(operationRecord) {
 
                   <div v-if="hasSlotOptions && canUpdateParticipation && !canAssignSlots" class="space-y-3">
                     <div class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Your Role Request</div>
-                    <HorizonSelect v-model="joinForm.roleId" :options="roleOptionsFor(currentParticipant?.role?.id)" size="sm" />
+                    <HorizonSelect v-model="joinForm.roleId" :options="roleOptionsFor(roleIdForParticipant(currentParticipant))" size="sm" />
                     <HorizonButton
                       variant="outline"
                       class="w-full"
